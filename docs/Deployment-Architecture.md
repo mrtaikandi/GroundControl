@@ -51,7 +51,7 @@ services:
   groundcontrol:
     image: groundcontrol/api:latest
     environment:
-      - MongoDB__ConnectionString=mongodb://mongodb:27017/groundcontrol
+      - ConnectionStrings__MongoDB=mongodb://mongodb:27017/groundcontrol
       - ChangeNotifier__Type=InProcess
       - DataProtection__KeyRing=FileSystem
       - DataProtection__KeyStorePath=/app/keys
@@ -113,7 +113,7 @@ Multiple GroundControl API pods behind a service, backed by a MongoDB replica se
 ```yaml
 environment:
   - ChangeNotifier__Type=MongoChangeStream
-  - MongoDB__ConnectionString=mongodb://mongo-0,mongo-1,mongo-2:27017/groundcontrol?replicaSet=rs0
+  - ConnectionStrings__MongoDB=mongodb://mongo-0,mongo-1,mongo-2:27017/groundcontrol?replicaSet=rs0
   - DataProtection__KeyRing=Certificate
   - DataProtection__KeyStorePath=/app/keys
   - DataProtection__Certificate__Provider=FileSystem
@@ -164,7 +164,7 @@ Multiple Kubernetes clusters across regions, each with their own GroundControl A
 ```yaml
 environment:
   - ChangeNotifier__Type=MongoChangeStream
-  - MongoDB__ConnectionString=mongodb+srv://cluster.example.com/groundcontrol?readPreference=secondaryPreferred
+  - ConnectionStrings__MongoDB=mongodb+srv://cluster.example.com/groundcontrol?readPreference=secondaryPreferred
   - DataProtection__KeyRing=Azure
   - DataProtection__Azure__BlobStorageUri=https://<account>.blob.core.windows.net/data-protection/keys.xml
   - DataProtection__Azure__KeyVaultKeyUri=https://<vault>.vault.azure.net/keys/groundcontrol-dp
@@ -312,8 +312,7 @@ Application configuration for GroundControl server:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `MongoDB:ConnectionString` | *required* | MongoDB connection string |
-| `MongoDB:DatabaseName` | `groundcontrol` | Database name |
+| `ConnectionStrings:MongoDB` | *required* | MongoDB connection string. Put the database name in the URI path, for example `mongodb://localhost:27017/groundcontrol?replicaSet=rs0` |
 | `ChangeNotifier:Type` | `InProcess` | `InProcess` or `MongoChangeStream` |
 | `DataProtection:KeyRing` | `FileSystem` | Key ring configurator: `FileSystem`, `Certificate`, `Redis`, `Azure` |
 | `DataProtection:KeyStorePath` | `./keys` | File system path for key ring storage (`FileSystem`, `Certificate`) |
