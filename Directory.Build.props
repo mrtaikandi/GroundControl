@@ -1,0 +1,34 @@
+﻿<Project>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>Latest</LangVersion>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <UseArtifactsOutput>true</UseArtifactsOutput>
+        <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+
+        <RepositoryRoot>$(MSBuildThisFileDirectory).TrimEnd([System.IO]::DirectorySeparatorChar)</RepositoryRoot>
+        <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)stylecop.ruleset</CodeAnalysisRuleSet>
+    </PropertyGroup>
+
+    <PropertyGroup Label="NuGet package properties">
+        <Authors>Mohammadreza Taikandi</Authors>
+        <PackageVersion>$(Version)</PackageVersion>
+        <PackageProjectUrl>https://github.com/mrtaikandi/GroundControl</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/mrtaikandi/GroundControl</RepositoryUrl>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageLicenseUrl>https://github.com/mrtaikandi/Hutmesh.GroundControl/blob/main/LICENSE</PackageLicenseUrl>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="$(MSBuildProjectDirectory)\$(MSBuildProjectFile).DotSettings" Visible="false" />
+    </ItemGroup>
+
+</Project>

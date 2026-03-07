@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dotnet \".claude/hooks/format-csharp.cs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
