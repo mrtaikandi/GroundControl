@@ -6,7 +6,7 @@
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
 
-        <!-- Replaces the xUnit native command line experience with the Microsoft Testing Platform -->
+        <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
         <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     </PropertyGroup>
 </Project>
