@@ -310,3 +310,5 @@ GroundControl.Link
 ```
 
 Abstractions (`ISseClient`, `IConfigFetcher`, `IConfigCache`) allow consuming applications to replace components if needed (e.g., custom cache backed by SQLite instead of a file).
+
+> **Naming note:** `GroundControlOptions` in `GroundControl.Link` is the client SDK configuration type. The Management API host may also use a server-side root `GroundControlOptions` for application startup configuration. They are separate types in different projects.

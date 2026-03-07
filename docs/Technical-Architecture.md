@@ -173,6 +173,8 @@ Details: [Deployment Architecture](Deployment-Architecture.md)
 | Transport | TLS required in production |
 | Audit | Full diff trail (who, when, before/after) with pluggable store |
 
+The Management API host selects the active admin authentication mode from `GroundControlOptions.Security.AuthenticationMode` under the `GroundControl` configuration root.
+
 Details: [Security Model](Security-Model.md)
 
 ---

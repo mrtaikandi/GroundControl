@@ -14,10 +14,16 @@ GroundControl supports three authentication modes, selected per instance via con
 | **BuiltIn** | Small/medium teams, self-hosted with UI | ASP.NET Identity with MongoDB. Cookie + JWT auth. Admin-created users. |
 | **External** | Enterprise, SSO | OIDC integration with Entra ID, Keycloak, OpenIddict, etc. |
 
-Only one mode is active per instance. The mode is set via configuration:
+Only one mode is active per instance. The Management API host binds the `GroundControl` section into `GroundControlOptions`, and the active auth mode is selected from `GroundControlOptions.Security.AuthenticationMode`:
 
 ```json
-{ "Authentication": { "Mode": "None" } }
+{
+  "GroundControl": {
+    "Security": {
+      "AuthenticationMode": "None"
+    }
+  }
+}
 ```
 
 ---
@@ -35,14 +41,46 @@ public interface IAuthConfigurator
 }
 ```
 
+**Root configuration model:**
+
+```csharp
+public sealed partial class GroundControlOptions
+{
+  public const string SectionName = "GroundControl";
+
+  public SecurityOptions Security { get; init; } = new();
+
+  [OptionsValidator]
+  internal sealed partial class Validator : IValidateOptions<GroundControlOptions>;
+}
+
+public sealed partial class SecurityOptions
+{
+  public AuthenticationMode AuthenticationMode { get; init; } = AuthenticationMode.None;
+
+  [OptionsValidator]
+  internal sealed partial class Validator : IValidateOptions<SecurityOptions>;
+}
+
+public enum AuthenticationMode
+{
+  None,
+  BuiltIn,
+  External
+}
+```
+
+`AddGroundControlOptions(...)` binds the `GroundControl` section once at startup, validates it with the generated validators, and registers the resulting singleton `GroundControlOptions` plus `IOptions<GroundControlOptions>`. This root options model is specific to the Management API host; it does not move non-security sections such as `Persistence:MongoDb`.
+
 **Registration at startup:**
 
 ```csharp
-var authMode = configuration.GetValue<string>("Authentication:Mode") ?? "None";
-IAuthConfigurator configurator = authMode switch
+var groundControlOptions = builder.Services.AddGroundControlOptions(builder.Configuration);
+
+IAuthConfigurator configurator = groundControlOptions.Security.AuthenticationMode switch
 {
-    "BuiltIn" => new BuiltInAuthConfigurator(),
-    "External" => new ExternalAuthConfigurator(),
+  AuthenticationMode.BuiltIn => new BuiltInAuthConfigurator(groundControlOptions),
+  AuthenticationMode.External => new ExternalAuthConfigurator(groundControlOptions),
     _ => new NoAuthConfigurator()
 };
 
@@ -567,8 +605,8 @@ In Built-In mode, the first admin user is created automatically at startup via a
 
 **Behavior:**
 
-1. Check that `Authentication:Mode` is `BuiltIn`.
-2. Check that `Authentication:Seed` section is configured.
+1. Check that `GroundControl:Security:AuthenticationMode` is `BuiltIn`.
+2. Check that the `GroundControl:Security:Seed` section is configured.
 3. Check if a user with the seed username already exists in `users`. If yes, skip (idempotent).
 4. Create a user in `users` with `grants: [{ resource: null, roleId: <Admin role ID> }]`.
 5. Create a corresponding identity in `identity_users` with the hashed password.
@@ -578,16 +616,18 @@ In Built-In mode, the first admin user is created automatically at startup via a
 
 ```json
 {
-  "Authentication": {
-    "Seed": {
-      "AdminUsername": "admin",
-      "AdminEmail": "admin@local"
+  "GroundControl": {
+    "Security": {
+      "Seed": {
+        "AdminUsername": "admin",
+        "AdminEmail": "admin@local"
+      }
     }
   }
 }
 ```
 
-The password is supplied via environment variable: `Authentication__Seed__AdminPassword`. This ensures the password never appears in configuration files.
+The password is supplied via environment variable: `GroundControl__Security__Seed__AdminPassword`. This ensures the password never appears in configuration files.
 
 ---
 
@@ -595,20 +635,20 @@ The password is supplied via environment variable: `Authentication__Seed__AdminP
 
 ### No Auth → Built-In
 
-1. Set `Authentication:Mode = BuiltIn` and configure the seed admin section.
+1. Set `GroundControl:Security:AuthenticationMode = BuiltIn` and configure the seed admin section.
 2. Seed admin is created at startup.
 3. Existing audit records with `Guid.Empty` as the actor remain valid and clearly identifiable.
 
 ### Built-In → External
 
-1. Set `Authentication:Mode = External` and configure OIDC settings.
+1. Set `GroundControl:Security:AuthenticationMode = External` and configure OIDC settings.
 2. Pre-map existing users: for each user in `users`, set `ExternalId` to the expected `sub` claim from the IdP, and `ExternalProvider` to the provider name (e.g., `"entra"`). This can be done via a batch script or API calls before switching.
-3. Alternatively, enable `JitProvisioning:MatchByEmail = true` to automatically map users on first OIDC login by matching email addresses.
+3. Alternatively, enable `GroundControl:Security:External:JitProvisioning:MatchByEmail = true` to automatically map users on first OIDC login by matching email addresses.
 4. The `identity_users` collection becomes dormant and can be cleaned up later.
 
 ### External → Built-In
 
-1. Set `Authentication:Mode = BuiltIn`.
+1. Set `GroundControl:Security:AuthenticationMode = BuiltIn`.
 2. Users retain their `users` collection entries (grants, profile).
 3. Create `identity_users` entries with passwords for each user (admin action or self-service password setup flow).
 
@@ -631,10 +671,12 @@ This approach works with `SameSite=Lax` cookies (required for OIDC redirect call
 
 ```json
 {
-  "Authentication": {
-    "Csrf": {
-      "CookieName": "XSRF-TOKEN",
-      "HeaderName": "X-XSRF-TOKEN"
+  "GroundControl": {
+    "Security": {
+      "Csrf": {
+        "CookieName": "XSRF-TOKEN",
+        "HeaderName": "X-XSRF-TOKEN"
+      }
     }
   }
 }
@@ -646,73 +688,76 @@ This approach works with `SameSite=Lax` cookies (required for OIDC redirect call
 
 ```json
 {
-  "Authentication": {
-    "Mode": "None",
+  "GroundControl": {
+    "Security": {
+      "AuthenticationMode": "None",
 
-    "BuiltIn": {
-      "Jwt": {
-        "Issuer": "GroundControl",
-        "Audience": "GroundControl",
-        "AccessTokenLifetime": "01:00:00",
-        "RefreshTokenLifetime": "7.00:00:00"
-      },
-      "Cookie": {
-        "Name": ".GroundControl.Auth",
-        "ExpireTimeSpan": "14.00:00:00",
-        "SlidingExpiration": true
-      },
-      "Password": {
-        "RequiredLength": 12,
-        "RequireDigit": true,
-        "RequireUppercase": true,
-        "RequireLowercase": true,
-        "RequireNonAlphanumeric": false
-      },
-      "Lockout": {
-        "MaxFailedAttempts": 5,
-        "LockoutDuration": "00:15:00"
-      }
-    },
-
-    "External": {
-      "Authority": "https://login.microsoftonline.com/{tenant-id}/v2.0",
-      "ClientId": "...",
-      "ResponseType": "code",
-      "Scopes": ["openid", "profile", "email"],
-      "CallbackPath": "/auth/callback",
-      "JitProvisioning": {
-        "Enabled": true,
-        "MatchByEmail": true,
-        "AutoCreate": true
-      },
-      "ClaimMapping": {
-        "RoleMapping": {
-          "Claim": "roles",
-          "Mappings": {}
+      "BuiltIn": {
+        "Jwt": {
+          "Issuer": "GroundControl",
+          "Audience": "GroundControl",
+          "AccessTokenLifetime": "01:00:00",
+          "RefreshTokenLifetime": "7.00:00:00"
         },
-        "GroupRoleMapping": {
-          "Enabled": false,
-          "Claim": "groups",
-          "Mappings": {}
+        "Cookie": {
+          "Name": ".GroundControl.Auth",
+          "ExpireTimeSpan": "14.00:00:00",
+          "SlidingExpiration": true
+        },
+        "Password": {
+          "RequiredLength": 12,
+          "RequireDigit": true,
+          "RequireUppercase": true,
+          "RequireLowercase": true,
+          "RequireNonAlphanumeric": false
+        },
+        "Lockout": {
+          "MaxFailedAttempts": 5,
+          "LockoutDuration": "00:15:00"
         }
+      },
+
+      "External": {
+        "Authority": "https://login.microsoftonline.com/{tenant-id}/v2.0",
+        "ClientId": "...",
+        "ResponseType": "code",
+        "Scopes": ["openid", "profile", "email"],
+        "CallbackPath": "/auth/callback",
+        "JitProvisioning": {
+          "Enabled": true,
+          "MatchByEmail": true,
+          "AutoCreate": true
+        },
+        "ClaimMapping": {
+          "RoleMapping": {
+            "Claim": "roles",
+            "Mappings": {}
+          },
+          "GroupRoleMapping": {
+            "Enabled": false,
+            "Claim": "groups",
+            "Mappings": {}
+          }
+        }
+      },
+
+      "PersonalAccessTokens": {
+        "Enabled": true,
+        "MaxPerUser": 10,
+        "MaxLifetimeDays": 365,
+        "DefaultLifetimeDays": 90
+      },
+
+      "Seed": {
+        "AdminUsername": "admin",
+        "AdminEmail": "admin@local"
+      },
+
+      "Csrf": {
+        "Enabled": true,
+        "CookieName": "XSRF-TOKEN",
+        "HeaderName": "X-XSRF-TOKEN"
       }
-    },
-
-    "PersonalAccessTokens": {
-      "Enabled": true,
-      "MaxPerUser": 10,
-      "MaxLifetimeDays": 365,
-      "DefaultLifetimeDays": 90
-    },
-
-    "Seed": {
-      "AdminUsername": "admin",
-      "AdminEmail": "admin@local"
-    },
-
-    "Csrf": {
-      "CookieName": "XSRF-TOKEN",
-      "HeaderName": "X-XSRF-TOKEN"
     }
   }
 }
@@ -722,9 +767,9 @@ This approach works with `SameSite=Lax` cookies (required for OIDC redirect call
 
 | Setting | Environment Variable |
 |---------|---------------------|
-| JWT signing key | `Authentication__BuiltIn__Jwt__Secret` |
-| OIDC client secret | `Authentication__External__ClientSecret` |
-| Seed admin password | `Authentication__Seed__AdminPassword` |
+| JWT signing key | `GroundControl__Security__BuiltIn__Jwt__Secret` |
+| OIDC client secret | `GroundControl__Security__External__ClientSecret` |
+| Seed admin password | `GroundControl__Security__Seed__AdminPassword` |
 
 ---
 
