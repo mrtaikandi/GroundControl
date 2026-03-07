@@ -30,3 +30,4 @@ dotnet_diagnostic.CA2007.severity = warning    # CA2007: Do not directly await a
 dotnet_diagnostic.RS0030.severity = warning    # RS0030: Do not use banned APIs or symbols configured in BannedSymbols.txt.
 dotnet_diagnostic.CA1716.severity = none       # CA1716: Identifiers should not match keywords (e.g., "class", "namespace").
 dotnet_diagnostic.CA1062.severity = none       # CA1062: Validate arguments of public methods (e.g., null checks).
+dotnet_diagnostic.CA1812.severity = none       # CA1812: Avoid uninstantiated internal classes (e.g., utility classes).
