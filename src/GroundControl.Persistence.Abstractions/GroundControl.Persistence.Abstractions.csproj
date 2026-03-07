@@ -1,3 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+  <PropertyGroup>
+    <RootNamespace>GroundControl.Persistence</RootNamespace>
+  </PropertyGroup>
 </Project>
