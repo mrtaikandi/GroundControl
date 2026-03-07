@@ -1,3 +1,7 @@
+#pragma warning disable CA1849
+#pragma warning disable CA2007
+#pragma warning disable CA1031
+
 using System.Diagnostics;
 using System.Text.Json;
 
