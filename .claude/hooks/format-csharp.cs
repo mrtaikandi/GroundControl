@@ -22,7 +22,6 @@ try
 
     if (!string.Equals(Path.GetExtension(changedFilePath), ".cs", StringComparison.OrdinalIgnoreCase))
     {
-        Console.Error.WriteLine($"Changed file path is not a valid file path: {changedFilePath}");
         return;
     }
 

@@ -1,0 +1,7 @@
+P:System.DateTime.Now;Use System.DateTime.UtcNow instead.
+P:System.DateTimeOffset.Now;Use System.DateTimeOffset.UtcNow instead.
+P:System.DateTimeOffset.DateTime;Use System.DateTimeOffset.UtcDateTime instead.
+F:System.StringComparison.InvariantCulture;InvariantCulture performs a linguistic comparison. Prefer Ordinal.
+F:System.StringComparison.InvariantCultureIgnoreCase;InvariantCultureIgnoreCase performs a linguistic comparison. Prefer OrdinalIgnoreCase.
+P:System.StringComparer.InvariantCulture;InvariantCulture performs a linguistic comparison. Prefer Ordinal.
+P:System.StringComparer.InvariantCultureIgnoreCase;InvariantCultureIgnoreCase performs a linguistic comparison. Prefer OrdinalIgnoreCase.

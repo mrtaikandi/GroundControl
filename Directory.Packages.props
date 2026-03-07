@@ -2,7 +2,13 @@
     <PropertyGroup>
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     </PropertyGroup>
+
     <ItemGroup>
+        <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
+        <GlobalPackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.103" />
         <GlobalPackageReference Include="Nerdbank.GitVersioning" Version="3.9.50" />
+    </ItemGroup>
+
+    <ItemGroup>
     </ItemGroup>
 </Project>

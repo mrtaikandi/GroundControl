@@ -12,13 +12,11 @@ indent_size = 4
 tab_width = 4
 end_of_line = crlf
 insert_final_newline = false
-max_line_length = 150
+max_line_length = 180
 
-# .NET Analyzers
-dotnet_diagnostic.CA2007.severity = error # CA2007: Do not directly await a Task
-dotnet_diagnostic.SA0001.severity = none # SA0001: XML comment analysis is disabled due to project configuration
-dotnet_diagnostic.SA1505.severity = error # SA1505: Opening braces should not be followed by a blank line
-dotnet_diagnostic.SA1508.severity = error # SA1508: Code block should not contain extra newline
+# C# style preferences
+csharp_prefer_braces = true:warning
+csharp_style_namespace_declarations = file_scoped:warning
 
 # Microsoft .NET properties
 csharp_new_line_before_members_in_object_initializers = false
@@ -36,7 +34,16 @@ dotnet_style_qualification_for_event = false:suggestion
 dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion
-dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.MA0004.severity = none
+dotnet_diagnostic.SA1300.severity = none
 
 # ReSharper properties
 resharper_blank_lines_after_control_transfer_statements = 1

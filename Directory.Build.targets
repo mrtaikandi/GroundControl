@@ -1,6 +1,11 @@
 ﻿<Project>
 
+    <PropertyGroup>
+        <IncludeBannedSymbols Condition="'$(IncludeBannedSymbols)' == ''">true</IncludeBannedSymbols>
+    </PropertyGroup>
+
     <ItemGroup>
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" Condition="'$(IncludeBannedSymbols)' == 'true'" Visible="false" />
         <None Include="$(MSBuildProjectDirectory)\$(MSBuildProjectFile).DotSettings" Visible="false" />
     </ItemGroup>
 

@@ -1,0 +1,30 @@
+is_global = true
+global_level = 100
+
+# Build-time style rules that are safe to auto-fix.
+dotnet_diagnostic.IDE0005.severity = warning    # IDE0005: Remove unnecessary using directives.
+dotnet_diagnostic.IDE0011.severity = warning    # IDE0011: Add braces around code blocks.
+dotnet_diagnostic.IDE0055.severity = warning    # IDE0055: Fix formatting for indentation, spaces, and new lines.
+dotnet_diagnostic.IDE0161.severity = warning    # IDE0161: Use file-scoped namespaces.
+
+# Consistent naming for non-public fields.
+dotnet_diagnostic.IDE1006.severity = warning    # IDE1006: Naming rule violation.
+
+# Custom naming rule: private fields must use _camelCase.
+dotnet_naming_rule.private_fields_should_be_underscore_camel_case.severity = warning
+dotnet_naming_rule.private_fields_should_be_underscore_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_underscore_camel_case.style = underscore_camel_case
+
+# Applies the custom naming rule to all private fields.
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+# Requires a leading underscore and camelCase for matching fields.
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+
+# Core analyzer severities.
+dotnet_diagnostic.CA1305.severity = warning    # CA1305: Specify IFormatProvider for culture-sensitive formatting and parsing.
+dotnet_diagnostic.CA1848.severity = warning    # CA1848: Use LoggerMessage delegates for high-performance logging.
+dotnet_diagnostic.CA2007.severity = warning    # CA2007: Do not directly await a Task; use ConfigureAwait when appropriate.
+dotnet_diagnostic.RS0030.severity = warning    # RS0030: Do not use banned APIs or symbols configured in BannedSymbols.txt.

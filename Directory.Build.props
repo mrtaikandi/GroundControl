@@ -9,7 +9,23 @@
         <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
 
         <RepositoryRoot>$(MSBuildThisFileDirectory).TrimEnd([System.IO]::DirectorySeparatorChar)</RepositoryRoot>
-        <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)stylecop.ruleset</CodeAnalysisRuleSet>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Code analysis">
+        <UseRepoAnalyzers>true</UseRepoAnalyzers>
+        <ReportAnalyzer>true</ReportAnalyzer>
+        <Deterministic>true</Deterministic>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisLevel>latest-all</AnalysisLevel>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Continuous integration">
+        <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     </PropertyGroup>
 
     <PropertyGroup Label="NuGet package properties">
@@ -21,10 +37,6 @@
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageLicenseUrl>https://github.com/mrtaikandi/Hutmesh.GroundControl/blob/main/LICENSE</PackageLicenseUrl>
-    </PropertyGroup>
-
-    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     </PropertyGroup>
 
     <ItemGroup>
