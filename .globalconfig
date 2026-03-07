@@ -28,3 +28,4 @@ dotnet_diagnostic.CA1305.severity = warning    # CA1305: Specify IFormatProvider
 dotnet_diagnostic.CA1848.severity = warning    # CA1848: Use LoggerMessage delegates for high-performance logging.
 dotnet_diagnostic.CA2007.severity = warning    # CA2007: Do not directly await a Task; use ConfigureAwait when appropriate.
 dotnet_diagnostic.RS0030.severity = warning    # RS0030: Do not use banned APIs or symbols configured in BannedSymbols.txt.
+dotnet_diagnostic.CA1716.severity = none       # CA1716: Identifiers should not match keywords (e.g., "class", "namespace").
