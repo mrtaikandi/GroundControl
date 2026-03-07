@@ -1,0 +1,12 @@
+<Project>
+    <!-- import parent: https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build -->
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+
+        <!-- Replaces the xUnit native command line experience with the Microsoft Testing Platform -->
+        <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    </PropertyGroup>
+</Project>

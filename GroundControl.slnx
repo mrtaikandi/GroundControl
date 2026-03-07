@@ -1,1 +1,13 @@
-<Solution />
+<Solution>
+
+    <Project Path="src/GroundControl.Persistence.Abstractions/GroundControl.Persistence.Abstractions.csproj" />
+    <Project Path="src/GroundControl.Persistence.MongoDb/GroundControl.Persistence.MongoDb.csproj" />
+    <Project Path="src/GroundControl.Api/GroundControl.Api.csproj" />
+    <Project Path="src/GroundControl.Link/GroundControl.Link.csproj" />
+    <Folder Name="/Tests/">
+        <Project Path="tests/GroundControl.Api.Tests/GroundControl.Api.Tests.csproj" />
+        <Project Path="tests/GroundControl.Persistence.MongoDb.Tests/GroundControl.Persistence.MongoDb.Tests.csproj" />
+        <Project Path="tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj" />
+    </Folder>
+
+</Solution>
