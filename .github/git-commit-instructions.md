@@ -33,7 +33,7 @@ Derive the scope by the following convention, but if a scope mapping table is pr
 1. Use the **last segment** of the project name, lowercased (e.g., `MyProject.Contracts` -> `contracts`)
 2. If the last segment **conflicts** with another project, use a short abbreviation (e.g., `Authentication.Api` -> `auth-api`)
 3. Test projects share the scope of the project they test (e.g., `MyProject.Contracts.Tests` -> `contracts`)
-4. Directories starting with `.` (e.g., `.github`, `.claude`) do **not** require a scope, except if specifically mapped in the scope mapping table.
+4. The `.github` and `.claude` directories should have `agent` scope.
 
 ### Scope Mapping Table
 
