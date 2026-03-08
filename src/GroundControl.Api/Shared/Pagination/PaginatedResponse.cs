@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace GroundControl.Api.Shared.Pagination;
 
 /// <summary>
@@ -14,18 +12,7 @@ internal sealed record PaginatedResponse<T>
     public required IReadOnlyList<T> Data { get; init; }
 
     /// <summary>
-    /// Gets the cursor for the next page, or <c>null</c> if there are no more pages.
+    /// Gets the pagination metadata for the current page.
     /// </summary>
-    public string? NextCursor { get; init; }
-
-    /// <summary>
-    /// Gets the total number of items matching the query.
-    /// </summary>
-    public required long TotalCount { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether more pages are available.
-    /// </summary>
-    [JsonIgnore]
-    public bool HasMore => NextCursor is not null;
+    public required PaginationMetadata Pagination { get; init; }
 }

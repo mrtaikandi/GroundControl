@@ -17,6 +17,11 @@ public record PagedResult<T>
     public string? NextCursor { get; init; }
 
     /// <summary>
+    /// Gets or sets the cursor for the previous page.
+    /// </summary>
+    public string? PreviousCursor { get; init; }
+
+    /// <summary>
     /// Gets or sets the total number of matching items.
     /// </summary>
     public required long TotalCount { get; init; }

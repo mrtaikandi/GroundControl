@@ -17,6 +17,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+    </ItemGroup>
+    
+    <ItemGroup>
         <ProjectReference Include="..\GroundControl.Persistence.Abstractions\GroundControl.Persistence.Abstractions.csproj" />
         <ProjectReference Include="..\GroundControl.Persistence.MongoDb\GroundControl.Persistence.MongoDb.csproj" />
     </ItemGroup>
