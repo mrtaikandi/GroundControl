@@ -10,4 +10,6 @@ internal static class CollectionNames
     public const string Groups = "groups";
     public const string Projects = "projects";
     public const string Templates = "templates";
+    public const string Roles = "roles";
+    public const string Users = "users";
 }
