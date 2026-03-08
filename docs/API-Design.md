@@ -64,15 +64,15 @@ List endpoints use cursor-based pagination for consistent results even when data
 ```json
 {
   "data": [...],
-  "pagination": {
-    "nextCursor": "eyJpZCI6IjY1YTEuLi4ifQ==",
-    "previousCursor": null,
-    "totalCount": 142
-  }
+  "nextCursor": "eyJpZCI6IjY1YTEuLi4ifQ==",
+  "previousCursor": null,
+  "totalCount": 142
 }
 ```
 
-Server-side C# helpers may expose computed `HasNext` / `HasPrevious` properties for convenience, but those flags are not part of the JSON contract.
+The public JSON contract is flattened: list responses expose `nextCursor`, `previousCursor`, and `totalCount` at the top level rather than inside a nested `pagination` object.
+
+Server-side C# helpers may expose computed `HasNext` / `HasPrevious` properties for convenience, but those flags are computed from cursor presence and are not part of the JSON contract.
 
 ### Filtering
 
