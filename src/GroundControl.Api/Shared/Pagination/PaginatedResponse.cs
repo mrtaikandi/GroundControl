@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace GroundControl.Api.Shared.Pagination;
 
 /// <summary>
@@ -24,5 +26,6 @@ internal sealed record PaginatedResponse<T>
     /// <summary>
     /// Gets a value indicating whether more pages are available.
     /// </summary>
+    [JsonIgnore]
     public bool HasMore => NextCursor is not null;
 }

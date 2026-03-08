@@ -52,9 +52,12 @@ List endpoints use cursor-based pagination for consistent results even when data
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `limit` | int | 25 | Number of items per page (max 100) |
-| `cursor` | string? | null | Opaque cursor from a previous response |
+| `after` | string? | null | Opaque cursor from a previous response; requests the next page after that boundary item |
+| `before` | string? | null | Opaque cursor from a previous response; requests the previous page before that boundary item |
 | `sort` | string? | `name` | Field to sort by |
 | `order` | string? | `asc` | Sort direction: `asc` or `desc` |
+
+`after` and `before` are mutually exclusive. Cursors are opaque to clients and are only valid when reused with the same endpoint, filter set, and sort settings that produced them.
 
 **Response envelope:**
 
@@ -62,12 +65,14 @@ List endpoints use cursor-based pagination for consistent results even when data
 {
   "data": [...],
   "pagination": {
-    "hasMore": true,
     "nextCursor": "eyJpZCI6IjY1YTEuLi4ifQ==",
+    "previousCursor": null,
     "totalCount": 142
   }
 }
 ```
+
+Server-side C# helpers may expose computed `HasNext` / `HasPrevious` properties for convenience, but those flags are not part of the JSON contract.
 
 ### Filtering
 
