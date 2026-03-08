@@ -1,1 +1,1 @@
-// Global usings for GroundControl.Api
+global using System.Text.Json.Serialization;

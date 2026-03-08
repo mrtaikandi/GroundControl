@@ -14,19 +14,20 @@ public sealed class PaginatedResponseTests
     };
 
     [Fact]
-    public void PaginationMetadata_WithCursorValues_ExposesComputedFlags()
+    public void PaginatedResponse_WithCursorValues_ExposesComputedFlags()
     {
         // Arrange
-        var metadata = new PaginationMetadata
+        var response = new PaginatedResponse<string>
         {
+            Data = ["alpha"],
             NextCursor = "next-cursor",
             PreviousCursor = null,
             TotalCount = 42
         };
 
         // Act
-        var hasNext = metadata.HasNext;
-        var hasPrevious = metadata.HasPrevious;
+        var hasNext = response.HasNext;
+        var hasPrevious = response.HasPrevious;
 
         // Assert
         hasNext.ShouldBeTrue();
@@ -34,18 +35,15 @@ public sealed class PaginatedResponseTests
     }
 
     [Fact]
-    public void Serialize_WithPaginationEnvelope_ExcludesComputedFlagsFromJson()
+    public void Serialize_WithFlattenedPaginationMetadata_ExcludesComputedFlagsFromJson()
     {
         // Arrange
         var response = new PaginatedResponse<string>
         {
             Data = ["alpha", "beta"],
-            Pagination = new PaginationMetadata
-            {
-                NextCursor = "next-cursor",
-                PreviousCursor = "previous-cursor",
-                TotalCount = 2
-            }
+            NextCursor = "next-cursor",
+            PreviousCursor = "previous-cursor",
+            TotalCount = 2
         };
 
         // Act
@@ -59,13 +57,35 @@ public sealed class PaginatedResponseTests
                   "alpha",
                   "beta"
                 ],
-                "pagination": {
-                  "nextCursor": "next-cursor",
-                  "previousCursor": "previous-cursor",
-                  "totalCount": 2
-                }
+                "nextCursor": "next-cursor",
+                "previousCursor": "previous-cursor",
+                "totalCount": 2
               }
               """
             );
+    }
+
+    [Fact]
+    public void Serialize_WithoutPreviousCursor_OmitsComputedFlagsAndNestedPaginationObject()
+    {
+        // Arrange
+        var response = new PaginatedResponse<string>
+        {
+            Data = ["alpha", "beta"],
+            NextCursor = "next-cursor",
+            PreviousCursor = null,
+            TotalCount = 2
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(response, WebJsonSerializerOptions);
+
+        // Assert
+        json.ShouldContain("\"nextCursor\": \"next-cursor\"");
+        json.ShouldContain("\"previousCursor\": null");
+        json.ShouldContain("\"totalCount\": 2");
+        json.ShouldNotContain("\"pagination\"");
+        json.ShouldNotContain("\"hasNext\"");
+        json.ShouldNotContain("\"hasPrevious\"");
     }
 }
