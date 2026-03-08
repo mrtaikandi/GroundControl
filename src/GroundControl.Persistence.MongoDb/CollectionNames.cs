@@ -7,4 +7,7 @@ internal static class CollectionNames
     public const string Variables = "variables";
     public const string Clients = "clients";
     public const string Snapshots = "snapshots";
+    public const string Groups = "groups";
+    public const string Projects = "projects";
+    public const string Templates = "templates";
 }

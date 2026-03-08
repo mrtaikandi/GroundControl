@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using GroundControl.Api.Features.Groups;
 using GroundControl.Api.Features.Scopes;
 using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Health;
@@ -33,6 +34,7 @@ var authConfigurator = appOptions.Security.AuthenticationMode switch
 
 authConfigurator.ConfigureServices(builder.Services, builder.Configuration);
 builder.Services.AddScopesHandlers();
+builder.Services.AddGroupsHandlers();
 
 builder.Services
     .AddAuthorizationBuilder()
@@ -49,6 +51,7 @@ var app = builder.Build();
 authConfigurator.ConfigureMiddleware(app);
 authConfigurator.MapEndpoints(app);
 app.MapScopesEndpoints();
+app.MapGroupsEndpoints();
 
 app.MapOpenApi();
 app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = p => p.Tags.Contains("liveness") });

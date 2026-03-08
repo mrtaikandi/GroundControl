@@ -53,7 +53,9 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<IMongoDbContext, MongoDbContext>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ScopeConfiguration>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, GroupConfiguration>());
         services.TryAddSingleton<IScopeStore, ScopeStore>();
+        services.TryAddSingleton<IGroupStore, GroupStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, MongoIndexSetupService>());
 
         return services;
