@@ -1,5 +1,6 @@
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,11 +8,13 @@ namespace GroundControl.Api.Features.Templates;
 
 internal sealed class DeleteTemplateHandler : IEndpointHandler
 {
+    private readonly IConfigEntryStore _configEntryStore;
     private readonly ITemplateStore _store;
 
-    public DeleteTemplateHandler(ITemplateStore store)
+    public DeleteTemplateHandler(ITemplateStore store, IConfigEntryStore configEntryStore)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _configEntryStore = configEntryStore ?? throw new ArgumentNullException(nameof(configEntryStore));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -53,6 +56,8 @@ internal sealed class DeleteTemplateHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        await _configEntryStore.DeleteAllByOwnerAsync(id, ConfigEntryOwnerType.Template, cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using GroundControl.Api.Features.ConfigEntries;
 using GroundControl.Api.Features.Groups;
 using GroundControl.Api.Features.Roles;
 using GroundControl.Api.Features.Scopes;
@@ -39,6 +40,7 @@ builder.Services.AddScopesHandlers();
 builder.Services.AddGroupsHandlers();
 builder.Services.AddRolesHandlers();
 builder.Services.AddTemplatesHandlers();
+builder.Services.AddConfigEntriesHandlers();
 
 builder.Services
     .AddAuthorizationBuilder()
@@ -58,6 +60,7 @@ app.MapScopesEndpoints();
 app.MapGroupsEndpoints();
 app.MapRolesEndpoints();
 app.MapTemplatesEndpoints();
+app.MapConfigEntriesEndpoints();
 
 app.MapOpenApi();
 app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = p => p.Tags.Contains("liveness") });
