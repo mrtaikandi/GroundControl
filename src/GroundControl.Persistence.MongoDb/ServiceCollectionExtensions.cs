@@ -58,6 +58,8 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IGroupStore, GroupStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, RoleConfiguration>());
         services.TryAddSingleton<IRoleStore, RoleStore>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, TemplateConfiguration>());
+        services.TryAddSingleton<ITemplateStore, TemplateStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, MongoIndexSetupService>());
 
         return services;
