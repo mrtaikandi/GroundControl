@@ -8,6 +8,12 @@ namespace GroundControl.Persistence.MongoDb;
 public interface IMongoDbContext
 {
     /// <summary>
+    /// The default case-insensitive collation used for all collections,
+    /// which is based on the English locale and has a strength of "Secondary" to ignore case differences.
+    /// </summary>
+    private static readonly Collation CaseInsensitiveCollation = new("en", strength: CollationStrength.Secondary);
+
+    /// <summary>
     /// Gets the MongoDB connection string used to connect to the database.
     /// </summary>
     string ConnectionString { get; }
@@ -16,6 +22,11 @@ public interface IMongoDbContext
     /// Gets the configured MongoDB database.
     /// </summary>
     IMongoDatabase Database { get; }
+
+    /// <summary>
+    /// Gets the default collation for all collections, which is case-insensitive by default.
+    /// </summary>
+    Collation DefaultCollation => CaseInsensitiveCollation;
 
     /// <summary>
     /// Gets a MongoDB collection using the explicit collection name.

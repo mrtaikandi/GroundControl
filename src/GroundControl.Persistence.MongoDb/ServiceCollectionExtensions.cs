@@ -1,4 +1,6 @@
 using GroundControl.Persistence.MongoDb.Conventions;
+using GroundControl.Persistence.MongoDb.Stores;
+using GroundControl.Persistence.Stores;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -50,6 +52,8 @@ public static class ServiceCollectionExtensions
         });
 
         services.TryAddSingleton<IMongoDbContext, MongoDbContext>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ScopeConfiguration>());
+        services.TryAddSingleton<IScopeStore, ScopeStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, MongoIndexSetupService>());
 
         return services;

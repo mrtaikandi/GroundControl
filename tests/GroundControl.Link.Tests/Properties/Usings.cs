@@ -1,1 +1,1 @@
-// Global usings for GroundControl.Link.Tests
+global using Xunit;

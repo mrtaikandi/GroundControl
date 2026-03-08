@@ -6,6 +6,7 @@ dotnet_diagnostic.IDE0005.severity = warning    # IDE0005: Remove unnecessary us
 dotnet_diagnostic.IDE0011.severity = warning    # IDE0011: Add braces around code blocks.
 dotnet_diagnostic.IDE0055.severity = warning    # IDE0055: Fix formatting for indentation, spaces, and new lines.
 dotnet_diagnostic.IDE0161.severity = warning    # IDE0161: Use file-scoped namespaces.
+dotnet_diagnostic.IDE0290.severity = none       # IDE0290: Use primary constructors.
 
 # Consistent naming for non-public fields.
 dotnet_diagnostic.IDE1006.severity = warning    # IDE1006: Naming rule violation.

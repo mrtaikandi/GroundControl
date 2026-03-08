@@ -54,8 +54,8 @@ List endpoints use cursor-based pagination for consistent results even when data
 | `limit` | int | 25 | Number of items per page (max 100) |
 | `after` | string? | null | Opaque cursor from a previous response; requests the next page after that boundary item |
 | `before` | string? | null | Opaque cursor from a previous response; requests the previous page before that boundary item |
-| `sort` | string? | `name` | Field to sort by |
-| `order` | string? | `asc` | Sort direction: `asc` or `desc` |
+| `sortField` | string? | `name` | Logical field to sort by. Supported values are endpoint-specific. The implemented scopes endpoint accepts `dimension`, `createdAt`, `updatedAt`, `version`, and `id`; `name` is accepted as an alias for `dimension`. |
+| `sortOrder` | string? | `asc` | Sort direction: `asc` or `desc` |
 
 `after` and `before` are mutually exclusive. Cursors are opaque to clients and are only valid when reused with the same endpoint, filter set, and sort settings that produced them.
 
@@ -132,6 +132,7 @@ All errors use the [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem De
 | 401 | Missing or invalid authentication |
 | 403 | Authenticated but insufficient permissions |
 | 404 | Resource not found |
+| 428 | Missing or invalid precondition header (`If-Match`) |
 | 409 | Optimistic concurrency conflict or business rule violation |
 | 422 | Request is valid but cannot be processed (e.g., unresolved variable references) |
 | 429 | Too many requests |
@@ -145,6 +146,8 @@ Update and delete operations require the `If-Match` header with the entity's cur
 PUT /api/projects/{id}
 If-Match: "5"
 ```
+
+If the `If-Match` header is missing or invalid, the server returns `428 Precondition Required`.
 
 If the version doesn't match, the server returns `409 Conflict`.
 
@@ -181,25 +184,64 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 ```json
 {
   "dimension": "environment",
-  "allowedValues": ["Production", "Staging", "Development"],
+  "allowedValues": ["dev", "stage", "prod"],
   "description": "Deployment environment"
 }
 ```
 
+**Request validation:**
+- `dimension` is required and has a maximum length of 100 characters.
+- `allowedValues` is required and must contain at least one entry.
+- `description` is optional and has a maximum length of 500 characters.
+
 **GET Response:**
 ```json
 {
-  "id": "65a1...",
+  "id": "01957d44-f548-7f0a-91f0-31c0e2df6641",
   "dimension": "environment",
-  "allowedValues": ["Production", "Staging", "Development"],
+  "allowedValues": ["dev", "stage", "prod"],
   "description": "Deployment environment",
   "version": 1,
   "createdAt": "2024-01-15T10:30:00Z",
-  "createdBy": "user-id",
+  "createdBy": "00000000-0000-0000-0000-000000000000",
   "updatedAt": "2024-01-15T10:30:00Z",
-  "updatedBy": "user-id"
+  "updatedBy": "00000000-0000-0000-0000-000000000000"
 }
 ```
+
+**GET/LIST contract details:**
+- `GET /api/scopes/{id}` returns `ETag: "{version}"` on successful reads.
+- `GET /api/scopes` supports `limit`, `after`, `before`, `sortField`, and `sortOrder` query parameters.
+- The scopes list contract is flattened and returns `data`, `nextCursor`, `previousCursor`, and `totalCount` as top-level properties.
+
+**GET /api/scopes Response:**
+```json
+{
+  "data": [
+    {
+      "id": "01957d44-f548-7f0a-91f0-31c0e2df6641",
+      "dimension": "environment",
+      "allowedValues": ["dev", "stage", "prod"],
+      "description": "Deployment environment",
+      "version": 1,
+      "createdAt": "2024-01-15T10:30:00Z",
+      "createdBy": "00000000-0000-0000-0000-000000000000",
+      "updatedAt": "2024-01-15T10:30:00Z",
+      "updatedBy": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "nextCursor": "eyJ2ZXJzaW9uIjoxLCJpZCI6IjAxOTU3ZDQ0LWY1NDgtN2YwYS05MWYwLTMxYzBlMmRmNjY0MSIsInNvcnRGaWVsZCI6ImRpbWVuc2lvbiIsInNvcnRPcmRlciI6ImFzYyIsInNvcnRWYWx1ZSI6eyJ0eXBlIjoic3RyaW5nIiwidmFsdWUiOiJlbnZpcm9ubWVudCJ9fQ==",
+  "previousCursor": null,
+  "totalCount": 1
+}
+```
+
+**Concurrency and delete behavior:**
+- `PUT /api/scopes/{id}` and `DELETE /api/scopes/{id}` require `If-Match`.
+- Missing or invalid `If-Match` returns `428 Precondition Required`.
+- A stale `If-Match` value returns `409 Conflict`.
+- `DELETE /api/scopes/{id}` returns `409 Conflict` when any allowed value for the dimension is already referenced by persisted configuration data.
+- In the current `AuthenticationMode=None` implementation, `createdBy` and `updatedBy` are serialized as the zero GUID until real user identity is introduced.
 
 ---
 

@@ -4,3 +4,4 @@ global_level = 200
 dotnet_diagnostic.CA1515.severity = none    # CA1515: Consider making public types internal
 dotnet_diagnostic.CA1707.severity = none    # CA1707: Identifiers should not contain underscores
 dotnet_diagnostic.CS1591.severity = none    # CS1591: Missing XML comment for publicly visible type or member
+dotnet_diagnostic.CA2007.severity = none    # CA2007: Consider calling ConfigureAwait on the awaited task

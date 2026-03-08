@@ -144,7 +144,7 @@ internal static class MongoCursorPagination
                 SortField = sortField,
                 SortOrder = NormalizeSortOrder(sortOrder),
                 SortValue = sortValue,
-                Version = version,
+                Version = version
             };
 
             return true;
@@ -211,8 +211,8 @@ internal static class MongoCursorPagination
             new BsonDocument
             {
                 { bsonSortField, sortValue },
-                { "_id", new BsonDocument(comparisonOperator, idValue) },
-            },
+                { "_id", new BsonDocument(comparisonOperator, idValue) }
+            }
         });
     }
 
@@ -271,7 +271,7 @@ internal static class MongoCursorPagination
             Items = pageItems,
             NextCursor = hasNext ? Encode(CreateCursor(pageItems[^1], query, sortValueSelector, idSelector)) : null,
             PreviousCursor = hasPrevious ? Encode(CreateCursor(pageItems[0], query, sortValueSelector, idSelector)) : null,
-            TotalCount = totalCount,
+            TotalCount = totalCount
         };
     }
 
@@ -283,7 +283,7 @@ internal static class MongoCursorPagination
             SortField = query.SortField,
             SortOrder = NormalizeSortOrder(query.SortOrder),
             SortValue = sortValueSelector(item),
-            Version = SupportedCursorVersion,
+            Version = SupportedCursorVersion
         };
     }
 
@@ -376,7 +376,7 @@ internal static class MongoCursorPagination
             Guid => "guid",
             DateTime => "datetime",
             DateTimeOffset => "datetimeoffset",
-            _ => throw new ValidationException($"Cursor sortValue type '{value.GetType().FullName}' is not supported."),
+            _ => throw new ValidationException($"Cursor sortValue type '{value.GetType().FullName}' is not supported.")
         };
     }
 
@@ -533,7 +533,7 @@ internal static class MongoCursorPagination
             string stringValue => new BsonString(stringValue),
             bool boolValue => BsonBoolean.Create(boolValue),
             byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal or DateTime or DateTimeOffset => SerializeBsonValue(value),
-            _ => throw new ValidationException($"Cursor sortValue type '{value.GetType().FullName}' is not supported."),
+            _ => throw new ValidationException($"Cursor sortValue type '{value.GetType().FullName}' is not supported.")
         };
     }
 
