@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc;
@@ -50,13 +49,10 @@ internal static class AsyncValidationFilter
                 return await next(context);
             }
 
-            var results = await validator.ValidateAsync(argument, context.HttpContext.RequestAborted);
-            if (results.Count > 0)
-            {
-                return TypedResults.ValidationProblem(ToErrorsDictionary(results));
-            }
+            var validationContext = new ValidationContext { HttpContext = context.HttpContext };
+            var result = await validator.ValidateAsync(argument, validationContext, context.HttpContext.RequestAborted);
 
-            return await next(context);
+            return ToResult(result) ?? await next(context);
         });
     }
 
@@ -97,15 +93,19 @@ internal static class AsyncValidationFilter
                 return await next(context);
             }
 
-            var results = await validator.ValidateAsync(argument, context.HttpContext.RequestAborted);
-            if (results.Count > 0)
-            {
-                return TypedResults.ValidationProblem(ToErrorsDictionary(results));
-            }
+            var validationContext = new ValidationContext { HttpContext = context.HttpContext };
+            var result = await validator.ValidateAsync(argument, validationContext, context.HttpContext.RequestAborted);
 
-            return await next(context);
+            return ToResult(result) ?? await next(context);
         };
     }
+
+    private static object? ToResult(ValidatorResult result) => result switch
+    {
+        ValidatorResult.ValidationProblemResult vp => TypedResults.ValidationProblem(vp.Errors),
+        ValidatorResult.ProblemResult p => TypedResults.Problem(detail: p.Detail, statusCode: p.StatusCode),
+        _ => null
+    };
 
     private static bool IsBodyParameter(ParameterInfo parameter)
     {
@@ -152,27 +152,5 @@ internal static class AsyncValidationFilter
         }
 
         return null;
-    }
-
-    private static Dictionary<string, string[]> ToErrorsDictionary(IReadOnlyList<ValidationResult> results)
-    {
-        var errors = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var result in results)
-        {
-            var message = result.ErrorMessage ?? "Validation failed.";
-            var memberNames = result.MemberNames.Where(m => !string.IsNullOrEmpty(m)).ToArray();
-            var key = memberNames is { Length: > 0 } ? string.Join(".", memberNames) : "";
-
-            if (!errors.TryGetValue(key, out var messages))
-            {
-                messages = [];
-                errors[key] = messages;
-            }
-
-            messages.Add(message);
-        }
-
-        return errors.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
     }
 }
