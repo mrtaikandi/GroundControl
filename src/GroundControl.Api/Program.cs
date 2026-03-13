@@ -4,6 +4,7 @@ using GroundControl.Api.Features.Groups;
 using GroundControl.Api.Features.Roles;
 using GroundControl.Api.Features.Scopes;
 using GroundControl.Api.Features.Templates;
+using GroundControl.Api.Features.Variables;
 using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Health;
 using GroundControl.Api.Shared.Security;
@@ -41,6 +42,7 @@ builder.Services.AddGroupsHandlers();
 builder.Services.AddRolesHandlers();
 builder.Services.AddTemplatesHandlers();
 builder.Services.AddConfigEntriesHandlers();
+builder.Services.AddVariablesHandlers();
 
 builder.Services
     .AddAuthorizationBuilder()
@@ -61,6 +63,7 @@ app.MapGroupsEndpoints();
 app.MapRolesEndpoints();
 app.MapTemplatesEndpoints();
 app.MapConfigEntriesEndpoints();
+app.MapVariablesEndpoints();
 
 app.MapOpenApi();
 app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = p => p.Tags.Contains("liveness") });

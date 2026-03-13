@@ -18,7 +18,7 @@ internal static class ValidationResultExtensions
         /// <param name="error">The error message.</param>
         /// <param name="memberNames">The member names associated with the error.</param>
         /// <returns>A <see cref="ValidationResult"/> with the specified error.</returns>
-        public static ValidationResult Error(string error, IEnumerable<string>? memberNames = null) =>
+        public static ValidationResult Error(string error, params IEnumerable<string>? memberNames) =>
             new(error, memberNames);
     }
 }

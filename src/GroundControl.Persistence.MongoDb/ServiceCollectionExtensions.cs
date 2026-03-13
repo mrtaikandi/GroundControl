@@ -60,8 +60,12 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IRoleStore, RoleStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, TemplateConfiguration>());
         services.TryAddSingleton<ITemplateStore, TemplateStore>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ProjectConfiguration>());
+        services.TryAddSingleton<IProjectStore, ProjectStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ConfigEntryConfiguration>());
         services.TryAddSingleton<IConfigEntryStore, ConfigEntryStore>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, VariableConfiguration>());
+        services.TryAddSingleton<IVariableStore, VariableStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, MongoIndexSetupService>());
 
         return services;
