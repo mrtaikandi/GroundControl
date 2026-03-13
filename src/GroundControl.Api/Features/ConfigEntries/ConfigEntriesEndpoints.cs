@@ -1,3 +1,6 @@
+using GroundControl.Api.Features.ConfigEntries.Contracts;
+using GroundControl.Api.Shared.Validation;
+
 namespace GroundControl.Api.Features.ConfigEntries;
 
 internal static class ConfigEntriesEndpoints
@@ -11,6 +14,9 @@ internal static class ConfigEntriesEndpoints
         services.AddTransient<ListConfigEntriesHandler>();
         services.AddTransient<UpdateConfigEntryHandler>();
         services.AddTransient<DeleteConfigEntryHandler>();
+
+        services.AddTransient<IAsyncValidator<CreateConfigEntryRequest>, CreateConfigEntryValidator>();
+        services.AddTransient<IAsyncValidator<UpdateConfigEntryRequest>, UpdateConfigEntryValidator>();
 
         return services;
     }

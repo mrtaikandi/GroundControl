@@ -7,6 +7,7 @@ using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Api.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
 using Xunit;
@@ -78,13 +79,13 @@ public sealed class ConfigEntriesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await ReadValidationProblemAsync(response, cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         problem.ShouldNotBeNull();
-        problem.Detail.ShouldNotBeNull();
-        problem.Detail.ShouldContain("not supported");
+        problem.Errors.ShouldContainKey("ValueType");
+        problem.Errors["ValueType"].ShouldContain(e => e.Contains("not supported"));
     }
 
     [Fact]
@@ -106,13 +107,13 @@ public sealed class ConfigEntriesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await ReadValidationProblemAsync(response, cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         problem.ShouldNotBeNull();
-        problem.Detail.ShouldNotBeNull();
-        problem.Detail.ShouldContain("not a valid Boolean");
+        problem.Errors.ShouldContainKey("Values");
+        problem.Errors["Values"].ShouldContain(e => e.Contains("not a valid Boolean"));
     }
 
     [Fact]
@@ -134,13 +135,13 @@ public sealed class ConfigEntriesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await ReadValidationProblemAsync(response, cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         problem.ShouldNotBeNull();
-        problem.Detail.ShouldNotBeNull();
-        problem.Detail.ShouldContain("does not exist");
+        problem.Errors.ShouldContainKey("Values");
+        problem.Errors["Values"].ShouldContain(e => e.Contains("does not exist"));
     }
 
     [Fact]
@@ -163,13 +164,13 @@ public sealed class ConfigEntriesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await ReadValidationProblemAsync(response, cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         problem.ShouldNotBeNull();
-        problem.Detail.ShouldNotBeNull();
-        problem.Detail.ShouldContain("not allowed");
+        problem.Errors.ShouldContainKey("Values");
+        problem.Errors["Values"].ShouldContain(e => e.Contains("not allowed"));
     }
 
     [Fact]
@@ -535,6 +536,9 @@ public sealed class ConfigEntriesHandlerTests
 
     private static async Task<ProblemDetails?> ReadProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
         await response.Content.ReadFromJsonAsync<ProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+
+    private static async Task<HttpValidationProblemDetails?> ReadValidationProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
+        await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 
     private static async Task<ConfigEntryResponse> ReadConfigEntryAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
