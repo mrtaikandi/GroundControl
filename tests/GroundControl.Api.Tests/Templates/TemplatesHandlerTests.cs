@@ -4,10 +4,7 @@ using System.Text.Json;
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared.Pagination;
-using GroundControl.Api.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Shouldly;
 using Xunit;
 
@@ -77,7 +74,7 @@ public sealed class TemplatesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/templates"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadValidationProblemAsync(response, cancellationToken);
+        var problem = await response.ReadValidationProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -117,7 +114,7 @@ public sealed class TemplatesHandlerTests
 
         // Act
         var response = await apiClient.GetAsync(RelativeUri($"/api/templates/{Guid.CreateVersion7()}"), cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -253,7 +250,7 @@ public sealed class TemplatesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe((HttpStatusCode)428);
@@ -278,7 +275,7 @@ public sealed class TemplatesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -325,7 +322,7 @@ public sealed class TemplatesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -366,7 +363,7 @@ public sealed class TemplatesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -434,12 +431,6 @@ public sealed class TemplatesHandlerTests
 
         return page;
     }
-
-    private static async Task<ProblemDetails?> ReadProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
-        await response.Content.ReadFromJsonAsync<ProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
-
-    private static async Task<HttpValidationProblemDetails?> ReadValidationProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
-        await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 
     private static async Task<TemplateResponse> ReadTemplateAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {

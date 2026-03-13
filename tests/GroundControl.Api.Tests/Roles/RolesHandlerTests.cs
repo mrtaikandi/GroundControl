@@ -2,9 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using GroundControl.Api.Features.Roles.Contracts;
-using GroundControl.Api.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
-using Microsoft.AspNetCore.Mvc;
 using Shouldly;
 using Xunit;
 
@@ -55,7 +53,7 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/roles"), CreateRequest("duplicaterole", ["groups:read"]), WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -78,7 +76,7 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/roles"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -119,7 +117,7 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.GetAsync(RelativeUri($"/api/roles/{Guid.CreateVersion7()}"), cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -199,7 +197,7 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe((HttpStatusCode)428);
@@ -226,7 +224,7 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -255,7 +253,7 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -321,7 +319,7 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await response.ReadProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -412,9 +410,6 @@ public sealed class RolesHandlerTests
 
         return await ReadRoleAsync(response, cancellationToken).ConfigureAwait(false);
     }
-
-    private static async Task<ProblemDetails?> ReadProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
-        await response.Content.ReadFromJsonAsync<ProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 
     private static async Task<RoleResponse> ReadRoleAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
