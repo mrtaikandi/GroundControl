@@ -4,6 +4,10 @@
         <NoWarn>$(NoWarn);CA2007</NoWarn>
     </PropertyGroup>
 
+    <PropertyGroup Label="Preview Features">
+        <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.Http.Generated</InterceptorsNamespaces>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Asp.Versioning.Http" />
         <PackageReference Include="AspNetCore.Identity.MongoDbCore" />
@@ -19,7 +23,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />
     </ItemGroup>
-    
+
     <ItemGroup>
         <ProjectReference Include="..\GroundControl.Persistence.Abstractions\GroundControl.Persistence.Abstractions.csproj" />
         <ProjectReference Include="..\GroundControl.Persistence.MongoDb\GroundControl.Persistence.MongoDb.csproj" />
