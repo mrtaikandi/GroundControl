@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Roles.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -23,28 +24,13 @@ internal sealed class CreateRoleHandler : IEndpointHandler
                 [FromServices] CreateRoleHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .RequireAuthorization(Permissions.RolesWrite)
+            .WithValidationOn<CreateRoleRequest>()
             .WithName(nameof(CreateRoleHandler));
     }
 
     private async Task<IResult> HandleAsync(CreateRoleRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-
-        var invalidPermissions = request.Permissions.Where(p => !Permissions.All.Contains(p)).ToList();
-        if (invalidPermissions.Count > 0)
-        {
-            return TypedResults.Problem(
-                detail: $"Invalid permission(s): {string.Join(", ", invalidPermissions)}.",
-                statusCode: StatusCodes.Status400BadRequest);
-        }
-
-        var existingRole = await _store.GetByNameAsync(request.Name, cancellationToken).ConfigureAwait(false);
-        if (existingRole is not null)
-        {
-            return TypedResults.Problem(
-                detail: $"A role with name '{request.Name}' already exists.",
-                statusCode: StatusCodes.Status409Conflict);
-        }
 
         var timestamp = DateTimeOffset.UtcNow;
         var role = new Role

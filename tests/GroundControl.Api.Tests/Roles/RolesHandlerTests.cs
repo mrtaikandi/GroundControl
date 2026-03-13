@@ -43,7 +43,7 @@ public sealed class RolesHandlerTests
     }
 
     [Fact]
-    public async Task PostRole_WithDuplicateName_ReturnsConflictProblemDetails()
+    public async Task PostRole_WithDuplicateName_ReturnsValidationProblemDetails()
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -53,20 +53,18 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/roles"), CreateRequest("duplicaterole", ["groups:read"]), WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var problem = await response.ReadValidationProblemAsync(cancellationToken);
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
         problem.ShouldNotBeNull();
-
-        var detail = problem.Detail;
-        detail.ShouldNotBeNull();
-        detail.ShouldContain("already exists");
+        problem.Errors.ShouldContainKey("Name");
+        problem.Errors["Name"].ShouldContain(e => e.Contains("already exists"));
     }
 
     [Fact]
-    public async Task PostRole_WithInvalidPermission_ReturnsBadRequest()
+    public async Task PostRole_WithInvalidPermission_ReturnsValidationProblemDetails()
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -76,15 +74,14 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/roles"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var problem = await response.ReadValidationProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
         problem.ShouldNotBeNull();
-
-        var detail = problem.Detail;
-        detail.ShouldNotBeNull();
-        detail.ShouldContain("invalid:permission");
+        problem.Errors.ShouldContainKey("Permissions");
+        problem.Errors["Permissions"].ShouldContain(e => e.Contains("invalid:permission"));
     }
 
     [Fact]
@@ -237,7 +234,7 @@ public sealed class RolesHandlerTests
     }
 
     [Fact]
-    public async Task PutRole_WithInvalidPermission_ReturnsBadRequest()
+    public async Task PutRole_WithInvalidPermission_ReturnsValidationProblemDetails()
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -253,15 +250,14 @@ public sealed class RolesHandlerTests
 
         // Act
         var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var problem = await response.ReadValidationProblemAsync(cancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
         problem.ShouldNotBeNull();
-
-        var detail = problem.Detail;
-        detail.ShouldNotBeNull();
-        detail.ShouldContain("bogus:perm");
+        problem.Errors.ShouldContainKey("Permissions");
+        problem.Errors["Permissions"].ShouldContain(e => e.Contains("bogus:perm"));
     }
 
     [Fact]

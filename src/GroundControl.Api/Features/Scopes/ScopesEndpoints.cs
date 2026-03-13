@@ -16,6 +16,7 @@ internal static class ScopesEndpoints
         services.AddTransient<DeleteScopeHandler>();
 
         services.AddTransient<IAsyncValidator<CreateScopeRequest>, CreateScopeValidator>();
+        services.AddTransient<IAsyncValidator<UpdateScopeRequest>, UpdateScopeValidator>();
 
         return services;
     }

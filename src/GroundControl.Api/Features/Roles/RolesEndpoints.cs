@@ -1,3 +1,6 @@
+using GroundControl.Api.Features.Roles.Contracts;
+using GroundControl.Api.Shared.Validation;
+
 namespace GroundControl.Api.Features.Roles;
 
 internal static class RolesEndpoints
@@ -10,6 +13,9 @@ internal static class RolesEndpoints
         services.AddTransient<UpdateRoleHandler>();
         services.AddTransient<DeleteRoleHandler>();
         services.AddHostedService<RoleSeedService>();
+
+        services.AddTransient<IAsyncValidator<CreateRoleRequest>, CreateRoleValidator>();
+        services.AddTransient<IAsyncValidator<UpdateRoleRequest>, UpdateRoleValidator>();
 
         return services;
     }

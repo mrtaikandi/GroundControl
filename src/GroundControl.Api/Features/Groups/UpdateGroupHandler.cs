@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +25,7 @@ internal sealed class UpdateGroupHandler : IEndpointHandler
                 [FromServices] UpdateGroupHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.GroupsWrite)
+            .WithValidationOn<UpdateGroupRequest>()
             .WithName(nameof(UpdateGroupHandler));
     }
 
@@ -41,14 +43,6 @@ internal sealed class UpdateGroupHandler : IEndpointHandler
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {
             return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
-        }
-
-        var existingGroup = await _store.GetByNameAsync(request.Name, cancellationToken).ConfigureAwait(false);
-        if (existingGroup is not null && existingGroup.Id != group.Id)
-        {
-            return TypedResults.Problem(
-                detail: $"A group with name '{request.Name}' already exists.",
-                statusCode: StatusCodes.Status409Conflict);
         }
 
         group.Name = request.Name;

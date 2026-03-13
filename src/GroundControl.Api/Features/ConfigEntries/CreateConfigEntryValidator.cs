@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
+using ValidationContext = GroundControl.Api.Shared.Validation.ValidationContext;
 
 namespace GroundControl.Api.Features.ConfigEntries;
 
@@ -14,18 +15,19 @@ internal sealed class CreateConfigEntryValidator : IAsyncValidator<CreateConfigE
         _scopeStore = scopeStore ?? throw new ArgumentNullException(nameof(scopeStore));
     }
 
-    public async Task<IReadOnlyList<ValidationResult>> ValidateAsync(
+    public async Task<ValidatorResult> ValidateAsync(
         CreateConfigEntryRequest instance,
+        ValidationContext context,
         CancellationToken cancellationToken = default)
     {
-        var errors = new List<ValidationResult>();
+        List<ValidationResult> errors = [];
 
         if (!ConfigEntryValidation.IsValidValueType(instance.ValueType))
         {
             errors.Add(ValidationResult.Error(
                 $"ValueType '{instance.ValueType}' is not supported.",
                 [nameof(instance.ValueType)]));
-            return errors;
+            return ValidatorResult.ValidationProblem(errors);
         }
 
         foreach (var scopedValue in instance.Values)
@@ -39,15 +41,16 @@ internal sealed class CreateConfigEntryValidator : IAsyncValidator<CreateConfigE
 
         if (errors.Count > 0)
         {
-            return errors;
+            return ValidatorResult.ValidationProblem(errors);
         }
 
         var scopeError = await ConfigEntryValidation.ValidateScopesAsync(instance.Values, _scopeStore, cancellationToken).ConfigureAwait(false);
         if (scopeError is not null)
         {
             errors.Add(ValidationResult.Error(scopeError, [nameof(instance.Values)]));
+            return ValidatorResult.ValidationProblem(errors);
         }
 
-        return errors;
+        return ValidatorResult.Success;
     }
 }

@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +25,7 @@ internal sealed class UpdateScopeHandler : IEndpointHandler
                 [FromServices] UpdateScopeHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ScopesWrite)
+            .WithValidationOn<UpdateScopeRequest>()
             .WithName(nameof(UpdateScopeHandler));
     }
 
@@ -41,14 +43,6 @@ internal sealed class UpdateScopeHandler : IEndpointHandler
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {
             return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
-        }
-
-        var existingScope = await _store.GetByDimensionAsync(request.Dimension, cancellationToken).ConfigureAwait(false);
-        if (existingScope is not null && existingScope.Id != scope.Id)
-        {
-            return TypedResults.Problem(
-                detail: $"A scope with dimension '{request.Dimension}' already exists.",
-                statusCode: StatusCodes.Status409Conflict);
         }
 
         scope.Dimension = request.Dimension;

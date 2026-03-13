@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Roles.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +25,7 @@ internal sealed class UpdateRoleHandler : IEndpointHandler
                 [FromServices] UpdateRoleHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.RolesWrite)
+            .WithValidationOn<UpdateRoleRequest>()
             .WithName(nameof(UpdateRoleHandler));
     }
 
@@ -31,14 +33,6 @@ internal sealed class UpdateRoleHandler : IEndpointHandler
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(httpContext);
-
-        var invalidPermissions = request.Permissions.Where(p => !Permissions.All.Contains(p)).ToList();
-        if (invalidPermissions.Count > 0)
-        {
-            return TypedResults.Problem(
-                detail: $"Invalid permission(s): {string.Join(", ", invalidPermissions)}.",
-                statusCode: StatusCodes.Status400BadRequest);
-        }
 
         var role = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
         if (role is null)
@@ -49,14 +43,6 @@ internal sealed class UpdateRoleHandler : IEndpointHandler
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {
             return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
-        }
-
-        var existingRole = await _store.GetByNameAsync(request.Name, cancellationToken).ConfigureAwait(false);
-        if (existingRole is not null && existingRole.Id != role.Id)
-        {
-            return TypedResults.Problem(
-                detail: $"A role with name '{request.Name}' already exists.",
-                statusCode: StatusCodes.Status409Conflict);
         }
 
         role.Name = request.Name;
