@@ -1,8 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
-using ValidationContext = GroundControl.Api.Shared.Validation.ValidationContext;
 
 namespace GroundControl.Api.Features.Scopes;
 
@@ -20,6 +18,6 @@ internal sealed class CreateScopeValidator : IAsyncValidator<CreateScopeRequest>
         var existingScope = await _store.GetByDimensionAsync(instance.Dimension, cancellationToken).ConfigureAwait(false);
         return existingScope is null
             ? ValidatorResult.Success
-            : ValidatorResult.ValidationProblem(ValidationResult.Error($"A scope with dimension '{instance.Dimension}' already exists.", [nameof(instance.Dimension)]));
+            : ValidatorResult.Fail($"A scope with dimension '{instance.Dimension}' already exists.", nameof(instance.Dimension));
     }
 }

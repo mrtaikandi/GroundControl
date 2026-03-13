@@ -181,7 +181,8 @@ public sealed class TemplatesHandlerTests
         var firstResponse = await apiClient.GetAsync(RelativeUri("/api/templates?limit=2&sortField=name&sortOrder=asc"), cancellationToken);
         var firstPage = await ReadPageAsync(firstResponse, cancellationToken);
 
-        var nextCursor = Uri.EscapeDataString(firstPage.NextCursor!);
+        firstPage.NextCursor.ShouldNotBeNull();
+        var nextCursor = Uri.EscapeDataString(firstPage.NextCursor);
         var secondResponse = await apiClient.GetAsync(RelativeUri($"/api/templates?limit=2&sortField=name&sortOrder=asc&after={nextCursor}"), cancellationToken);
         var secondPage = await ReadPageAsync(secondResponse, cancellationToken);
 

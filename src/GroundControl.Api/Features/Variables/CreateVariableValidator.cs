@@ -1,9 +1,7 @@
-using System.ComponentModel.DataAnnotations;
 using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
-using ValidationContext = GroundControl.Api.Shared.Validation.ValidationContext;
 
 namespace GroundControl.Api.Features.Variables;
 
@@ -22,25 +20,24 @@ internal sealed class CreateVariableValidator : IAsyncValidator<CreateVariableRe
 
     public async Task<ValidatorResult> ValidateAsync(CreateVariableRequest instance, ValidationContext context, CancellationToken cancellationToken = default)
     {
-        var errors = await ValidateScopeOwnershipAsync(instance, cancellationToken);
-        if (errors.Count > 0)
+        var result = await ValidateScopeOwnershipAsync(instance, cancellationToken);
+        if (result.IsFailed)
         {
-            return ValidatorResult.ValidationProblem(errors);
+            return result;
         }
 
-        errors = await ValidateScopedValuesAsync(instance, cancellationToken);
-        return errors.Count > 0 ? ValidatorResult.ValidationProblem(errors) : ValidatorResult.Success;
+        return await ValidateScopedValuesAsync(instance, cancellationToken);
     }
 
-    private async Task<List<ValidationResult>> ValidateScopeOwnershipAsync(CreateVariableRequest instance, CancellationToken cancellationToken)
+    private async Task<ValidatorResult> ValidateScopeOwnershipAsync(CreateVariableRequest instance, CancellationToken cancellationToken)
     {
-        var errors = new List<ValidationResult>();
+        var result = new ValidatorResult();
 
         if (instance.Scope == VariableScope.Global)
         {
             if (instance.ProjectId.HasValue)
             {
-                errors.Add(ValidationResult.Error("Global variables cannot have a ProjectId.", [nameof(instance.ProjectId)]));
+                result.AddError("Global variables cannot have a ProjectId.", nameof(instance.ProjectId));
             }
 
             if (instance.GroupId.HasValue)
@@ -48,7 +45,7 @@ internal sealed class CreateVariableValidator : IAsyncValidator<CreateVariableRe
                 var group = await _groupStore.GetByIdAsync(instance.GroupId.Value, cancellationToken).ConfigureAwait(false);
                 if (group is null)
                 {
-                    errors.Add(ValidationResult.Error("The specified group does not exist.", [nameof(instance.GroupId)]));
+                    result.AddError("The specified group does not exist.", nameof(instance.GroupId));
                 }
             }
         }
@@ -56,29 +53,29 @@ internal sealed class CreateVariableValidator : IAsyncValidator<CreateVariableRe
         {
             if (!instance.ProjectId.HasValue)
             {
-                errors.Add(ValidationResult.Error("Project variables must have a ProjectId.", [nameof(instance.ProjectId)]));
+                result.AddError("Project variables must have a ProjectId.", nameof(instance.ProjectId));
             }
             else
             {
                 var project = await _projectStore.GetByIdAsync(instance.ProjectId.Value, cancellationToken).ConfigureAwait(false);
                 if (project is null)
                 {
-                    errors.Add(ValidationResult.Error("The specified project does not exist.", [nameof(instance.ProjectId)]));
+                    result.AddError("The specified project does not exist.", nameof(instance.ProjectId));
                 }
             }
 
             if (instance.GroupId.HasValue)
             {
-                errors.Add(ValidationResult.Error("Project variables cannot have a GroupId.", [nameof(instance.GroupId)]));
+                result.AddError("Project variables cannot have a GroupId.", nameof(instance.GroupId));
             }
         }
 
-        return errors;
+        return result;
     }
 
-    private async Task<List<ValidationResult>> ValidateScopedValuesAsync(CreateVariableRequest instance, CancellationToken cancellationToken)
+    private async Task<ValidatorResult> ValidateScopedValuesAsync(CreateVariableRequest instance, CancellationToken cancellationToken)
     {
-        var errors = new List<ValidationResult>();
+        var result = new ValidatorResult();
 
         foreach (var scopedValue in instance.Values)
         {
@@ -87,15 +84,15 @@ internal sealed class CreateVariableValidator : IAsyncValidator<CreateVariableRe
                 var scope = await _scopeStore.GetByDimensionAsync(dimension, cancellationToken).ConfigureAwait(false);
                 if (scope is null)
                 {
-                    errors.Add(ValidationResult.Error($"Scope dimension '{dimension}' does not exist.", [nameof(instance.Values)]));
+                    result.AddError($"Scope dimension '{dimension}' does not exist.", nameof(instance.Values));
                 }
                 else if (!scope.AllowedValues.Contains(value))
                 {
-                    errors.Add(ValidationResult.Error($"Value '{value}' is not allowed for scope dimension '{dimension}'.", [nameof(instance.Values)]));
+                    result.AddError($"Value '{value}' is not allowed for scope dimension '{dimension}'.", nameof(instance.Values));
                 }
             }
         }
 
-        return errors;
+        return result;
     }
 }

@@ -1,10 +1,8 @@
-using System.ComponentModel.DataAnnotations;
 using GroundControl.Api.Features.Roles.Contracts;
 using GroundControl.Api.Shared.Extensions.Http;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
-using ValidationContext = GroundControl.Api.Shared.Validation.ValidationContext;
 
 namespace GroundControl.Api.Features.Roles;
 
@@ -22,9 +20,7 @@ internal sealed class UpdateRoleValidator : IAsyncValidator<UpdateRoleRequest>
         var invalidPermissions = instance.Permissions.Where(p => !Permissions.All.Contains(p)).ToList();
         if (invalidPermissions.Count > 0)
         {
-            return ValidatorResult.ValidationProblem(ValidationResult.Error(
-                $"Invalid permission(s): {string.Join(", ", invalidPermissions)}.",
-                [nameof(instance.Permissions)]));
+            return ValidatorResult.Fail($"Invalid permission(s): {string.Join(", ", invalidPermissions)}.", nameof(instance.Permissions));
         }
 
         if (!context.HttpContext.Request.RouteValues.TryGetValue<Guid>("id", out var id))

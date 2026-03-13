@@ -1,8 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
-using ValidationContext = GroundControl.Api.Shared.Validation.ValidationContext;
 
 namespace GroundControl.Api.Features.Variables;
 
@@ -17,7 +15,7 @@ internal sealed class UpdateVariableValidator : IAsyncValidator<UpdateVariableRe
 
     public async Task<ValidatorResult> ValidateAsync(UpdateVariableRequest instance, ValidationContext context, CancellationToken cancellationToken = default)
     {
-        List<ValidationResult> errors = [];
+        var result = new ValidatorResult();
 
         foreach (var sv in instance.Values)
         {
@@ -26,15 +24,15 @@ internal sealed class UpdateVariableValidator : IAsyncValidator<UpdateVariableRe
                 var scope = await _scopeStore.GetByDimensionAsync(dimension, cancellationToken).ConfigureAwait(false);
                 if (scope is null)
                 {
-                    errors.Add(ValidationResult.Error($"Scope dimension '{dimension}' does not exist.", [nameof(instance.Values)]));
+                    result.AddError($"Scope dimension '{dimension}' does not exist.", nameof(instance.Values));
                 }
                 else if (!scope.AllowedValues.Contains(value))
                 {
-                    errors.Add(ValidationResult.Error($"Value '{value}' is not allowed for scope dimension '{dimension}'.", [nameof(instance.Values)]));
+                    result.AddError($"Value '{value}' is not allowed for scope dimension '{dimension}'.", nameof(instance.Values));
                 }
             }
         }
 
-        return errors.Count > 0 ? ValidatorResult.ValidationProblem(errors) : ValidatorResult.Success;
+        return result;
     }
 }

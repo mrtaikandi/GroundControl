@@ -1,8 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
-using ValidationContext = GroundControl.Api.Shared.Validation.ValidationContext;
 
 namespace GroundControl.Api.Features.Templates;
 
@@ -24,7 +22,7 @@ internal sealed class CreateTemplateValidator : IAsyncValidator<CreateTemplateRe
 
         var group = await _groupStore.GetByIdAsync(instance.GroupId.Value, cancellationToken).ConfigureAwait(false);
         return group is null
-            ? ValidatorResult.ValidationProblem(ValidationResult.Error($"Group '{instance.GroupId.Value}' was not found.", [nameof(instance.GroupId)]))
+            ? ValidatorResult.Fail($"Group '{instance.GroupId.Value}' was not found.", nameof(instance.GroupId))
             : ValidatorResult.Success;
     }
 }

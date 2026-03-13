@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <NoWarn>$(NoWarn);CA2007</NoWarn>
-        <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
     </PropertyGroup>
 
     <PropertyGroup Label="Preview Features">

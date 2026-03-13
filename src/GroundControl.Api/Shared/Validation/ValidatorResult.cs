@@ -1,68 +1,71 @@
-using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GroundControl.Api.Shared.Validation;
 
 /// <summary>
 /// Represents the result of an asynchronous validation operation.
 /// </summary>
-internal abstract record ValidatorResult
+internal sealed record ValidatorResult
 {
     /// <summary>
     /// Gets a result indicating that validation succeeded.
     /// </summary>
-    public static ValidatorResult Success { get; } = new SuccessResult();
+    public static readonly ValidatorResult Success = new();
+
+    private readonly string? _detail;
+    private readonly int _statusCode;
+    private readonly Dictionary<string, List<string>> _errors = new(StringComparer.OrdinalIgnoreCase);
+
+    public ValidatorResult() { }
+
+    private ValidatorResult(string? detail = null, int statusCode = 0)
+    {
+        _detail = detail;
+        _statusCode = statusCode;
+    }
+
+    public bool IsSuccess => _errors.Count == 0 && _statusCode == 0;
+
+    public bool IsFailed => !IsSuccess;
 
     /// <summary>
     /// Creates a result representing a problem with a specific status code.
     /// </summary>
     /// <param name="detail">The problem detail message.</param>
     /// <param name="statusCode">The HTTP status code to return.</param>
-    public static ValidatorResult Problem(string detail, int statusCode) =>
-        new ProblemResult(detail, statusCode);
+    public static ValidatorResult Problem(string detail, int statusCode) => new(detail, statusCode);
 
-    /// <summary>
-    /// Creates a result representing validation errors that should return a 400 response.
-    /// </summary>
-    /// <param name="errors">The validation errors dictionary.</param>
-    public static ValidatorResult ValidationProblem(IDictionary<string, string[]> errors) =>
-        new ValidationProblemResult(errors);
-
-    /// <summary>
-    /// Creates a result representing validation errors that should return a 400 response.
-    /// </summary>
-    /// <param name="results">The validation results to convert to an errors dictionary.</param>
-    public static ValidatorResult ValidationProblem(params IEnumerable<ValidationResult> results) =>
-        new ValidationProblemResult(results);
-
-    internal sealed record ProblemResult(string Detail, int StatusCode) : ValidatorResult;
-
-    internal sealed record SuccessResult : ValidatorResult;
-
-    internal sealed record ValidationProblemResult(IDictionary<string, string[]> Errors) : ValidatorResult
+    public static ValidatorResult Fail(string error, params string[] memberNames)
     {
-        public ValidationProblemResult(IEnumerable<ValidationResult> results)
-            : this(ToErrorsDictionary(results)) { }
+        var result = new ValidatorResult();
+        result.AddError(error, memberNames);
 
-        private static Dictionary<string, string[]> ToErrorsDictionary(IEnumerable<ValidationResult> results)
+        return result;
+    }
+
+    public ValidatorResult AddError(string error, params string[] memberNames)
+    {
+        var key = memberNames.Length > 0 ? string.Join(".", memberNames) : string.Empty;
+        if (!_errors.TryGetValue(key, out var messages))
         {
-            var errors = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var result in results)
-            {
-                var message = result.ErrorMessage ?? "Validation failed.";
-                var memberNames = result.MemberNames.Where(m => !string.IsNullOrEmpty(m)).ToArray();
-                var key = memberNames is { Length: > 0 } ? string.Join(".", memberNames) : "";
-
-                if (!errors.TryGetValue(key, out var messages))
-                {
-                    messages = [];
-                    errors[key] = messages;
-                }
-
-                messages.Add(message);
-            }
-
-            return errors.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+            messages = [];
+            _errors[key] = messages;
         }
+
+        messages.Add(error);
+
+        return this;
+    }
+
+    public ProblemDetails? ToProblemDetails()
+    {
+        if (IsSuccess)
+        {
+            return null;
+        }
+
+        return _statusCode == 0
+            ? new HttpValidationProblemDetails(_errors.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToArray(), StringComparer.OrdinalIgnoreCase))
+            : new ProblemDetails { Detail = _detail, Status = _statusCode };
     }
 }

@@ -56,6 +56,13 @@ internal static class AsyncValidationFilter
         });
     }
 
+    private static IResult? ToResult(ValidatorResult result) => result.ToProblemDetails() switch
+    {
+        HttpValidationProblemDetails details => TypedResults.ValidationProblem(details.Errors),
+        { } details => TypedResults.Problem(details),
+        _ => null
+    };
+
     private static EndpointFilterDelegate CreateFilter(EndpointFilterFactoryContext context, EndpointFilterDelegate next)
     {
         var parameters = context.MethodInfo.GetParameters();
@@ -83,12 +90,7 @@ internal static class AsyncValidationFilter
         return async context =>
         {
             var validator = context.HttpContext.RequestServices.GetService<IAsyncValidator<T>>();
-            if (validator is null)
-            {
-                return await next(context);
-            }
-
-            if (context.Arguments[argumentIndex] is not T argument)
+            if (validator is null || context.Arguments[argumentIndex] is not T argument)
             {
                 return await next(context);
             }
@@ -99,13 +101,6 @@ internal static class AsyncValidationFilter
             return ToResult(result) ?? await next(context);
         };
     }
-
-    private static object? ToResult(ValidatorResult result) => result switch
-    {
-        ValidatorResult.ValidationProblemResult vp => TypedResults.ValidationProblem(vp.Errors),
-        ValidatorResult.ProblemResult p => TypedResults.Problem(detail: p.Detail, statusCode: p.StatusCode),
-        _ => null
-    };
 
     private static bool IsBodyParameter(ParameterInfo parameter)
     {
