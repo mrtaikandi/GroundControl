@@ -1,3 +1,6 @@
+using GroundControl.Api.Features.Templates.Contracts;
+using GroundControl.Api.Shared.Validation;
+
 namespace GroundControl.Api.Features.Templates;
 
 internal static class TemplatesEndpoints
@@ -11,6 +14,9 @@ internal static class TemplatesEndpoints
         services.AddTransient<ListTemplatesHandler>();
         services.AddTransient<UpdateTemplateHandler>();
         services.AddTransient<DeleteTemplateHandler>();
+
+        services.AddTransient<IAsyncValidator<CreateTemplateRequest>, CreateTemplateValidator>();
+        services.AddTransient<IAsyncValidator<UpdateTemplateRequest>, UpdateTemplateValidator>();
 
         return services;
     }

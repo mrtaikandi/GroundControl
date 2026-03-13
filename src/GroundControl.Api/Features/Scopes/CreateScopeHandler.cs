@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -22,22 +23,13 @@ internal sealed class CreateScopeHandler : IEndpointHandler
                 CreateScopeRequest request,
                 [FromServices] CreateScopeHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
+            .WithValidationOn<CreateScopeRequest>()
             .RequireAuthorization(Permissions.ScopesWrite)
             .WithName(nameof(CreateScopeHandler));
     }
 
     private async Task<IResult> HandleAsync(CreateScopeRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-
-        var existingScope = await _store.GetByDimensionAsync(request.Dimension, cancellationToken).ConfigureAwait(false);
-        if (existingScope is not null)
-        {
-            return TypedResults.Problem(
-                detail: $"A scope with dimension '{request.Dimension}' already exists.",
-                statusCode: StatusCodes.Status409Conflict);
-        }
-
         var timestamp = DateTimeOffset.UtcNow;
         var scope = new Scope
         {

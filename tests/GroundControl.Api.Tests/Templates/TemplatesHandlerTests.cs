@@ -6,6 +6,7 @@ using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Api.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
 using Xunit;
@@ -66,7 +67,7 @@ public sealed class TemplatesHandlerTests
     }
 
     [Fact]
-    public async Task PostTemplate_WithNonExistentGroupId_ReturnsNotFoundProblemDetails()
+    public async Task PostTemplate_WithNonExistentGroupId_ReturnsValidationProblemDetails()
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -76,13 +77,14 @@ public sealed class TemplatesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/templates"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await ReadValidationProblemAsync(response, cancellationToken);
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
         problem.ShouldNotBeNull();
-        problem.Detail.ShouldNotBeNull();
-        problem.Detail.ShouldContain("was not found");
+        problem.Errors.ShouldContainKey("GroupId");
+        problem.Errors["GroupId"].ShouldContain(e => e.Contains("was not found"));
     }
 
     [Fact]
@@ -435,6 +437,9 @@ public sealed class TemplatesHandlerTests
 
     private static async Task<ProblemDetails?> ReadProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
         await response.Content.ReadFromJsonAsync<ProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+
+    private static async Task<HttpValidationProblemDetails?> ReadValidationProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
+        await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 
     private static async Task<TemplateResponse> ReadTemplateAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {

@@ -5,6 +5,7 @@ using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Api.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
 using Xunit;
@@ -204,7 +205,7 @@ public sealed class ScopesHandlerTests
     }
 
     [Fact]
-    public async Task PostScope_WithDuplicateDimension_ReturnsConflictProblemDetails()
+    public async Task PostScope_WithDuplicateDimension_ReturnsValidationProblemDetails()
     {
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -214,16 +215,14 @@ public sealed class ScopesHandlerTests
 
         // Act
         var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/scopes"), CreateRequest("Environment", ["qa"]), WebJsonSerializerOptions, cancellationToken);
-        var problem = await ReadProblemAsync(response, cancellationToken);
+        var problem = await ReadValidationProblemAsync(response, cancellationToken);
 
         // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
         problem.ShouldNotBeNull();
-
-        var detail = problem.Detail;
-        detail.ShouldNotBeNull();
-        detail.ShouldContain("already exists");
+        problem.Errors.ShouldContainKey("Dimension");
+        problem.Errors["Dimension"].ShouldContain(e => e.Contains("already exists"));
     }
 
     [Fact]
@@ -359,6 +358,9 @@ public sealed class ScopesHandlerTests
 
     private static async Task<ProblemDetails?> ReadProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
         await response.Content.ReadFromJsonAsync<ProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+
+    private static async Task<HttpValidationProblemDetails?> ReadValidationProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
+        await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 
     private static async Task<ScopeResponse> ReadScopeAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {

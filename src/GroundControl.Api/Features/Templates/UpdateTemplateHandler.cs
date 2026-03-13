@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,13 +9,11 @@ namespace GroundControl.Api.Features.Templates;
 
 internal sealed class UpdateTemplateHandler : IEndpointHandler
 {
-    private readonly IGroupStore _groupStore;
     private readonly ITemplateStore _store;
 
-    public UpdateTemplateHandler(ITemplateStore store, IGroupStore groupStore)
+    public UpdateTemplateHandler(ITemplateStore store)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
-        _groupStore = groupStore ?? throw new ArgumentNullException(nameof(groupStore));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -25,6 +24,7 @@ internal sealed class UpdateTemplateHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] UpdateTemplateHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
+            .WithValidationOn<UpdateTemplateRequest>()
             .RequireAuthorization(Permissions.TemplatesWrite)
             .WithName(nameof(UpdateTemplateHandler));
     }
@@ -43,17 +43,6 @@ internal sealed class UpdateTemplateHandler : IEndpointHandler
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {
             return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
-        }
-
-        if (request.GroupId.HasValue)
-        {
-            var group = await _groupStore.GetByIdAsync(request.GroupId.Value, cancellationToken).ConfigureAwait(false);
-            if (group is null)
-            {
-                return TypedResults.Problem(
-                    detail: $"Group '{request.GroupId.Value}' was not found.",
-                    statusCode: StatusCodes.Status404NotFound);
-            }
         }
 
         template.Name = request.Name;

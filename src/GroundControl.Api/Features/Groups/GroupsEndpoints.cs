@@ -1,3 +1,6 @@
+using GroundControl.Api.Features.Groups.Contracts;
+using GroundControl.Api.Shared.Validation;
+
 namespace GroundControl.Api.Features.Groups;
 
 internal static class GroupsEndpoints
@@ -11,6 +14,8 @@ internal static class GroupsEndpoints
         services.AddTransient<ListGroupsHandler>();
         services.AddTransient<UpdateGroupHandler>();
         services.AddTransient<DeleteGroupHandler>();
+
+        services.AddTransient<IAsyncValidator<CreateGroupRequest>, CreateGroupValidator>();
 
         return services;
     }

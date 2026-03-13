@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -9,13 +10,11 @@ namespace GroundControl.Api.Features.Templates;
 
 internal sealed class CreateTemplateHandler : IEndpointHandler
 {
-    private readonly IGroupStore _groupStore;
     private readonly ITemplateStore _store;
 
-    public CreateTemplateHandler(ITemplateStore store, IGroupStore groupStore)
+    public CreateTemplateHandler(ITemplateStore store)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
-        _groupStore = groupStore ?? throw new ArgumentNullException(nameof(groupStore));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -24,25 +23,13 @@ internal sealed class CreateTemplateHandler : IEndpointHandler
                 CreateTemplateRequest request,
                 [FromServices] CreateTemplateHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
+            .WithValidationOn<CreateTemplateRequest>()
             .RequireAuthorization(Permissions.TemplatesWrite)
             .WithName(nameof(CreateTemplateHandler));
     }
 
     private async Task<IResult> HandleAsync(CreateTemplateRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-
-        if (request.GroupId.HasValue)
-        {
-            var group = await _groupStore.GetByIdAsync(request.GroupId.Value, cancellationToken).ConfigureAwait(false);
-            if (group is null)
-            {
-                return TypedResults.Problem(
-                    detail: $"Group '{request.GroupId.Value}' was not found.",
-                    statusCode: StatusCodes.Status404NotFound);
-            }
-        }
-
         var timestamp = DateTimeOffset.UtcNow;
         var template = new Template
         {

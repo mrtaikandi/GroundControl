@@ -1,3 +1,6 @@
+using GroundControl.Api.Features.Scopes.Contracts;
+using GroundControl.Api.Shared.Validation;
+
 namespace GroundControl.Api.Features.Scopes;
 
 internal static class ScopesEndpoints
@@ -11,6 +14,8 @@ internal static class ScopesEndpoints
         services.AddTransient<ListScopesHandler>();
         services.AddTransient<UpdateScopeHandler>();
         services.AddTransient<DeleteScopeHandler>();
+
+        services.AddTransient<IAsyncValidator<CreateScopeRequest>, CreateScopeValidator>();
 
         return services;
     }

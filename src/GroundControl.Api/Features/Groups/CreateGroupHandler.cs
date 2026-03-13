@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -22,22 +23,13 @@ internal sealed class CreateGroupHandler : IEndpointHandler
                 CreateGroupRequest request,
                 [FromServices] CreateGroupHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
+            .WithValidationOn<CreateGroupRequest>()
             .RequireAuthorization(Permissions.GroupsWrite)
             .WithName(nameof(CreateGroupHandler));
     }
 
     private async Task<IResult> HandleAsync(CreateGroupRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-
-        var existingGroup = await _store.GetByNameAsync(request.Name, cancellationToken).ConfigureAwait(false);
-        if (existingGroup is not null)
-        {
-            return TypedResults.Problem(
-                detail: $"A group with name '{request.Name}' already exists.",
-                statusCode: StatusCodes.Status409Conflict);
-        }
-
         var timestamp = DateTimeOffset.UtcNow;
         var group = new Group
         {
