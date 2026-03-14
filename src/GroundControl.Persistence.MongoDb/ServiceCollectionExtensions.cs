@@ -4,7 +4,6 @@ using GroundControl.Persistence.Stores;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -51,23 +50,29 @@ public static class ServiceCollectionExtensions
             return new MongoClient(options.ConnectionString);
         });
 
+        services.TryAddEnumerable([
+            ServiceDescriptor.Singleton<IDocumentConfiguration, ScopeConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, GroupConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, RoleConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, TemplateConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, ProjectConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, ConfigEntryConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, VariableConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, SnapshotConfiguration>(),
+        ]);
+
+        services.AddHostedService<MongoIndexSetupService>();
         services.TryAddSingleton<IMongoDbContext, MongoDbContext>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ScopeConfiguration>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, GroupConfiguration>());
+
+        services.TryAddSingleton<IRoleStore, RoleStore>();
         services.TryAddSingleton<IScopeStore, ScopeStore>();
         services.TryAddSingleton<IGroupStore, GroupStore>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, RoleConfiguration>());
-        services.TryAddSingleton<IRoleStore, RoleStore>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, TemplateConfiguration>());
-        services.TryAddSingleton<ITemplateStore, TemplateStore>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ProjectConfiguration>());
-        services.TryAddSingleton<IProjectStore, ProjectStore>();
         services.TryAddSingleton<IClientStore, ClientStore>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ConfigEntryConfiguration>());
-        services.TryAddSingleton<IConfigEntryStore, ConfigEntryStore>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, VariableConfiguration>());
+        services.TryAddSingleton<IProjectStore, ProjectStore>();
         services.TryAddSingleton<IVariableStore, VariableStore>();
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, MongoIndexSetupService>());
+        services.TryAddSingleton<ITemplateStore, TemplateStore>();
+        services.TryAddSingleton<ISnapshotStore, MongoSnapshotStore>();
+        services.TryAddSingleton<IConfigEntryStore, ConfigEntryStore>();
 
         return services;
     }
