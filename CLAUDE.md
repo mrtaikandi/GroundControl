@@ -52,34 +52,48 @@ tests/
 
 ### Feature Slice Pattern
 
-Each feature folder has:
-- **Handler classes** implementing `IEndpointHandler` with `static abstract void Endpoint(IEndpointRouteBuilder)` for route mapping and `HandleAsync(...)` for logic
-- **`XxxEndpoints.cs`** with `MapXxxEndpoints()` (routes) and `AddXxxHandlers()` (DI) extension methods
+Each feature folder under `Api/Features/{FeatureName}/` has:
+- **Handler classes** — sealed internal, implementing `IEndpointHandler` with `static abstract void Endpoint(IEndpointRouteBuilder)` for route mapping and private `HandleAsync(...)` for logic
+- **`XxxEndpoints.cs`** with `MapXxxEndpoints()` (routes via `MapGroup("/api/xxx").WithTags("Xxx")`) and `AddXxxHandlers()` (DI) extension methods
+- **`Contracts/`** subfolder with request/response DTOs
 - Handlers registered as `Transient`, resolved via `[FromServices]`
+
+**Request DTOs:** Sealed internal records with `init` properties and Data Annotations (`[Required]`, `[MaxLength]`, etc.).
+
+**Response DTOs:** Sealed internal records with `required init` properties and a static `From(Entity)` factory method for mapping.
+
+**Adding a new feature:** Register handlers in `AddXxxHandlers()`, map routes in `MapXxxEndpoints()`, then wire both into `Program.cs`.
 
 ### Data Access — Store Pattern
 
-One specific store interface per entity (no generic base). Methods capture business semantics (e.g., `GetByDimensionAsync`, `IsReferencedAsync`). Optimistic concurrency via `expectedVersion` parameter. List operations use `ListQuery` or entity-specific derived query types.
+One specific store interface per entity (no generic base). Methods capture business semantics (e.g., `GetByDimensionAsync`, `HasDependentsAsync`). Optimistic concurrency via `expectedVersion` parameter — updates/deletes filter on both ID and expected version, increment version on success. List operations use `ListQuery` with cursor-based pagination via `MongoCursorPagination` helpers.
 
-MongoDB used directly via `IMongoCollection<T>` with LINQ/Builders — no ORM layer. Per-collection index setup via `IDocumentConfiguration<T>`.
+MongoDB used directly via `IMongoCollection<T>` with LINQ/Builders — no ORM layer. Per-collection index setup via `DocumentConfiguration<T>` (implements `IDocumentConfiguration`), registered as singleton via `TryAddEnumerable` and run on startup by `MongoIndexSetupService`. Case-insensitive collation from `IMongoDbContext.DefaultCollation` applied to string sorts and unique indexes.
+
+**ETag/Concurrency flow:** GET returns `ETag` header (version). PUT/DELETE require `If-Match` header, parsed via `EntityTagHeaders.TryParseIfMatch()`. Version mismatch → 409 Conflict. Missing header → 428 Precondition Required.
 
 ### Validation & Error Handling
 
-- Input validation: .NET 10 built-in minimal API validation with Data Annotations on request DTOs
-- Business failures: `TypedResults.Problem()` returning RFC 9457 ProblemDetails — no custom error types or Result pattern
+- **Input validation:** .NET 10 built-in minimal API validation with Data Annotations on request DTOs
+- **Async business validation:** `IAsyncValidator<TRequest>` implementations registered in DI, applied via `.WithContractValidation<T>()` endpoint filter. `IEndpointValidator` + `.WithEndpointValidation<T>()` for non-body validation (route values, headers)
+- **Business failures:** `TypedResults.Problem()` returning RFC 9457 ProblemDetails — no custom error types or Result pattern
+- **HTTP status conventions:** 400 (validation), 404 (not found), 409 (version conflict / duplicate / has dependents), 428 (missing If-Match header)
 
 ### Key Conventions
 
 - **IDs:** `Guid` using `Guid.CreateVersion7()` at creation
 - **CancellationToken:** Always `CancellationToken cancellationToken = default` (full name, default value)
+- **ConfigureAwait:** All library/non-API code uses `.ConfigureAwait(false)`
 - **Records:** Use `init` properties, not positional parameters (primary constructors)
 - **Namespaces:** File-scoped
 - **Usings:** Project-specific global usings in `Properties/Usings.cs`
+- **Entities:** Classes (not records) with get/set properties, include `Version` (long), `CreatedAt`/`UpdatedAt` (DateTimeOffset), `CreatedBy`/`UpdatedBy` (Guid)
 
 ## Testing
 
 - **Framework:** xUnit v3 with Shouldly (assertions) and NSubstitute (mocking)
-- **Integration tests:** Testcontainers for real MongoDB; WebApplicationFactory for API tests
+- **Integration tests:** Testcontainers for real MongoDB replica set; `GroundControlApiFactory` (WebApplicationFactory) for API tests
+- **Test isolation:** `[Collection("MongoDB")]` shares a single `MongoFixture` container; each test gets its own database via `MongoFixture.CreateDatabase()`
 - **Structure:** Unit and integration tests coexist in the same test project
 - **AAA comments:** Use `// Arrange`, `// Act`, `// Assert` in all tests
 
