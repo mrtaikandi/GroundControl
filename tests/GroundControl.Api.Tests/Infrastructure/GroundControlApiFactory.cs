@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using MongoDB.Driver;
+using Xunit;
 
 namespace GroundControl.Api.Tests.Infrastructure;
 
@@ -29,6 +32,13 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
                 ["Persistence:MongoDb:DatabaseName"] = _database.DatabaseNamespace.DatabaseName,
                 ["GroundControl:Security:AuthenticationMode"] = "None"
             });
+        });
+
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddFakeLogging(c => c.OutputSink = message => TestContext.Current.TestOutputHelper?.WriteLine(message));
+            logging.AddFilter<FakeLoggerProvider>(l => l >= LogLevel.Debug);
         });
     }
 }
