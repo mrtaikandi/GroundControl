@@ -4,6 +4,7 @@ using GroundControl.Api.Features.Groups;
 using GroundControl.Api.Features.Projects;
 using GroundControl.Api.Features.Roles;
 using GroundControl.Api.Features.Scopes;
+using GroundControl.Api.Features.Snapshots;
 using GroundControl.Api.Features.Templates;
 using GroundControl.Api.Features.Variables;
 using GroundControl.Api.Shared.Configuration;
@@ -58,6 +59,7 @@ builder.Services.AddTemplatesHandlers();
 builder.Services.AddProjectsHandlers();
 builder.Services.AddConfigEntriesHandlers();
 builder.Services.AddVariablesHandlers();
+builder.Services.AddSnapshotsHandlers();
 
 builder.Services
     .AddAuthorizationBuilder()
@@ -80,6 +82,7 @@ app.MapTemplatesEndpoints();
 app.MapProjectsEndpoints();
 app.MapConfigEntriesEndpoints();
 app.MapVariablesEndpoints();
+app.MapSnapshotsEndpoints();
 
 app.MapOpenApi();
 app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = p => p.Tags.Contains("liveness") });
