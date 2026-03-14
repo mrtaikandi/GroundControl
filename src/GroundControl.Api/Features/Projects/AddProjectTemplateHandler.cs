@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,12 +10,10 @@ namespace GroundControl.Api.Features.Projects;
 internal sealed class AddProjectTemplateHandler : IEndpointHandler
 {
     private readonly IProjectStore _store;
-    private readonly ITemplateStore _templateStore;
 
-    public AddProjectTemplateHandler(IProjectStore store, ITemplateStore templateStore)
+    public AddProjectTemplateHandler(IProjectStore store)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
-        _templateStore = templateStore ?? throw new ArgumentNullException(nameof(templateStore));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -25,6 +24,7 @@ internal sealed class AddProjectTemplateHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] AddProjectTemplateHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, templateId, httpContext, cancellationToken))
+            .WithEndpointValidation<AddProjectTemplateValidator>()
             .RequireAuthorization(Permissions.ProjectsWrite)
             .WithName(nameof(AddProjectTemplateHandler));
     }
@@ -37,12 +37,6 @@ internal sealed class AddProjectTemplateHandler : IEndpointHandler
         if (project is null)
         {
             return TypedResults.Problem(detail: $"Project '{id}' was not found.", statusCode: StatusCodes.Status404NotFound);
-        }
-
-        var template = await _templateStore.GetByIdAsync(templateId, cancellationToken).ConfigureAwait(false);
-        if (template is null)
-        {
-            return TypedResults.Problem(detail: $"Template '{templateId}' was not found.", statusCode: StatusCodes.Status404NotFound);
         }
 
         if (project.TemplateIds.Contains(templateId))

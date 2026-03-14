@@ -23,7 +23,7 @@ internal sealed class CreateScopeHandler : IEndpointHandler
                 CreateScopeRequest request,
                 [FromServices] CreateScopeHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
-            .WithValidationOn<CreateScopeRequest>()
+            .WithContractValidation<CreateScopeRequest>()
             .RequireAuthorization(Permissions.ScopesWrite)
             .WithName(nameof(CreateScopeHandler));
     }

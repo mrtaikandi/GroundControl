@@ -24,7 +24,7 @@ internal sealed class CreateProjectHandler : IEndpointHandler
                 CreateProjectRequest request,
                 [FromServices] CreateProjectHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
-            .WithValidationOn<CreateProjectRequest>()
+            .WithContractValidation<CreateProjectRequest>()
             .RequireAuthorization(Permissions.ProjectsWrite)
             .WithName(nameof(CreateProjectHandler));
     }

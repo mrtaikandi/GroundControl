@@ -24,7 +24,7 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
                 CreateConfigEntryRequest request,
                 [FromServices] CreateConfigEntryHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
-            .WithValidationOn<CreateConfigEntryRequest>()
+            .WithContractValidation<CreateConfigEntryRequest>()
             .RequireAuthorization(Permissions.ConfigEntriesWrite)
             .WithName(nameof(CreateConfigEntryHandler));
     }

@@ -25,7 +25,7 @@ internal sealed class UpdateConfigEntryHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] UpdateConfigEntryHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
-            .WithValidationOn<UpdateConfigEntryRequest>()
+            .WithContractValidation<UpdateConfigEntryRequest>()
             .RequireAuthorization(Permissions.ConfigEntriesWrite)
             .WithName(nameof(UpdateConfigEntryHandler));
     }

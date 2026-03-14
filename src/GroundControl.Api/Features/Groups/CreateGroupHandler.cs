@@ -23,7 +23,7 @@ internal sealed class CreateGroupHandler : IEndpointHandler
                 CreateGroupRequest request,
                 [FromServices] CreateGroupHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
-            .WithValidationOn<CreateGroupRequest>()
+            .WithContractValidation<CreateGroupRequest>()
             .RequireAuthorization(Permissions.GroupsWrite)
             .WithName(nameof(CreateGroupHandler));
     }

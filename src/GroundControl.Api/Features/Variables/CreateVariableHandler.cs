@@ -24,7 +24,7 @@ internal sealed class CreateVariableHandler : IEndpointHandler
                 CreateVariableRequest request,
                 [FromServices] CreateVariableHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
-            .WithValidationOn<CreateVariableRequest>()
+            .WithContractValidation<CreateVariableRequest>()
             .RequireAuthorization(Permissions.VariablesWrite)
             .WithName(nameof(CreateVariableHandler));
     }

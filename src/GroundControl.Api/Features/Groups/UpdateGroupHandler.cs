@@ -25,7 +25,7 @@ internal sealed class UpdateGroupHandler : IEndpointHandler
                 [FromServices] UpdateGroupHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.GroupsWrite)
-            .WithValidationOn<UpdateGroupRequest>()
+            .WithContractValidation<UpdateGroupRequest>()
             .WithName(nameof(UpdateGroupHandler));
     }
 

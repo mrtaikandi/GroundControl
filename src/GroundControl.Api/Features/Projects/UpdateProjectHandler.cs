@@ -24,7 +24,7 @@ internal sealed class UpdateProjectHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] UpdateProjectHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
-            .WithValidationOn<UpdateProjectRequest>()
+            .WithContractValidation<UpdateProjectRequest>()
             .RequireAuthorization(Permissions.ProjectsWrite)
             .WithName(nameof(UpdateProjectHandler));
     }

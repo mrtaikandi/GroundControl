@@ -23,7 +23,7 @@ internal sealed class CreateTemplateHandler : IEndpointHandler
                 CreateTemplateRequest request,
                 [FromServices] CreateTemplateHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
-            .WithValidationOn<CreateTemplateRequest>()
+            .WithContractValidation<CreateTemplateRequest>()
             .RequireAuthorization(Permissions.TemplatesWrite)
             .WithName(nameof(CreateTemplateHandler));
     }

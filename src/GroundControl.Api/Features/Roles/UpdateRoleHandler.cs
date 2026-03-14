@@ -25,7 +25,7 @@ internal sealed class UpdateRoleHandler : IEndpointHandler
                 [FromServices] UpdateRoleHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.RolesWrite)
-            .WithValidationOn<UpdateRoleRequest>()
+            .WithContractValidation<UpdateRoleRequest>()
             .WithName(nameof(UpdateRoleHandler));
     }
 

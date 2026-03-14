@@ -25,7 +25,7 @@ internal sealed class UpdateVariableHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] UpdateVariableHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
-            .WithValidationOn<UpdateVariableRequest>()
+            .WithContractValidation<UpdateVariableRequest>()
             .RequireAuthorization(Permissions.VariablesWrite)
             .WithName(nameof(UpdateVariableHandler));
     }

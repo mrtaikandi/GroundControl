@@ -24,7 +24,7 @@ internal sealed class UpdateTemplateHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] UpdateTemplateHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
-            .WithValidationOn<UpdateTemplateRequest>()
+            .WithContractValidation<UpdateTemplateRequest>()
             .RequireAuthorization(Permissions.TemplatesWrite)
             .WithName(nameof(UpdateTemplateHandler));
     }

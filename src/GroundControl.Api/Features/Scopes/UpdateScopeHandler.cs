@@ -25,7 +25,7 @@ internal sealed class UpdateScopeHandler : IEndpointHandler
                 [FromServices] UpdateScopeHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ScopesWrite)
-            .WithValidationOn<UpdateScopeRequest>()
+            .WithContractValidation<UpdateScopeRequest>()
             .WithName(nameof(UpdateScopeHandler));
     }
 

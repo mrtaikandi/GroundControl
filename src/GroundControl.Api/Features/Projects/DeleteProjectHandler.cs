@@ -1,5 +1,6 @@
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,7 @@ internal sealed class DeleteProjectHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] DeleteProjectHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
+            .WithEndpointValidation<DeleteProjectValidator>()
             .RequireAuthorization(Permissions.ProjectsWrite)
             .WithName(nameof(DeleteProjectHandler));
     }
@@ -33,12 +35,6 @@ internal sealed class DeleteProjectHandler : IEndpointHandler
     private async Task<IResult> HandleAsync(Guid id, HttpContext httpContext, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
-
-        var project = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        if (project is null)
-        {
-            return TypedResults.Problem(detail: $"Project '{id}' was not found.", statusCode: StatusCodes.Status404NotFound);
-        }
 
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {
