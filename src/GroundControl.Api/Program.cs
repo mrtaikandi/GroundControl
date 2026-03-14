@@ -9,6 +9,7 @@ using GroundControl.Api.Features.Templates;
 using GroundControl.Api.Features.Variables;
 using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Health;
+using GroundControl.Api.Shared.Notification;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
@@ -52,6 +53,9 @@ var authConfigurator = appOptions.Security.AuthenticationMode switch
 };
 
 authConfigurator.ConfigureServices(builder.Services, builder.Configuration);
+
+builder.Services.AddSingleton<IChangeNotifier, InProcessChangeNotifier>();
+
 builder.Services.AddScopesHandlers();
 builder.Services.AddGroupsHandlers();
 builder.Services.AddRolesHandlers();

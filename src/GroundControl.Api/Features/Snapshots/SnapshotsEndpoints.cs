@@ -1,5 +1,3 @@
-using GroundControl.Api.Shared.Notification;
-
 namespace GroundControl.Api.Features.Snapshots;
 
 internal static class SnapshotsEndpoints
@@ -8,7 +6,6 @@ internal static class SnapshotsEndpoints
     {
         services.AddTransient<VariableInterpolator>();
         services.AddTransient<SnapshotPublisher>();
-        services.AddSingleton<IChangeNotifier, NullChangeNotifier>();
 
         return services;
     }
