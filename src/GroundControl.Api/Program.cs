@@ -10,7 +10,10 @@ using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Health;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.KeyRing;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.MongoDb;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -22,6 +25,14 @@ builder.Services.AddValidation();
 var appOptions = builder.Services.AddGroundControlOptions(builder.Configuration);
 
 builder.Services.AddGroundControlMongo();
+
+var dataProtectionBuilder = builder.Services.AddDataProtection()
+    .SetApplicationName("GroundControl");
+
+var keyRingConfigurator = new FileSystemKeyRingConfigurator();
+keyRingConfigurator.Configure(dataProtectionBuilder, builder.Configuration);
+builder.Services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
+
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
