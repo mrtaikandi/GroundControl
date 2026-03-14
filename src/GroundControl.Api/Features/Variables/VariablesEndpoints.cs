@@ -17,6 +17,7 @@ internal static class VariablesEndpoints
 
         services.AddTransient<IAsyncValidator<CreateVariableRequest>, CreateVariableValidator>();
         services.AddTransient<IAsyncValidator<UpdateVariableRequest>, UpdateVariableValidator>();
+        services.AddTransient<DeleteVariableValidator>();
 
         return services;
     }

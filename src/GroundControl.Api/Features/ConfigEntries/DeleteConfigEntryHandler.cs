@@ -1,5 +1,6 @@
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,7 @@ internal sealed class DeleteConfigEntryHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] DeleteConfigEntryHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
+            .WithEndpointValidation<DeleteConfigEntryValidator>()
             .RequireAuthorization(Permissions.ConfigEntriesWrite)
             .WithName(nameof(DeleteConfigEntryHandler));
     }
@@ -28,12 +30,6 @@ internal sealed class DeleteConfigEntryHandler : IEndpointHandler
     private async Task<IResult> HandleAsync(Guid id, HttpContext httpContext, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
-
-        var entry = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        if (entry is null)
-        {
-            return TypedResults.Problem(detail: $"Config entry '{id}' was not found.", statusCode: StatusCodes.Status404NotFound);
-        }
 
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {

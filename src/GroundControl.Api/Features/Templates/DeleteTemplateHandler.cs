@@ -1,5 +1,6 @@
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,7 @@ internal sealed class DeleteTemplateHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] DeleteTemplateHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
+            .WithEndpointValidation<DeleteTemplateValidator>()
             .RequireAuthorization(Permissions.TemplatesWrite)
             .WithName(nameof(DeleteTemplateHandler));
     }
@@ -32,23 +34,9 @@ internal sealed class DeleteTemplateHandler : IEndpointHandler
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        var template = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        if (template is null)
-        {
-            return TypedResults.Problem(detail: $"Template '{id}' was not found.", statusCode: StatusCodes.Status404NotFound);
-        }
-
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {
             return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
-        }
-
-        var isReferenced = await _store.IsReferencedByProjectsAsync(id, cancellationToken).ConfigureAwait(false);
-        if (isReferenced)
-        {
-            return TypedResults.Problem(
-                detail: $"Template '{template.Name}' cannot be deleted because it is referenced by one or more projects.",
-                statusCode: StatusCodes.Status409Conflict);
         }
 
         var deleted = await _store.DeleteAsync(id, expectedVersion, cancellationToken).ConfigureAwait(false);

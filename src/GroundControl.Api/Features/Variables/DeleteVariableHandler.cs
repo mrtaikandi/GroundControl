@@ -1,5 +1,6 @@
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,7 @@ internal sealed class DeleteVariableHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] DeleteVariableHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
+            .WithEndpointValidation<DeleteVariableValidator>()
             .RequireAuthorization(Permissions.VariablesWrite)
             .WithName(nameof(DeleteVariableHandler));
     }
@@ -28,12 +30,6 @@ internal sealed class DeleteVariableHandler : IEndpointHandler
     private async Task<IResult> HandleAsync(Guid id, HttpContext httpContext, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
-
-        var variable = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        if (variable is null)
-        {
-            return TypedResults.Problem(detail: $"Variable '{id}' was not found.", statusCode: StatusCodes.Status404NotFound);
-        }
 
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {

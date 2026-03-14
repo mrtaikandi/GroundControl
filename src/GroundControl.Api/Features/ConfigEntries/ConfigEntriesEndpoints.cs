@@ -17,6 +17,7 @@ internal static class ConfigEntriesEndpoints
 
         services.AddTransient<IAsyncValidator<CreateConfigEntryRequest>, CreateConfigEntryValidator>();
         services.AddTransient<IAsyncValidator<UpdateConfigEntryRequest>, UpdateConfigEntryValidator>();
+        services.AddTransient<DeleteConfigEntryValidator>();
 
         return services;
     }

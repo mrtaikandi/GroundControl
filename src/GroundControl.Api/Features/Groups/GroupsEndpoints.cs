@@ -17,6 +17,7 @@ internal static class GroupsEndpoints
 
         services.AddTransient<IAsyncValidator<CreateGroupRequest>, CreateGroupValidator>();
         services.AddTransient<IAsyncValidator<UpdateGroupRequest>, UpdateGroupValidator>();
+        services.AddTransient<DeleteGroupValidator>();
 
         return services;
     }

@@ -17,6 +17,7 @@ internal static class TemplatesEndpoints
 
         services.AddTransient<IAsyncValidator<CreateTemplateRequest>, CreateTemplateValidator>();
         services.AddTransient<IAsyncValidator<UpdateTemplateRequest>, UpdateTemplateValidator>();
+        services.AddTransient<DeleteTemplateValidator>();
 
         return services;
     }

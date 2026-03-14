@@ -1,5 +1,6 @@
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,7 @@ internal sealed class DeleteGroupHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] DeleteGroupHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
+            .WithEndpointValidation<DeleteGroupValidator>()
             .RequireAuthorization(Permissions.GroupsWrite)
             .WithName(nameof(DeleteGroupHandler));
     }
@@ -29,23 +31,9 @@ internal sealed class DeleteGroupHandler : IEndpointHandler
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        var group = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        if (group is null)
-        {
-            return TypedResults.Problem(detail: $"Group '{id}' was not found.", statusCode: StatusCodes.Status404NotFound);
-        }
-
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {
             return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
-        }
-
-        var hasDependents = await _store.HasDependentsAsync(id, cancellationToken).ConfigureAwait(false);
-        if (hasDependents)
-        {
-            return TypedResults.Problem(
-                detail: $"Group '{group.Name}' cannot be deleted because it has dependent entities.",
-                statusCode: StatusCodes.Status409Conflict);
         }
 
         var deleted = await _store.DeleteAsync(id, expectedVersion, cancellationToken).ConfigureAwait(false);

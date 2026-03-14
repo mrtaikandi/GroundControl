@@ -1,5 +1,6 @@
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,7 @@ internal sealed class DeleteRoleHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] DeleteRoleHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
+            .WithEndpointValidation<DeleteRoleValidator>()
             .RequireAuthorization(Permissions.RolesWrite)
             .WithName(nameof(DeleteRoleHandler));
     }
@@ -29,23 +31,9 @@ internal sealed class DeleteRoleHandler : IEndpointHandler
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        var role = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        if (role is null)
-        {
-            return TypedResults.Problem(detail: $"Role '{id}' was not found.", statusCode: StatusCodes.Status404NotFound);
-        }
-
         if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
         {
             return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
-        }
-
-        var isReferenced = await _store.IsReferencedByUsersAsync(id, cancellationToken).ConfigureAwait(false);
-        if (isReferenced)
-        {
-            return TypedResults.Problem(
-                detail: $"Role '{role.Name}' cannot be deleted because it is referenced by one or more users.",
-                statusCode: StatusCodes.Status409Conflict);
         }
 
         var deleted = await _store.DeleteAsync(id, expectedVersion, cancellationToken).ConfigureAwait(false);

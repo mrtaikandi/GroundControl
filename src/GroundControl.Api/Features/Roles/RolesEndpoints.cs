@@ -16,6 +16,7 @@ internal static class RolesEndpoints
 
         services.AddTransient<IAsyncValidator<CreateRoleRequest>, CreateRoleValidator>();
         services.AddTransient<IAsyncValidator<UpdateRoleRequest>, UpdateRoleValidator>();
+        services.AddTransient<DeleteRoleValidator>();
 
         return services;
     }

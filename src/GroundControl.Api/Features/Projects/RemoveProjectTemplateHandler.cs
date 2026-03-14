@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +24,7 @@ internal sealed class RemoveProjectTemplateHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] RemoveProjectTemplateHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, templateId, httpContext, cancellationToken))
+            .WithEndpointValidation<RemoveProjectTemplateValidator>()
             .RequireAuthorization(Permissions.ProjectsWrite)
             .WithName(nameof(RemoveProjectTemplateHandler));
     }

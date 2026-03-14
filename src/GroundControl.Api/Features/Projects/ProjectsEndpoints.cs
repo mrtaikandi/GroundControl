@@ -21,6 +21,7 @@ internal static class ProjectsEndpoints
         services.AddTransient<IAsyncValidator<UpdateProjectRequest>, UpdateProjectValidator>();
         services.AddTransient<AddProjectTemplateValidator>();
         services.AddTransient<DeleteProjectValidator>();
+        services.AddTransient<RemoveProjectTemplateValidator>();
 
         return services;
     }
