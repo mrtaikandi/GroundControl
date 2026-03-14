@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared.Pagination;
@@ -11,29 +10,24 @@ using Xunit;
 namespace GroundControl.Api.Tests.Templates;
 
 [Collection("MongoDB")]
-public sealed class TemplatesHandlerTests
+public sealed class TemplatesHandlerTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions WebJsonSerializerOptions = new(JsonSerializerDefaults.Web);
-
-    private readonly MongoFixture _mongoFixture;
-
     public TemplatesHandlerTests(MongoFixture mongoFixture)
+        : base(mongoFixture)
     {
-        _mongoFixture = mongoFixture;
     }
 
     [Fact]
     public async Task PostTemplate_WithValidBody_ReturnsCreatedResponseWithLocationHeader()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = CreateRequest("Base Config");
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/templates"), request, WebJsonSerializerOptions, cancellationToken);
-        var template = await ReadTemplateAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/templates", request, WebJsonSerializerOptions, TestCancellationToken);
+        var template = await ReadTemplateAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -48,15 +42,14 @@ public sealed class TemplatesHandlerTests
     public async Task PostTemplate_WithGroupId_ReturnsCreatedWithGroupId()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var group = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
+        var group = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
         var request = new CreateTemplateRequest { Name = "Team Config", GroupId = group.Id };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/templates"), request, WebJsonSerializerOptions, cancellationToken);
-        var template = await ReadTemplateAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/templates", request, WebJsonSerializerOptions, TestCancellationToken);
+        var template = await ReadTemplateAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -67,14 +60,13 @@ public sealed class TemplatesHandlerTests
     public async Task PostTemplate_WithNonExistentGroupId_ReturnsValidationProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = new CreateTemplateRequest { Name = "Orphan Config", GroupId = Guid.CreateVersion7() };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/templates"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/templates", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -88,14 +80,13 @@ public sealed class TemplatesHandlerTests
     public async Task GetTemplate_WithExistingId_ReturnsTemplateAndEntityTag()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
+        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/templates/{createdTemplate.Id}"), cancellationToken);
-        var template = await ReadTemplateAsync(response, cancellationToken);
+        var response = await apiClient.GetAsync($"/api/templates/{createdTemplate.Id}", TestCancellationToken);
+        var template = await ReadTemplateAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -108,13 +99,12 @@ public sealed class TemplatesHandlerTests
     public async Task GetTemplate_WithUnknownId_ReturnsNotFoundProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/templates/{Guid.CreateVersion7()}"), cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.GetAsync($"/api/templates/{Guid.CreateVersion7()}", TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -128,16 +118,15 @@ public sealed class TemplatesHandlerTests
     public async Task GetTemplates_WithGlobalOnlyFilter_ReturnsOnlyGlobalTemplates()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var group = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
-        await CreateTemplateAsync(apiClient, "Global Config", cancellationToken);
-        await CreateTemplateAsync(apiClient, "Team Config", cancellationToken, group.Id);
+        var group = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
+        await CreateTemplateAsync(apiClient, "Global Config", TestCancellationToken);
+        await CreateTemplateAsync(apiClient, "Team Config", TestCancellationToken, group.Id);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri("/api/templates?limit=25&sortField=name&sortOrder=asc&globalOnly=true"), cancellationToken);
-        var page = await ReadPageAsync(response, cancellationToken);
+        var response = await apiClient.GetAsync("/api/templates?limit=25&sortField=name&sortOrder=asc&globalOnly=true", TestCancellationToken);
+        var page = await ReadPageAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -149,16 +138,15 @@ public sealed class TemplatesHandlerTests
     public async Task GetTemplates_WithGroupIdFilter_ReturnsOnlyGroupTemplates()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var group = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
-        await CreateTemplateAsync(apiClient, "Global Config", cancellationToken);
-        await CreateTemplateAsync(apiClient, "Team Config", cancellationToken, group.Id);
+        var group = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
+        await CreateTemplateAsync(apiClient, "Global Config", TestCancellationToken);
+        await CreateTemplateAsync(apiClient, "Team Config", TestCancellationToken, group.Id);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/templates?limit=25&sortField=name&sortOrder=asc&groupId={group.Id}"), cancellationToken);
-        var page = await ReadPageAsync(response, cancellationToken);
+        var response = await apiClient.GetAsync($"/api/templates?limit=25&sortField=name&sortOrder=asc&groupId={group.Id}", TestCancellationToken);
+        var page = await ReadPageAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -170,25 +158,24 @@ public sealed class TemplatesHandlerTests
     public async Task GetTemplates_WithForwardAndBackwardCursorPagination_ReturnsFlattenedPaginatedResponse()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        await CreateTemplateAsync(apiClient, "Gamma", cancellationToken);
-        await CreateTemplateAsync(apiClient, "Alpha", cancellationToken);
-        await CreateTemplateAsync(apiClient, "Beta", cancellationToken);
+        await CreateTemplateAsync(apiClient, "Gamma", TestCancellationToken);
+        await CreateTemplateAsync(apiClient, "Alpha", TestCancellationToken);
+        await CreateTemplateAsync(apiClient, "Beta", TestCancellationToken);
 
         // Act
-        var firstResponse = await apiClient.GetAsync(RelativeUri("/api/templates?limit=2&sortField=name&sortOrder=asc"), cancellationToken);
-        var firstPage = await ReadPageAsync(firstResponse, cancellationToken);
+        var firstResponse = await apiClient.GetAsync("/api/templates?limit=2&sortField=name&sortOrder=asc", TestCancellationToken);
+        var firstPage = await ReadPageAsync(firstResponse, TestCancellationToken);
 
         firstPage.NextCursor.ShouldNotBeNull();
         var nextCursor = Uri.EscapeDataString(firstPage.NextCursor);
-        var secondResponse = await apiClient.GetAsync(RelativeUri($"/api/templates?limit=2&sortField=name&sortOrder=asc&after={nextCursor}"), cancellationToken);
-        var secondPage = await ReadPageAsync(secondResponse, cancellationToken);
+        var secondResponse = await apiClient.GetAsync($"/api/templates?limit=2&sortField=name&sortOrder=asc&after={nextCursor}", TestCancellationToken);
+        var secondPage = await ReadPageAsync(secondResponse, TestCancellationToken);
 
         var previousCursor = Uri.EscapeDataString(secondPage.PreviousCursor!);
-        var previousResponse = await apiClient.GetAsync(RelativeUri($"/api/templates?limit=2&sortField=name&sortOrder=asc&before={previousCursor}"), cancellationToken);
-        var previousPage = await ReadPageAsync(previousResponse, cancellationToken);
+        var previousResponse = await apiClient.GetAsync($"/api/templates?limit=2&sortField=name&sortOrder=asc&before={previousCursor}", TestCancellationToken);
+        var previousPage = await ReadPageAsync(previousResponse, TestCancellationToken);
 
         // Assert
         firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -214,20 +201,19 @@ public sealed class TemplatesHandlerTests
     public async Task PutTemplate_WithCorrectIfMatch_ReturnsUpdatedTemplate()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/templates/{createdTemplate.Id}"), cancellationToken);
+        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/templates/{createdTemplate.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/templates/{createdTemplate.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/templates/{createdTemplate.Id}");
         request.Content = JsonContent.Create(new UpdateTemplateRequest { Name = "Updated Config" }, options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var template = await ReadTemplateAsync(response, cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var template = await ReadTemplateAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -241,17 +227,16 @@ public sealed class TemplatesHandlerTests
     public async Task PutTemplate_WithoutIfMatch_ReturnsPreconditionRequiredProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
+        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/templates/{createdTemplate.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/templates/{createdTemplate.Id}");
         request.Content = JsonContent.Create(new UpdateTemplateRequest { Name = "Updated Config" }, options: WebJsonSerializerOptions);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe((HttpStatusCode)428);
@@ -265,18 +250,17 @@ public sealed class TemplatesHandlerTests
     public async Task PutTemplate_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
+        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/templates/{createdTemplate.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/templates/{createdTemplate.Id}");
         request.Content = JsonContent.Create(new UpdateTemplateRequest { Name = "Updated Config" }, options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -290,19 +274,18 @@ public sealed class TemplatesHandlerTests
     public async Task DeleteTemplate_WithCorrectIfMatch_ReturnsNoContent()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/templates/{createdTemplate.Id}"), cancellationToken);
+        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/templates/{createdTemplate.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/templates/{createdTemplate.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/templates/{createdTemplate.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var missingResponse = await apiClient.GetAsync(RelativeUri($"/api/templates/{createdTemplate.Id}"), cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var missingResponse = await apiClient.GetAsync($"/api/templates/{createdTemplate.Id}", TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -313,17 +296,16 @@ public sealed class TemplatesHandlerTests
     public async Task DeleteTemplate_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
+        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/templates/{createdTemplate.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/templates/{createdTemplate.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -337,10 +319,9 @@ public sealed class TemplatesHandlerTests
     public async Task DeleteTemplate_WhenReferencedByProject_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
+        var createdTemplate = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
         var projectCollection = factory.Database.GetCollection<Project>("projects");
         var timestamp = DateTimeOffset.UtcNow;
 
@@ -355,16 +336,16 @@ public sealed class TemplatesHandlerTests
             CreatedBy = Guid.Empty,
             UpdatedAt = timestamp,
             UpdatedBy = Guid.Empty
-        }, cancellationToken: cancellationToken);
+        }, cancellationToken: TestCancellationToken);
 
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/templates/{createdTemplate.Id}"), cancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/templates/{createdTemplate.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/templates/{createdTemplate.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/templates/{createdTemplate.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -391,15 +372,14 @@ public sealed class TemplatesHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/templates"),
+                "/api/templates",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        return await ReadTemplateAsync(response, cancellationToken).ConfigureAwait(false);
+        return await ReadTemplateAsync(response, TestCancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<GroupResponse> CreateGroupAsync(HttpClient apiClient, string name, CancellationToken cancellationToken)
@@ -411,15 +391,14 @@ public sealed class TemplatesHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/groups"),
+                "/api/groups",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        var group = await response.Content.ReadFromJsonAsync<GroupResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var group = await response.Content.ReadFromJsonAsync<GroupResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         group.ShouldNotBeNull();
 
         return group;
@@ -427,7 +406,7 @@ public sealed class TemplatesHandlerTests
 
     private static async Task<PaginatedResponse<TemplateResponse>> ReadPageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<TemplateResponse>>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<TemplateResponse>>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         page.ShouldNotBeNull();
 
         return page;
@@ -435,11 +414,9 @@ public sealed class TemplatesHandlerTests
 
     private static async Task<TemplateResponse> ReadTemplateAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         template.ShouldNotBeNull();
 
         return template;
     }
-
-    private static Uri RelativeUri(string relativePath) => new(relativePath, UriKind.Relative);
 }

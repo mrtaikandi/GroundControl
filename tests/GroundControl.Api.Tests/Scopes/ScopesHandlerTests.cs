@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Persistence.Contracts;
@@ -10,25 +9,20 @@ using Xunit;
 namespace GroundControl.Api.Tests.Scopes;
 
 [Collection("MongoDB")]
-public sealed class ScopesHandlerTests
+public sealed class ScopesHandlerTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions WebJsonSerializerOptions = new(JsonSerializerDefaults.Web);
-
-    private readonly MongoFixture _mongoFixture;
-
     public ScopesHandlerTests(MongoFixture mongoFixture)
+        : base(mongoFixture)
     {
-        _mongoFixture = mongoFixture;
     }
 
     [Fact]
     public async Task DeleteScope_WhenScopeValueIsReferenced_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
+        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
         var clientCollection = factory.Database.GetCollection<Client>("clients");
         var timestamp = DateTimeOffset.UtcNow;
 
@@ -45,16 +39,16 @@ public sealed class ScopesHandlerTests
             CreatedBy = Guid.Empty,
             UpdatedAt = timestamp,
             UpdatedBy = Guid.Empty
-        }, cancellationToken: cancellationToken);
+        }, cancellationToken: TestCancellationToken);
 
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/scopes/{createdScope.Id}"), cancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/scopes/{createdScope.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/scopes/{createdScope.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/scopes/{createdScope.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -71,19 +65,18 @@ public sealed class ScopesHandlerTests
     public async Task DeleteScope_WithCorrectIfMatch_ReturnsNoContent()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/scopes/{createdScope.Id}"), cancellationToken);
+        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/scopes/{createdScope.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/scopes/{createdScope.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/scopes/{createdScope.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var missingResponse = await apiClient.GetAsync(RelativeUri($"/api/scopes/{createdScope.Id}"), cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var missingResponse = await apiClient.GetAsync($"/api/scopes/{createdScope.Id}", TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -94,17 +87,16 @@ public sealed class ScopesHandlerTests
     public async Task DeleteScope_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
+        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/scopes/{createdScope.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/scopes/{createdScope.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -120,14 +112,13 @@ public sealed class ScopesHandlerTests
     public async Task GetScope_WithExistingId_ReturnsScopeAndEntityTag()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
+        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/scopes/{createdScope.Id}"), cancellationToken);
-        var scope = await ReadScopeAsync(response, cancellationToken);
+        var response = await apiClient.GetAsync($"/api/scopes/{createdScope.Id}", TestCancellationToken);
+        var scope = await ReadScopeAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -140,13 +131,12 @@ public sealed class ScopesHandlerTests
     public async Task GetScope_WithUnknownId_ReturnsNotFoundProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/scopes/{Guid.CreateVersion7()}"), cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.GetAsync($"/api/scopes/{Guid.CreateVersion7()}", TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -162,24 +152,23 @@ public sealed class ScopesHandlerTests
     public async Task GetScopes_WithForwardAndBackwardCursorPagination_ReturnsFlattenedPaginatedResponse()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        await CreateScopeAsync(apiClient, "gamma", ["g1"], cancellationToken);
-        await CreateScopeAsync(apiClient, "alpha", ["a1"], cancellationToken);
-        await CreateScopeAsync(apiClient, "beta", ["b1"], cancellationToken);
+        await CreateScopeAsync(apiClient, "gamma", ["g1"], TestCancellationToken);
+        await CreateScopeAsync(apiClient, "alpha", ["a1"], TestCancellationToken);
+        await CreateScopeAsync(apiClient, "beta", ["b1"], TestCancellationToken);
 
         // Act
-        var firstResponse = await apiClient.GetAsync(RelativeUri("/api/scopes?limit=2&sortField=dimension&sortOrder=asc"), cancellationToken);
-        var firstPage = await ReadPageAsync(firstResponse, cancellationToken);
+        var firstResponse = await apiClient.GetAsync("/api/scopes?limit=2&sortField=dimension&sortOrder=asc", TestCancellationToken);
+        var firstPage = await ReadPageAsync(firstResponse, TestCancellationToken);
 
         var nextCursor = Uri.EscapeDataString(firstPage.NextCursor!);
-        var secondResponse = await apiClient.GetAsync(RelativeUri($"/api/scopes?limit=2&sortField=dimension&sortOrder=asc&after={nextCursor}"), cancellationToken);
-        var secondPage = await ReadPageAsync(secondResponse, cancellationToken);
+        var secondResponse = await apiClient.GetAsync($"/api/scopes?limit=2&sortField=dimension&sortOrder=asc&after={nextCursor}", TestCancellationToken);
+        var secondPage = await ReadPageAsync(secondResponse, TestCancellationToken);
 
         var previousCursor = Uri.EscapeDataString(secondPage.PreviousCursor!);
-        var previousResponse = await apiClient.GetAsync(RelativeUri($"/api/scopes?limit=2&sortField=dimension&sortOrder=asc&before={previousCursor}"), cancellationToken);
-        var previousPage = await ReadPageAsync(previousResponse, cancellationToken);
+        var previousResponse = await apiClient.GetAsync($"/api/scopes?limit=2&sortField=dimension&sortOrder=asc&before={previousCursor}", TestCancellationToken);
+        var previousPage = await ReadPageAsync(previousResponse, TestCancellationToken);
 
         // Assert
         firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -205,14 +194,13 @@ public sealed class ScopesHandlerTests
     public async Task PostScope_WithDuplicateDimension_ReturnsValidationProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        await apiClient.PostAsJsonAsync(RelativeUri("/api/scopes"), CreateRequest("environment", ["dev", "prod"]), WebJsonSerializerOptions, cancellationToken);
+        await apiClient.PostAsJsonAsync("/api/scopes", CreateRequest("environment", ["dev", "prod"]), WebJsonSerializerOptions, TestCancellationToken);
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/scopes"), CreateRequest("Environment", ["qa"]), WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/scopes", CreateRequest("Environment", ["qa"]), WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -226,14 +214,13 @@ public sealed class ScopesHandlerTests
     public async Task PostScope_WithValidBody_ReturnsCreatedResponseWithLocationHeader()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = CreateRequest("environment", ["dev", "prod"]);
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/scopes"), request, WebJsonSerializerOptions, cancellationToken);
-        var scope = await ReadScopeAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/scopes", request, WebJsonSerializerOptions, TestCancellationToken);
+        var scope = await ReadScopeAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -248,20 +235,19 @@ public sealed class ScopesHandlerTests
     public async Task PutScope_WithCorrectIfMatch_ReturnsUpdatedScope()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/scopes/{createdScope.Id}"), cancellationToken);
+        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/scopes/{createdScope.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/scopes/{createdScope.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/scopes/{createdScope.Id}");
         request.Content = JsonContent.Create(CreateRequest("environment", ["stage", "prod"]), options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var scope = await ReadScopeAsync(response, cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var scope = await ReadScopeAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -275,17 +261,16 @@ public sealed class ScopesHandlerTests
     public async Task PutScope_WithoutIfMatch_ReturnsPreconditionRequiredProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
+        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/scopes/{createdScope.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/scopes/{createdScope.Id}");
         request.Content = JsonContent.Create(CreateRequest("environment", ["stage", "prod"]), options: WebJsonSerializerOptions);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe((HttpStatusCode)428);
@@ -301,18 +286,17 @@ public sealed class ScopesHandlerTests
     public async Task PutScope_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
+        var createdScope = await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/scopes/{createdScope.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/scopes/{createdScope.Id}");
         request.Content = JsonContent.Create(CreateRequest("environment", ["stage", "prod"]), options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -334,20 +318,19 @@ public sealed class ScopesHandlerTests
     private static async Task<ScopeResponse> CreateScopeAsync(HttpClient apiClient, string dimension, IReadOnlyList<string> allowedValues, CancellationToken cancellationToken)
     {
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/scopes"),
+                "/api/scopes",
                 CreateRequest(dimension, allowedValues),
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        return await ReadScopeAsync(response, cancellationToken).ConfigureAwait(false);
+        return await ReadScopeAsync(response, TestCancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<PaginatedResponse<ScopeResponse>> ReadPageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<ScopeResponse>>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<ScopeResponse>>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         page.ShouldNotBeNull();
 
         return page;
@@ -355,11 +338,9 @@ public sealed class ScopesHandlerTests
 
     private static async Task<ScopeResponse> ReadScopeAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var scope = await response.Content.ReadFromJsonAsync<ScopeResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var scope = await response.Content.ReadFromJsonAsync<ScopeResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         scope.ShouldNotBeNull();
 
         return scope;
     }
-
-    private static Uri RelativeUri(string relativePath) => new(relativePath, UriKind.Relative);
 }

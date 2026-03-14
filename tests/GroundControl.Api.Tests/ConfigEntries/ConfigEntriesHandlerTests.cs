@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Features.Templates.Contracts;
@@ -12,25 +11,20 @@ using Xunit;
 namespace GroundControl.Api.Tests.ConfigEntries;
 
 [Collection("MongoDB")]
-public sealed class ConfigEntriesHandlerTests
+public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions WebJsonSerializerOptions = new(JsonSerializerDefaults.Web);
-
-    private readonly MongoFixture _mongoFixture;
-
     public ConfigEntriesHandlerTests(MongoFixture mongoFixture)
+        : base(mongoFixture)
     {
-        _mongoFixture = mongoFixture;
     }
 
     [Fact]
     public async Task PostConfigEntry_WithValidBody_ReturnsCreatedResponseWithLocationHeader()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
         var request = new CreateConfigEntryRequest
         {
             Key = "Logging:LogLevel:Default",
@@ -41,8 +35,8 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var entry = await ReadConfigEntryAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var entry = await ReadConfigEntryAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -61,10 +55,9 @@ public sealed class ConfigEntriesHandlerTests
     public async Task PostConfigEntry_WithInvalidValueType_ReturnsBadRequest()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
         var request = new CreateConfigEntryRequest
         {
             Key = "TestKey",
@@ -75,8 +68,8 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -89,10 +82,9 @@ public sealed class ConfigEntriesHandlerTests
     public async Task PostConfigEntry_WithNonBooleanValueForBooleanType_ReturnsBadRequest()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
         var request = new CreateConfigEntryRequest
         {
             Key = "Feature:Enabled",
@@ -103,8 +95,8 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -117,10 +109,9 @@ public sealed class ConfigEntriesHandlerTests
     public async Task PostConfigEntry_WithInvalidScopeDimension_ReturnsBadRequest()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
         var request = new CreateConfigEntryRequest
         {
             Key = "TestKey",
@@ -131,8 +122,8 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -145,11 +136,10 @@ public sealed class ConfigEntriesHandlerTests
     public async Task PostConfigEntry_WithInvalidScopeValue_ReturnsBadRequest()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
-        await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
         var request = new CreateConfigEntryRequest
         {
             Key = "TestKey",
@@ -160,8 +150,8 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -174,11 +164,10 @@ public sealed class ConfigEntriesHandlerTests
     public async Task PostConfigEntry_WithValidScopedValues_ReturnsCreated()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
-        await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        await CreateScopeAsync(apiClient, "environment", ["dev", "prod"], TestCancellationToken);
         var request = new CreateConfigEntryRequest
         {
             Key = "ConnectionString",
@@ -193,8 +182,8 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
-        var entry = await ReadConfigEntryAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var entry = await ReadConfigEntryAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -205,10 +194,9 @@ public sealed class ConfigEntriesHandlerTests
     public async Task PostConfigEntry_DuplicateKeyWithinOwner_ReturnsConflict()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
         var request = new CreateConfigEntryRequest
         {
             Key = "DuplicateKey",
@@ -218,7 +206,7 @@ public sealed class ConfigEntriesHandlerTests
             Values = [new ScopedValueRequest { Value = "first" }],
         };
 
-        await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), request, WebJsonSerializerOptions, cancellationToken);
+        await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
 
         var duplicateRequest = new CreateConfigEntryRequest
         {
@@ -230,7 +218,7 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/config-entries"), duplicateRequest, WebJsonSerializerOptions, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", duplicateRequest, WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -240,15 +228,14 @@ public sealed class ConfigEntriesHandlerTests
     public async Task GetConfigEntry_WithExistingId_ReturnsEntryAndEntityTag()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
-        var created = await CreateConfigEntryAsync(apiClient, "TestKey", template.Id, cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var created = await CreateConfigEntryAsync(apiClient, "TestKey", template.Id, TestCancellationToken);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/config-entries/{created.Id}"), cancellationToken);
-        var entry = await ReadConfigEntryAsync(response, cancellationToken);
+        var response = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
+        var entry = await ReadConfigEntryAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -261,13 +248,12 @@ public sealed class ConfigEntriesHandlerTests
     public async Task GetConfigEntry_WithUnknownId_ReturnsNotFound()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/config-entries/{Guid.CreateVersion7()}"), cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.GetAsync($"/api/config-entries/{Guid.CreateVersion7()}", TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -281,21 +267,19 @@ public sealed class ConfigEntriesHandlerTests
     public async Task GetConfigEntries_WithOwnerFilter_ReturnsFilteredResults()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template1 = await CreateTemplateAsync(apiClient, "Template One", cancellationToken);
-        var template2 = await CreateTemplateAsync(apiClient, "Template Two", cancellationToken);
-        await CreateConfigEntryAsync(apiClient, "Key1", template1.Id, cancellationToken);
-        await CreateConfigEntryAsync(apiClient, "Key2", template1.Id, cancellationToken);
-        await CreateConfigEntryAsync(apiClient, "Key3", template2.Id, cancellationToken);
+        var template1 = await CreateTemplateAsync(apiClient, "Template One", TestCancellationToken);
+        var template2 = await CreateTemplateAsync(apiClient, "Template Two", TestCancellationToken);
+        await CreateConfigEntryAsync(apiClient, "Key1", template1.Id, TestCancellationToken);
+        await CreateConfigEntryAsync(apiClient, "Key2", template1.Id, TestCancellationToken);
+        await CreateConfigEntryAsync(apiClient, "Key3", template2.Id, TestCancellationToken);
 
         // Act
         var response = await apiClient.GetAsync(
-            RelativeUri($"/api/config-entries?limit=25&sortField=key&sortOrder=asc&ownerId={template1.Id}&ownerType=Template"),
-            cancellationToken);
+            $"/api/config-entries?limit=25&sortField=key&sortOrder=asc&ownerId={template1.Id}&ownerType=Template", TestCancellationToken);
 
-        var page = await ReadPageAsync(response, cancellationToken);
+        var page = await ReadPageAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -307,20 +291,18 @@ public sealed class ConfigEntriesHandlerTests
     public async Task GetConfigEntries_WithKeyPrefixFilter_ReturnsFilteredResults()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
-        await CreateConfigEntryAsync(apiClient, "AppSettings:Feature1", template.Id, cancellationToken);
-        await CreateConfigEntryAsync(apiClient, "AppSettings:Feature2", template.Id, cancellationToken);
-        await CreateConfigEntryAsync(apiClient, "Logging:Level", template.Id, cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        await CreateConfigEntryAsync(apiClient, "AppSettings:Feature1", template.Id, TestCancellationToken);
+        await CreateConfigEntryAsync(apiClient, "AppSettings:Feature2", template.Id, TestCancellationToken);
+        await CreateConfigEntryAsync(apiClient, "Logging:Level", template.Id, TestCancellationToken);
 
         // Act
         var response = await apiClient.GetAsync(
-            RelativeUri($"/api/config-entries?limit=25&sortField=key&sortOrder=asc&ownerId={template.Id}&ownerType=Template&keyPrefix=AppSettings"),
-            cancellationToken);
+            $"/api/config-entries?limit=25&sortField=key&sortOrder=asc&ownerId={template.Id}&ownerType=Template&keyPrefix=AppSettings", TestCancellationToken);
 
-        var page = await ReadPageAsync(response, cancellationToken);
+        var page = await ReadPageAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -332,15 +314,14 @@ public sealed class ConfigEntriesHandlerTests
     public async Task PutConfigEntry_WithCorrectIfMatch_ReturnsUpdatedEntry()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
-        var created = await CreateConfigEntryAsync(apiClient, "TestKey", template.Id, cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/config-entries/{created.Id}"), cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var created = await CreateConfigEntryAsync(apiClient, "TestKey", template.Id, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/config-entries/{created.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{created.Id}");
         request.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
@@ -354,8 +335,8 @@ public sealed class ConfigEntriesHandlerTests
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var entry = await ReadConfigEntryAsync(response, cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var entry = await ReadConfigEntryAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -371,13 +352,12 @@ public sealed class ConfigEntriesHandlerTests
     public async Task PutConfigEntry_WithStaleIfMatch_ReturnsConflict()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
-        var created = await CreateConfigEntryAsync(apiClient, "TestKey", template.Id, cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var created = await CreateConfigEntryAsync(apiClient, "TestKey", template.Id, TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/config-entries/{created.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{created.Id}");
         request.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
@@ -389,8 +369,8 @@ public sealed class ConfigEntriesHandlerTests
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -403,20 +383,19 @@ public sealed class ConfigEntriesHandlerTests
     public async Task DeleteConfigEntry_WithCorrectIfMatch_ReturnsNoContent()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Test Template", cancellationToken);
-        var created = await CreateConfigEntryAsync(apiClient, "TestKey", template.Id, cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/config-entries/{created.Id}"), cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var created = await CreateConfigEntryAsync(apiClient, "TestKey", template.Id, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/config-entries/{created.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/config-entries/{created.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var missingResponse = await apiClient.GetAsync(RelativeUri($"/api/config-entries/{created.Id}"), cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var missingResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -427,21 +406,20 @@ public sealed class ConfigEntriesHandlerTests
     public async Task DeleteTemplate_CascadesDeleteToConfigEntries()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Cascade Template", cancellationToken);
-        var entry = await CreateConfigEntryAsync(apiClient, "CascadeKey", template.Id, cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Cascade Template", TestCancellationToken);
+        var entry = await CreateConfigEntryAsync(apiClient, "CascadeKey", template.Id, TestCancellationToken);
 
-        var getTemplateResponse = await apiClient.GetAsync(RelativeUri($"/api/templates/{template.Id}"), cancellationToken);
+        var getTemplateResponse = await apiClient.GetAsync($"/api/templates/{template.Id}", TestCancellationToken);
         var etag = getTemplateResponse.Headers.ETag?.ToString();
 
-        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/templates/{template.Id}"));
+        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/templates/{template.Id}");
         deleteRequest.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var deleteResponse = await apiClient.SendAsync(deleteRequest, cancellationToken);
-        var entryResponse = await apiClient.GetAsync(RelativeUri($"/api/config-entries/{entry.Id}"), cancellationToken);
+        var deleteResponse = await apiClient.SendAsync(deleteRequest, TestCancellationToken);
+        var entryResponse = await apiClient.GetAsync($"/api/config-entries/{entry.Id}", TestCancellationToken);
 
         // Assert
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -451,8 +429,7 @@ public sealed class ConfigEntriesHandlerTests
     private static async Task<ConfigEntryResponse> CreateConfigEntryAsync(
         HttpClient apiClient,
         string key,
-        Guid ownerId,
-        CancellationToken cancellationToken,
+        Guid ownerId, CancellationToken cancellationToken,
         string valueType = "String",
         string value = "default")
     {
@@ -466,15 +443,14 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/config-entries"),
+                "/api/config-entries",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        return await ReadConfigEntryAsync(response, cancellationToken).ConfigureAwait(false);
+        return await ReadConfigEntryAsync(response, TestCancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<TemplateResponse> CreateTemplateAsync(HttpClient apiClient, string name, CancellationToken cancellationToken)
@@ -486,15 +462,14 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/templates"),
+                "/api/templates",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         template.ShouldNotBeNull();
 
         return template;
@@ -509,15 +484,14 @@ public sealed class ConfigEntriesHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/scopes"),
+                "/api/scopes",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        var scope = await response.Content.ReadFromJsonAsync<ScopeResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var scope = await response.Content.ReadFromJsonAsync<ScopeResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         scope.ShouldNotBeNull();
 
         return scope;
@@ -525,7 +499,7 @@ public sealed class ConfigEntriesHandlerTests
 
     private static async Task<PaginatedResponse<ConfigEntryResponse>> ReadPageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<ConfigEntryResponse>>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<ConfigEntryResponse>>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         page.ShouldNotBeNull();
 
         return page;
@@ -533,11 +507,9 @@ public sealed class ConfigEntriesHandlerTests
 
     private static async Task<ConfigEntryResponse> ReadConfigEntryAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var entry = await response.Content.ReadFromJsonAsync<ConfigEntryResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var entry = await response.Content.ReadFromJsonAsync<ConfigEntryResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         entry.ShouldNotBeNull();
 
         return entry;
     }
-
-    private static Uri RelativeUri(string relativePath) => new(relativePath, UriKind.Relative);
 }

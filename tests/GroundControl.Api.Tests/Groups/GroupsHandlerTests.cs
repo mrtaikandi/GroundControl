@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Persistence.Contracts;
@@ -10,29 +9,24 @@ using Xunit;
 namespace GroundControl.Api.Tests.Groups;
 
 [Collection("MongoDB")]
-public sealed class GroupsHandlerTests
+public sealed class GroupsHandlerTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions WebJsonSerializerOptions = new(JsonSerializerDefaults.Web);
-
-    private readonly MongoFixture _mongoFixture;
-
     public GroupsHandlerTests(MongoFixture mongoFixture)
+        : base(mongoFixture)
     {
-        _mongoFixture = mongoFixture;
     }
 
     [Fact]
     public async Task PostGroup_WithValidBody_ReturnsCreatedResponseWithLocationHeader()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = CreateRequest("Engineering");
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/groups"), request, WebJsonSerializerOptions, cancellationToken);
-        var group = await ReadGroupAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/groups", request, WebJsonSerializerOptions, TestCancellationToken);
+        var group = await ReadGroupAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -46,14 +40,13 @@ public sealed class GroupsHandlerTests
     public async Task PostGroup_WithDuplicateName_ReturnsValidationProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        await apiClient.PostAsJsonAsync(RelativeUri("/api/groups"), CreateRequest("Engineering"), WebJsonSerializerOptions, cancellationToken);
+        await apiClient.PostAsJsonAsync("/api/groups", CreateRequest("Engineering"), WebJsonSerializerOptions, TestCancellationToken);
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/groups"), CreateRequest("engineering"), WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/groups", CreateRequest("engineering"), WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -67,14 +60,13 @@ public sealed class GroupsHandlerTests
     public async Task GetGroup_WithExistingId_ReturnsGroupAndEntityTag()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
+        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/groups/{createdGroup.Id}"), cancellationToken);
-        var group = await ReadGroupAsync(response, cancellationToken);
+        var response = await apiClient.GetAsync($"/api/groups/{createdGroup.Id}", TestCancellationToken);
+        var group = await ReadGroupAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -87,13 +79,12 @@ public sealed class GroupsHandlerTests
     public async Task GetGroup_WithUnknownId_ReturnsNotFoundProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/groups/{Guid.CreateVersion7()}"), cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.GetAsync($"/api/groups/{Guid.CreateVersion7()}", TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -109,24 +100,23 @@ public sealed class GroupsHandlerTests
     public async Task GetGroups_WithForwardAndBackwardCursorPagination_ReturnsFlattenedPaginatedResponse()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        await CreateGroupAsync(apiClient, "Gamma", cancellationToken);
-        await CreateGroupAsync(apiClient, "Alpha", cancellationToken);
-        await CreateGroupAsync(apiClient, "Beta", cancellationToken);
+        await CreateGroupAsync(apiClient, "Gamma", TestCancellationToken);
+        await CreateGroupAsync(apiClient, "Alpha", TestCancellationToken);
+        await CreateGroupAsync(apiClient, "Beta", TestCancellationToken);
 
         // Act
-        var firstResponse = await apiClient.GetAsync(RelativeUri("/api/groups?limit=2&sortField=name&sortOrder=asc"), cancellationToken);
-        var firstPage = await ReadPageAsync(firstResponse, cancellationToken);
+        var firstResponse = await apiClient.GetAsync("/api/groups?limit=2&sortField=name&sortOrder=asc", TestCancellationToken);
+        var firstPage = await ReadPageAsync(firstResponse, TestCancellationToken);
 
         var nextCursor = Uri.EscapeDataString(firstPage.NextCursor!);
-        var secondResponse = await apiClient.GetAsync(RelativeUri($"/api/groups?limit=2&sortField=name&sortOrder=asc&after={nextCursor}"), cancellationToken);
-        var secondPage = await ReadPageAsync(secondResponse, cancellationToken);
+        var secondResponse = await apiClient.GetAsync($"/api/groups?limit=2&sortField=name&sortOrder=asc&after={nextCursor}", TestCancellationToken);
+        var secondPage = await ReadPageAsync(secondResponse, TestCancellationToken);
 
         var previousCursor = Uri.EscapeDataString(secondPage.PreviousCursor!);
-        var previousResponse = await apiClient.GetAsync(RelativeUri($"/api/groups?limit=2&sortField=name&sortOrder=asc&before={previousCursor}"), cancellationToken);
-        var previousPage = await ReadPageAsync(previousResponse, cancellationToken);
+        var previousResponse = await apiClient.GetAsync($"/api/groups?limit=2&sortField=name&sortOrder=asc&before={previousCursor}", TestCancellationToken);
+        var previousPage = await ReadPageAsync(previousResponse, TestCancellationToken);
 
         // Assert
         firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -152,20 +142,19 @@ public sealed class GroupsHandlerTests
     public async Task PutGroup_WithCorrectIfMatch_ReturnsUpdatedGroup()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/groups/{createdGroup.Id}"), cancellationToken);
+        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/groups/{createdGroup.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/groups/{createdGroup.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/groups/{createdGroup.Id}");
         request.Content = JsonContent.Create(CreateRequest("Platform"), options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var group = await ReadGroupAsync(response, cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var group = await ReadGroupAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -179,17 +168,16 @@ public sealed class GroupsHandlerTests
     public async Task PutGroup_WithoutIfMatch_ReturnsPreconditionRequiredProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
+        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/groups/{createdGroup.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/groups/{createdGroup.Id}");
         request.Content = JsonContent.Create(CreateRequest("Platform"), options: WebJsonSerializerOptions);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe((HttpStatusCode)428);
@@ -205,18 +193,17 @@ public sealed class GroupsHandlerTests
     public async Task PutGroup_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
+        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/groups/{createdGroup.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/groups/{createdGroup.Id}");
         request.Content = JsonContent.Create(CreateRequest("Platform"), options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -232,19 +219,18 @@ public sealed class GroupsHandlerTests
     public async Task DeleteGroup_WithCorrectIfMatch_ReturnsNoContent()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/groups/{createdGroup.Id}"), cancellationToken);
+        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/groups/{createdGroup.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/groups/{createdGroup.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/groups/{createdGroup.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var missingResponse = await apiClient.GetAsync(RelativeUri($"/api/groups/{createdGroup.Id}"), cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var missingResponse = await apiClient.GetAsync($"/api/groups/{createdGroup.Id}", TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -255,17 +241,16 @@ public sealed class GroupsHandlerTests
     public async Task DeleteGroup_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
+        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/groups/{createdGroup.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/groups/{createdGroup.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -281,10 +266,9 @@ public sealed class GroupsHandlerTests
     public async Task DeleteGroup_WhenGroupHasDependents_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
+        var createdGroup = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
         var projectCollection = factory.Database.GetCollection<Project>("projects");
         var timestamp = DateTimeOffset.UtcNow;
 
@@ -299,16 +283,16 @@ public sealed class GroupsHandlerTests
             CreatedBy = Guid.Empty,
             UpdatedAt = timestamp,
             UpdatedBy = Guid.Empty
-        }, cancellationToken: cancellationToken);
+        }, cancellationToken: TestCancellationToken);
 
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/groups/{createdGroup.Id}"), cancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/groups/{createdGroup.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/groups/{createdGroup.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/groups/{createdGroup.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -330,7 +314,7 @@ public sealed class GroupsHandlerTests
     private static async Task<GroupResponse> CreateGroupAsync(HttpClient apiClient, string name, CancellationToken cancellationToken)
     {
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/groups"),
+            "/api/groups",
                 CreateRequest(name),
                 WebJsonSerializerOptions,
                 cancellationToken)
@@ -342,20 +326,8 @@ public sealed class GroupsHandlerTests
     }
 
     private static async Task<PaginatedResponse<GroupResponse>> ReadPageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<GroupResponse>>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
-        page.ShouldNotBeNull();
-
-        return page;
-    }
+        => await ReadRequiredJsonAsync<PaginatedResponse<GroupResponse>>(response, cancellationToken).ConfigureAwait(false);
 
     private static async Task<GroupResponse> ReadGroupAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        var group = await response.Content.ReadFromJsonAsync<GroupResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
-        group.ShouldNotBeNull();
-
-        return group;
-    }
-
-    private static Uri RelativeUri(string relativePath) => new(relativePath, UriKind.Relative);
+        => await ReadRequiredJsonAsync<GroupResponse>(response, cancellationToken).ConfigureAwait(false);
 }

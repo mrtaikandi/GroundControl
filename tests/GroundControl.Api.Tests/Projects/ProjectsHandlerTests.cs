@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
@@ -14,29 +13,24 @@ using Xunit;
 namespace GroundControl.Api.Tests.Projects;
 
 [Collection("MongoDB")]
-public sealed class ProjectsHandlerTests
+public sealed class ProjectsHandlerTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions WebJsonSerializerOptions = new(JsonSerializerDefaults.Web);
-
-    private readonly MongoFixture _mongoFixture;
-
     public ProjectsHandlerTests(MongoFixture mongoFixture)
+        : base(mongoFixture)
     {
-        _mongoFixture = mongoFixture;
     }
 
     [Fact]
     public async Task PostProject_WithValidBody_ReturnsCreatedResponseWithLocationHeader()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = new CreateProjectRequest { Name = "My Project", Description = "A test project" };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/projects"), request, WebJsonSerializerOptions, cancellationToken);
-        var project = await ReadProjectAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/projects", request, WebJsonSerializerOptions, TestCancellationToken);
+        var project = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -53,15 +47,14 @@ public sealed class ProjectsHandlerTests
     public async Task PostProject_WithGroupId_ReturnsCreatedWithGroupId()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var group = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
+        var group = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
         var request = new CreateProjectRequest { Name = "Team Project", GroupId = group.Id };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/projects"), request, WebJsonSerializerOptions, cancellationToken);
-        var project = await ReadProjectAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/projects", request, WebJsonSerializerOptions, TestCancellationToken);
+        var project = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -72,11 +65,10 @@ public sealed class ProjectsHandlerTests
     public async Task PostProject_WithTemplateIds_ReturnsCreatedWithTemplateIds()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template1 = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
-        var template2 = await CreateTemplateAsync(apiClient, "Override Config", cancellationToken);
+        var template1 = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
+        var template2 = await CreateTemplateAsync(apiClient, "Override Config", TestCancellationToken);
         var request = new CreateProjectRequest
         {
             Name = "Templated Project",
@@ -84,8 +76,8 @@ public sealed class ProjectsHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/projects"), request, WebJsonSerializerOptions, cancellationToken);
-        var project = await ReadProjectAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/projects", request, WebJsonSerializerOptions, TestCancellationToken);
+        var project = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -96,14 +88,13 @@ public sealed class ProjectsHandlerTests
     public async Task PostProject_WithNonExistentGroupId_ReturnsValidationProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = new CreateProjectRequest { Name = "Orphan Project", GroupId = Guid.CreateVersion7() };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/projects"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/projects", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -117,8 +108,7 @@ public sealed class ProjectsHandlerTests
     public async Task PostProject_WithNonExistentTemplateId_ReturnsValidationProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = new CreateProjectRequest
         {
@@ -127,8 +117,8 @@ public sealed class ProjectsHandlerTests
         };
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/projects"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/projects", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -142,15 +132,14 @@ public sealed class ProjectsHandlerTests
     public async Task PostProject_DuplicateNameWithinGroup_ReturnsConflict()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var group = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
+        var group = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
         var request = new CreateProjectRequest { Name = "Duplicate", GroupId = group.Id };
-        await apiClient.PostAsJsonAsync(RelativeUri("/api/projects"), request, WebJsonSerializerOptions, cancellationToken);
+        await apiClient.PostAsJsonAsync("/api/projects", request, WebJsonSerializerOptions, TestCancellationToken);
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/projects"), request, WebJsonSerializerOptions, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/projects", request, WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -160,24 +149,21 @@ public sealed class ProjectsHandlerTests
     public async Task PostProject_SameNameInDifferentGroups_ReturnsBothCreated()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var group1 = await CreateGroupAsync(apiClient, "Team Alpha", cancellationToken);
-        var group2 = await CreateGroupAsync(apiClient, "Team Beta", cancellationToken);
+        var group1 = await CreateGroupAsync(apiClient, "Team Alpha", TestCancellationToken);
+        var group2 = await CreateGroupAsync(apiClient, "Team Beta", TestCancellationToken);
 
         // Act
         var response1 = await apiClient.PostAsJsonAsync(
-            RelativeUri("/api/projects"),
+            "/api/projects",
             new CreateProjectRequest { Name = "SharedName", GroupId = group1.Id },
-            WebJsonSerializerOptions,
-            cancellationToken);
+            WebJsonSerializerOptions, TestCancellationToken);
 
         var response2 = await apiClient.PostAsJsonAsync(
-            RelativeUri("/api/projects"),
+            "/api/projects",
             new CreateProjectRequest { Name = "SharedName", GroupId = group2.Id },
-            WebJsonSerializerOptions,
-            cancellationToken);
+            WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
         response1.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -188,14 +174,13 @@ public sealed class ProjectsHandlerTests
     public async Task GetProject_WithExistingId_ReturnsProjectAndEntityTag()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var created = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
+        var created = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/projects/{created.Id}"), cancellationToken);
-        var project = await ReadProjectAsync(response, cancellationToken);
+        var response = await apiClient.GetAsync($"/api/projects/{created.Id}", TestCancellationToken);
+        var project = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -208,13 +193,12 @@ public sealed class ProjectsHandlerTests
     public async Task GetProject_WithUnknownId_ReturnsNotFoundProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/projects/{Guid.CreateVersion7()}"), cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.GetAsync($"/api/projects/{Guid.CreateVersion7()}", TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -228,19 +212,17 @@ public sealed class ProjectsHandlerTests
     public async Task GetProjects_WithGroupIdFilter_ReturnsOnlyGroupProjects()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var group = await CreateGroupAsync(apiClient, "Engineering", cancellationToken);
-        await CreateProjectAsync(apiClient, "Global Project", cancellationToken);
-        await CreateProjectAsync(apiClient, "Group Project", cancellationToken, group.Id);
+        var group = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
+        await CreateProjectAsync(apiClient, "Global Project", TestCancellationToken);
+        await CreateProjectAsync(apiClient, "Group Project", TestCancellationToken, group.Id);
 
         // Act
         var response = await apiClient.GetAsync(
-            RelativeUri($"/api/projects?limit=25&sortField=name&sortOrder=asc&groupId={group.Id}"),
-            cancellationToken);
+            $"/api/projects?limit=25&sortField=name&sortOrder=asc&groupId={group.Id}", TestCancellationToken);
 
-        var page = await ReadPageAsync(response, cancellationToken);
+        var page = await ReadPageAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -252,24 +234,22 @@ public sealed class ProjectsHandlerTests
     public async Task GetProjects_WithPagination_ReturnsPaginatedResults()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        await CreateProjectAsync(apiClient, "Gamma", cancellationToken);
-        await CreateProjectAsync(apiClient, "Alpha", cancellationToken);
-        await CreateProjectAsync(apiClient, "Beta", cancellationToken);
+        await CreateProjectAsync(apiClient, "Gamma", TestCancellationToken);
+        await CreateProjectAsync(apiClient, "Alpha", TestCancellationToken);
+        await CreateProjectAsync(apiClient, "Beta", TestCancellationToken);
 
         // Act
-        var firstResponse = await apiClient.GetAsync(RelativeUri("/api/projects?limit=2&sortField=name&sortOrder=asc"), cancellationToken);
-        var firstPage = await ReadPageAsync(firstResponse, cancellationToken);
+        var firstResponse = await apiClient.GetAsync("/api/projects?limit=2&sortField=name&sortOrder=asc", TestCancellationToken);
+        var firstPage = await ReadPageAsync(firstResponse, TestCancellationToken);
 
         firstPage.NextCursor.ShouldNotBeNull();
         var nextCursor = Uri.EscapeDataString(firstPage.NextCursor);
         var secondResponse = await apiClient.GetAsync(
-            RelativeUri($"/api/projects?limit=2&sortField=name&sortOrder=asc&after={nextCursor}"),
-            cancellationToken);
+            $"/api/projects?limit=2&sortField=name&sortOrder=asc&after={nextCursor}", TestCancellationToken);
 
-        var secondPage = await ReadPageAsync(secondResponse, cancellationToken);
+        var secondPage = await ReadPageAsync(secondResponse, TestCancellationToken);
 
         // Assert
         firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -285,20 +265,19 @@ public sealed class ProjectsHandlerTests
     public async Task PutProject_WithCorrectIfMatch_ReturnsUpdatedProject()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var created = await CreateProjectAsync(apiClient, "Original", cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/projects/{created.Id}"), cancellationToken);
+        var created = await CreateProjectAsync(apiClient, "Original", TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/projects/{created.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/projects/{created.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/projects/{created.Id}");
         request.Content = JsonContent.Create(new UpdateProjectRequest { Name = "Updated" }, options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var project = await ReadProjectAsync(response, cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var project = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -312,17 +291,16 @@ public sealed class ProjectsHandlerTests
     public async Task PutProject_WithoutIfMatch_ReturnsPreconditionRequiredProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var created = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
+        var created = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/projects/{created.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/projects/{created.Id}");
         request.Content = JsonContent.Create(new UpdateProjectRequest { Name = "Updated" }, options: WebJsonSerializerOptions);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe((HttpStatusCode)428);
@@ -336,18 +314,17 @@ public sealed class ProjectsHandlerTests
     public async Task PutProject_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var created = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
+        var created = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/projects/{created.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/projects/{created.Id}");
         request.Content = JsonContent.Create(new UpdateProjectRequest { Name = "Updated" }, options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -361,19 +338,18 @@ public sealed class ProjectsHandlerTests
     public async Task DeleteProject_WithCorrectIfMatch_ReturnsNoContent()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var created = await CreateProjectAsync(apiClient, "Doomed Project", cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/projects/{created.Id}"), cancellationToken);
+        var created = await CreateProjectAsync(apiClient, "Doomed Project", TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/projects/{created.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/projects/{created.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/projects/{created.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var missingResponse = await apiClient.GetAsync(RelativeUri($"/api/projects/{created.Id}"), cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var missingResponse = await apiClient.GetAsync($"/api/projects/{created.Id}", TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -384,17 +360,16 @@ public sealed class ProjectsHandlerTests
     public async Task DeleteProject_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var created = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
+        var created = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/projects/{created.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/projects/{created.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -408,21 +383,20 @@ public sealed class ProjectsHandlerTests
     public async Task DeleteProject_CascadesDeleteToConfigEntries()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var project = await CreateProjectAsync(apiClient, "Cascade Project", cancellationToken);
-        var entry = await CreateConfigEntryAsync(apiClient, "CascadeKey", project.Id, ConfigEntryOwnerType.Project, cancellationToken);
+        var project = await CreateProjectAsync(apiClient, "Cascade Project", TestCancellationToken);
+        var entry = await CreateConfigEntryAsync(apiClient, "CascadeKey", project.Id, ConfigEntryOwnerType.Project, TestCancellationToken);
 
-        var getProjectResponse = await apiClient.GetAsync(RelativeUri($"/api/projects/{project.Id}"), cancellationToken);
+        var getProjectResponse = await apiClient.GetAsync($"/api/projects/{project.Id}", TestCancellationToken);
         var etag = getProjectResponse.Headers.ETag?.ToString();
 
-        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/projects/{project.Id}"));
+        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/projects/{project.Id}");
         deleteRequest.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var deleteResponse = await apiClient.SendAsync(deleteRequest, cancellationToken);
-        var entryResponse = await apiClient.GetAsync(RelativeUri($"/api/config-entries/{entry.Id}"), cancellationToken);
+        var deleteResponse = await apiClient.SendAsync(deleteRequest, TestCancellationToken);
+        var entryResponse = await apiClient.GetAsync($"/api/config-entries/{entry.Id}", TestCancellationToken);
 
         // Assert
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -433,10 +407,9 @@ public sealed class ProjectsHandlerTests
     public async Task DeleteProject_CascadesDeleteToClients()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var project = await CreateProjectAsync(apiClient, "Client Cascade Project", cancellationToken);
+        var project = await CreateProjectAsync(apiClient, "Client Cascade Project", TestCancellationToken);
 
         var clientCollection = factory.Database.GetCollection<Client>("clients");
         var timestamp = DateTimeOffset.UtcNow;
@@ -454,19 +427,19 @@ public sealed class ProjectsHandlerTests
             UpdatedBy = Guid.Empty,
         };
 
-        await clientCollection.InsertOneAsync(client, cancellationToken: cancellationToken);
+        await clientCollection.InsertOneAsync(client, cancellationToken: TestCancellationToken);
 
-        var getProjectResponse = await apiClient.GetAsync(RelativeUri($"/api/projects/{project.Id}"), cancellationToken);
+        var getProjectResponse = await apiClient.GetAsync($"/api/projects/{project.Id}", TestCancellationToken);
         var etag = getProjectResponse.Headers.ETag?.ToString();
 
-        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/projects/{project.Id}"));
+        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"/api/projects/{project.Id}");
         deleteRequest.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var deleteResponse = await apiClient.SendAsync(deleteRequest, cancellationToken);
+        var deleteResponse = await apiClient.SendAsync(deleteRequest, TestCancellationToken);
         var remainingClients = await clientCollection
             .Find(c => c.ProjectId == project.Id)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(TestCancellationToken);
 
         // Assert
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -477,19 +450,17 @@ public sealed class ProjectsHandlerTests
     public async Task PutProjectTemplate_WithExistingTemplate_ReturnsUpdatedProject()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var project = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
-        var template = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
+        var project = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
 
         // Act
         var response = await apiClient.PutAsync(
-            RelativeUri($"/api/projects/{project.Id}/templates/{template.Id}"),
-            null,
-            cancellationToken);
+            $"/api/projects/{project.Id}/templates/{template.Id}",
+            null, TestCancellationToken);
 
-        var updated = await ReadProjectAsync(response, cancellationToken);
+        var updated = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -500,18 +471,17 @@ public sealed class ProjectsHandlerTests
     public async Task PutProjectTemplate_WithNonExistentTemplate_ReturnsNotFound()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var project = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
+        var project = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
 
         // Act
         var response = await apiClient.PutAsync(
-            RelativeUri($"/api/projects/{project.Id}/templates/{Guid.CreateVersion7()}"),
+            $"/api/projects/{project.Id}/templates/{Guid.CreateVersion7()}",
             null,
-            cancellationToken);
+            TestCancellationToken);
 
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -524,24 +494,21 @@ public sealed class ProjectsHandlerTests
     public async Task PutProjectTemplate_AlreadyAdded_ReturnsOkWithoutDuplicate()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
-        var project = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
+        var project = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
 
         await apiClient.PutAsync(
-            RelativeUri($"/api/projects/{project.Id}/templates/{template.Id}"),
-            null,
-            cancellationToken);
+            $"/api/projects/{project.Id}/templates/{template.Id}",
+            null, TestCancellationToken);
 
         // Act
         var response = await apiClient.PutAsync(
-            RelativeUri($"/api/projects/{project.Id}/templates/{template.Id}"),
-            null,
-            cancellationToken);
+            $"/api/projects/{project.Id}/templates/{template.Id}",
+            null, TestCancellationToken);
 
-        var updated = await ReadProjectAsync(response, cancellationToken);
+        var updated = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -552,23 +519,20 @@ public sealed class ProjectsHandlerTests
     public async Task DeleteProjectTemplate_WithExistingTemplate_ReturnsUpdatedProject()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var template = await CreateTemplateAsync(apiClient, "Base Config", cancellationToken);
-        var project = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
+        var template = await CreateTemplateAsync(apiClient, "Base Config", TestCancellationToken);
+        var project = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
 
         await apiClient.PutAsync(
-            RelativeUri($"/api/projects/{project.Id}/templates/{template.Id}"),
-            null,
-            cancellationToken);
+            $"/api/projects/{project.Id}/templates/{template.Id}",
+            null, TestCancellationToken);
 
         // Act
         var response = await apiClient.DeleteAsync(
-            RelativeUri($"/api/projects/{project.Id}/templates/{template.Id}"),
-            cancellationToken);
+            $"/api/projects/{project.Id}/templates/{template.Id}", TestCancellationToken);
 
-        var updated = await ReadProjectAsync(response, cancellationToken);
+        var updated = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -579,17 +543,16 @@ public sealed class ProjectsHandlerTests
     public async Task DeleteProjectTemplate_NotInList_ReturnsOkUnchanged()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var project = await CreateProjectAsync(apiClient, "My Project", cancellationToken);
+        var project = await CreateProjectAsync(apiClient, "My Project", TestCancellationToken);
 
         // Act
         var response = await apiClient.DeleteAsync(
-            RelativeUri($"/api/projects/{project.Id}/templates/{Guid.CreateVersion7()}"),
-            cancellationToken);
+            $"/api/projects/{project.Id}/templates/{Guid.CreateVersion7()}",
+            TestCancellationToken);
 
-        var updated = await ReadProjectAsync(response, cancellationToken);
+        var updated = await ReadProjectAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -598,8 +561,7 @@ public sealed class ProjectsHandlerTests
 
     private static async Task<ProjectResponse> CreateProjectAsync(
         HttpClient apiClient,
-        string name,
-        CancellationToken cancellationToken,
+        string name, CancellationToken cancellationToken,
         Guid? groupId = null)
     {
         var request = new CreateProjectRequest
@@ -610,15 +572,14 @@ public sealed class ProjectsHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/projects"),
+                "/api/projects",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        return await ReadProjectAsync(response, cancellationToken).ConfigureAwait(false);
+        return await ReadProjectAsync(response, TestCancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<TemplateResponse> CreateTemplateAsync(HttpClient apiClient, string name, CancellationToken cancellationToken)
@@ -630,15 +591,14 @@ public sealed class ProjectsHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/templates"),
+                "/api/templates",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         template.ShouldNotBeNull();
 
         return template;
@@ -653,15 +613,14 @@ public sealed class ProjectsHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/groups"),
+                "/api/groups",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        var group = await response.Content.ReadFromJsonAsync<GroupResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var group = await response.Content.ReadFromJsonAsync<GroupResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         group.ShouldNotBeNull();
 
         return group;
@@ -671,8 +630,7 @@ public sealed class ProjectsHandlerTests
         HttpClient apiClient,
         string key,
         Guid ownerId,
-        ConfigEntryOwnerType ownerType,
-        CancellationToken cancellationToken)
+        ConfigEntryOwnerType ownerType, CancellationToken cancellationToken)
     {
         var request = new CreateConfigEntryRequest
         {
@@ -684,15 +642,14 @@ public sealed class ProjectsHandlerTests
         };
 
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/config-entries"),
+                "/api/config-entries",
                 request,
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        var entry = await response.Content.ReadFromJsonAsync<ConfigEntryResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var entry = await response.Content.ReadFromJsonAsync<ConfigEntryResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         entry.ShouldNotBeNull();
 
         return entry;
@@ -700,7 +657,7 @@ public sealed class ProjectsHandlerTests
 
     private static async Task<PaginatedResponse<ProjectResponse>> ReadPageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<ProjectResponse>>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var page = await response.Content.ReadFromJsonAsync<PaginatedResponse<ProjectResponse>>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         page.ShouldNotBeNull();
 
         return page;
@@ -708,11 +665,9 @@ public sealed class ProjectsHandlerTests
 
     private static async Task<ProjectResponse> ReadProjectAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var project = await response.Content.ReadFromJsonAsync<ProjectResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var project = await response.Content.ReadFromJsonAsync<ProjectResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         project.ShouldNotBeNull();
 
         return project;
     }
-
-    private static Uri RelativeUri(string relativePath) => new(relativePath, UriKind.Relative);
 }

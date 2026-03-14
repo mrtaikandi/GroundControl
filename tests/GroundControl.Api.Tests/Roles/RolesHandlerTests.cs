@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using GroundControl.Api.Features.Roles.Contracts;
 using GroundControl.Persistence.Contracts;
 using Shouldly;
@@ -9,29 +8,24 @@ using Xunit;
 namespace GroundControl.Api.Tests.Roles;
 
 [Collection("MongoDB")]
-public sealed class RolesHandlerTests
+public sealed class RolesHandlerTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions WebJsonSerializerOptions = new(JsonSerializerDefaults.Web);
-
-    private readonly MongoFixture _mongoFixture;
-
     public RolesHandlerTests(MongoFixture mongoFixture)
+        : base(mongoFixture)
     {
-        _mongoFixture = mongoFixture;
     }
 
     [Fact]
     public async Task PostRole_WithValidBody_ReturnsCreatedResponseWithLocationHeader()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = CreateRequest("CustomRole", ["scopes:read", "groups:read"]);
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/roles"), request, WebJsonSerializerOptions, cancellationToken);
-        var role = await ReadRoleAsync(response, cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/roles", request, WebJsonSerializerOptions, TestCancellationToken);
+        var role = await ReadRoleAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
@@ -46,14 +40,13 @@ public sealed class RolesHandlerTests
     public async Task PostRole_WithDuplicateName_ReturnsValidationProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        await apiClient.PostAsJsonAsync(RelativeUri("/api/roles"), CreateRequest("DuplicateRole", ["scopes:read"]), WebJsonSerializerOptions, cancellationToken);
+        await apiClient.PostAsJsonAsync("/api/roles", CreateRequest("DuplicateRole", ["scopes:read"]), WebJsonSerializerOptions, TestCancellationToken);
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/roles"), CreateRequest("duplicaterole", ["groups:read"]), WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/roles", CreateRequest("duplicaterole", ["groups:read"]), WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -67,14 +60,13 @@ public sealed class RolesHandlerTests
     public async Task PostRole_WithInvalidPermission_ReturnsValidationProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
         var request = CreateRequest("BadRole", ["scopes:read", "invalid:permission"]);
 
         // Act
-        var response = await apiClient.PostAsJsonAsync(RelativeUri("/api/roles"), request, WebJsonSerializerOptions, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.PostAsJsonAsync("/api/roles", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -88,14 +80,13 @@ public sealed class RolesHandlerTests
     public async Task GetRole_WithExistingId_ReturnsRoleAndEntityTag()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdRole = await CreateRoleAsync(apiClient, "TestRole", ["scopes:read"], cancellationToken);
+        var createdRole = await CreateRoleAsync(apiClient, "TestRole", ["scopes:read"], TestCancellationToken);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/roles/{createdRole.Id}"), cancellationToken);
-        var role = await ReadRoleAsync(response, cancellationToken);
+        var response = await apiClient.GetAsync($"/api/roles/{createdRole.Id}", TestCancellationToken);
+        var role = await ReadRoleAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -108,13 +99,12 @@ public sealed class RolesHandlerTests
     public async Task GetRole_WithUnknownId_ReturnsNotFoundProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri($"/api/roles/{Guid.CreateVersion7()}"), cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.GetAsync($"/api/roles/{Guid.CreateVersion7()}", TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -130,16 +120,15 @@ public sealed class RolesHandlerTests
     public async Task GetRoles_ReturnsAllRolesAsFlatArray()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
 
         // The seed service creates 4 default roles; add one more
-        await CreateRoleAsync(apiClient, "CustomRole", ["scopes:read"], cancellationToken);
+        await CreateRoleAsync(apiClient, "CustomRole", ["scopes:read"], TestCancellationToken);
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri("/api/roles"), cancellationToken);
-        var roles = await response.Content.ReadFromJsonAsync<List<RoleResponse>>(WebJsonSerializerOptions, cancellationToken);
+        var response = await apiClient.GetAsync("/api/roles", TestCancellationToken);
+        var roles = await response.Content.ReadFromJsonAsync<List<RoleResponse>>(WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -156,20 +145,19 @@ public sealed class RolesHandlerTests
     public async Task PutRole_WithCorrectIfMatch_ReturnsUpdatedRole()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdRole = await CreateRoleAsync(apiClient, "OriginalRole", ["scopes:read"], cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/roles/{createdRole.Id}"), cancellationToken);
+        var createdRole = await CreateRoleAsync(apiClient, "OriginalRole", ["scopes:read"], TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/roles/{createdRole.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/roles/{createdRole.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/roles/{createdRole.Id}");
         request.Content = JsonContent.Create(CreateRequest("RenamedRole", ["scopes:read", "groups:read"]), options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var role = await ReadRoleAsync(response, cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var role = await ReadRoleAsync(response, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -184,17 +172,16 @@ public sealed class RolesHandlerTests
     public async Task PutRole_WithoutIfMatch_ReturnsPreconditionRequiredProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdRole = await CreateRoleAsync(apiClient, "TestRole", ["scopes:read"], cancellationToken);
+        var createdRole = await CreateRoleAsync(apiClient, "TestRole", ["scopes:read"], TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/roles/{createdRole.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/roles/{createdRole.Id}");
         request.Content = JsonContent.Create(CreateRequest("Updated", ["scopes:read"]), options: WebJsonSerializerOptions);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe((HttpStatusCode)428);
@@ -210,18 +197,17 @@ public sealed class RolesHandlerTests
     public async Task PutRole_WithStaleIfMatch_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdRole = await CreateRoleAsync(apiClient, "TestRole", ["scopes:read"], cancellationToken);
+        var createdRole = await CreateRoleAsync(apiClient, "TestRole", ["scopes:read"], TestCancellationToken);
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/roles/{createdRole.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/roles/{createdRole.Id}");
         request.Content = JsonContent.Create(CreateRequest("Updated", ["scopes:read"]), options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", "\"99\"");
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -237,20 +223,19 @@ public sealed class RolesHandlerTests
     public async Task PutRole_WithInvalidPermission_ReturnsValidationProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdRole = await CreateRoleAsync(apiClient, "TestRole", ["scopes:read"], cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/roles/{createdRole.Id}"), cancellationToken);
+        var createdRole = await CreateRoleAsync(apiClient, "TestRole", ["scopes:read"], TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/roles/{createdRole.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, RelativeUri($"/api/roles/{createdRole.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/roles/{createdRole.Id}");
         request.Content = JsonContent.Create(CreateRequest("Updated", ["bogus:perm"]), options: WebJsonSerializerOptions);
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadValidationProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -264,19 +249,18 @@ public sealed class RolesHandlerTests
     public async Task DeleteRole_WithCorrectIfMatch_ReturnsNoContent()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdRole = await CreateRoleAsync(apiClient, "ToDelete", ["scopes:read"], cancellationToken);
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/roles/{createdRole.Id}"), cancellationToken);
+        var createdRole = await CreateRoleAsync(apiClient, "ToDelete", ["scopes:read"], TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/roles/{createdRole.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
 
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/roles/{createdRole.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/roles/{createdRole.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var missingResponse = await apiClient.GetAsync(RelativeUri($"/api/roles/{createdRole.Id}"), cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var missingResponse = await apiClient.GetAsync($"/api/roles/{createdRole.Id}", TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -287,10 +271,9 @@ public sealed class RolesHandlerTests
     public async Task DeleteRole_WhenReferencedByUser_ReturnsConflictProblemDetails()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
-        var createdRole = await CreateRoleAsync(apiClient, "ReferencedRole", ["scopes:read"], cancellationToken);
+        var createdRole = await CreateRoleAsync(apiClient, "ReferencedRole", ["scopes:read"], TestCancellationToken);
         var userCollection = factory.Database.GetCollection<User>("users");
         var timestamp = DateTimeOffset.UtcNow;
 
@@ -306,16 +289,16 @@ public sealed class RolesHandlerTests
             CreatedBy = Guid.Empty,
             UpdatedAt = timestamp,
             UpdatedBy = Guid.Empty
-        }, cancellationToken: cancellationToken);
+        }, cancellationToken: TestCancellationToken);
 
-        var getResponse = await apiClient.GetAsync(RelativeUri($"/api/roles/{createdRole.Id}"), cancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/roles/{createdRole.Id}", TestCancellationToken);
         var etag = getResponse.Headers.ETag?.ToString();
-        using var request = new HttpRequestMessage(HttpMethod.Delete, RelativeUri($"/api/roles/{createdRole.Id}"));
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/roles/{createdRole.Id}");
         request.Headers.TryAddWithoutValidation("If-Match", etag);
 
         // Act
-        var response = await apiClient.SendAsync(request, cancellationToken);
-        var problem = await response.ReadProblemAsync(cancellationToken);
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -331,13 +314,12 @@ public sealed class RolesHandlerTests
     public async Task SeedService_CreatesDefaultRolesOnStartup()
     {
         // Arrange
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         using var apiClient = factory.CreateClient();
 
         // Act
-        var response = await apiClient.GetAsync(RelativeUri("/api/roles"), cancellationToken);
-        var roles = await response.Content.ReadFromJsonAsync<List<RoleResponse>>(WebJsonSerializerOptions, cancellationToken);
+        var response = await apiClient.GetAsync("/api/roles", TestCancellationToken);
+        var roles = await response.Content.ReadFromJsonAsync<List<RoleResponse>>(WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -355,8 +337,7 @@ public sealed class RolesHandlerTests
     public async Task SeedService_IsIdempotent_DoesNotDuplicateRoles()
     {
         // Arrange — pre-insert a "Viewer" role before the seed service runs
-        var cancellationToken = TestContext.Current.CancellationToken;
-        await using var factory = new GroundControlApiFactory(_mongoFixture);
+        await using var factory = CreateFactory();
         var roleCollection = factory.Database.GetCollection<Role>("roles");
         var timestamp = DateTimeOffset.UtcNow;
 
@@ -371,12 +352,12 @@ public sealed class RolesHandlerTests
             CreatedBy = Guid.Empty,
             UpdatedAt = timestamp,
             UpdatedBy = Guid.Empty
-        }, cancellationToken: cancellationToken);
+        }, cancellationToken: TestCancellationToken);
 
         // Act — creating the client triggers the hosted service (seed)
         using var apiClient = factory.CreateClient();
-        var response = await apiClient.GetAsync(RelativeUri("/api/roles"), cancellationToken);
-        var roles = await response.Content.ReadFromJsonAsync<List<RoleResponse>>(WebJsonSerializerOptions, cancellationToken);
+        var response = await apiClient.GetAsync("/api/roles", TestCancellationToken);
+        var roles = await response.Content.ReadFromJsonAsync<List<RoleResponse>>(WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert — only one Viewer should exist (the pre-inserted one)
         roles.ShouldNotBeNull();
@@ -396,24 +377,21 @@ public sealed class RolesHandlerTests
     private static async Task<RoleResponse> CreateRoleAsync(HttpClient apiClient, string name, string[] permissions, CancellationToken cancellationToken)
     {
         var response = await apiClient.PostAsJsonAsync(
-                RelativeUri("/api/roles"),
+                "/api/roles",
                 CreateRequest(name, permissions),
-                WebJsonSerializerOptions,
-                cancellationToken)
+                WebJsonSerializerOptions, TestCancellationToken)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        return await ReadRoleAsync(response, cancellationToken).ConfigureAwait(false);
+        return await ReadRoleAsync(response, TestCancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<RoleResponse> ReadRoleAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        var role = await response.Content.ReadFromJsonAsync<RoleResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        var role = await response.Content.ReadFromJsonAsync<RoleResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         role.ShouldNotBeNull();
 
         return role;
     }
-
-    private static Uri RelativeUri(string relativePath) => new(relativePath, UriKind.Relative);
 }
