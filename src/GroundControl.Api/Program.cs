@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using GroundControl.Api.Features.ConfigEntries;
 using GroundControl.Api.Features.Groups;
+using GroundControl.Api.Features.Projects;
 using GroundControl.Api.Features.Roles;
 using GroundControl.Api.Features.Scopes;
 using GroundControl.Api.Features.Templates;
@@ -41,6 +42,7 @@ builder.Services.AddScopesHandlers();
 builder.Services.AddGroupsHandlers();
 builder.Services.AddRolesHandlers();
 builder.Services.AddTemplatesHandlers();
+builder.Services.AddProjectsHandlers();
 builder.Services.AddConfigEntriesHandlers();
 builder.Services.AddVariablesHandlers();
 
@@ -62,6 +64,7 @@ app.MapScopesEndpoints();
 app.MapGroupsEndpoints();
 app.MapRolesEndpoints();
 app.MapTemplatesEndpoints();
+app.MapProjectsEndpoints();
 app.MapConfigEntriesEndpoints();
 app.MapVariablesEndpoints();
 

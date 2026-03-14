@@ -62,6 +62,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ITemplateStore, TemplateStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ProjectConfiguration>());
         services.TryAddSingleton<IProjectStore, ProjectStore>();
+        services.TryAddSingleton<IClientStore, ClientStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, ConfigEntryConfiguration>());
         services.TryAddSingleton<IConfigEntryStore, ConfigEntryStore>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IDocumentConfiguration, VariableConfiguration>());
