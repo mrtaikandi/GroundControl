@@ -27,9 +27,10 @@ internal sealed class DeleteTemplateValidator : IEndpointValidator
             return ValidatorResult.Problem($"Template '{id}' was not found.", StatusCodes.Status404NotFound);
         }
 
-        if (!EntityTagHeaders.TryParseIfMatch(context.HttpContext, out _))
+        var ifMatchResult = EntityTagHeaders.ValidateIfMatch(context.HttpContext);
+        if (ifMatchResult.IsFailed)
         {
-            return ValidatorResult.Problem("If-Match header is required.", StatusCodes.Status428PreconditionRequired);
+            return ifMatchResult;
         }
 
         var isReferenced = await _store.IsReferencedByProjectsAsync(id, cancellationToken).ConfigureAwait(false);

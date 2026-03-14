@@ -27,9 +27,10 @@ internal sealed class DeleteGroupValidator : IEndpointValidator
             return ValidatorResult.Problem($"Group '{id}' was not found.", StatusCodes.Status404NotFound);
         }
 
-        if (!EntityTagHeaders.TryParseIfMatch(context.HttpContext, out _))
+        var ifMatchResult = EntityTagHeaders.ValidateIfMatch(context.HttpContext);
+        if (ifMatchResult.IsFailed)
         {
-            return ValidatorResult.Problem("If-Match header is required.", StatusCodes.Status428PreconditionRequired);
+            return ifMatchResult;
         }
 
         var hasDependents = await _store.HasDependentsAsync(id, cancellationToken).ConfigureAwait(false);

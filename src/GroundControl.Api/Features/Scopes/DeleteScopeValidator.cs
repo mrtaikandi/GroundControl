@@ -27,9 +27,10 @@ internal sealed class DeleteScopeValidator : IEndpointValidator
             return ValidatorResult.Problem($"Scope '{id}' was not found.", StatusCodes.Status404NotFound);
         }
 
-        if (!EntityTagHeaders.TryParseIfMatch(context.HttpContext, out _))
+        var ifMatchResult = EntityTagHeaders.ValidateIfMatch(context.HttpContext);
+        if (ifMatchResult.IsFailed)
         {
-            return ValidatorResult.Problem("If-Match header is required.", StatusCodes.Status428PreconditionRequired);
+            return ifMatchResult;
         }
 
         var inspectedValues = new HashSet<string>(StringComparer.Ordinal);

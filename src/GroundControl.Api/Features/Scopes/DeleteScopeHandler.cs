@@ -31,9 +31,9 @@ internal sealed class DeleteScopeHandler : IEndpointHandler
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
+        if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion, out var problem))
         {
-            return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
+            return problem;
         }
 
         var deleted = await _store.DeleteAsync(id, expectedVersion, cancellationToken).ConfigureAwait(false);

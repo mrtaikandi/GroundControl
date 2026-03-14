@@ -40,9 +40,9 @@ internal sealed class UpdateRoleHandler : IEndpointHandler
             return TypedResults.Problem(detail: $"Role '{id}' was not found.", statusCode: StatusCodes.Status404NotFound);
         }
 
-        if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion))
+        if (!EntityTagHeaders.TryParseIfMatch(httpContext, out var expectedVersion, out var problem))
         {
-            return TypedResults.Problem(detail: "If-Match header is required.", statusCode: StatusCodes.Status428PreconditionRequired);
+            return problem;
         }
 
         role.Name = request.Name;

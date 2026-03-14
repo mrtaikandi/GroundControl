@@ -27,9 +27,10 @@ internal sealed class DeleteProjectValidator : IEndpointValidator
             return ValidatorResult.Problem($"Project '{id}' was not found.", StatusCodes.Status404NotFound);
         }
 
-        if (!EntityTagHeaders.TryParseIfMatch(context.HttpContext, out _))
+        var ifMatchResult = EntityTagHeaders.ValidateIfMatch(context.HttpContext);
+        if (ifMatchResult.IsFailed)
         {
-            return ValidatorResult.Problem("If-Match header is required.", StatusCodes.Status428PreconditionRequired);
+            return ifMatchResult;
         }
 
         return ValidatorResult.Success;
