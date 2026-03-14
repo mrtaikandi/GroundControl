@@ -8,6 +8,7 @@ using GroundControl.Api.Features.Templates;
 using GroundControl.Api.Features.Variables;
 using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Health;
+using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
 using GroundControl.Api.Shared.Security.KeyRing;
@@ -32,6 +33,7 @@ var dataProtectionBuilder = builder.Services.AddDataProtection()
 var keyRingConfigurator = new FileSystemKeyRingConfigurator();
 keyRingConfigurator.Configure(dataProtectionBuilder, builder.Configuration);
 builder.Services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
+builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();
 
 builder.Services.AddApiVersioning(options =>
 {
