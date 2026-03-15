@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using GroundControl.Api.Features.ClientApi;
 using GroundControl.Api.Features.Clients;
 using GroundControl.Api.Features.ConfigEntries;
 using GroundControl.Api.Features.Groups;
@@ -60,6 +61,14 @@ new AuthenticationBuilder(builder.Services)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
 
 builder.Services.AddSingleton<IChangeNotifier, InProcessChangeNotifier>();
+
+builder.Services.AddSingleton<SnapshotCache>();
+builder.Services.AddHostedService<SnapshotCacheInvalidator>();
+
+if (builder.Configuration.GetValue<bool>("Cache:PrewarmOnStartup"))
+{
+    builder.Services.AddHostedService<SnapshotCacheWarmupService>();
+}
 
 builder.Services.AddScopesHandlers();
 builder.Services.AddGroupsHandlers();
