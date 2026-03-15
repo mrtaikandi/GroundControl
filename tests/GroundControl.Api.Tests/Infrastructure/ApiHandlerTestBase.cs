@@ -23,7 +23,7 @@ public abstract class ApiHandlerTestBase
 
     protected static CancellationToken TestCancellationToken => TestContext.Current.CancellationToken;
 
-    protected GroundControlApiFactory CreateFactory() => new(_mongoFixture);
+    protected GroundControlApiFactory CreateFactory(Dictionary<string, string?>? extraConfig = null) => new(_mongoFixture, extraConfig);
 
     protected static async Task<TResponse> ReadRequiredJsonAsync<TResponse>(HttpResponseMessage response, CancellationToken cancellationToken)
         where TResponse : class

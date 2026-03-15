@@ -5,6 +5,7 @@ internal static class ClientApiEndpoints
     public static IServiceCollection AddClientApiHandlers(this IServiceCollection services)
     {
         services.AddTransient<GetConfigHandler>();
+        services.AddTransient<StreamConfigHandler>();
         return services;
     }
 
@@ -14,6 +15,7 @@ internal static class ClientApiEndpoints
             .WithTags("ClientApi");
 
         GetConfigHandler.Endpoint(group);
+        StreamConfigHandler.Endpoint(group);
         ClientHealthHandler.Endpoint(group);
 
         return endpoints;

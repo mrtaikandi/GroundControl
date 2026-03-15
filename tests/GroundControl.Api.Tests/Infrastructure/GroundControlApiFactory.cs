@@ -12,11 +12,13 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
 {
     private readonly IMongoDatabase _database;
     private readonly MongoFixture _mongoFixture;
+    private readonly Dictionary<string, string?> _extraConfig;
 
-    public GroundControlApiFactory(MongoFixture mongoFixture)
+    public GroundControlApiFactory(MongoFixture mongoFixture, Dictionary<string, string?>? extraConfig = null)
     {
         _mongoFixture = mongoFixture ?? throw new ArgumentNullException(nameof(mongoFixture));
         _database = _mongoFixture.CreateDatabase();
+        _extraConfig = extraConfig ?? [];
     }
 
     public IMongoDatabase Database => _database;
@@ -26,12 +28,19 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.ConfigureAppConfiguration((_, configurationBuilder) =>
         {
-            configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+            var config = new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Storage"] = _mongoFixture.ConnectionString,
                 ["Persistence:MongoDb:DatabaseName"] = _database.DatabaseNamespace.DatabaseName,
-                ["GroundControl:Security:AuthenticationMode"] = "None"
-            });
+                ["GroundControl:Security:AuthenticationMode"] = "None",
+            };
+
+            foreach (var kvp in _extraConfig)
+            {
+                config[kvp.Key] = kvp.Value;
+            }
+
+            configurationBuilder.AddInMemoryCollection(config);
         });
 
         builder.ConfigureLogging(logging =>
