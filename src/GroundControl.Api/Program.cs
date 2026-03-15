@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using GroundControl.Api.Features.Clients;
 using GroundControl.Api.Features.ConfigEntries;
 using GroundControl.Api.Features.Groups;
 using GroundControl.Api.Features.Projects;
@@ -64,6 +65,7 @@ builder.Services.AddProjectsHandlers();
 builder.Services.AddConfigEntriesHandlers();
 builder.Services.AddVariablesHandlers();
 builder.Services.AddSnapshotsHandlers();
+builder.Services.AddClientsHandlers();
 
 builder.Services
     .AddAuthorizationBuilder()
@@ -87,6 +89,7 @@ app.MapProjectsEndpoints();
 app.MapConfigEntriesEndpoints();
 app.MapVariablesEndpoints();
 app.MapSnapshotsEndpoints();
+app.MapClientsEndpoints();
 
 app.MapOpenApi();
 app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = p => p.Tags.Contains("liveness") });

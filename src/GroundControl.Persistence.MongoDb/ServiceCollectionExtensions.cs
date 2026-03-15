@@ -59,6 +59,7 @@ public static class ServiceCollectionExtensions
             ServiceDescriptor.Singleton<IDocumentConfiguration, ConfigEntryConfiguration>(),
             ServiceDescriptor.Singleton<IDocumentConfiguration, VariableConfiguration>(),
             ServiceDescriptor.Singleton<IDocumentConfiguration, SnapshotConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, ClientConfiguration>(),
         ]);
 
         services.AddHostedService<MongoIndexSetupService>();
