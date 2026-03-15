@@ -15,10 +15,12 @@ using GroundControl.Api.Shared.Notification;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.Authorization;
 using GroundControl.Api.Shared.Security.KeyRing;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.MongoDb;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -93,7 +95,10 @@ builder.Services.AddClientApiHandlers();
 
 builder.Services
     .AddAuthorizationBuilder()
-    .AddPolicies(Permissions.All, "permission");
+    .AddPermissionPolicies(Permissions.All);
+
+builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
+builder.Services.AddTransient<IClaimsTransformation, GroundControlClaimsTransformation>();
 
 builder.Services.AddOpenApi();
 

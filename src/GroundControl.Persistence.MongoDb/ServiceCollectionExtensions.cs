@@ -60,6 +60,7 @@ public static class ServiceCollectionExtensions
             ServiceDescriptor.Singleton<IDocumentConfiguration, VariableConfiguration>(),
             ServiceDescriptor.Singleton<IDocumentConfiguration, SnapshotConfiguration>(),
             ServiceDescriptor.Singleton<IDocumentConfiguration, ClientConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, UserConfiguration>(),
         ]);
 
         services.AddHostedService<MongoIndexSetupService>();
@@ -74,6 +75,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<ITemplateStore, TemplateStore>();
         services.TryAddSingleton<ISnapshotStore, MongoSnapshotStore>();
         services.TryAddSingleton<IConfigEntryStore, ConfigEntryStore>();
+        services.TryAddSingleton<IUserStore, UserStore>();
 
         return services;
     }
