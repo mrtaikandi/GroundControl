@@ -58,6 +58,8 @@ Each feature folder under `Api/Features/{FeatureName}/` has:
 - **`Contracts/`** subfolder with request/response DTOs
 - Handlers registered as `Transient`, resolved via `[FromServices]`
 
+**DI lifetime conventions:** Handlers and validators as `Transient`. Stores, `IMongoDbContext`, `IChangeNotifier`, and `IValueProtector` as `Singleton`. `IDocumentConfiguration` implementations as singletons via `TryAddEnumerable`.
+
 **Request DTOs:** Sealed internal records with `init` properties and Data Annotations (`[Required]`, `[MaxLength]`, etc.).
 
 **Response DTOs:** Sealed internal records with `required init` properties and a static `From(Entity)` factory method for mapping.
@@ -75,9 +77,16 @@ MongoDB used directly via `IMongoCollection<T>` with LINQ/Builders — no ORM la
 ### Validation & Error Handling
 
 - **Input validation:** .NET 10 built-in minimal API validation with Data Annotations on request DTOs
-- **Async business validation:** `IAsyncValidator<TRequest>` implementations registered in DI, applied via `.WithContractValidation<T>()` endpoint filter. `IEndpointValidator` + `.WithEndpointValidation<T>()` for non-body validation (route values, headers)
+- **Async business validation:** `IAsyncValidator<TRequest>` implementations registered in DI, applied via `.WithContractValidation<T>()` endpoint filter. `IEndpointValidator` + `.WithEndpointValidation<T>()` for non-body validation (route values, headers). Validators return `ValidatorResult.Success`, `ValidatorResult.Fail(error, memberNames)` (→ 400), or `ValidatorResult.Problem(detail, statusCode)` (→ ProblemDetails)
 - **Business failures:** `TypedResults.Problem()` returning RFC 9457 ProblemDetails — no custom error types or Result pattern
-- **HTTP status conventions:** 400 (validation), 404 (not found), 409 (version conflict / duplicate / has dependents), 428 (missing If-Match header)
+- **HTTP status conventions:** 400 (validation), 404 (not found), 409 (version conflict / duplicate / has dependents), 422 (semantic business errors, e.g. unresolved variables), 428 (missing If-Match header)
+
+### Cross-Cutting Infrastructure
+
+- **API versioning:** Header-based (`api-version` header), default version 1.0
+- **Health checks:** `/healthz/liveness` (no checks) and `/healthz/ready` (MongoDB + change notifier)
+- **Change notification:** `IChangeNotifier` with `NotifyAsync`/`SubscribeAsync` for fan-out pub/sub (currently `InProcessChangeNotifier` using `Channel<T>` per subscriber)
+- **Auth configurators:** Pluggable `IAuthConfigurator` — currently `NoAuthConfigurator` for development; `BuiltIn` and `External` modes planned
 
 ### Key Conventions
 
