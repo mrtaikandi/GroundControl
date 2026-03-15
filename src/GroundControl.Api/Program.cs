@@ -60,7 +60,17 @@ authConfigurator.ConfigureServices(builder.Services, builder.Configuration);
 new AuthenticationBuilder(builder.Services)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
 
-builder.Services.AddSingleton<IChangeNotifier, InProcessChangeNotifier>();
+var changeNotifierMode = builder.Configuration.GetValue<string>("ChangeNotifier:Mode");
+if (string.Equals(changeNotifierMode, "MongoChangeStream", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<MongoChangeStreamNotifier>();
+    builder.Services.AddSingleton<IChangeNotifier>(sp => sp.GetRequiredService<MongoChangeStreamNotifier>());
+    builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<MongoChangeStreamNotifier>());
+}
+else
+{
+    builder.Services.AddSingleton<IChangeNotifier, InProcessChangeNotifier>();
+}
 
 builder.Services.AddSingleton<SnapshotCache>();
 builder.Services.AddHostedService<SnapshotCacheInvalidator>();
