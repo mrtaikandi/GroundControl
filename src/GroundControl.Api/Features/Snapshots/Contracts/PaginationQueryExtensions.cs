@@ -8,7 +8,7 @@ internal static class PaginationQueryExtensions
     public static SnapshotListQuery ToStoreQuery(this PaginationQuery query, Guid projectId) => new()
     {
         ProjectId = projectId,
-        Limit = query.Limit ?? 25,
+        Limit = query.Limit ?? PaginationQuery.DefaultLimit,
         After = query.After,
         Before = query.Before,
         SortField = query.SortField ?? "publishedAt",

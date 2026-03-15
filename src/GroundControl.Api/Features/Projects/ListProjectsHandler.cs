@@ -3,7 +3,6 @@ using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Api.Shared.Security;
-using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,20 +20,20 @@ internal sealed class ListProjectsHandler : IEndpointHandler
     public static void Endpoint(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet(string.Empty, async (
-                [AsParameters] ProjectListQuery query,
+                [AsParameters] ProjectPaginationQuery query,
                 [FromServices] ListProjectsHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, cancellationToken))
             .RequireAuthorization(Permissions.ProjectsRead)
             .WithName(nameof(ListProjectsHandler));
     }
 
-    private async Task<IResult> HandleAsync(ProjectListQuery query, CancellationToken cancellationToken = default)
+    private async Task<IResult> HandleAsync(ProjectPaginationQuery query, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(query);
-
         try
         {
-            var result = await _store.ListAsync(query, cancellationToken).ConfigureAwait(false);
+            var storeQuery = query.ToStoreQuery();
+            var result = await _store.ListAsync(storeQuery, cancellationToken).ConfigureAwait(false);
+
             return TypedResults.Ok(new PaginatedResponse<ProjectResponse>
             {
                 Data = result.Items.Select(ProjectResponse.From).ToList(),

@@ -29,4 +29,9 @@
         <ProjectReference Include="..\GroundControl.Persistence.MongoDb\GroundControl.Persistence.MongoDb.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Features\Projects\Contracts\PaginationQueryExtensions.cs" />
+      <Compile Remove="Features\Templates\Contracts\PaginationQueryExtensions.cs" />
+    </ItemGroup>
+
 </Project>

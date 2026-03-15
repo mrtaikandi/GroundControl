@@ -3,7 +3,6 @@ using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Api.Shared.Security;
-using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,20 +20,20 @@ internal sealed class ListVariablesHandler : IEndpointHandler
     public static void Endpoint(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet(string.Empty, async (
-                [AsParameters] VariableListQuery query,
+                [AsParameters] VariablePaginationQuery query,
                 [FromServices] ListVariablesHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, cancellationToken))
             .RequireAuthorization(Permissions.VariablesRead)
             .WithName(nameof(ListVariablesHandler));
     }
 
-    private async Task<IResult> HandleAsync(VariableListQuery query, CancellationToken cancellationToken = default)
+    private async Task<IResult> HandleAsync(VariablePaginationQuery query, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(query);
-
         try
         {
-            var result = await _store.ListAsync(query, cancellationToken).ConfigureAwait(false);
+            var storeQuery = query.ToStoreQuery();
+            var result = await _store.ListAsync(storeQuery, cancellationToken).ConfigureAwait(false);
+
             return TypedResults.Ok(new PaginatedResponse<VariableResponse>
             {
                 Data = result.Items.Select(VariableResponse.From).ToList(),

@@ -3,7 +3,6 @@ using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Api.Shared.Security;
-using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,25 +20,20 @@ internal sealed class ListScopesHandler : IEndpointHandler
     public static void Endpoint(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet(string.Empty, async (
-                [AsParameters] ListQuery query,
+                [AsParameters] PaginationQuery query,
                 [FromServices] ListScopesHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, cancellationToken))
             .RequireAuthorization(Permissions.ScopesRead)
             .WithName(nameof(ListScopesHandler));
     }
 
-    private async Task<IResult> HandleAsync(ListQuery query, CancellationToken cancellationToken = default)
+    private async Task<IResult> HandleAsync(PaginationQuery query, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(query);
-
-        if (string.Equals(query.SortField, "name", StringComparison.OrdinalIgnoreCase))
-        {
-            query.SortField = "dimension";
-        }
-
         try
         {
-            var result = await _store.ListAsync(query, cancellationToken).ConfigureAwait(false);
+            var storeQuery = query.ToStoreQuery();
+            var result = await _store.ListAsync(storeQuery, cancellationToken).ConfigureAwait(false);
+
             return TypedResults.Ok(new PaginatedResponse<ScopeResponse>
             {
                 Data = result.Items.Select(ScopeResponse.From).ToList(),
