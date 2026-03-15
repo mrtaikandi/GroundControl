@@ -17,6 +17,7 @@ using GroundControl.Api.Shared.Security.Auth;
 using GroundControl.Api.Shared.Security.KeyRing;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.MongoDb;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -54,6 +55,9 @@ var authConfigurator = appOptions.Security.AuthenticationMode switch
 };
 
 authConfigurator.ConfigureServices(builder.Services, builder.Configuration);
+
+new AuthenticationBuilder(builder.Services)
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
 
 builder.Services.AddSingleton<IChangeNotifier, InProcessChangeNotifier>();
 
