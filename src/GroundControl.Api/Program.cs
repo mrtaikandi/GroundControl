@@ -89,6 +89,7 @@ builder.Services.AddConfigEntriesHandlers();
 builder.Services.AddVariablesHandlers();
 builder.Services.AddSnapshotsHandlers();
 builder.Services.AddClientsHandlers();
+builder.Services.AddClientApiHandlers();
 
 builder.Services
     .AddAuthorizationBuilder()
@@ -113,6 +114,7 @@ app.MapConfigEntriesEndpoints();
 app.MapVariablesEndpoints();
 app.MapSnapshotsEndpoints();
 app.MapClientsEndpoints();
+app.MapClientApiEndpoints();
 
 app.MapOpenApi();
 app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = p => p.Tags.Contains("liveness") });
