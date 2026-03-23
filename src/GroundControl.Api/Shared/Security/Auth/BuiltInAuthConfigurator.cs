@@ -1,4 +1,5 @@
 using AspNetCore.Identity.MongoDbCore.Models;
+using GroundControl.Api.Features.Auth;
 using GroundControl.Api.Shared.Configuration;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -91,6 +92,8 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
                 };
             });
 
+        services.AddAuthHandlers();
+        services.AddSingleton<IAuthConfigurator>(this);
         services.AddHostedService<AdminSeedService>();
     }
 
@@ -102,7 +105,7 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // Auth endpoints will be mapped in T030
+        endpoints.MapAuthEndpoints();
     }
 
     private static void ValidateJwtSecret(JwtOptions jwt)

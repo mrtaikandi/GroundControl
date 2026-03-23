@@ -57,6 +57,8 @@ IAuthConfigurator authConfigurator = appOptions.Security.AuthenticationMode swit
     _ => new NoAuthConfigurator()
 };
 
+authConfigurator.ConfigureServices(builder.Services, builder.Configuration);
+
 var changeNotifierMode = builder.Configuration.GetValue<string>("ChangeNotifier:Mode");
 if (string.Equals(changeNotifierMode, "MongoChangeStream", StringComparison.OrdinalIgnoreCase))
 {
@@ -88,9 +90,6 @@ builder.Services.AddSnapshotsHandlers();
 builder.Services.AddClientsHandlers();
 builder.Services.AddClientApiHandlers();
 
-// Auth configurator registers after feature handlers so AdminSeedService runs after RoleSeedService
-authConfigurator.ConfigureServices(builder.Services, builder.Configuration);
-
 new AuthenticationBuilder(builder.Services)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
 
@@ -109,8 +108,10 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+authConfigurator = app.Services.GetRequiredService<IAuthConfigurator>();
 authConfigurator.ConfigureMiddleware(app);
 authConfigurator.MapEndpoints(app);
+
 app.MapScopesEndpoints();
 app.MapGroupsEndpoints();
 app.MapRolesEndpoints();

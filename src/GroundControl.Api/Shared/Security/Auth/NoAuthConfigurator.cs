@@ -12,6 +12,8 @@ internal sealed class NoAuthConfigurator : IAuthConfigurator
             options.DefaultChallengeScheme = NoAuthHandler.SchemeName;
         })
         .AddScheme<AuthenticationSchemeOptions, NoAuthHandler>(NoAuthHandler.SchemeName, _ => { });
+
+        services.AddSingleton<IAuthConfigurator>(this);
     }
 
     public void ConfigureMiddleware(IApplicationBuilder app)
