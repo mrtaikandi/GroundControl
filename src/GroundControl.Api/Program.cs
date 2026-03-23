@@ -54,7 +54,7 @@ builder.Services.AddApiVersioning(options =>
 IAuthConfigurator authConfigurator = appOptions.Security.AuthenticationMode switch
 {
     AuthenticationMode.BuiltIn => new BuiltInAuthConfigurator(appOptions),
-    AuthenticationMode.External => throw new NotSupportedException("External auth not yet implemented"),
+    AuthenticationMode.External => new ExternalAuthConfigurator(appOptions),
     _ => new NoAuthConfigurator()
 };
 
