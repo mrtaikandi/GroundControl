@@ -1,6 +1,7 @@
 using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Features.Auth;
 using GroundControl.Api.Shared.Configuration;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -50,11 +51,25 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
                 options.DefaultChallengeScheme = AuthenticateScheme;
                 options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
-            .AddPolicyScheme(AuthenticateScheme, "Cookie or Bearer", options =>
+            .AddScheme<AuthenticationSchemeOptions, PatBearerHandler>(PatBearerHandler.SchemeName, _ => { })
+            .AddPolicyScheme(AuthenticateScheme, "Cookie, JWT, or PAT Bearer", options =>
             {
-                options.ForwardDefaultSelector = ctx => ctx.Request.Headers.ContainsKey("Authorization")
-                    ? JwtBearerDefaults.AuthenticationScheme
-                    : CookieAuthenticationDefaults.AuthenticationScheme;
+                options.ForwardDefaultSelector = ctx =>
+                {
+                    var authorization = ctx.Request.Headers.Authorization.ToString();
+                    if (string.IsNullOrEmpty(authorization))
+                    {
+                        return CookieAuthenticationDefaults.AuthenticationScheme;
+                    }
+
+                    // Route gc_pat_ tokens to the PAT handler
+                    if (authorization.StartsWith("Bearer gc_pat_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return PatBearerHandler.SchemeName;
+                    }
+
+                    return JwtBearerDefaults.AuthenticationScheme;
+                };
             })
             .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
             {
