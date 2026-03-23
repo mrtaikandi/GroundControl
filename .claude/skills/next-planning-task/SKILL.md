@@ -41,7 +41,8 @@ This keeps the main context clean for implementation.
 ### Phase 1: Task Selection
 
 1. State which task and milestone you selected. By writing exactly "Selected task T###: Task Title from Milestone M##: Milestone Title" you confirm that you read the relevant planning documents and are grounding your implementation in them. If the user named a specific target, confirm that you found it and will use it.
-2. Read the task's goal, scope, implementation checklist, acceptance criteria, verification steps, and traceability links before proceeding.
+2. Update the conversation title to `T### — Task Title` so the session is easily identifiable.
+3. Read the task's goal, scope, implementation checklist, acceptance criteria, verification steps, and traceability links before proceeding.
 
 ### Phase 2: Worktree Setup
 
