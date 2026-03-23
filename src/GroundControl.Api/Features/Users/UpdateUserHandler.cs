@@ -29,6 +29,7 @@ internal sealed class UpdateUserHandler : IEndpointHandler
                 [FromServices] UpdateUserHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization()
+            .WithContractValidation<UpdateUserRequest>()
             .WithName(nameof(UpdateUserHandler));
     }
 

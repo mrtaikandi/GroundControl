@@ -17,6 +17,7 @@ internal static class UsersEndpoints
         services.AddTransient<ChangePasswordHandler>();
 
         services.AddTransient<IAsyncValidator<CreateUserRequest>, CreateUserValidator>();
+        services.AddTransient<IAsyncValidator<UpdateUserRequest>, UpdateUserValidator>();
 
         return services;
     }

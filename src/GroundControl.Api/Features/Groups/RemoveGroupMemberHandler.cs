@@ -55,7 +55,11 @@ internal sealed class RemoveGroupMemberHandler : IEndpointHandler
         user.UpdatedAt = DateTimeOffset.UtcNow;
         user.UpdatedBy = Guid.Empty;
 
-        await _userStore.UpdateAsync(user, user.Version, cancellationToken).ConfigureAwait(false);
+        var updated = await _userStore.UpdateAsync(user, user.Version, cancellationToken).ConfigureAwait(false);
+        if (!updated)
+        {
+            return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
+        }
 
         return TypedResults.NoContent();
     }

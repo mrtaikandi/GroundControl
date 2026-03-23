@@ -57,8 +57,11 @@ internal sealed class SetGroupMemberHandler : IEndpointHandler
         user.UpdatedAt = DateTimeOffset.UtcNow;
         user.UpdatedBy = Guid.Empty;
 
-        // Use current version for optimistic concurrency
-        await _userStore.UpdateAsync(user, user.Version, cancellationToken).ConfigureAwait(false);
+        var updated = await _userStore.UpdateAsync(user, user.Version, cancellationToken).ConfigureAwait(false);
+        if (!updated)
+        {
+            return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
+        }
 
         return TypedResults.NoContent();
     }
