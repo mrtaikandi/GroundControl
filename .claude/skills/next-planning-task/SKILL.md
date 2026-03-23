@@ -68,7 +68,7 @@ This keeps the main context clean for implementation.
 
 ### Phase 4: PR Creation
 
-1. Stage and commit all changes with a conventional commit message following `.github/git-commit-instructions.md`.
+1. Stage and commit all changes with a conventional commit message following `.github/git-commit-instructions.md`. Do **not** append `Co-Authored-By` trailers or any AI attribution to commits or PR descriptions.
 2. Push the branch:
    ```
    git push -u origin m##/t###-short-name
@@ -79,12 +79,6 @@ This keeps the main context clean for implementation.
 
    ## Summary
    <bullet points summarizing the changes>
-
-   ## Acceptance Criteria
-   <checklist from task file, checked off as appropriate>
-
-   ## Verification
-   <verification commands run and their results>
 
    EOF
    )"
