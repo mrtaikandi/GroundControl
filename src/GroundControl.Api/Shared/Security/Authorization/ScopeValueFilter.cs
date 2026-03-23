@@ -15,27 +15,20 @@ internal static class ScopeValueFilter
     /// <returns>The subset of scoped values permitted by the grants.</returns>
     public static IReadOnlyList<ScopedValue> Filter(IEnumerable<ScopedValue> values, IEnumerable<Grant> grants)
     {
-        var grantList = grants as IReadOnlyList<Grant> ?? grants.ToList();
+        var grantList = grants.ToList();
 
         // If any grant has null/empty conditions, user has unrestricted access
-        if (grantList.Any(g => g.Conditions.Count == 0))
-        {
-            return values as IReadOnlyList<ScopedValue> ?? values.ToList();
-        }
-
-        return values.Where(v => IsAllowed(v, grantList)).ToList();
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+        return grantList.Any(g => g.Conditions is null || g.Conditions.Count == 0)
+            ? values.ToList()
+            : values.Where(v => IsAllowed(v, grantList)).ToList();
     }
 
     private static bool IsAllowed(ScopedValue value, IReadOnlyList<Grant> grants)
     {
         // Unscoped (default) values are always visible
-        if (value.Scopes.Count == 0)
-        {
-            return true;
-        }
-
         // A scope value is allowed if ANY grant's conditions match (union across grants)
-        return grants.Any(g => ConditionsMatch(g.Conditions!, value.Scopes));
+        return value.Scopes.Count == 0 || grants.Any(g => ConditionsMatch(g.Conditions, value.Scopes));
     }
 
     /// <summary>

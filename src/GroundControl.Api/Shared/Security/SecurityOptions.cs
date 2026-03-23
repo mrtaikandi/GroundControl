@@ -14,6 +14,16 @@ internal sealed partial class SecurityOptions
     [Required]
     public AuthenticationMode AuthenticationMode { get; set; } = AuthenticationMode.None;
 
+    /// <summary>
+    /// Gets or sets the built-in authentication options.
+    /// </summary>
+    public BuiltInSecurityOptions BuiltIn { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the admin seed options.
+    /// </summary>
+    public SeedOptions Seed { get; set; } = new();
+
     [OptionsValidator]
     internal sealed partial class Validator : IValidateOptions<SecurityOptions>;
 }

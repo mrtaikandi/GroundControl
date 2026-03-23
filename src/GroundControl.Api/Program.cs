@@ -50,17 +50,12 @@ builder.Services.AddApiVersioning(options =>
     options.ApiVersionReader = new HeaderApiVersionReader("api-version");
 });
 
-var authConfigurator = appOptions.Security.AuthenticationMode switch
+IAuthConfigurator authConfigurator = appOptions.Security.AuthenticationMode switch
 {
-    AuthenticationMode.BuiltIn => throw new NotSupportedException("BuiltIn auth not yet implemented"),
+    AuthenticationMode.BuiltIn => new BuiltInAuthConfigurator(appOptions),
     AuthenticationMode.External => throw new NotSupportedException("External auth not yet implemented"),
     _ => new NoAuthConfigurator()
 };
-
-authConfigurator.ConfigureServices(builder.Services, builder.Configuration);
-
-new AuthenticationBuilder(builder.Services)
-    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
 
 var changeNotifierMode = builder.Configuration.GetValue<string>("ChangeNotifier:Mode");
 if (string.Equals(changeNotifierMode, "MongoChangeStream", StringComparison.OrdinalIgnoreCase))
@@ -92,6 +87,12 @@ builder.Services.AddVariablesHandlers();
 builder.Services.AddSnapshotsHandlers();
 builder.Services.AddClientsHandlers();
 builder.Services.AddClientApiHandlers();
+
+// Auth configurator registers after feature handlers so AdminSeedService runs after RoleSeedService
+authConfigurator.ConfigureServices(builder.Services, builder.Configuration);
+
+new AuthenticationBuilder(builder.Services)
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
 
 builder.Services
     .AddAuthorizationBuilder()

@@ -1,3 +1,6 @@
+using GroundControl.Api.Shared.Configuration;
+using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Security.Auth;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -41,6 +44,19 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
             }
 
             configurationBuilder.AddInMemoryCollection(config);
+        });
+
+        // WebApplicationFactory applies config overrides AFTER Program.cs eagerly reads
+        // GroundControlOptions, so auth mode selection in Program.cs always sees the default.
+        // Re-apply auth services here when the test config specifies a non-default mode.
+        builder.ConfigureServices((context, services) =>
+        {
+            var authMode = context.Configuration.GetValue<AuthenticationMode>("GroundControl:Security:AuthenticationMode");
+            if (authMode == AuthenticationMode.BuiltIn)
+            {
+                var gcOptions = context.Configuration.GetSection(GroundControlOptions.SectionName).Get<GroundControlOptions>()!;
+                new BuiltInAuthConfigurator(gcOptions).ConfigureServices(services, context.Configuration);
+            }
         });
 
         builder.ConfigureLogging(logging =>
