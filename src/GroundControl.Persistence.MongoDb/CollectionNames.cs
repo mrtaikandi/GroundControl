@@ -13,4 +13,5 @@ internal static class CollectionNames
     public const string Roles = "roles";
     public const string Users = "users";
     public const string RefreshTokens = "refresh_tokens";
+    public const string PersonalAccessTokens = "personal_access_tokens";
 }
