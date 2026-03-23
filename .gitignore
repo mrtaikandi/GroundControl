@@ -483,6 +483,7 @@ $RECYCLE.BIN/
 
 # Agents files and folders
 .claude/settings.local.json
+.claude/worktrees/
 
 # Project specific files and folders
 planning/

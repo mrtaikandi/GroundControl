@@ -103,7 +103,8 @@ MongoDB used directly via `IMongoCollection<T>` with LINQ/Builders — no ORM la
 - **Framework:** xUnit v3 with Shouldly (assertions) and NSubstitute (mocking)
 - **Integration tests:** Testcontainers for real MongoDB replica set; `GroundControlApiFactory` (WebApplicationFactory) for API tests
 - **Test isolation:** `[Collection("MongoDB")]` shares a single `MongoFixture` container; each test gets its own database via `MongoFixture.CreateDatabase()`
-- **Structure:** Unit and integration tests coexist in the same test project
+- **Base class:** API handler tests extend `ApiHandlerTestBase`, which provides `CreateFactory()`, `ReadRequiredJsonAsync<T>()`, and `TestCancellationToken`. Each test creates its own `GroundControlApiFactory` instance via `CreateFactory()` for full isolation
+- **Structure:** Unit and integration tests coexist in the same test project. Test folders mirror src feature names without the `Features/` prefix (e.g., `tests/.../Scopes/` not `tests/.../Features/Scopes/`)
 - **AAA comments:** Use `// Arrange`, `// Act`, `// Assert` in all tests
 
 ## Build Infrastructure
