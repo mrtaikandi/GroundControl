@@ -19,6 +19,10 @@ internal static class GroupsEndpoints
         services.AddTransient<IAsyncValidator<UpdateGroupRequest>, UpdateGroupValidator>();
         services.AddTransient<DeleteGroupValidator>();
 
+        services.AddTransient<ListGroupMembersHandler>();
+        services.AddTransient<SetGroupMemberHandler>();
+        services.AddTransient<RemoveGroupMemberHandler>();
+
         return services;
     }
 
@@ -34,6 +38,10 @@ internal static class GroupsEndpoints
         ListGroupsHandler.Endpoint(group);
         UpdateGroupHandler.Endpoint(group);
         DeleteGroupHandler.Endpoint(group);
+
+        ListGroupMembersHandler.Endpoint(group);
+        SetGroupMemberHandler.Endpoint(group);
+        RemoveGroupMemberHandler.Endpoint(group);
 
         return endpoints;
     }
