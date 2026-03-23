@@ -57,14 +57,9 @@ This keeps the main context clean for implementation.
 ### Phase 3: Implementation
 
 1. **For tasks touching multiple files or with ambiguous scope:** switch into plan mode and write an implementation plan grounded in the selected task before making code changes. **For small, focused tasks** with a clear implementation checklist (single file, well-defined scope): skip plan mode and implement directly.
-2. You may delegate implementation to a **foreground subagent** if the task is large or context-intensive. If you delegate:
-   - Provide the subagent with the full task description, implementation checklist, acceptance criteria, and relevant file paths.
-   - The subagent works in the current worktree directory (it inherits the working directory).
-   - When the subagent finishes, it **must** report back a compact summary of: files changed, key decisions made, deviations from the plan, and any open questions.
-   - Absorb the summary into the main context before proceeding.
-3. Implement only the selected task's scope. Do not quietly pull in unrelated planned work.
-4. Run the task's verification steps or the closest concrete equivalent when the task lists them imprecisely.
-5. If verification fails, fix the issue before proceeding. Do not move to PR creation with failing verification.
+2. Implement only the selected task's scope. Do not quietly pull in unrelated planned work.
+3. Run the task's verification steps or the closest concrete equivalent when the task lists them imprecisely.
+4. If verification fails, fix the issue before proceeding. Do not move to PR creation with failing verification.
 
 ### Phase 4: PR Creation
 
@@ -91,7 +86,7 @@ This keeps the main context clean for implementation.
 
 - The PR URL
 - A brief summary of what was implemented and verified
-- The prompt: "Review the PR. You can ask questions, request changes, or say **continue** to proceed to code review."
+- The prompt using "AskUserQuestion" tool: "Review the PR. You can ask questions, request changes, or say **continue** to proceed to code review."
 
 The user may:
 
@@ -119,11 +114,12 @@ The user may:
 
 ### Phase 7: Completion
 
-1. **Exit the worktree:** call `ExitWorktree` with `action: "keep"`. The branch exists on the remote; the local worktree can be cleaned up later.
+1. **Exit the worktree:** call `ExitWorktree` with `action: "remove"`. The branch exists on the remote; if changes are needed later, a fresh worktree can be created from the remote branch.
 2. **Update planning files** on the main branch, following the shared conventions in `.claude/skills/_shared/planning-conventions.md`:
    - **Task file:** set `status: completed`, check off completed implementation checklist items and acceptance criteria, update `Output / Evidence` with the PR URL and verification results, note any deviations in `Post-Implementation Notes`.
    - **Milestone file:** update the task row to `completed`. Set milestone to `in-progress` if it was `planned`.
    - **Planning index (`planning/README.md`):** update if the milestone status changed.
+   - **Do not commit or stage these changes.** The `planning/` folder is git-ignored; just edit the files locally.
 3. If this task completes the **final unfinished task** in its parent milestone, check the milestone's success criteria, exit gates, and verification matrix before marking the milestone `completed`.
 4. Suggest the user run `/clear` before picking up the next task to reset context.
 
