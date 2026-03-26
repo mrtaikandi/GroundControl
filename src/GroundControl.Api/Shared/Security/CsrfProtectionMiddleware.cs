@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Antiforgery;
 
 namespace GroundControl.Api.Shared.Security;
@@ -47,23 +46,13 @@ internal sealed partial class CsrfProtectionMiddleware
                     context.Request.Path,
                     context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
 
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                context.Response.ContentType = "application/problem+json";
+                var result = Results.Problem(
+                    detail: "The CSRF token is missing or invalid. Include the XSRF-TOKEN cookie value in the X-XSRF-TOKEN header.",
+                    title: "CSRF token validation failed.",
+                    statusCode: StatusCodes.Status403Forbidden,
+                    type: "https://tools.ietf.org/html/rfc9110#section-15.5.4");
 
-                var problem = new
-                {
-                    type = "https://tools.ietf.org/html/rfc9110#section-15.5.4",
-                    title = "CSRF token validation failed.",
-                    status = StatusCodes.Status403Forbidden,
-                    detail = "The CSRF token is missing or invalid. Include the XSRF-TOKEN cookie value in the X-XSRF-TOKEN header."
-                };
-
-                await JsonSerializer.SerializeAsync(
-                    context.Response.Body,
-                    problem,
-                    JsonSerializerOptions.Web,
-                    context.RequestAborted).ConfigureAwait(false);
-
+                await result.ExecuteAsync(context).ConfigureAwait(false);
                 return;
             }
         }
