@@ -49,7 +49,7 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
                 options.DefaultScheme = AuthenticateScheme;
                 options.DefaultAuthenticateScheme = AuthenticateScheme;
                 options.DefaultChallengeScheme = AuthenticateScheme;
-                options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
             })
             .AddScheme<AuthenticationSchemeOptions, PatBearerHandler>(PatBearerHandler.SchemeName, _ => { })
             .AddPolicyScheme(AuthenticateScheme, "Cookie, JWT, or PAT Bearer", options =>
@@ -59,7 +59,8 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
                     var authorization = ctx.Request.Headers.Authorization.ToString();
                     if (string.IsNullOrEmpty(authorization))
                     {
-                        return CookieAuthenticationDefaults.AuthenticationScheme;
+                        // SignInManager signs in via Identity.Application — route cookie auth there
+                        return IdentityConstants.ApplicationScheme;
                     }
 
                     // Route gc_pat_ tokens to the PAT handler
@@ -69,27 +70,6 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
                     }
 
                     return JwtBearerDefaults.AuthenticationScheme;
-                };
-            })
-            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-            {
-                options.Cookie.Name = builtIn.Cookie.Name;
-                options.Cookie.HttpOnly = true;
-                options.Cookie.SameSite = SameSiteMode.Lax;
-                options.SlidingExpiration = builtIn.Cookie.SlidingExpiration;
-                options.ExpireTimeSpan = builtIn.Cookie.ExpireTimeSpan;
-
-                // Suppress redirects — return 401 for APIs
-                options.Events.OnRedirectToLogin = ctx =>
-                {
-                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    return Task.CompletedTask;
-                };
-
-                options.Events.OnRedirectToAccessDenied = ctx =>
-                {
-                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    return Task.CompletedTask;
                 };
             })
             .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -107,6 +87,38 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
                 };
             });
 
+        // Customize the Identity.Application cookie scheme (registered by AddIdentity)
+        services.PostConfigure<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme, options =>
+        {
+            options.Cookie.Name = builtIn.Cookie.Name;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.SlidingExpiration = builtIn.Cookie.SlidingExpiration;
+            options.ExpireTimeSpan = builtIn.Cookie.ExpireTimeSpan;
+
+            // Suppress redirects — return 401/403 for APIs
+            options.Events.OnRedirectToLogin = ctx =>
+            {
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            };
+
+            options.Events.OnRedirectToAccessDenied = ctx =>
+            {
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            };
+        });
+
+        var csrfOptions = _options.Security.Csrf;
+        services.AddSingleton(csrfOptions);
+        services.AddAntiforgery(options =>
+        {
+            options.HeaderName = csrfOptions.HeaderName;
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        });
+
         services.AddAuthHandlers();
         services.AddSingleton<IAuthConfigurator>(this);
         services.AddHostedService<AdminSeedService>();
@@ -116,6 +128,7 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
     {
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseMiddleware<CsrfProtectionMiddleware>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

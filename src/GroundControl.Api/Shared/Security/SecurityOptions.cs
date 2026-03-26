@@ -20,6 +20,11 @@ internal sealed partial class SecurityOptions
     public BuiltInSecurityOptions BuiltIn { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the CSRF protection options.
+    /// </summary>
+    public CsrfOptions Csrf { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets the admin seed options.
     /// </summary>
     public SeedOptions Seed { get; set; } = new();
