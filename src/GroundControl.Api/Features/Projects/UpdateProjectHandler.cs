@@ -1,7 +1,9 @@
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +12,12 @@ namespace GroundControl.Api.Features.Projects;
 internal sealed class UpdateProjectHandler : IEndpointHandler
 {
     private readonly IProjectStore _store;
+    private readonly AuditRecorder _audit;
 
-    public UpdateProjectHandler(IProjectStore store)
+    public UpdateProjectHandler(IProjectStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -45,6 +49,11 @@ internal sealed class UpdateProjectHandler : IEndpointHandler
             return problem;
         }
 
+        var oldName = project.Name;
+        var oldDescription = project.Description;
+        var oldGroupId = project.GroupId;
+        var oldTemplateIds = project.TemplateIds.ToList();
+
         project.Name = request.Name;
         project.Description = request.Description;
         project.GroupId = request.GroupId;
@@ -65,6 +74,15 @@ internal sealed class UpdateProjectHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        List<FieldChange> changes = [
+            .. AuditRecorder.CompareFields("Name", oldName, project.Name),
+            .. AuditRecorder.CompareFields("Description", oldDescription, project.Description),
+            .. AuditRecorder.CompareFields("GroupId", oldGroupId, project.GroupId),
+            .. AuditRecorder.CompareCollections("TemplateIds", oldTemplateIds, project.TemplateIds.ToList()),
+        ];
+
+        await _audit.RecordAsync("Project", project.Id, project.GroupId, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(project.Version);
         return TypedResults.Ok(ProjectResponse.From(project));

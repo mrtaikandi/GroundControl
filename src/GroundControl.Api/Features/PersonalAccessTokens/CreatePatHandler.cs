@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using GroundControl.Api.Features.PersonalAccessTokens.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -13,10 +14,12 @@ namespace GroundControl.Api.Features.PersonalAccessTokens;
 internal sealed class CreatePatHandler : IEndpointHandler
 {
     private readonly IPersonalAccessTokenStore _store;
+    private readonly AuditRecorder _audit;
 
-    public CreatePatHandler(IPersonalAccessTokenStore store)
+    public CreatePatHandler(IPersonalAccessTokenStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -70,6 +73,8 @@ internal sealed class CreatePatHandler : IEndpointHandler
         };
 
         await _store.CreateAsync(pat, cancellationToken).ConfigureAwait(false);
+
+        await _audit.RecordAsync("PersonalAccessToken", pat.Id, null, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var response = new CreatePatResponse
         {

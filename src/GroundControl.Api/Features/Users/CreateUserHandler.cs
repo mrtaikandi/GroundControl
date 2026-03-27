@@ -1,6 +1,7 @@
 using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Features.Users.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
 using GroundControl.Api.Shared.Validation;
@@ -16,12 +17,14 @@ internal sealed class CreateUserHandler : IEndpointHandler
     private readonly IUserStore _userStore;
     private readonly IAuthConfigurator _authConfigurator;
     private readonly IServiceProvider _serviceProvider;
+    private readonly AuditRecorder _audit;
 
-    public CreateUserHandler(IUserStore userStore, IAuthConfigurator authConfigurator, IServiceProvider serviceProvider)
+    public CreateUserHandler(IUserStore userStore, IAuthConfigurator authConfigurator, IServiceProvider serviceProvider, AuditRecorder audit)
     {
         _userStore = userStore ?? throw new ArgumentNullException(nameof(userStore));
         _authConfigurator = authConfigurator ?? throw new ArgumentNullException(nameof(authConfigurator));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -85,6 +88,8 @@ internal sealed class CreateUserHandler : IEndpointHandler
         };
 
         await _userStore.CreateAsync(user, cancellationToken).ConfigureAwait(false);
+
+        await _audit.RecordAsync("User", user.Id, null, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.Created($"/api/users/{user.Id}", UserResponse.From(user));
     }

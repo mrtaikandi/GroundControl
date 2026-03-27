@@ -1,7 +1,9 @@
 using GroundControl.Api.Features.Roles.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +12,12 @@ namespace GroundControl.Api.Features.Roles;
 internal sealed class UpdateRoleHandler : IEndpointHandler
 {
     private readonly IRoleStore _store;
+    private readonly AuditRecorder _audit;
 
-    public UpdateRoleHandler(IRoleStore store)
+    public UpdateRoleHandler(IRoleStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -45,6 +49,10 @@ internal sealed class UpdateRoleHandler : IEndpointHandler
             return problem;
         }
 
+        var oldName = role.Name;
+        var oldDescription = role.Description;
+        var oldPermissions = role.Permissions.ToList();
+
         role.Name = request.Name;
         role.Description = request.Description;
         role.Permissions.Clear();
@@ -61,6 +69,14 @@ internal sealed class UpdateRoleHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        List<FieldChange> changes = [
+            .. AuditRecorder.CompareFields("Name", oldName, role.Name),
+            .. AuditRecorder.CompareFields("Description", oldDescription, role.Description),
+            .. AuditRecorder.CompareCollections("Permissions", oldPermissions, role.Permissions.ToList()),
+        ];
+
+        await _audit.RecordAsync("Role", role.Id, null, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(role.Version);
         return TypedResults.Ok(RoleResponse.From(role));

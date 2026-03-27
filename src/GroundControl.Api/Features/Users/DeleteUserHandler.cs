@@ -1,5 +1,6 @@
 using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
 using GroundControl.Persistence.Stores;
@@ -13,12 +14,14 @@ internal sealed class DeleteUserHandler : IEndpointHandler
     private readonly IUserStore _userStore;
     private readonly IAuthConfigurator _authConfigurator;
     private readonly IServiceProvider _serviceProvider;
+    private readonly AuditRecorder _audit;
 
-    public DeleteUserHandler(IUserStore userStore, IAuthConfigurator authConfigurator, IServiceProvider serviceProvider)
+    public DeleteUserHandler(IUserStore userStore, IAuthConfigurator authConfigurator, IServiceProvider serviceProvider, AuditRecorder audit)
     {
         _userStore = userStore ?? throw new ArgumentNullException(nameof(userStore));
         _authConfigurator = authConfigurator ?? throw new ArgumentNullException(nameof(authConfigurator));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -69,6 +72,8 @@ internal sealed class DeleteUserHandler : IEndpointHandler
                 await userManager.SetLockoutEndDateAsync(identityUser, DateTimeOffset.MaxValue).ConfigureAwait(false);
             }
         }
+
+        await _audit.RecordAsync("User", id, null, "Deactivated", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

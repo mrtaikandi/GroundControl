@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence;
@@ -12,10 +13,12 @@ namespace GroundControl.Api.Features.ConfigEntries;
 internal sealed class CreateConfigEntryHandler : IEndpointHandler
 {
     private readonly IConfigEntryStore _store;
+    private readonly AuditRecorder _audit;
 
-    public CreateConfigEntryHandler(IConfigEntryStore store)
+    public CreateConfigEntryHandler(IConfigEntryStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -59,6 +62,8 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
                 detail: $"A config entry with key '{request.Key}' already exists for this owner.",
                 statusCode: StatusCodes.Status409Conflict);
         }
+
+        await _audit.RecordAsync("ConfigEntry", entry.Id, null, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.Created($"/api/config-entries/{entry.Id}", ConfigEntryResponse.From(entry));
     }

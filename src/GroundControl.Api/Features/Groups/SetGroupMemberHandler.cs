@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -11,11 +12,13 @@ internal sealed class SetGroupMemberHandler : IEndpointHandler
 {
     private readonly IGroupStore _groupStore;
     private readonly IUserStore _userStore;
+    private readonly AuditRecorder _audit;
 
-    public SetGroupMemberHandler(IGroupStore groupStore, IUserStore userStore)
+    public SetGroupMemberHandler(IGroupStore groupStore, IUserStore userStore, AuditRecorder audit)
     {
         _groupStore = groupStore ?? throw new ArgumentNullException(nameof(groupStore));
         _userStore = userStore ?? throw new ArgumentNullException(nameof(userStore));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -62,6 +65,14 @@ internal sealed class SetGroupMemberHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        var metadata = new Dictionary<string, string>
+        {
+            ["GroupId"] = id.ToString(),
+            ["RoleId"] = request.RoleId.ToString(),
+        };
+
+        await _audit.RecordAsync("User", userId, id, "GrantAdded", metadata: metadata, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

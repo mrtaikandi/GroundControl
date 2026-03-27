@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.Snapshots.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -10,10 +11,12 @@ namespace GroundControl.Api.Features.Snapshots;
 internal sealed class PublishSnapshotHandler : IEndpointHandler
 {
     private readonly SnapshotPublisher _publisher;
+    private readonly AuditRecorder _audit;
 
-    public PublishSnapshotHandler(SnapshotPublisher publisher)
+    public PublishSnapshotHandler(SnapshotPublisher publisher, AuditRecorder audit)
     {
         _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -35,10 +38,18 @@ internal sealed class PublishSnapshotHandler : IEndpointHandler
 
         return result.Result switch
         {
-            Created<Snapshot> created => TypedResults.Created($"/api/projects/{projectId}/snapshots/{created.Value!.Id}", SnapshotSummaryResponse.From(created.Value)),
+            Created<Snapshot> created => await OnPublished(created.Value!, projectId, cancellationToken),
             ProblemHttpResult problem => TypedResults.Problem(problem.ProblemDetails.Detail, statusCode: problem.StatusCode),
             NotFound => TypedResults.Problem(detail: $"Project '{projectId}' was not found.", statusCode: StatusCodes.Status404NotFound),
             _ => TypedResults.Problem(statusCode: StatusCodes.Status500InternalServerError),
         };
+    }
+
+    private async Task<IResult> OnPublished(Snapshot snapshot, Guid projectId, CancellationToken cancellationToken)
+    {
+        var metadata = new Dictionary<string, string> { ["ProjectId"] = projectId.ToString() };
+        await _audit.RecordAsync("Snapshot", snapshot.Id, null, "Published", metadata: metadata, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        return TypedResults.Created($"/api/projects/{projectId}/snapshots/{snapshot.Id}", SnapshotSummaryResponse.From(snapshot));
     }
 }

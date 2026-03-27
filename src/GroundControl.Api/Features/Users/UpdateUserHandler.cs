@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using GroundControl.Api.Features.Users.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +15,13 @@ internal sealed class UpdateUserHandler : IEndpointHandler
 {
     private readonly IUserStore _userStore;
     private readonly IAuthorizationService _authorizationService;
+    private readonly AuditRecorder _audit;
 
-    public UpdateUserHandler(IUserStore userStore, IAuthorizationService authorizationService)
+    public UpdateUserHandler(IUserStore userStore, IAuthorizationService authorizationService, AuditRecorder audit)
     {
         _userStore = userStore ?? throw new ArgumentNullException(nameof(userStore));
         _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -79,6 +83,11 @@ internal sealed class UpdateUserHandler : IEndpointHandler
             return problem;
         }
 
+        var oldUsername = user.Username;
+        var oldEmail = user.Email;
+        var oldIsActive = user.IsActive;
+        var oldGrants = user.Grants.ToList();
+
         // Apply allowed fields
         user.Username = request.Username;
         user.Email = request.Email;
@@ -108,6 +117,15 @@ internal sealed class UpdateUserHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        List<FieldChange> changes = [
+            .. AuditRecorder.CompareFields("Username", oldUsername, user.Username),
+            .. AuditRecorder.CompareFields("Email", oldEmail, user.Email),
+            .. AuditRecorder.CompareFields("IsActive", oldIsActive.ToString(), user.IsActive.ToString()),
+            .. AuditRecorder.CompareCollections("Grants", oldGrants, user.Grants.ToList()),
+        ];
+
+        await _audit.RecordAsync("User", user.Id, null, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(user.Version);
         return TypedResults.Ok(UserResponse.From(user));

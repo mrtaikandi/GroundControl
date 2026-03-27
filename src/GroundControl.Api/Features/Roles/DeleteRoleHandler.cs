@@ -1,4 +1,5 @@
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
@@ -9,10 +10,12 @@ namespace GroundControl.Api.Features.Roles;
 internal sealed class DeleteRoleHandler : IEndpointHandler
 {
     private readonly IRoleStore _store;
+    private readonly AuditRecorder _audit;
 
-    public DeleteRoleHandler(IRoleStore store)
+    public DeleteRoleHandler(IRoleStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -41,6 +44,8 @@ internal sealed class DeleteRoleHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        await _audit.RecordAsync("Role", id, null, "Deleted", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

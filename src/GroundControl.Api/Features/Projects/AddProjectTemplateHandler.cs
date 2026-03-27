@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
@@ -10,10 +11,12 @@ namespace GroundControl.Api.Features.Projects;
 internal sealed class AddProjectTemplateHandler : IEndpointHandler
 {
     private readonly IProjectStore _store;
+    private readonly AuditRecorder _audit;
 
-    public AddProjectTemplateHandler(IProjectStore store)
+    public AddProjectTemplateHandler(IProjectStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -54,6 +57,9 @@ internal sealed class AddProjectTemplateHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        var metadata = new Dictionary<string, string> { ["TemplateId"] = templateId.ToString() };
+        await _audit.RecordAsync("Project", id, project.GroupId, "TemplateAdded", metadata: metadata, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(project.Version);
         return TypedResults.Ok(ProjectResponse.From(project));

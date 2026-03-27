@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.Roles.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
@@ -11,10 +12,12 @@ namespace GroundControl.Api.Features.Roles;
 internal sealed class CreateRoleHandler : IEndpointHandler
 {
     private readonly IRoleStore _store;
+    private readonly AuditRecorder _audit;
 
-    public CreateRoleHandler(IRoleStore store)
+    public CreateRoleHandler(IRoleStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -47,6 +50,8 @@ internal sealed class CreateRoleHandler : IEndpointHandler
         };
 
         await _store.CreateAsync(role, cancellationToken).ConfigureAwait(false);
+
+        await _audit.RecordAsync("Role", role.Id, null, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.Created($"/api/roles/{role.Id}", RoleResponse.From(role));
     }

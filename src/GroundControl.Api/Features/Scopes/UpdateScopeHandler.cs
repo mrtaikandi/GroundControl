@@ -1,7 +1,9 @@
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +12,12 @@ namespace GroundControl.Api.Features.Scopes;
 internal sealed class UpdateScopeHandler : IEndpointHandler
 {
     private readonly IScopeStore _store;
+    private readonly AuditRecorder _audit;
 
-    public UpdateScopeHandler(IScopeStore store)
+    public UpdateScopeHandler(IScopeStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -45,6 +49,10 @@ internal sealed class UpdateScopeHandler : IEndpointHandler
             return problem;
         }
 
+        var oldDimension = scope.Dimension;
+        var oldAllowedValues = scope.AllowedValues.ToList();
+        var oldDescription = scope.Description;
+
         scope.Dimension = request.Dimension;
         scope.AllowedValues.Clear();
 
@@ -62,6 +70,14 @@ internal sealed class UpdateScopeHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        List<FieldChange> changes = [
+            .. AuditRecorder.CompareFields("Dimension", oldDimension, scope.Dimension),
+            .. AuditRecorder.CompareCollections("AllowedValues", oldAllowedValues, scope.AllowedValues.ToList()),
+            .. AuditRecorder.CompareFields("Description", oldDescription, scope.Description),
+        ];
+
+        await _audit.RecordAsync("Scope", scope.Id, null, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(scope.Version);
         return TypedResults.Ok(ScopeResponse.From(scope));

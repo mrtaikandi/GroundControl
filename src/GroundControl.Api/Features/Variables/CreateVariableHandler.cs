@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence;
@@ -12,10 +13,12 @@ namespace GroundControl.Api.Features.Variables;
 internal sealed class CreateVariableHandler : IEndpointHandler
 {
     private readonly IVariableStore _store;
+    private readonly AuditRecorder _audit;
 
-    public CreateVariableHandler(IVariableStore store)
+    public CreateVariableHandler(IVariableStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -59,6 +62,8 @@ internal sealed class CreateVariableHandler : IEndpointHandler
                 detail: $"A variable with name '{request.Name}' already exists for this owner.",
                 statusCode: StatusCodes.Status409Conflict);
         }
+
+        await _audit.RecordAsync("Variable", variable.Id, variable.GroupId, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.Created($"/api/variables/{variable.Id}", VariableResponse.From(variable));
     }

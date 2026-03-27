@@ -1,4 +1,5 @@
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -9,11 +10,13 @@ internal sealed class RemoveGroupMemberHandler : IEndpointHandler
 {
     private readonly IGroupStore _groupStore;
     private readonly IUserStore _userStore;
+    private readonly AuditRecorder _audit;
 
-    public RemoveGroupMemberHandler(IGroupStore groupStore, IUserStore userStore)
+    public RemoveGroupMemberHandler(IGroupStore groupStore, IUserStore userStore, AuditRecorder audit)
     {
         _groupStore = groupStore ?? throw new ArgumentNullException(nameof(groupStore));
         _userStore = userStore ?? throw new ArgumentNullException(nameof(userStore));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -60,6 +63,9 @@ internal sealed class RemoveGroupMemberHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        var metadata = new Dictionary<string, string> { ["GroupId"] = id.ToString() };
+        await _audit.RecordAsync("User", userId, id, "GrantRemoved", metadata: metadata, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

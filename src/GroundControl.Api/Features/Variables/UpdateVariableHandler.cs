@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
@@ -11,10 +12,12 @@ namespace GroundControl.Api.Features.Variables;
 internal sealed class UpdateVariableHandler : IEndpointHandler
 {
     private readonly IVariableStore _store;
+    private readonly AuditRecorder _audit;
 
-    public UpdateVariableHandler(IVariableStore store)
+    public UpdateVariableHandler(IVariableStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -46,6 +49,11 @@ internal sealed class UpdateVariableHandler : IEndpointHandler
             return problem;
         }
 
+        var oldValues = variable.Values.ToList();
+        var oldIsSensitive = variable.IsSensitive;
+        var oldDescription = variable.Description;
+        var isSensitive = variable.IsSensitive || request.IsSensitive;
+
         variable.Values.Clear();
         foreach (var v in request.Values)
         {
@@ -62,6 +70,14 @@ internal sealed class UpdateVariableHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        List<FieldChange> changes = [
+            .. AuditRecorder.CompareCollections("Values", oldValues, variable.Values.ToList(), isSensitive),
+            .. AuditRecorder.CompareFields("IsSensitive", oldIsSensitive.ToString(), variable.IsSensitive.ToString()),
+            .. AuditRecorder.CompareFields("Description", oldDescription, variable.Description),
+        ];
+
+        await _audit.RecordAsync("Variable", variable.Id, variable.GroupId, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(variable.Version);
         return TypedResults.Ok(VariableResponse.From(variable));
