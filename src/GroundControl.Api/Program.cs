@@ -9,6 +9,7 @@ using GroundControl.Api.Features.Scopes;
 using GroundControl.Api.Features.Snapshots;
 using GroundControl.Api.Features.Templates;
 using GroundControl.Api.Features.PersonalAccessTokens;
+using GroundControl.Api.Features.Users;
 using GroundControl.Api.Features.Variables;
 using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Health;
@@ -54,7 +55,7 @@ builder.Services.AddApiVersioning(options =>
 IAuthConfigurator authConfigurator = appOptions.Security.AuthenticationMode switch
 {
     AuthenticationMode.BuiltIn => new BuiltInAuthConfigurator(appOptions),
-    AuthenticationMode.External => throw new NotSupportedException("External auth not yet implemented"),
+    AuthenticationMode.External => new ExternalAuthConfigurator(appOptions),
     _ => new NoAuthConfigurator()
 };
 
@@ -91,6 +92,7 @@ builder.Services.AddSnapshotsHandlers();
 builder.Services.AddClientsHandlers();
 builder.Services.AddClientApiHandlers();
 builder.Services.AddPersonalAccessTokensHandlers();
+builder.Services.AddUsersHandlers();
 
 new AuthenticationBuilder(builder.Services)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
@@ -125,6 +127,7 @@ app.MapSnapshotsEndpoints();
 app.MapClientsEndpoints();
 app.MapClientApiEndpoints();
 app.MapPersonalAccessTokensEndpoints();
+app.MapUsersEndpoints();
 
 app.MapOpenApi();
 app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = p => p.Tags.Contains("liveness") });

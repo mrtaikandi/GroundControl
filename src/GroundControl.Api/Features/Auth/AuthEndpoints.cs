@@ -30,4 +30,27 @@ internal static class AuthEndpoints
 
         return endpoints;
     }
+
+    public static IServiceCollection AddExternalAuthHandlers(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddTransient<GetCurrentUserHandler>();
+
+        return services;
+    }
+
+    public static IEndpointRouteBuilder MapExternalAuthEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+
+        var group = endpoints.MapGroup("/auth")
+            .WithTags("Auth");
+
+        ExternalLoginHandler.Endpoint(group);
+        ExternalCallbackHandler.Endpoint(group);
+        GetCurrentUserHandler.Endpoint(group);
+
+        return endpoints;
+    }
 }
