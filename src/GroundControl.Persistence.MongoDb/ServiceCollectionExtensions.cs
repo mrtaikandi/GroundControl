@@ -63,6 +63,7 @@ public static class ServiceCollectionExtensions
             ServiceDescriptor.Singleton<IDocumentConfiguration, UserConfiguration>(),
             ServiceDescriptor.Singleton<IDocumentConfiguration, RefreshTokenConfiguration>(),
             ServiceDescriptor.Singleton<IDocumentConfiguration, PersonalAccessTokenConfiguration>(),
+            ServiceDescriptor.Singleton<IDocumentConfiguration, AuditRecordConfiguration>(),
         ]);
 
         services.AddHostedService<MongoIndexSetupService>();
@@ -80,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IUserStore, UserStore>();
         services.TryAddSingleton<IRefreshTokenStore, RefreshTokenStore>();
         services.TryAddSingleton<IPersonalAccessTokenStore, PersonalAccessTokenStore>();
+        services.TryAddSingleton<IAuditStore, MongoAuditStore>();
 
         return services;
     }
