@@ -52,20 +52,7 @@ var dataProtectionBuilder = builder.Services.AddDataProtection()
 var certProviderMode = builder.Configuration["DataProtection:CertificateProvider"];
 if (certProviderMode is not null)
 {
-    if (string.Equals(certProviderMode, "FileSystem", StringComparison.OrdinalIgnoreCase))
-    {
-        builder.Services.AddSingleton<IDataProtectionCertificateProvider, FileSystemCertificateProvider>();
-    }
-    else if (string.Equals(certProviderMode, "AzureBlob", StringComparison.OrdinalIgnoreCase))
-    {
-        builder.Services.AddSingleton<IDataProtectionCertificateProvider, AzureBlobCertificateProvider>();
-    }
-    else
-    {
-        throw new InvalidOperationException(
-            $"Unknown DataProtection:CertificateProvider mode: '{certProviderMode}'. Supported values are 'FileSystem' and 'AzureBlob'.");
-    }
-
+    RegisterCertificateProvider(certProviderMode, builder.Services);
     builder.Services.AddHostedService<CertificateStartupLogger>();
 }
 
@@ -244,6 +231,23 @@ app.MapHealthChecks("/healthz/ready", new HealthCheckOptions
 
 app.Run();
 
+void RegisterCertificateProvider(string mode, IServiceCollection services)
+{
+    if (string.Equals(mode, "FileSystem", StringComparison.OrdinalIgnoreCase))
+    {
+        services.AddSingleton<IDataProtectionCertificateProvider, FileSystemCertificateProvider>();
+    }
+    else if (string.Equals(mode, "AzureBlob", StringComparison.OrdinalIgnoreCase))
+    {
+        services.AddSingleton<IDataProtectionCertificateProvider, AzureBlobCertificateProvider>();
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            $"Unknown DataProtection:CertificateProvider mode: '{mode}'. Supported values are 'FileSystem' and 'AzureBlob'.");
+    }
+}
+
 // Constructs a certificate provider for key ring configuration at startup.
 // A separate DI-registered instance handles runtime use with proper logging.
 IDataProtectionCertificateProvider RequireCertificateProvider()
@@ -268,6 +272,7 @@ IDataProtectionCertificateProvider RequireCertificateProvider()
             NullLoggerFactory.Instance.CreateLogger<AzureBlobCertificateProvider>());
     }
 
+    // Unreachable: RegisterCertificateProvider already validated the mode.
     throw new InvalidOperationException(
         $"Unknown DataProtection:CertificateProvider mode: '{certProviderMode}'.");
 }

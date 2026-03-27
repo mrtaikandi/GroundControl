@@ -16,6 +16,7 @@ internal sealed class CertificateKeyRingConfigurator(IDataProtectionCertificateP
 
         var keyDirectory = new DirectoryInfo(keyStorePath);
 
+        // Sync-over-async: safe here because this runs in the startup path with no SynchronizationContext.
         var certificate = certificateProvider.GetCurrentCertificateAsync()
             .GetAwaiter().GetResult();
 

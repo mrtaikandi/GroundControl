@@ -8,6 +8,8 @@ namespace GroundControl.Api.Shared.Security.KeyRing;
 /// </summary>
 internal sealed class AzureKeyRingConfigurator : IKeyRingConfigurator
 {
+    private static readonly DefaultAzureCredential Credential = new();
+
     /// <inheritdoc />
     public void Configure(IDataProtectionBuilder builder, IConfiguration configuration)
     {
@@ -17,10 +19,8 @@ internal sealed class AzureKeyRingConfigurator : IKeyRingConfigurator
         var keyVaultKeyId = configuration["DataProtection:Azure:KeyVaultKeyId"]
             ?? throw new InvalidOperationException("DataProtection:Azure:KeyVaultKeyId is required for Azure mode.");
 
-        var credential = new DefaultAzureCredential();
-
         builder
-            .PersistKeysToAzureBlobStorage(new Uri(blobUri), credential)
-            .ProtectKeysWithAzureKeyVault(new Uri(keyVaultKeyId), credential);
+            .PersistKeysToAzureBlobStorage(new Uri(blobUri), Credential)
+            .ProtectKeysWithAzureKeyVault(new Uri(keyVaultKeyId), Credential);
     }
 }

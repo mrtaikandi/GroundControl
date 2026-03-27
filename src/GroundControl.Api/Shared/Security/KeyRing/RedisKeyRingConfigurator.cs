@@ -10,6 +10,7 @@ namespace GroundControl.Api.Shared.Security.KeyRing;
 internal sealed class RedisKeyRingConfigurator(IDataProtectionCertificateProvider certificateProvider) : IKeyRingConfigurator
 {
     private const string DefaultKeyName = "groundcontrol-data-protection";
+    private const int DefaultConnectTimeoutMs = 5000;
 
     /// <inheritdoc />
     public void Configure(IDataProtectionBuilder builder, IConfiguration configuration)
@@ -19,8 +20,22 @@ internal sealed class RedisKeyRingConfigurator(IDataProtectionCertificateProvide
 
         var keyName = configuration["DataProtection:Redis:KeyName"] ?? DefaultKeyName;
 
-        var redis = ConnectionMultiplexer.Connect(connectionString);
+        var options = ConfigurationOptions.Parse(connectionString);
+        options.ConnectTimeout = configuration.GetValue("DataProtection:Redis:ConnectTimeoutMs", DefaultConnectTimeoutMs);
+        options.AbortOnConnectFail = true;
 
+        IConnectionMultiplexer redis;
+        try
+        {
+            redis = ConnectionMultiplexer.Connect(options);
+        }
+        catch (RedisConnectionException ex)
+        {
+            throw new InvalidOperationException(
+                $"Failed to connect to Redis for Data Protection key ring. Connection string: '{connectionString}'.", ex);
+        }
+
+        // Sync-over-async: safe here because this runs in the startup path with no SynchronizationContext.
         var certificate = certificateProvider.GetCurrentCertificateAsync()
             .GetAwaiter().GetResult();
 
