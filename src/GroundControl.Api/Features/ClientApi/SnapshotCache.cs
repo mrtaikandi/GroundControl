@@ -37,12 +37,14 @@ internal sealed class SnapshotCache
     }
 
     /// <summary>
-    /// Invalidates the cached snapshot for a project and reloads from the store.
+    /// Invalidates the cached snapshot for a project, reloads from the store, and returns the fresh snapshot.
     /// </summary>
-    public async Task InvalidateAsync(Guid projectId, CancellationToken cancellationToken = default)
+    public async Task<Snapshot?> InvalidateAsync(Guid projectId, CancellationToken cancellationToken = default)
     {
         _cache.TryRemove(projectId, out _);
         var snapshot = await _snapshotStore.GetActiveForProjectAsync(projectId, cancellationToken).ConfigureAwait(false);
         _cache[projectId] = snapshot;
+
+        return snapshot;
     }
 }

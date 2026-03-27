@@ -40,10 +40,10 @@ internal sealed class StreamConfigHandler : IEndpointHandler
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/config/stream", async (
+        endpoints.MapGet("/config/stream", (
                 HttpContext httpContext,
                 [FromServices] StreamConfigHandler handler,
-                CancellationToken cancellationToken = default) => await handler.HandleAsync(httpContext, cancellationToken))
+                CancellationToken cancellationToken = default) => handler.HandleAsync(httpContext, cancellationToken))
             .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = ApiKeyAuthenticationHandler.SchemeName })
             .WithName(nameof(StreamConfigHandler));
     }
@@ -108,7 +108,7 @@ internal sealed class StreamConfigHandler : IEndpointHandler
                         var (changedProjectId, _) = changeStream.Current;
                         if (changedProjectId == projectId)
                         {
-                            var updatedSnapshot = await _cache.GetOrLoadAsync(projectId, cancellationToken).ConfigureAwait(false);
+                            var updatedSnapshot = await _cache.InvalidateAsync(projectId, cancellationToken).ConfigureAwait(false);
                             if (updatedSnapshot is not null)
                             {
                                 await WriteConfigEventAsync(httpContext.Response, updatedSnapshot, clientScopes, cancellationToken).ConfigureAwait(false);

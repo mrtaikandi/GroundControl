@@ -1,4 +1,5 @@
 using GroundControl.Persistence.Contracts;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace GroundControl.Persistence.MongoDb.Conventions;
@@ -33,11 +34,13 @@ internal sealed class UserConfiguration(IMongoDbContext context) : DocumentConfi
             Builders<User>.IndexKeys
                 .Ascending(user => user.ExternalProvider)
                 .Ascending(user => user.ExternalId),
-            new CreateIndexOptions
+            new CreateIndexOptions<User>
             {
                 Name = UxUsersExternalId,
                 Unique = true,
-                Sparse = true
+                PartialFilterExpression = Builders<User>.Filter.And(
+                    Builders<User>.Filter.Type(user => user.ExternalProvider, BsonType.String),
+                    Builders<User>.Filter.Type(user => user.ExternalId, BsonType.String))
             });
 
         await Collection.Indexes.CreateManyAsync([usernameIndex, emailIndex, externalIdIndex], cancellationToken).ConfigureAwait(false);
