@@ -1,3 +1,5 @@
+using GroundControl.Api.Shared.Security;
+
 namespace GroundControl.Api.Features.Audit;
 
 internal static class AuditEndpoints
@@ -17,7 +19,8 @@ internal static class AuditEndpoints
         ArgumentNullException.ThrowIfNull(endpoints);
 
         var group = endpoints.MapGroup("/api/audit-records")
-            .WithTags("Audit");
+            .WithTags("Audit")
+            .RequireAuthorization(Permissions.AuditRead);
 
         ListAuditRecordsHandler.Endpoint(group);
         GetAuditRecordHandler.Endpoint(group);

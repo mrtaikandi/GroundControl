@@ -1,9 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
 using GroundControl.Api.Features.Audit.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Pagination;
-using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -33,12 +31,11 @@ internal sealed class ListAuditRecordsHandler : IEndpointHandler
                 DateTimeOffset? to,
                 string? after,
                 string? before,
-                [Range(1, 200)] int? limit,
+                [Range(1, 100)] int? limit,
                 HttpContext httpContext,
                 [FromServices] ListAuditRecordsHandler handler,
                 CancellationToken cancellationToken = default) =>
                 await handler.HandleAsync(entityType, entityId, performedBy, from, to, after, before, limit, httpContext, cancellationToken))
-            .RequireAuthorization(Permissions.AuditRead)
             .WithName(nameof(ListAuditRecordsHandler));
     }
 
@@ -56,7 +53,8 @@ internal sealed class ListAuditRecordsHandler : IEndpointHandler
     {
         try
         {
-            var accessibleGroupIds = await GetAccessibleGroupIdsAsync(httpContext.User, cancellationToken).ConfigureAwait(false);
+            var accessibleGroupIds = await AccessibleGroupResolver.GetAccessibleGroupIdsAsync(
+                _userStore, httpContext.User, cancellationToken).ConfigureAwait(false);
 
             var query = new AuditListQuery
             {
@@ -89,29 +87,5 @@ internal sealed class ListAuditRecordsHandler : IEndpointHandler
                 detail: validationException.Message,
                 statusCode: StatusCodes.Status400BadRequest);
         }
-    }
-
-    private async Task<IReadOnlyList<Guid?>?> GetAccessibleGroupIdsAsync(
-        ClaimsPrincipal principal,
-        CancellationToken cancellationToken)
-    {
-        var sub = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (sub is null || !Guid.TryParse(sub, out var userId) || userId == Guid.Empty)
-        {
-            return null;
-        }
-
-        var user = await _userStore.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
-        if (user is null)
-        {
-            return [];
-        }
-
-        if (user.Grants.Any(g => g.Resource is null))
-        {
-            return null;
-        }
-
-        return user.Grants.Select(g => g.Resource).Distinct().ToList();
     }
 }

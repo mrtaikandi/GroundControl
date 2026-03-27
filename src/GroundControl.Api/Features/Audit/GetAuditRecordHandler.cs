@@ -1,7 +1,5 @@
-using System.Security.Claims;
 using GroundControl.Api.Features.Audit.Contracts;
 using GroundControl.Api.Shared;
-using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,7 +24,6 @@ internal sealed class GetAuditRecordHandler : IEndpointHandler
                 [FromServices] GetAuditRecordHandler handler,
                 CancellationToken cancellationToken = default) =>
                 await handler.HandleAsync(id, httpContext, cancellationToken))
-            .RequireAuthorization(Permissions.AuditRead)
             .WithName(nameof(GetAuditRecordHandler));
     }
 
@@ -42,7 +39,12 @@ internal sealed class GetAuditRecordHandler : IEndpointHandler
                 statusCode: StatusCodes.Status404NotFound);
         }
 
-        var accessibleGroupIds = await GetAccessibleGroupIdsAsync(httpContext.User, cancellationToken).ConfigureAwait(false);
+        var accessibleGroupIds = await AccessibleGroupResolver.GetAccessibleGroupIdsAsync(
+            _userStore, httpContext.User, cancellationToken).ConfigureAwait(false);
+
+        // accessibleGroupIds == null means system-wide access (all groups).
+        // Otherwise, the record's GroupId must be in the list. Records with
+        // GroupId == null (system-level actions) are only visible to system-wide users.
         if (accessibleGroupIds is not null && !accessibleGroupIds.Contains(record.GroupId))
         {
             return TypedResults.Problem(
@@ -51,29 +53,5 @@ internal sealed class GetAuditRecordHandler : IEndpointHandler
         }
 
         return TypedResults.Ok(AuditRecordResponse.From(record));
-    }
-
-    private async Task<IReadOnlyList<Guid?>?> GetAccessibleGroupIdsAsync(
-        ClaimsPrincipal principal,
-        CancellationToken cancellationToken)
-    {
-        var sub = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (sub is null || !Guid.TryParse(sub, out var userId) || userId == Guid.Empty)
-        {
-            return null;
-        }
-
-        var user = await _userStore.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
-        if (user is null)
-        {
-            return [];
-        }
-
-        if (user.Grants.Any(g => g.Resource is null))
-        {
-            return null;
-        }
-
-        return user.Grants.Select(g => g.Resource).Distinct().ToList();
     }
 }
