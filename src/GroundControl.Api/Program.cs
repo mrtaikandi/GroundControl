@@ -119,7 +119,7 @@ builder.Services.AddHealthChecks()
         name: "mongodb",
         tags: ["ready"],
         timeout: TimeSpan.FromSeconds(5))
-    .AddCheck<ChangeNotifierHealthCheck>("change_notifier", tags: ["ready"]);
+    .AddCheck<ChangeNotifierHealthCheck>("change-notifier", tags: ["ready"]);
 
 var app = builder.Build();
 

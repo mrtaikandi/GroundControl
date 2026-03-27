@@ -1,7 +1,12 @@
 using System.Net;
 using System.Text.Json;
 using GroundControl.Api.Shared.Notification;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Shouldly;
 using Xunit;
 
@@ -52,7 +57,7 @@ public sealed class HealthCheckTests : ApiHandlerTestBase
 
         // Act
         var response = await client.GetAsync("/healthz/ready", TestCancellationToken);
-        var json = await ParseHealthResponseAsync(response);
+        var json = await ParseHealthResponseAsync(response, TestCancellationToken);
 
         // Assert
         json.GetProperty("status").GetString().ShouldBe("Healthy");
@@ -67,12 +72,12 @@ public sealed class HealthCheckTests : ApiHandlerTestBase
 
         // Act
         var response = await client.GetAsync("/healthz/ready", TestCancellationToken);
-        var json = await ParseHealthResponseAsync(response);
+        var json = await ParseHealthResponseAsync(response, TestCancellationToken);
 
         // Assert
         var entries = json.GetProperty("entries");
         entries.TryGetProperty("mongodb", out _).ShouldBeTrue();
-        entries.TryGetProperty("change_notifier", out _).ShouldBeTrue();
+        entries.TryGetProperty("change-notifier", out _).ShouldBeTrue();
     }
 
     [Fact]
@@ -84,7 +89,7 @@ public sealed class HealthCheckTests : ApiHandlerTestBase
 
         // Act
         var response = await client.GetAsync("/healthz/ready", TestCancellationToken);
-        var json = await ParseHealthResponseAsync(response);
+        var json = await ParseHealthResponseAsync(response, TestCancellationToken);
 
         // Assert
         var entries = json.GetProperty("entries");
@@ -139,7 +144,7 @@ public sealed class HealthCheckTests : ApiHandlerTestBase
 
         // Act
         var response = await client.GetAsync("/healthz/ready", TestCancellationToken);
-        var json = await ParseHealthResponseAsync(response);
+        var json = await ParseHealthResponseAsync(response, TestCancellationToken);
 
         // Assert
         json.GetProperty("status").GetString().ShouldBe("Unhealthy");
@@ -161,9 +166,63 @@ public sealed class HealthCheckTests : ApiHandlerTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    private static async Task<JsonElement> ParseHealthResponseAsync(HttpResponseMessage response)
+    [Fact]
+    public async Task ReadyEndpoint_WhenMongoDbUnreachable_Returns503()
     {
-        var body = await response.Content.ReadAsStringAsync();
+        // Arrange — use unreachable MongoDB with short timeouts; remove hosted services
+        // that would fail on startup before the health check can run
+        await using var factory = CreateFactoryWithUnreachableMongo();
+        using var client = factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/healthz/ready", TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+    }
+
+    [Fact]
+    public async Task LivenessEndpoint_WhenMongoDbUnreachable_StillReturns200()
+    {
+        // Arrange
+        await using var factory = CreateFactoryWithUnreachableMongo();
+        using var client = factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/healthz/liveness", TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "WithWebHostBuilder wraps and disposes the inner factory")]
+    private static WebApplicationFactory<Program> CreateFactoryWithUnreachableMongo()
+    {
+        return new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Development");
+                builder.ConfigureAppConfiguration((_, config) =>
+                {
+                    config.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["ConnectionStrings:Storage"] = "mongodb://localhost:1/?connectTimeoutMS=1000&serverSelectionTimeoutMS=1000",
+                        ["Persistence:MongoDb:DatabaseName"] = "unreachable_db",
+                        ["GroundControl:Security:AuthenticationMode"] = "None"
+                    });
+                });
+                builder.ConfigureServices(services =>
+                {
+                    services.RemoveAll<IHostedService>();
+                });
+            });
+    }
+
+    private static async Task<JsonElement> ParseHealthResponseAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken = default)
+    {
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonDocument.Parse(body).RootElement;
     }
 }
