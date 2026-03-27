@@ -133,7 +133,7 @@ environment:
   - DataProtection__Certificate__FileSystem__PreviousPaths__0=/certs/dp-previous.pfx  # only during rotation
 ```
 
-The Data Protection key ring directory (`/app/keys`) should be a shared volume (e.g., PersistentVolumeClaim with `ReadWriteMany`) or replaced with Redis storage (`DataProtection__KeyRing=Redis`). The certificate `.pfx` files are mounted from Kubernetes Secrets. For cloud deployments, consider using `DataProtection__Certificate__Provider=AzureBlob` to source certificates from Azure Blob Storage instead of local files.
+The Data Protection key ring directory (`/app/keys`) should be a shared volume (e.g., PersistentVolumeClaim with `ReadWriteMany`) or replaced with Redis storage (`DataProtection__Mode=Redis`). The certificate `.pfx` files are mounted from Kubernetes Secrets. For cloud deployments, consider using `DataProtection__CertificateProvider=AzureBlob` to source certificates from Azure Blob Storage instead of local files.
 
 ---
 
@@ -330,7 +330,7 @@ Application configuration for GroundControl server:
 | `DataProtection:Mode` | `FileSystem` | Key ring configurator: `FileSystem`, `Certificate`, `Redis`, `Azure` |
 | `DataProtection:KeyStorePath` | `./keys` | File system path for key ring storage (`FileSystem`, `Certificate`) |
 | `DataProtection:UseDpapi` | `false` | Use DPAPI for key protection (`FileSystem` on Windows only) |
-| `DataProtection:Certificate:Provider` | `FileSystem` | Certificate provider: `FileSystem`, `AzureBlob` |
+| `DataProtection:CertificateProvider` | `FileSystem` | Certificate provider: `FileSystem`, `AzureBlob` |
 | `DataProtection:Certificate:FileSystem:CurrentPath` | — | Current X.509 certificate path (`.pfx`) |
 | `DataProtection:Certificate:FileSystem:Password` | — | Certificate password (prefer environment variable or secrets manager) |
 | `DataProtection:Certificate:FileSystem:PreviousPaths` | `[]` | Previous certificate paths for decrypting old keys during rotation |
