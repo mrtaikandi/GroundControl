@@ -10,6 +10,7 @@ namespace GroundControl.Api.Features.Snapshots;
 internal sealed class SnapshotPublisher
 {
     private const int MaxBsonSizeBytes = 16_777_216; // 16MB
+    private const int DefaultRetentionCount = 50;
     private static readonly Dictionary<string, string> EmptyScopes = [];
 
     private readonly IProjectStore _projectStore;
@@ -19,6 +20,7 @@ internal sealed class SnapshotPublisher
     private readonly IValueProtector _valueProtector;
     private readonly ISnapshotStore _snapshotStore;
     private readonly IChangeNotifier _changeNotifier;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SnapshotPublisher> _logger;
 
     public SnapshotPublisher(
@@ -29,7 +31,8 @@ internal sealed class SnapshotPublisher
         VariableInterpolator interpolator,
         IValueProtector valueProtector,
         ISnapshotStore snapshotStore,
-        IChangeNotifier changeNotifier)
+        IChangeNotifier changeNotifier,
+        IConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _projectStore = projectStore ?? throw new ArgumentNullException(nameof(projectStore));
@@ -39,6 +42,7 @@ internal sealed class SnapshotPublisher
         _valueProtector = valueProtector ?? throw new ArgumentNullException(nameof(valueProtector));
         _snapshotStore = snapshotStore ?? throw new ArgumentNullException(nameof(snapshotStore));
         _changeNotifier = changeNotifier ?? throw new ArgumentNullException(nameof(changeNotifier));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     public async Task<Results<Created<Snapshot>, ProblemHttpResult, NotFound>> PublishAsync(
@@ -96,6 +100,19 @@ internal sealed class SnapshotPublisher
         }
 
         await _changeNotifier.NotifyAsync(projectId, snapshot.Id, cancellationToken);
+
+        try
+        {
+            var retentionCount = _configuration.GetValue("Snapshots:RetentionCount", DefaultRetentionCount);
+            if (retentionCount > 0)
+            {
+                await _snapshotStore.DeleteOldSnapshotsAsync(projectId, retentionCount, snapshot.Id, cancellationToken);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogRetentionCleanupFailed(ex, projectId);
+        }
 
         return TypedResults.Created($"/api/snapshots/{snapshot.Id}", snapshot);
     }
@@ -186,4 +203,7 @@ internal static partial class SnapshotPublisherLogs
 {
     [LoggerMessage(1, LogLevel.Error, "Failed to notify subscribers of snapshot change for project {ProjectId}.")]
     public static partial void LogNotificationFailed(this ILogger<SnapshotPublisher> logger, Exception exception, Guid projectId);
+
+    [LoggerMessage(2, LogLevel.Error, "Snapshot retention cleanup failed for project {ProjectId}.")]
+    public static partial void LogRetentionCleanupFailed(this ILogger<SnapshotPublisher> logger, Exception exception, Guid projectId);
 }
