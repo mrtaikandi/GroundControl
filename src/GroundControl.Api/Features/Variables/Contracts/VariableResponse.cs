@@ -30,7 +30,7 @@ internal sealed record VariableResponse
 
     public required Guid UpdatedBy { get; init; }
 
-    public static VariableResponse From(Variable variable)
+    public static VariableResponse From(Variable variable, IReadOnlyCollection<ScopedValue>? maskedValues = null)
     {
         ArgumentNullException.ThrowIfNull(variable);
 
@@ -42,7 +42,7 @@ internal sealed record VariableResponse
             Scope = variable.Scope,
             GroupId = variable.GroupId,
             ProjectId = variable.ProjectId,
-            Values = [.. variable.Values],
+            Values = maskedValues ?? [.. variable.Values],
             IsSensitive = variable.IsSensitive,
             Version = variable.Version,
             CreatedAt = variable.CreatedAt,

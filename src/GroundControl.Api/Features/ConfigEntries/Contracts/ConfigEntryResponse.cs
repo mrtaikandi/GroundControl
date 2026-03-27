@@ -84,8 +84,9 @@ internal sealed record ConfigEntryResponse
     /// Creates a response contract from a persisted <see cref="ConfigEntry" /> entity.
     /// </summary>
     /// <param name="entry">The persisted configuration entry entity.</param>
+    /// <param name="maskedValues">Optional pre-masked values to use instead of the entity's raw values.</param>
     /// <returns>The API response contract.</returns>
-    public static ConfigEntryResponse From(ConfigEntry entry)
+    public static ConfigEntryResponse From(ConfigEntry entry, IReadOnlyCollection<ScopedValue>? maskedValues = null)
     {
         ArgumentNullException.ThrowIfNull(entry);
 
@@ -96,7 +97,7 @@ internal sealed record ConfigEntryResponse
             OwnerId = entry.OwnerId,
             OwnerType = entry.OwnerType,
             ValueType = entry.ValueType,
-            Values = entry.Values,
+            Values = maskedValues ?? entry.Values,
             IsSensitive = entry.IsSensitive,
             Description = entry.Description,
             Version = entry.Version,

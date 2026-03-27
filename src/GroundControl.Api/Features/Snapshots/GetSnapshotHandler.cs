@@ -1,7 +1,8 @@
 using GroundControl.Api.Features.Snapshots.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
+using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Security;
-using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -10,15 +11,15 @@ namespace GroundControl.Api.Features.Snapshots;
 
 internal sealed class GetSnapshotHandler : IEndpointHandler
 {
-    private const string SensitiveMask = "***";
-
     private readonly ISnapshotStore _snapshotStore;
-    private readonly IValueProtector _protector;
+    private readonly SensitiveValueMasker _masker;
+    private readonly AuditRecorder _audit;
 
-    public GetSnapshotHandler(ISnapshotStore snapshotStore, IValueProtector protector)
+    public GetSnapshotHandler(ISnapshotStore snapshotStore, SensitiveValueMasker masker, AuditRecorder audit)
     {
         _snapshotStore = snapshotStore ?? throw new ArgumentNullException(nameof(snapshotStore));
-        _protector = protector ?? throw new ArgumentNullException(nameof(protector));
+        _masker = masker ?? throw new ArgumentNullException(nameof(masker));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -51,9 +52,15 @@ internal sealed class GetSnapshotHandler : IEndpointHandler
                 statusCode: StatusCodes.Status404NotFound);
         }
 
-        var canDecrypt = decrypt && httpContext.User.HasClaim("permission", Permissions.SensitiveValuesDecrypt);
+        var canDecrypt = SensitiveValueMasker.CanDecrypt(httpContext, decrypt);
+        var hasSensitive = canDecrypt && snapshot.Entries.Any(e => e.IsSensitive);
 
         var entries = snapshot.Entries.Select(entry => MapEntry(entry, canDecrypt)).ToList();
+
+        if (hasSensitive)
+        {
+            await _audit.RecordAsync("Snapshot", snapshot.Id, null, "Decrypted", cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
 
         var response = new SnapshotResponse
         {
@@ -79,18 +86,8 @@ internal sealed class GetSnapshotHandler : IEndpointHandler
             Values = entry.Values.Select(v => new ScopedValueResponse
             {
                 Scopes = v.Scopes,
-                Value = MaskIfSensitive(entry.IsSensitive, v.Value, canDecrypt),
+                Value = _masker.MaskOrDecrypt(v.Value, entry.IsSensitive, canDecrypt),
             }).ToList()
         };
-    }
-
-    private string MaskIfSensitive(bool isSensitive, string value, bool canDecrypt)
-    {
-        if (!isSensitive)
-        {
-            return value;
-        }
-
-        return canDecrypt ? _protector.Unprotect(value) : SensitiveMask;
     }
 }

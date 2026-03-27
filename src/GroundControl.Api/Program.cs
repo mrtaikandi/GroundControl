@@ -14,6 +14,7 @@ using GroundControl.Api.Features.Users;
 using GroundControl.Api.Features.Variables;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Configuration;
+using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Health;
 using GroundControl.Api.Shared.Notification;
 using GroundControl.Api.Shared.Resolvers;
@@ -47,6 +48,7 @@ builder.Services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
 builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditRecorder>();
+builder.Services.AddScoped<SensitiveValueMasker>();
 
 builder.Services.AddApiVersioning(options =>
 {
