@@ -7,16 +7,16 @@ internal sealed partial class ClientCleanupService : BackgroundService
     private static readonly TimeSpan DefaultInterval = TimeSpan.FromDays(1);
     private const int DefaultGracePeriodDays = 30;
 
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IClientStore _clientStore;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ClientCleanupService> _logger;
 
     public ClientCleanupService(
-        IServiceScopeFactory scopeFactory,
+        IClientStore clientStore,
         IConfiguration configuration,
         ILogger<ClientCleanupService> logger)
     {
-        _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+        _clientStore = clientStore ?? throw new ArgumentNullException(nameof(clientStore));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -54,10 +54,7 @@ internal sealed partial class ClientCleanupService : BackgroundService
     {
         var gracePeriodDays = _configuration.GetValue("Clients:CleanupGracePeriodDays", DefaultGracePeriodDays);
 
-        using var scope = _scopeFactory.CreateScope();
-        var clientStore = scope.ServiceProvider.GetRequiredService<IClientStore>();
-
-        var expiredClients = await clientStore.GetExpiredAndDeactivatedAsync(gracePeriodDays, cancellationToken).ConfigureAwait(false);
+        var expiredClients = await _clientStore.GetExpiredAndDeactivatedAsync(gracePeriodDays, cancellationToken).ConfigureAwait(false);
         if (expiredClients.Count == 0)
         {
             return;
@@ -65,7 +62,7 @@ internal sealed partial class ClientCleanupService : BackgroundService
 
         foreach (var client in expiredClients)
         {
-            await clientStore.HardDeleteAsync(client.Id, cancellationToken).ConfigureAwait(false);
+            await _clientStore.HardDeleteAsync(client.Id, cancellationToken).ConfigureAwait(false);
         }
 
         LogCleanupCompleted(_logger, expiredClients.Count, gracePeriodDays);

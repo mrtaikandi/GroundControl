@@ -101,10 +101,17 @@ internal sealed class SnapshotPublisher
 
         await _changeNotifier.NotifyAsync(projectId, snapshot.Id, cancellationToken);
 
-        var retentionCount = _configuration.GetValue("Snapshots:RetentionCount", DefaultRetentionCount);
-        if (retentionCount > 0)
+        try
         {
-            await _snapshotStore.DeleteOldSnapshotsAsync(projectId, retentionCount, snapshot.Id, cancellationToken);
+            var retentionCount = _configuration.GetValue("Snapshots:RetentionCount", DefaultRetentionCount);
+            if (retentionCount > 0)
+            {
+                await _snapshotStore.DeleteOldSnapshotsAsync(projectId, retentionCount, snapshot.Id, cancellationToken);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogRetentionCleanupFailed(ex, projectId);
         }
 
         return TypedResults.Created($"/api/snapshots/{snapshot.Id}", snapshot);
@@ -196,4 +203,7 @@ internal static partial class SnapshotPublisherLogs
 {
     [LoggerMessage(1, LogLevel.Error, "Failed to notify subscribers of snapshot change for project {ProjectId}.")]
     public static partial void LogNotificationFailed(this ILogger<SnapshotPublisher> logger, Exception exception, Guid projectId);
+
+    [LoggerMessage(2, LogLevel.Error, "Snapshot retention cleanup failed for project {ProjectId}.")]
+    public static partial void LogRetentionCleanupFailed(this ILogger<SnapshotPublisher> logger, Exception exception, Guid projectId);
 }
