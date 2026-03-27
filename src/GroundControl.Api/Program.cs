@@ -87,6 +87,8 @@ if (builder.Configuration.GetValue<bool>("Cache:PrewarmOnStartup"))
     builder.Services.AddHostedService<SnapshotCacheWarmupService>();
 }
 
+builder.Services.AddHostedService<ClientCleanupService>();
+
 builder.Services.AddAuditHandlers();
 builder.Services.AddScopesHandlers();
 builder.Services.AddGroupsHandlers();
