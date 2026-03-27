@@ -27,8 +27,8 @@ using GroundControl.Persistence.MongoDb;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -114,8 +114,12 @@ builder.Services.AddTransient<IClaimsTransformation, GroundControlClaimsTransfor
 builder.Services.AddOpenApi();
 
 builder.Services.AddHealthChecks()
-    .AddCheck<MongoDbHealthCheck>("mongodb", failureStatus: HealthStatus.Unhealthy, tags: ["db", "mongodb", "ready"])
-    .AddCheck<ChangeNotifierHealthCheck>("change-notifier", tags: ["ready"]);
+    .AddMongoDb(
+        dbFactory: sp => sp.GetRequiredService<IMongoDbContext>().Database,
+        name: "mongodb",
+        tags: ["ready"],
+        timeout: TimeSpan.FromSeconds(5))
+    .AddCheck<ChangeNotifierHealthCheck>("change_notifier", tags: ["ready"]);
 
 var app = builder.Build();
 
@@ -138,11 +142,11 @@ app.MapPersonalAccessTokensEndpoints();
 app.MapUsersEndpoints();
 
 app.MapOpenApi();
-app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = p => p.Tags.Contains("liveness") });
+app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/healthz/ready", new HealthCheckOptions
 {
     Predicate = p => p.Tags.Contains("ready"),
-    ResponseWriter = HealthCheckExtensions.WriteJsonResponse
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 });
 
 
