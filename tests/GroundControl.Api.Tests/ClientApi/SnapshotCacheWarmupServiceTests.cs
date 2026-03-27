@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using GroundControl.Api.Features.ClientApi;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -9,26 +8,12 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.ClientApi;
 
-public sealed class SnapshotCacheWarmupServiceTests : IDisposable
+public sealed class SnapshotCacheWarmupServiceTests
 {
     private static CancellationToken TestCancellationToken => TestContext.Current.CancellationToken;
 
     private readonly ISnapshotStore _snapshotStore = Substitute.For<ISnapshotStore>();
     private readonly IProjectStore _projectStore = Substitute.For<IProjectStore>();
-    private readonly Meter _meter = new("GroundControl.Test");
-    private readonly IMeterFactory _meterFactory;
-
-    public SnapshotCacheWarmupServiceTests()
-    {
-        _meterFactory = Substitute.For<IMeterFactory>();
-        _meterFactory.Create(Arg.Any<MeterOptions>()).Returns(_meter);
-    }
-
-    public void Dispose()
-    {
-        _meter.Dispose();
-        _meterFactory.Dispose();
-    }
 
     [Fact]
     public async Task StartAsync_WarmsProjectsWithActiveSnapshots()
@@ -54,7 +39,7 @@ public sealed class SnapshotCacheWarmupServiceTests : IDisposable
         _snapshotStore.GetActiveForProjectAsync(project3.Id, Arg.Any<CancellationToken>())
             .Returns(snapshot3);
 
-        using var cache = new SnapshotCache(_snapshotStore, _meterFactory);
+        var cache = new SnapshotCache(_snapshotStore);
         var sut = new SnapshotCacheWarmupService(cache, _projectStore, NullLogger<SnapshotCacheWarmupService>.Instance);
 
         // Act
@@ -98,7 +83,7 @@ public sealed class SnapshotCacheWarmupServiceTests : IDisposable
         _snapshotStore.GetActiveForProjectAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(ci => CreateSnapshot((Guid)ci[0]));
 
-        using var cache = new SnapshotCache(_snapshotStore, _meterFactory);
+        var cache = new SnapshotCache(_snapshotStore);
         var sut = new SnapshotCacheWarmupService(cache, _projectStore, NullLogger<SnapshotCacheWarmupService>.Instance);
 
         // Act
@@ -122,7 +107,7 @@ public sealed class SnapshotCacheWarmupServiceTests : IDisposable
                 NextCursor = null,
             });
 
-        using var cache = new SnapshotCache(_snapshotStore, _meterFactory);
+        var cache = new SnapshotCache(_snapshotStore);
         var sut = new SnapshotCacheWarmupService(cache, _projectStore, NullLogger<SnapshotCacheWarmupService>.Instance);
 
         // Act & Assert — should not throw

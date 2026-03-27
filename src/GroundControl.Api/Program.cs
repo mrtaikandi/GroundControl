@@ -17,6 +17,7 @@ using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Health;
 using GroundControl.Api.Shared.Notification;
+using GroundControl.Api.Shared.Observability;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
@@ -29,6 +30,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -114,6 +120,42 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddTransient<IClaimsTransformation, GroundControlClaimsTransformation>();
 
 builder.Services.AddOpenApi();
+
+var serviceName = builder.Configuration["OpenTelemetry:ServiceName"] ?? "GroundControl";
+var otlpEndpoint = builder.Configuration["OpenTelemetry:Endpoint"];
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(serviceName))
+    .WithMetrics(metrics =>
+    {
+        metrics.AddAspNetCoreInstrumentation();
+        metrics.AddMeter(GroundControlMetrics.MeterName);
+
+        if (otlpEndpoint is not null)
+        {
+            metrics.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+        }
+    })
+    .WithTracing(tracing =>
+    {
+        tracing.AddAspNetCoreInstrumentation();
+        tracing.AddSource(GroundControlMetrics.ActivitySourceName);
+
+        if (otlpEndpoint is not null)
+        {
+            tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+        }
+    });
+
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeScopes = true;
+
+    if (otlpEndpoint is not null)
+    {
+        logging.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+    }
+});
 
 builder.Services.AddHealthChecks()
     .AddMongoDb(

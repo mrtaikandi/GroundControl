@@ -2,6 +2,7 @@ using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Notification;
+using GroundControl.Api.Shared.Observability;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -71,6 +72,7 @@ internal sealed class ActivateSnapshotHandler : IEndpointHandler
         }
 
         await _changeNotifier.NotifyAsync(projectId, id, cancellationToken).ConfigureAwait(false);
+        GroundControlMetrics.SnapshotsActivated.Add(1);
 
         List<FieldChange> changes = [.. AuditRecorder.CompareFields("ActiveSnapshotId", oldSnapshotId, id)];
         await _audit.RecordAsync("Snapshot", id, project.GroupId, "Activated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);

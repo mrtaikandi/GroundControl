@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using GroundControl.Api.Shared.Observability;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.MongoDb;
 using MongoDB.Bson;
@@ -168,6 +169,7 @@ internal sealed partial class MongoChangeStreamNotifier : IChangeNotifier, IHost
 
                         var projectId = change.FullDocument.Id;
                         LogChangeDetected(_logger, projectId, snapshotId);
+                        GroundControlMetrics.ChangeNotifierEvents.Add(1);
 
                         foreach (var writer in _subscribers.Values)
                         {

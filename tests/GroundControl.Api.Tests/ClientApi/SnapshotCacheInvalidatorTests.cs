@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using GroundControl.Api.Features.ClientApi;
 using GroundControl.Api.Shared.Notification;
 using GroundControl.Persistence.Contracts;
@@ -9,25 +8,11 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.ClientApi;
 
-public sealed class SnapshotCacheInvalidatorTests : IDisposable
+public sealed class SnapshotCacheInvalidatorTests
 {
     private static CancellationToken TestCancellationToken => TestContext.Current.CancellationToken;
 
     private readonly ISnapshotStore _snapshotStore = Substitute.For<ISnapshotStore>();
-    private readonly Meter _meter = new("GroundControl.Test");
-    private readonly IMeterFactory _meterFactory;
-
-    public SnapshotCacheInvalidatorTests()
-    {
-        _meterFactory = Substitute.For<IMeterFactory>();
-        _meterFactory.Create(Arg.Any<MeterOptions>()).Returns(_meter);
-    }
-
-    public void Dispose()
-    {
-        _meter.Dispose();
-        _meterFactory.Dispose();
-    }
 
     [Fact]
     public async Task ExecuteAsync_ChangeNotification_InvalidatesCache()
@@ -48,7 +33,7 @@ public sealed class SnapshotCacheInvalidatorTests : IDisposable
         _snapshotStore.GetActiveForProjectAsync(projectId, Arg.Any<CancellationToken>())
             .Returns(snapshot);
 
-        using var cache = new SnapshotCache(_snapshotStore, _meterFactory);
+        var cache = new SnapshotCache(_snapshotStore);
         await using var notifier = new InProcessChangeNotifier();
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
@@ -86,7 +71,7 @@ public sealed class SnapshotCacheInvalidatorTests : IDisposable
     public async Task ExecuteAsync_StoppingToken_StopsGracefully()
     {
         // Arrange
-        using var cache = new SnapshotCache(_snapshotStore, _meterFactory);
+        var cache = new SnapshotCache(_snapshotStore);
         await using var notifier = new InProcessChangeNotifier();
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
