@@ -3,6 +3,7 @@ using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
+using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,11 +12,13 @@ namespace GroundControl.Api.Features.Snapshots;
 internal sealed class PublishSnapshotHandler : IEndpointHandler
 {
     private readonly SnapshotPublisher _publisher;
+    private readonly IProjectStore _projectStore;
     private readonly AuditRecorder _audit;
 
-    public PublishSnapshotHandler(SnapshotPublisher publisher, AuditRecorder audit)
+    public PublishSnapshotHandler(SnapshotPublisher publisher, IProjectStore projectStore, AuditRecorder audit)
     {
         _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
+        _projectStore = projectStore ?? throw new ArgumentNullException(nameof(projectStore));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
@@ -47,8 +50,9 @@ internal sealed class PublishSnapshotHandler : IEndpointHandler
 
     private async Task<IResult> OnPublished(Snapshot snapshot, Guid projectId, CancellationToken cancellationToken)
     {
+        var project = await _projectStore.GetByIdAsync(projectId, cancellationToken).ConfigureAwait(false);
         var metadata = new Dictionary<string, string> { ["ProjectId"] = projectId.ToString() };
-        await _audit.RecordAsync("Snapshot", snapshot.Id, null, "Published", metadata: metadata, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await _audit.RecordAsync("Snapshot", snapshot.Id, project?.GroupId, "Published", metadata: metadata, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.Created($"/api/projects/{projectId}/snapshots/{snapshot.Id}", SnapshotSummaryResponse.From(snapshot));
     }

@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
+using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Features.Scopes.Contracts;
+using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Persistence.Contracts;
 using MongoDB.Driver;
 using Shouldly;
@@ -241,5 +243,40 @@ public sealed class AuditRecordingTests : ApiHandlerTestBase
             .ToListAsync(TestCancellationToken);
 
         auditRecords.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task CreateTemplate_WithGroupId_PopulatesGroupIdInAuditRecord()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var groupResponse = await apiClient.PostAsJsonAsync(
+            "/api/groups",
+            new CreateGroupRequest { Name = "audit-test-group", Description = "test group" },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        groupResponse.EnsureSuccessStatusCode();
+        var group = await groupResponse.Content.ReadFromJsonAsync<GroupResponse>(WebJsonSerializerOptions, TestCancellationToken);
+
+        // Act
+        var templateResponse = await apiClient.PostAsJsonAsync(
+            "/api/templates",
+            new CreateTemplateRequest { Name = "audit-test-template", Description = "test", GroupId = group!.Id },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        templateResponse.EnsureSuccessStatusCode();
+        var template = await templateResponse.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, TestCancellationToken);
+
+        // Assert
+        var auditRecords = await factory.Database.GetCollection<AuditRecord>("audit_records")
+            .Find(r => r.EntityType == "Template" && r.EntityId == template!.Id && r.Action == "Created")
+            .ToListAsync(TestCancellationToken);
+
+        auditRecords.Count.ShouldBe(1);
+        auditRecords[0].GroupId.ShouldBe(group.Id);
     }
 }

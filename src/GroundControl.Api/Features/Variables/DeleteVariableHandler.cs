@@ -39,13 +39,15 @@ internal sealed class DeleteVariableHandler : IEndpointHandler
             return problem;
         }
 
+        var variable = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+
         var deleted = await _store.DeleteAsync(id, expectedVersion, cancellationToken).ConfigureAwait(false);
         if (!deleted)
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
 
-        await _audit.RecordAsync("Variable", id, null, "Deleted", cancellationToken: cancellationToken).ConfigureAwait(false);
+        await _audit.RecordAsync("Variable", id, variable?.GroupId, "Deleted", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }
