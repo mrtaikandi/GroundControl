@@ -1,18 +1,24 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Features.Snapshots.Contracts;
 using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Features.Variables.Contracts;
-using ConfigEntryScopedValueRequest = global::GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest;
-using VariableScopedValueRequest = global::GroundControl.Api.Features.Variables.Contracts.ScopedValueRequest;
 using GroundControl.Api.Shared.Pagination;
+using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using Shouldly;
 using Xunit;
+using ConfigEntryScopedValueRequest = global::GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest;
+using VariableScopedValueRequest = global::GroundControl.Api.Features.Variables.Contracts.ScopedValueRequest;
 
 namespace GroundControl.Api.Tests.Masking;
 
@@ -135,6 +141,33 @@ public sealed class SensitiveMaskingTests : ApiHandlerTestBase
             .ToListAsync(TestCancellationToken);
 
         auditRecords.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task GetConfigEntry_DecryptWithoutPermission_ReturnsMaskedSilently()
+    {
+        // Arrange — create the entry with full permissions (NoAuth)
+        await using var factory = CreateFactory();
+        using var adminClient = factory.CreateClient();
+        var entry = await CreateSensitiveConfigEntryAsync(adminClient, "db.password", "s3cret!");
+
+        // Create a client whose principal lacks the decrypt permission
+        using var limitedFactory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddTransient<IClaimsTransformation, StripDecryptPermissionTransformation>();
+            });
+        });
+        using var limitedClient = limitedFactory.CreateClient();
+
+        // Act — decrypt=true is requested but the user lacks the permission
+        var response = await limitedClient.GetAsync($"/api/config-entries/{entry.Id}?decrypt=true", TestCancellationToken);
+
+        // Assert — silent mask, no error
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var result = await ReadRequiredJsonAsync<ConfigEntryResponse>(response, TestCancellationToken);
+        result.Values.ShouldAllBe(v => v.Value == "***");
     }
 
     [Fact]
@@ -264,6 +297,43 @@ public sealed class SensitiveMaskingTests : ApiHandlerTestBase
     #endregion
 
     #region Snapshot Masking
+
+    [Fact]
+    public async Task GetSnapshot_SensitiveValues_ReturnsMaskedByDefault()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var project = await CreateProjectAsync(apiClient);
+        await CreateConfigEntryForProjectAsync(apiClient, "db.password", project.Id, "s3cret!", isSensitive: true);
+        await CreateConfigEntryForProjectAsync(apiClient, "app.name", project.Id, "MyApp");
+
+        var publishResponse = await apiClient.PostAsJsonAsync(
+            $"/api/projects/{project.Id}/snapshots",
+            new PublishSnapshotRequest(),
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        publishResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var published = await ReadRequiredJsonAsync<SnapshotSummaryResponse>(publishResponse, TestCancellationToken);
+
+        // Act
+        var response = await apiClient.GetAsync(
+            $"/api/projects/{project.Id}/snapshots/{published.Id}",
+            TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var snapshot = await ReadRequiredJsonAsync<SnapshotResponse>(response, TestCancellationToken);
+
+        var sensitiveEntry = snapshot.Entries.First(e => e.Key == "db.password");
+        sensitiveEntry.IsSensitive.ShouldBeTrue();
+        sensitiveEntry.Values.ShouldAllBe(v => v.Value == "***");
+
+        var normalEntry = snapshot.Entries.First(e => e.Key == "app.name");
+        normalEntry.Values.ShouldContain(v => v.Value == "MyApp");
+    }
 
     [Fact]
     public async Task GetSnapshot_DecryptWithPermission_CreatesAuditRecord()
@@ -445,4 +515,27 @@ public sealed class SensitiveMaskingTests : ApiHandlerTestBase
     }
 
     #endregion
+
+    /// <summary>
+    /// Claims transformation that strips the <c>sensitive_values:decrypt</c> permission claim,
+    /// simulating a user who lacks decrypt permission.
+    /// </summary>
+    private sealed class StripDecryptPermissionTransformation : IClaimsTransformation
+    {
+        public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
+        {
+            if (principal.Identity is ClaimsIdentity identity)
+            {
+                var decryptClaim = identity.FindFirst(
+                    c => c.Type == "permission" && c.Value == Permissions.SensitiveValuesDecrypt);
+
+                if (decryptClaim is not null)
+                {
+                    identity.RemoveClaim(decryptClaim);
+                }
+            }
+
+            return Task.FromResult(principal);
+        }
+    }
 }

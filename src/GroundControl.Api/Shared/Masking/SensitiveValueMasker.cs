@@ -21,6 +21,10 @@ internal sealed class SensitiveValueMasker
     public static bool CanDecrypt(HttpContext httpContext, bool decryptRequested) =>
         decryptRequested && httpContext.User.HasClaim("permission", Permissions.SensitiveValuesDecrypt);
 
+    /// <summary>
+    /// Masks or decrypts an <em>encrypted</em> value (e.g. snapshot entries).
+    /// Calls <see cref="IValueProtector.Unprotect"/> when decryption is permitted.
+    /// </summary>
     public string MaskOrDecrypt(string value, bool isSensitive, bool canDecrypt)
     {
         if (!isSensitive)
@@ -31,6 +35,12 @@ internal sealed class SensitiveValueMasker
         return canDecrypt ? _protector.Unprotect(value) : Mask;
     }
 
+    /// <summary>
+    /// Masks or reveals <em>plaintext</em> values (e.g. config entries, variables).
+    /// ConfigEntry/Variable values are stored unencrypted — this method masks or returns
+    /// them as-is without calling <see cref="IValueProtector.Unprotect"/>.
+    /// Records an audit entry when values are revealed.
+    /// </summary>
     public async Task<IReadOnlyList<ScopedValue>> MaskOrDecryptAsync(
         IEnumerable<ScopedValue> values,
         bool isSensitive,

@@ -13,6 +13,10 @@ internal sealed class GetSnapshotHandler : IEndpointHandler
 {
     private readonly ISnapshotStore _snapshotStore;
     private readonly SensitiveValueMasker _masker;
+
+    // AuditRecorder is used directly here (rather than via MaskOrDecryptAsync) because snapshot
+    // entries are encrypted and use the synchronous MaskOrDecrypt per-value, with a single audit
+    // record for the whole snapshot instead of per-entry.
     private readonly AuditRecorder _audit;
 
     public GetSnapshotHandler(ISnapshotStore snapshotStore, SensitiveValueMasker masker, AuditRecorder audit)
