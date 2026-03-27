@@ -8,6 +8,11 @@ namespace GroundControl.Link;
 /// A file-based <see cref="IConfigCache"/> implementation that persists configuration to disk
 /// using atomic writes, with optional encryption of values via ASP.NET Data Protection.
 /// </summary>
+/// <remarks>
+/// When a <see cref="IDataProtectionProvider"/> is supplied, all values are encrypted in the cache file.
+/// The current <see cref="IConfigCache"/> interface does not carry per-key sensitivity metadata, so selective
+/// encryption (encrypting only sensitive keys) will be added when the interface is extended with that information.
+/// </remarks>
 public sealed partial class FileConfigCache : IConfigCache
 {
     private const string EncryptedPrefix = "***ENCRYPTED:";
@@ -95,15 +100,18 @@ public sealed partial class FileConfigCache : IConfigCache
     }
 
     /// <inheritdoc />
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Best-effort temp file cleanup should not mask the original exception")]
     public async Task SaveAsync(IReadOnlyDictionary<string, string> config, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(config);
+
         var directory = Path.GetDirectoryName(_cachePath);
         if (!string.IsNullOrEmpty(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        var entries = new Dictionary<string, string>(config.Count);
+        var entries = new Dictionary<string, string>(config.Count, StringComparer.OrdinalIgnoreCase);
 
         foreach (var (key, value) in config)
         {
@@ -121,11 +129,28 @@ public sealed partial class FileConfigCache : IConfigCache
         var json = JsonSerializer.Serialize(cacheFile, SerializerOptions);
         var tmpPath = _cachePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
 
-        await File.WriteAllTextAsync(tmpPath, json, cancellationToken).ConfigureAwait(false);
-        File.Move(tmpPath, _cachePath, overwrite: true);
+        try
+        {
+            await File.WriteAllTextAsync(tmpPath, json, cancellationToken).ConfigureAwait(false);
+            File.Move(tmpPath, _cachePath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(tmpPath))
+            {
+                try
+                {
+                    File.Delete(tmpPath);
+                }
+                catch
+                {
+                    // Best-effort cleanup
+                }
+            }
+        }
     }
 
-    [LoggerMessage(1, LogLevel.Warning, "Data protection is not available. Cache values will be stored unencrypted.")]
+    [LoggerMessage(1, LogLevel.Information, "Data protection is not available. Cache values will be stored unencrypted.")]
     private static partial void LogDataProtectionUnavailable(ILogger logger);
 
     [LoggerMessage(2, LogLevel.Information, "Configuration loaded from local cache.")]
@@ -139,6 +164,10 @@ public sealed partial class FileConfigCache : IConfigCache
 
     internal sealed class CacheEnvelope
     {
+        public Guid? SnapshotId { get; init; }
+
+        public long? SnapshotVersion { get; init; }
+
         public DateTimeOffset Timestamp { get; init; }
 
         public Dictionary<string, string> Entries { get; init; } = [];

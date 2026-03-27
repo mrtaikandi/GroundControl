@@ -293,6 +293,8 @@ public sealed class FileConfigCacheTests : IDisposable
             NullLogger<FileConfigCache>.Instance,
             dataProtection);
 
+    // Mocks the byte[] overloads — the string Protect/Unprotect extension methods
+    // in DataProtectionCommonExtensions delegate to these via UTF-8 + Base64Url encoding.
     private static (IDataProtectionProvider Provider, IDataProtector Protector) CreateMockDataProtection()
     {
         var protector = Substitute.For<IDataProtector>();
