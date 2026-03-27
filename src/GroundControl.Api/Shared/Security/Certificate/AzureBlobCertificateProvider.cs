@@ -11,20 +11,23 @@ internal sealed partial class AzureBlobCertificateProvider(
     IConfiguration configuration,
     ILogger<AzureBlobCertificateProvider> logger) : IDataProtectionCertificateProvider
 {
+    private static readonly DefaultAzureCredential Credential = new();
+
     /// <inheritdoc />
     public async Task<X509Certificate2> GetCurrentCertificateAsync(CancellationToken cancellationToken = default)
     {
         var blobUrl = configuration["DataProtection:AzureBlobUrl"]
             ?? throw new InvalidOperationException("DataProtection:AzureBlobUrl is required.");
 
-        var credential = new DefaultAzureCredential();
-        var client = new BlobClient(new Uri(blobUrl), credential);
-        var response = await client.DownloadContentAsync(cancellationToken);
+        var password = configuration["DataProtection:CertificatePassword"];
+
+        var client = new BlobClient(new Uri(blobUrl), Credential);
+        var response = await client.DownloadContentAsync(cancellationToken).ConfigureAwait(false);
         var pfxBytes = response.Value.Content.ToArray();
 
         var certificate = X509CertificateLoader.LoadPkcs12(
             pfxBytes,
-            null,
+            password,
             X509KeyStorageFlags.EphemeralKeySet);
 
         LogCertificateLoaded(logger, "AzureBlob", certificate.Thumbprint);

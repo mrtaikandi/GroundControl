@@ -54,17 +54,20 @@ keyRingConfigurator.Configure(dataProtectionBuilder, builder.Configuration);
 var certProviderMode = builder.Configuration["DataProtection:CertificateProvider"];
 if (certProviderMode is not null)
 {
-    switch (certProviderMode)
+    if (string.Equals(certProviderMode, "FileSystem", StringComparison.OrdinalIgnoreCase))
     {
-        case "FileSystem":
-            builder.Services.AddSingleton<IDataProtectionCertificateProvider, FileSystemCertificateProvider>();
-            break;
-        case "AzureBlob":
-            builder.Services.AddSingleton<IDataProtectionCertificateProvider, AzureBlobCertificateProvider>();
-            break;
-        default:
-            throw new InvalidOperationException($"Unknown DataProtection:CertificateProvider mode: '{certProviderMode}'. Supported values are 'FileSystem' and 'AzureBlob'.");
+        builder.Services.AddSingleton<IDataProtectionCertificateProvider, FileSystemCertificateProvider>();
     }
+    else if (string.Equals(certProviderMode, "AzureBlob", StringComparison.OrdinalIgnoreCase))
+    {
+        builder.Services.AddSingleton<IDataProtectionCertificateProvider, AzureBlobCertificateProvider>();
+    }
+    else
+    {
+        throw new InvalidOperationException($"Unknown DataProtection:CertificateProvider mode: '{certProviderMode}'. Supported values are 'FileSystem' and 'AzureBlob'.");
+    }
+
+    builder.Services.AddHostedService<CertificateStartupLogger>();
 }
 
 builder.Services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
