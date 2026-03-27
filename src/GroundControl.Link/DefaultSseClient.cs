@@ -96,10 +96,8 @@ public sealed partial class DefaultSseClient : ISseClient
 
                     LogEventReceived(_logger, sseEvent.EventType, sseEvent.Id);
 
-                    if (sseEvent.EventType == "heartbeat")
-                    {
-                        heartbeatCts.CancelAfter(_options.SseHeartbeatTimeout);
-                    }
+                    // Any event (config or heartbeat) proves the connection is alive
+                    heartbeatCts.CancelAfter(_options.SseHeartbeatTimeout);
 
                     yield return sseEvent;
                 }
@@ -110,7 +108,7 @@ public sealed partial class DefaultSseClient : ISseClient
                 continue;
             }
 
-            // Comment lines start with ':'
+            // W3C SSE spec: lines starting with U+003A COLON are comments
             if (line[0] == ':')
             {
                 continue;

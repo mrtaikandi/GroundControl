@@ -260,7 +260,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
     {
         List<SseEvent> events = [];
 
-        await foreach (var sseEvent in _sut!.StreamAsync())
+        await foreach (var sseEvent in _sut!.StreamAsync(TestContext.Current.CancellationToken))
         {
             events.Add(sseEvent);
         }
