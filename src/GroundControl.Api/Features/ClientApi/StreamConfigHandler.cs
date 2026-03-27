@@ -1,10 +1,10 @@
-using System.Diagnostics.Metrics;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using GroundControl.Api.Features.ClientApi.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Notification;
+using GroundControl.Api.Shared.Observability;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Api.Shared.Security.Auth;
 using GroundControl.Api.Shared.Security.Protection;
@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GroundControl.Api.Features.ClientApi;
 
-internal sealed class StreamConfigHandler : IEndpointHandler, IDisposable
+internal sealed class StreamConfigHandler : IEndpointHandler
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -23,31 +23,19 @@ internal sealed class StreamConfigHandler : IEndpointHandler, IDisposable
     private readonly IValueProtector _protector;
     private readonly IChangeNotifier _changeNotifier;
     private readonly IConfiguration _configuration;
-    private readonly Meter _meter;
-    private readonly UpDownCounter<long> _activeConnections;
-    private readonly Counter<long> _totalConnections;
 
     public StreamConfigHandler(
         SnapshotCache cache,
         IScopeResolver scopeResolver,
         IValueProtector protector,
         IChangeNotifier changeNotifier,
-        IConfiguration configuration,
-        IMeterFactory meterFactory)
+        IConfiguration configuration)
     {
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _scopeResolver = scopeResolver ?? throw new ArgumentNullException(nameof(scopeResolver));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
         _changeNotifier = changeNotifier ?? throw new ArgumentNullException(nameof(changeNotifier));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-
-        _meter = meterFactory.Create("GroundControl");
-        _activeConnections = _meter.CreateUpDownCounter<long>(
-            "groundcontrol.sse.connections.active",
-            description: "Number of active SSE connections");
-        _totalConnections = _meter.CreateCounter<long>(
-            "groundcontrol.sse.connections.total",
-            description: "Total number of SSE connections established");
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -77,8 +65,8 @@ internal sealed class StreamConfigHandler : IEndpointHandler, IDisposable
         httpContext.Response.Headers["X-Accel-Buffering"] = "no";
         await httpContext.Response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-        _activeConnections.Add(1);
-        _totalConnections.Add(1);
+        GroundControlMetrics.SseActiveConnections.Add(1);
+        GroundControlMetrics.SseTotalConnections.Add(1);
 
         try
         {
@@ -147,7 +135,7 @@ internal sealed class StreamConfigHandler : IEndpointHandler, IDisposable
         }
         finally
         {
-            _activeConnections.Add(-1);
+            GroundControlMetrics.SseActiveConnections.Add(-1);
         }
     }
 
@@ -226,5 +214,4 @@ internal sealed class StreamConfigHandler : IEndpointHandler, IDisposable
         return scopes;
     }
 
-    public void Dispose() => _meter.Dispose();
 }

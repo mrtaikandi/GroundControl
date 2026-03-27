@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Snapshots.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
+using GroundControl.Api.Shared.Observability;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -50,6 +51,8 @@ internal sealed class PublishSnapshotHandler : IEndpointHandler
 
     private async Task<IResult> OnPublished(Snapshot snapshot, Guid projectId, CancellationToken cancellationToken)
     {
+        GroundControlMetrics.SnapshotsPublished.Add(1);
+
         var project = await _projectStore.GetByIdAsync(projectId, cancellationToken).ConfigureAwait(false);
         var metadata = new Dictionary<string, string> { ["ProjectId"] = projectId.ToString() };
         await _audit.RecordAsync("Snapshot", snapshot.Id, project?.GroupId, "Published", metadata: metadata, cancellationToken: cancellationToken).ConfigureAwait(false);

@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using GroundControl.Api.Features.ClientApi;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -8,25 +7,16 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.ClientApi;
 
-public sealed class SnapshotCacheTests : IDisposable
+public sealed class SnapshotCacheTests
 {
     private static CancellationToken TestCancellationToken => TestContext.Current.CancellationToken;
 
     private readonly ISnapshotStore _snapshotStore = Substitute.For<ISnapshotStore>();
-    private readonly Meter _meter = new("GroundControl.Test");
     private readonly SnapshotCache _sut;
 
     public SnapshotCacheTests()
     {
-        var meterFactory = Substitute.For<IMeterFactory>();
-        meterFactory.Create(Arg.Any<MeterOptions>()).Returns(_meter);
-        _sut = new SnapshotCache(_snapshotStore, meterFactory);
-    }
-
-    public void Dispose()
-    {
-        _sut.Dispose();
-        _meter.Dispose();
+        _sut = new SnapshotCache(_snapshotStore);
     }
 
     [Fact]

@@ -26,8 +26,9 @@
     <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.3.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.7.0" />
     <PackageVersion Include="MongoDB.Driver.Core" Version="2.30.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.1" />
   </ItemGroup>
   <ItemGroup Label="Test packages">
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.3" />
