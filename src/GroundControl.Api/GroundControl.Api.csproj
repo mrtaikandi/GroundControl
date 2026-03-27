@@ -25,6 +25,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+        <InternalsVisibleTo Include="GroundControl.Link.Tests" />
     </ItemGroup>
 
     <ItemGroup>

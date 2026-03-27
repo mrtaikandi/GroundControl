@@ -109,6 +109,21 @@ public sealed class DefaultConfigFetcherTests : IDisposable
     }
 
     [Fact]
+    public async Task FetchAsync_SendsAuthorizationHeader()
+    {
+        // Arrange
+        _handler.SetResponse(HttpStatusCode.OK, """{"data": {"A": "1"}, "snapshotVersion": 1}""", "\"v1\"");
+
+        // Act
+        await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+
+        // Assert
+        _handler.LastRequest.ShouldNotBeNull();
+        _handler.LastRequest.Headers.TryGetValues("Authorization", out var values).ShouldBeTrue();
+        values.ShouldContain("ApiKey test-client:test-secret");
+    }
+
+    [Fact]
     public async Task FetchAsync_NonSuccessStatusCode_ReturnsNull()
     {
         // Arrange

@@ -286,8 +286,8 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
 
     private static string CreateConfigJson(params (string Key, string Value)[] entries)
     {
-        var entriesArray = entries.Select(e => new { key = e.Key, value = e.Value, valueType = "String" });
-        return JsonSerializer.Serialize(new { entries = entriesArray });
+        var data = entries.ToDictionary(e => e.Key, e => e.Value);
+        return JsonSerializer.Serialize(new { data, snapshotId = Guid.Empty, snapshotVersion = 1 });
     }
 
     private static async IAsyncEnumerable<SseEvent> CreateSseStream(

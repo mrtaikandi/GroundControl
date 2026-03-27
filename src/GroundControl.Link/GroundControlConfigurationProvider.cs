@@ -288,28 +288,8 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         }
     }
 
-    internal static IReadOnlyDictionary<string, string> ParseConfigData(string json)
-    {
-        using var document = JsonDocument.Parse(json);
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        if (!document.RootElement.TryGetProperty("entries", out var entries))
-        {
-            return result;
-        }
-
-        foreach (var entry in entries.EnumerateArray())
-        {
-            if (entry.TryGetProperty("key", out var keyElement) &&
-                entry.TryGetProperty("value", out var valueElement) &&
-                keyElement.GetString() is { } key)
-            {
-                result[key] = valueElement.GetString() ?? string.Empty;
-            }
-        }
-
-        return result;
-    }
+    internal static IReadOnlyDictionary<string, string> ParseConfigData(string json) =>
+        DefaultConfigFetcher.FlattenJson(json);
 
     // --- LoggerMessage definitions ---
 
