@@ -3,6 +3,7 @@ using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -13,12 +14,18 @@ internal sealed class GetSnapshotHandler : IEndpointHandler
 {
     private readonly ISnapshotStore _snapshotStore;
     private readonly SensitiveValueMasker _masker;
-
-    // AuditRecorder is used directly here (rather than via MaskOrDecryptAsync) because snapshot
-    // entries are encrypted and use the synchronous MaskOrDecrypt per-value, with a single audit
-    // record for the whole snapshot instead of per-entry.
     private readonly AuditRecorder _audit;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GetSnapshotHandler"/> class.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="AuditRecorder"/> is injected directly (rather than relying on
+    /// <see cref="SensitiveValueMasker.MaskOrDecryptAsync"/>) because snapshot entry values are
+    /// encrypted at rest and require the synchronous <see cref="SensitiveValueMasker.MaskOrDecrypt"/>
+    /// path which calls <see cref="IValueProtector.Unprotect"/>. A single audit record is written for
+    /// the entire snapshot instead of one per entry.
+    /// </remarks>
     public GetSnapshotHandler(ISnapshotStore snapshotStore, SensitiveValueMasker masker, AuditRecorder audit)
     {
         _snapshotStore = snapshotStore ?? throw new ArgumentNullException(nameof(snapshotStore));
