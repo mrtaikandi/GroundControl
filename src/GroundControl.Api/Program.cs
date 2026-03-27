@@ -22,6 +22,7 @@ using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
 using GroundControl.Api.Shared.Security.Authorization;
+using GroundControl.Api.Shared.Security.Certificate;
 using GroundControl.Api.Shared.Security.KeyRing;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.MongoDb;
@@ -49,6 +50,26 @@ var dataProtectionBuilder = builder.Services.AddDataProtection()
 
 var keyRingConfigurator = new FileSystemKeyRingConfigurator();
 keyRingConfigurator.Configure(dataProtectionBuilder, builder.Configuration);
+
+var certProviderMode = builder.Configuration["DataProtection:CertificateProvider"];
+if (certProviderMode is not null)
+{
+    if (string.Equals(certProviderMode, "FileSystem", StringComparison.OrdinalIgnoreCase))
+    {
+        builder.Services.AddSingleton<IDataProtectionCertificateProvider, FileSystemCertificateProvider>();
+    }
+    else if (string.Equals(certProviderMode, "AzureBlob", StringComparison.OrdinalIgnoreCase))
+    {
+        builder.Services.AddSingleton<IDataProtectionCertificateProvider, AzureBlobCertificateProvider>();
+    }
+    else
+    {
+        throw new InvalidOperationException($"Unknown DataProtection:CertificateProvider mode: '{certProviderMode}'. Supported values are 'FileSystem' and 'AzureBlob'.");
+    }
+
+    builder.Services.AddHostedService<CertificateStartupLogger>();
+}
+
 builder.Services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
 builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();
 builder.Services.AddHttpContextAccessor();
