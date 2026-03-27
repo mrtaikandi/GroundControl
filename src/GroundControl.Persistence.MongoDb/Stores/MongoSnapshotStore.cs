@@ -85,8 +85,31 @@ internal sealed class MongoSnapshotStore : ISnapshotStore
 
     public async Task DeleteOldSnapshotsAsync(Guid projectId, int retentionCount, Guid? activeSnapshotId, CancellationToken cancellationToken = default)
     {
-        // Stub: full implementation provided by T041
-        await Task.CompletedTask.ConfigureAwait(false);
+        if (retentionCount <= 0)
+        {
+            return;
+        }
+
+        var keepIds = await _collection
+            .Find(s => s.ProjectId == projectId)
+            .SortByDescending(s => s.SnapshotVersion)
+            .Limit(retentionCount)
+            .Project(s => s.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var deleteFilter = Builders<Snapshot>.Filter.And(
+            Builders<Snapshot>.Filter.Eq(s => s.ProjectId, projectId),
+            Builders<Snapshot>.Filter.Nin(s => s.Id, keepIds));
+
+        if (activeSnapshotId.HasValue)
+        {
+            deleteFilter = Builders<Snapshot>.Filter.And(
+                deleteFilter,
+                Builders<Snapshot>.Filter.Ne(s => s.Id, activeSnapshotId.Value));
+        }
+
+        await _collection.DeleteManyAsync(deleteFilter, cancellationToken).ConfigureAwait(false);
     }
 
     private static object GetSortValue(Snapshot snapshot, string sortField) => sortField switch
