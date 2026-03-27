@@ -6,6 +6,7 @@ using GroundControl.Api.Features.Audit.Contracts;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
+using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -13,7 +14,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver;
 using Shouldly;
 using Xunit;
 
@@ -306,8 +306,8 @@ public sealed class AuditEndpointTests : ApiHandlerTestBase
         Guid accessibleGroupId)
     {
         using var scope = factory.Services.CreateScope();
-        var roleStore = scope.ServiceProvider.GetRequiredService<Persistence.Stores.IRoleStore>();
-        var userStore = scope.ServiceProvider.GetRequiredService<Persistence.Stores.IUserStore>();
+        var roleStore = scope.ServiceProvider.GetRequiredService<IRoleStore>();
+        var userStore = scope.ServiceProvider.GetRequiredService<IUserStore>();
 
         var roleId = Guid.CreateVersion7();
         await roleStore.CreateAsync(new Role
@@ -341,8 +341,8 @@ public sealed class AuditEndpointTests : ApiHandlerTestBase
         WebApplicationFactory<Program> factory)
     {
         using var scope = factory.Services.CreateScope();
-        var roleStore = scope.ServiceProvider.GetRequiredService<Persistence.Stores.IRoleStore>();
-        var userStore = scope.ServiceProvider.GetRequiredService<Persistence.Stores.IUserStore>();
+        var roleStore = scope.ServiceProvider.GetRequiredService<IRoleStore>();
+        var userStore = scope.ServiceProvider.GetRequiredService<IUserStore>();
 
         var roleId = Guid.CreateVersion7();
         await roleStore.CreateAsync(new Role

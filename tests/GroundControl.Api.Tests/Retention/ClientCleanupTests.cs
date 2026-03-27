@@ -1,4 +1,3 @@
-using GroundControl.Api.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.Extensions.DependencyInjection;

@@ -23,7 +23,7 @@ internal sealed partial class SecurityOptions
     /// Gets or sets the CSRF protection options.
     /// </summary>
     public CsrfOptions Csrf { get; set; } = new();
-  
+
     /// <summary>
     /// Gets or sets the external OIDC authentication options.
     /// </summary>

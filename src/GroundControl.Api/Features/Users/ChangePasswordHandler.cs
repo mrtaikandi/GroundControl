@@ -4,7 +4,6 @@ using GroundControl.Api.Features.Users.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security.Auth;
-using GroundControl.Api.Shared.Validation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 

@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Features.Snapshots;
-using GroundControl.Api.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;

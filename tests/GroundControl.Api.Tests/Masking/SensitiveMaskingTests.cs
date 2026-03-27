@@ -11,14 +11,13 @@ using GroundControl.Api.Shared.Pagination;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Persistence.Contracts;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using Shouldly;
 using Xunit;
-using ConfigEntryScopedValueRequest = global::GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest;
-using VariableScopedValueRequest = global::GroundControl.Api.Features.Variables.Contracts.ScopedValueRequest;
+using ConfigEntryScopedValueRequest = GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest;
+using VariableScopedValueRequest = GroundControl.Api.Features.Variables.Contracts.ScopedValueRequest;
 
 namespace GroundControl.Api.Tests.Masking;
 
