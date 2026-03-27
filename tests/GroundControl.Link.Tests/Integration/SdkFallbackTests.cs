@@ -185,13 +185,13 @@ public sealed class SdkFallbackTests : IDisposable
             },
             NullLogger<FileConfigCache>.Instance);
 
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Provider owns and disposes SSE client and HttpClient via Dispose")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "SSE client owns its HttpClient; provider disposes SSE client")]
     private static GroundControlConfigurationProvider CreateProviderWithUnreachableServer(GroundControlOptions options)
     {
-        var httpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl) };
-
-        var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
-        var configFetcher = new DefaultConfigFetcher(httpClient, options, NullLogger<DefaultConfigFetcher>.Instance);
+        // Use the public constructor so the SSE client creates and owns its own HttpClient
+        var sseClient = new DefaultSseClient(options, NullLogger<DefaultSseClient>.Instance);
+        var fetcherHttpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl) };
+        var configFetcher = new DefaultConfigFetcher(fetcherHttpClient, options, NullLogger<DefaultConfigFetcher>.Instance);
         IConfigCache configCache = options.EnableLocalCache
             ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
             : NullConfigCache.Instance;

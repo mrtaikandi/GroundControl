@@ -26,7 +26,7 @@ public abstract class SdkIntegrationTestBase
     /// Creates a <see cref="GroundControlConfigurationProvider"/> wired to real SDK components
     /// pointing at the given test server.
     /// </summary>
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Provider owns and disposes SSE client via IAsyncDisposable")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; SSE client and provider are disposed by test via using")]
     protected static GroundControlConfigurationProvider CreateSdkProvider(
         HttpClient serverHttpClient,
         Guid clientId,

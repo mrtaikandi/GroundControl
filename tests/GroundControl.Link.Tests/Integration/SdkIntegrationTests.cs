@@ -209,8 +209,6 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
         provider.TryGet("any.key", out _).ShouldBeFalse();
     }
 
-    #region Test Helpers
-
     private static async Task<ProjectResponse> CreateProjectAsync(HttpClient httpClient)
     {
         var request = new CreateProjectRequest
@@ -274,5 +272,4 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
-    #endregion
 }

@@ -46,6 +46,9 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
             configurationBuilder.AddInMemoryCollection(config);
         });
 
+        // WebApplicationFactory applies config overrides AFTER Program.cs eagerly reads
+        // GroundControlOptions, so auth mode selection in Program.cs always sees the default.
+        // Re-apply auth services here when the test config specifies a non-default mode.
         builder.ConfigureServices((context, services) =>
         {
             var authMode = context.Configuration.GetValue<ApiAuthenticationMode>("GroundControl:Security:AuthenticationMode");
