@@ -11,7 +11,7 @@ internal sealed partial class CertificateStartupLogger(
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var certificate = await provider.GetCurrentCertificateAsync(cancellationToken).ConfigureAwait(false);
+        using var certificate = await provider.GetCurrentCertificateAsync(cancellationToken).ConfigureAwait(false);
         LogCertificateReady(logger, certificate.Thumbprint);
     }
 
