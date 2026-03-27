@@ -1,1 +1,9 @@
+global using System.Text.Json;
+global using System.Threading.Channels;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Logging.Abstractions;
+global using NSubstitute;
+global using NSubstitute.ExceptionExtensions;
+global using Shouldly;
 global using Xunit;
