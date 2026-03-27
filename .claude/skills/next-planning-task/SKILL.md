@@ -46,13 +46,17 @@ This keeps the main context clean for implementation.
 
 ### Phase 2: Worktree Setup
 
-1. Call `EnterWorktree` with name `m##-t###-short-name` (e.g., `m02-t009-scope-crud`) where `short-name` is a kebab-case summary derived from the task title.
-2. Rename the branch to use slash-separated format:
+1. Pull the latest main branch before creating the worktree:
+   ```
+   git pull origin main
+   ```
+2. Call `EnterWorktree` with name `m##-t###-short-name` (e.g., `m02-t009-scope-crud`) where `short-name` is a kebab-case summary derived from the task title.
+3. Rename the branch to use slash-separated format:
    ```
    git branch -m <current-branch> m##/t###-short-name
    ```
    For example: `m02/t009-scope-crud`. Use lowercase, zero-padded numbers matching the actual milestone and task IDs.
-3. If `EnterWorktree` fails (e.g., already in a worktree), stop and ask the user how to proceed.
+4. If `EnterWorktree` fails (e.g., already in a worktree), stop and ask the user how to proceed.
 
 ### Phase 3: Implementation
 
@@ -80,41 +84,36 @@ This keeps the main context clean for implementation.
    ```
 4. Report the PR URL to the user.
 
-### Phase 5: User Checkpoint
+### Phase 5: Code Review Loop
+
+1. Spawn a **reviewer agent** following the Reviewer Agent Guidelines below.
+2. The reviewer returns a structured verdict (`APPROVE` or `REQUEST_CHANGES`) with comments.
+3. **If `REQUEST_CHANGES`:**
+   a. Address each actionable comment — fix the code, commit, and push.
+   b. Automatically re-spawn the reviewer agent to verify the fixes.
+   c. Repeat until the reviewer returns `APPROVE` or **3 review rounds** have been completed.
+4. **If 3 rounds complete without `APPROVE`:** stop and ask the user how to proceed.
+
+### Phase 6: User Checkpoint
 
 **Pause and wait for the user.** Present:
 
 - The PR URL
 - A brief summary of what was implemented and verified
-- The prompt using "AskUserQuestion" tool: "Review the PR. You can ask questions, request changes, or say **continue** to proceed to code review."
+- The code review outcome (approved, or summary of remaining issues if stopped after 3 rounds)
+- The prompt using "AskUserQuestion" tool: "PR created and code review passed. Say **done** to mark the task complete, or request changes."
 
 The user may:
 
 - **Ask questions** about the implementation — answer them.
-- **Request changes** — make them in the worktree, commit, and push.
-- **Say "continue"** or **"review"** — proceed to Phase 6.
-- **Say "skip review"** — skip Phase 6 and go directly to Phase 7.
+- **Request changes** — make them in the worktree, commit, push, and re-run the review loop (Phase 5).
+- **Say "done"** — proceed to Phase 7.
 
 **Do not proceed past this phase without explicit user input.**
 
-### Phase 6: Code Review Loop
-
-1. Spawn a **reviewer agent** following the Reviewer Agent Guidelines below.
-2. The reviewer returns a structured verdict (`APPROVE` or `REQUEST_CHANGES`) with comments.
-3. **If `REQUEST_CHANGES`:**
-   a. Present the review comments to the user for visibility.
-   b. Address each actionable comment — fix the code, commit, and push.
-   c. Automatically re-spawn the reviewer agent to verify the fixes.
-   d. Repeat until the reviewer returns `APPROVE` or **3 review rounds** have been completed.
-4. **If 3 rounds complete without `APPROVE`:** stop and ask the user how to proceed.
-5. **Once the review passes (`APPROVE`):** present the final status to the user:
-   "Code review passed. Say **done** to mark the task complete, or continue iterating."
-
-**Wait for the user to confirm before proceeding to Phase 7.**
-
 ### Phase 7: Completion
 
-1. **Exit the worktree:** call `ExitWorktree` with `action: "remove"`. The branch exists on the remote; if changes are needed later, a fresh worktree can be created from the remote branch.
+1. **Exit the worktree:** call `ExitWorktree` with `action: "remove"` and `discard_changes: true`. The branch exists on the remote; if changes are needed later, a fresh worktree can be created from the remote branch.
 2. **Update planning files** on the main branch, following the shared conventions in `.claude/skills/_shared/planning-conventions.md`:
    - **Task file:** set `status: completed`, check off completed implementation checklist items and acceptance criteria, update `Output / Evidence` with the PR URL and verification results, note any deviations in `Post-Implementation Notes`.
    - **Milestone file:** update the task row to `completed`. Set milestone to `in-progress` if it was `planned`.
@@ -154,7 +153,7 @@ Read and follow the shared conventions in `.claude/skills/_shared/planning-conve
 - Never skip dependency checks when auto-selecting the next task.
 - Never jump straight from task selection to implementation without first reading the task's planning documents.
 - If the user asks for a later task out of order, follow the request but call out unmet dependencies and risk.
-- Never proceed past Phase 5 (user checkpoint) or Phase 6 (review approval) without user confirmation.
+- Never proceed past Phase 6 (user checkpoint) without user confirmation.
 - Never update planning files while still in the worktree — always `ExitWorktree` first so updates land on main.
 - Never mark a task `completed` if verification failed and was not resolved.
 - If `EnterWorktree` fails, stop and ask the user how to proceed.
