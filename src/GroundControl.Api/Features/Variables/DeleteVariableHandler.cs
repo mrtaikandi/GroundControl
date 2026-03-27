@@ -1,4 +1,5 @@
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
@@ -9,10 +10,12 @@ namespace GroundControl.Api.Features.Variables;
 internal sealed class DeleteVariableHandler : IEndpointHandler
 {
     private readonly IVariableStore _store;
+    private readonly AuditRecorder _audit;
 
-    public DeleteVariableHandler(IVariableStore store)
+    public DeleteVariableHandler(IVariableStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -36,11 +39,15 @@ internal sealed class DeleteVariableHandler : IEndpointHandler
             return problem;
         }
 
+        var variable = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+
         var deleted = await _store.DeleteAsync(id, expectedVersion, cancellationToken).ConfigureAwait(false);
         if (!deleted)
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        await _audit.RecordAsync("Variable", id, variable?.GroupId, "Deleted", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

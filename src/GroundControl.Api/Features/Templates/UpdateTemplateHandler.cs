@@ -1,7 +1,9 @@
 using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +12,12 @@ namespace GroundControl.Api.Features.Templates;
 internal sealed class UpdateTemplateHandler : IEndpointHandler
 {
     private readonly ITemplateStore _store;
+    private readonly AuditRecorder _audit;
 
-    public UpdateTemplateHandler(ITemplateStore store)
+    public UpdateTemplateHandler(ITemplateStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -45,6 +49,10 @@ internal sealed class UpdateTemplateHandler : IEndpointHandler
             return problem;
         }
 
+        var oldName = template.Name;
+        var oldDescription = template.Description;
+        var oldGroupId = template.GroupId;
+
         template.Name = request.Name;
         template.Description = request.Description;
         template.GroupId = request.GroupId;
@@ -56,6 +64,14 @@ internal sealed class UpdateTemplateHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        List<FieldChange> changes = [
+            .. AuditRecorder.CompareFields("Name", oldName, template.Name),
+            .. AuditRecorder.CompareFields("Description", oldDescription, template.Description),
+            .. AuditRecorder.CompareFields("GroupId", oldGroupId, template.GroupId),
+        ];
+
+        await _audit.RecordAsync("Template", template.Id, template.GroupId, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(template.Version);
         return TypedResults.Ok(TemplateResponse.From(template));

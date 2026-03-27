@@ -2,6 +2,7 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using GroundControl.Api.Features.Clients.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Api.Shared.Validation;
@@ -15,11 +16,13 @@ internal sealed class CreateClientHandler : IEndpointHandler
 {
     private readonly IClientStore _store;
     private readonly IValueProtector _protector;
+    private readonly AuditRecorder _audit;
 
-    public CreateClientHandler(IClientStore store, IValueProtector protector)
+    public CreateClientHandler(IClientStore store, IValueProtector protector, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -58,6 +61,8 @@ internal sealed class CreateClientHandler : IEndpointHandler
         };
 
         await _store.CreateAsync(client, cancellationToken).ConfigureAwait(false);
+
+        await _audit.RecordAsync("Client", client.Id, null, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.Created(
             $"/api/projects/{projectId}/clients/{client.Id}",

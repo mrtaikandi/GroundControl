@@ -1,4 +1,5 @@
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
@@ -11,11 +12,13 @@ internal sealed class DeleteTemplateHandler : IEndpointHandler
 {
     private readonly IConfigEntryStore _configEntryStore;
     private readonly ITemplateStore _store;
+    private readonly AuditRecorder _audit;
 
-    public DeleteTemplateHandler(ITemplateStore store, IConfigEntryStore configEntryStore)
+    public DeleteTemplateHandler(ITemplateStore store, IConfigEntryStore configEntryStore, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _configEntryStore = configEntryStore ?? throw new ArgumentNullException(nameof(configEntryStore));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -39,6 +42,8 @@ internal sealed class DeleteTemplateHandler : IEndpointHandler
             return problem;
         }
 
+        var template = await _store.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+
         var deleted = await _store.DeleteAsync(id, expectedVersion, cancellationToken).ConfigureAwait(false);
         if (!deleted)
         {
@@ -46,6 +51,8 @@ internal sealed class DeleteTemplateHandler : IEndpointHandler
         }
 
         await _configEntryStore.DeleteAllByOwnerAsync(id, ConfigEntryOwnerType.Template, cancellationToken).ConfigureAwait(false);
+
+        await _audit.RecordAsync("Template", id, template?.GroupId, "Deleted", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

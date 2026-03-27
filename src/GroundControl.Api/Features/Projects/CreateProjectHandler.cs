@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence;
@@ -12,10 +13,12 @@ namespace GroundControl.Api.Features.Projects;
 internal sealed class CreateProjectHandler : IEndpointHandler
 {
     private readonly IProjectStore _store;
+    private readonly AuditRecorder _audit;
 
-    public CreateProjectHandler(IProjectStore store)
+    public CreateProjectHandler(IProjectStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -56,6 +59,8 @@ internal sealed class CreateProjectHandler : IEndpointHandler
                 detail: $"A project with name '{request.Name}' already exists for this group.",
                 statusCode: StatusCodes.Status409Conflict);
         }
+
+        await _audit.RecordAsync("Project", project.Id, project.GroupId, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.Created($"/api/projects/{project.Id}", ProjectResponse.From(project));
     }

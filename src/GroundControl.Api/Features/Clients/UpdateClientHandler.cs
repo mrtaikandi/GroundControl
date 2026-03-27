@@ -1,6 +1,8 @@
 using GroundControl.Api.Features.Clients.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +11,12 @@ namespace GroundControl.Api.Features.Clients;
 internal sealed class UpdateClientHandler : IEndpointHandler
 {
     private readonly IClientStore _store;
+    private readonly AuditRecorder _audit;
 
-    public UpdateClientHandler(IClientStore store)
+    public UpdateClientHandler(IClientStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -44,6 +48,10 @@ internal sealed class UpdateClientHandler : IEndpointHandler
             return problem;
         }
 
+        var oldName = client.Name;
+        var oldIsActive = client.IsActive;
+        var oldExpiresAt = client.ExpiresAt;
+
         client.Name = request.Name;
         client.IsActive = request.IsActive;
         client.ExpiresAt = request.ExpiresAt;
@@ -55,6 +63,14 @@ internal sealed class UpdateClientHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        List<FieldChange> changes = [
+            .. AuditRecorder.CompareFields("Name", oldName, client.Name),
+            .. AuditRecorder.CompareFields("IsActive", oldIsActive.ToString(), client.IsActive.ToString()),
+            .. AuditRecorder.CompareFields("ExpiresAt", oldExpiresAt?.ToString("O"), client.ExpiresAt?.ToString("O")),
+        ];
+
+        await _audit.RecordAsync("Client", client.Id, null, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(client.Version);
         return TypedResults.Ok(ClientResponse.From(client));

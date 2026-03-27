@@ -1,7 +1,9 @@
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Notification;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,12 +14,14 @@ internal sealed class ActivateSnapshotHandler : IEndpointHandler
     private readonly IProjectStore _projectStore;
     private readonly ISnapshotStore _snapshotStore;
     private readonly IChangeNotifier _changeNotifier;
+    private readonly AuditRecorder _audit;
 
-    public ActivateSnapshotHandler(IProjectStore projectStore, ISnapshotStore snapshotStore, IChangeNotifier changeNotifier)
+    public ActivateSnapshotHandler(IProjectStore projectStore, ISnapshotStore snapshotStore, IChangeNotifier changeNotifier, AuditRecorder audit)
     {
         _projectStore = projectStore ?? throw new ArgumentNullException(nameof(projectStore));
         _snapshotStore = snapshotStore ?? throw new ArgumentNullException(nameof(snapshotStore));
         _changeNotifier = changeNotifier ?? throw new ArgumentNullException(nameof(changeNotifier));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -56,6 +60,8 @@ internal sealed class ActivateSnapshotHandler : IEndpointHandler
                 statusCode: StatusCodes.Status409Conflict);
         }
 
+        var oldSnapshotId = project.ActiveSnapshotId;
+
         var activated = await _projectStore.ActivateSnapshotAsync(projectId, id, project.Version, cancellationToken).ConfigureAwait(false);
         if (!activated)
         {
@@ -65,6 +71,9 @@ internal sealed class ActivateSnapshotHandler : IEndpointHandler
         }
 
         await _changeNotifier.NotifyAsync(projectId, id, cancellationToken).ConfigureAwait(false);
+
+        List<FieldChange> changes = [.. AuditRecorder.CompareFields("ActiveSnapshotId", oldSnapshotId, id)];
+        await _audit.RecordAsync("Snapshot", id, project.GroupId, "Activated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var updatedProject = await _projectStore.GetByIdAsync(projectId, cancellationToken).ConfigureAwait(false);
         return TypedResults.Ok(ProjectResponse.From(updatedProject!));

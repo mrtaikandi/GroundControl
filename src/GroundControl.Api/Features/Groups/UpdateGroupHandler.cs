@@ -1,7 +1,9 @@
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
+using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +12,12 @@ namespace GroundControl.Api.Features.Groups;
 internal sealed class UpdateGroupHandler : IEndpointHandler
 {
     private readonly IGroupStore _store;
+    private readonly AuditRecorder _audit;
 
-    public UpdateGroupHandler(IGroupStore store)
+    public UpdateGroupHandler(IGroupStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -45,6 +49,9 @@ internal sealed class UpdateGroupHandler : IEndpointHandler
             return problem;
         }
 
+        var oldName = group.Name;
+        var oldDescription = group.Description;
+
         group.Name = request.Name;
         group.Description = request.Description;
         group.UpdatedAt = DateTimeOffset.UtcNow;
@@ -55,6 +62,13 @@ internal sealed class UpdateGroupHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        List<FieldChange> changes = [
+            .. AuditRecorder.CompareFields("Name", oldName, group.Name),
+            .. AuditRecorder.CompareFields("Description", oldDescription, group.Description),
+        ];
+
+        await _audit.RecordAsync("Group", group.Id, null, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(group.Version);
         return TypedResults.Ok(GroupResponse.From(group));

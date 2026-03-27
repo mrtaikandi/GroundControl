@@ -1,4 +1,5 @@
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
@@ -9,10 +10,12 @@ namespace GroundControl.Api.Features.ConfigEntries;
 internal sealed class DeleteConfigEntryHandler : IEndpointHandler
 {
     private readonly IConfigEntryStore _store;
+    private readonly AuditRecorder _audit;
 
-    public DeleteConfigEntryHandler(IConfigEntryStore store)
+    public DeleteConfigEntryHandler(IConfigEntryStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -41,6 +44,8 @@ internal sealed class DeleteConfigEntryHandler : IEndpointHandler
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
+
+        await _audit.RecordAsync("ConfigEntry", id, null, "Deleted", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

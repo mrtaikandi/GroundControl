@@ -1,5 +1,6 @@
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
@@ -11,10 +12,12 @@ namespace GroundControl.Api.Features.Scopes;
 internal sealed class CreateScopeHandler : IEndpointHandler
 {
     private readonly IScopeStore _store;
+    private readonly AuditRecorder _audit;
 
-    public CreateScopeHandler(IScopeStore store)
+    public CreateScopeHandler(IScopeStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -45,6 +48,8 @@ internal sealed class CreateScopeHandler : IEndpointHandler
         };
 
         await _store.CreateAsync(scope, cancellationToken).ConfigureAwait(false);
+
+        await _audit.RecordAsync("Scope", scope.Id, null, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.Created($"/api/scopes/{scope.Id}", ScopeResponse.From(scope));
     }

@@ -11,6 +11,7 @@ using GroundControl.Api.Features.Templates;
 using GroundControl.Api.Features.PersonalAccessTokens;
 using GroundControl.Api.Features.Users;
 using GroundControl.Api.Features.Variables;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Health;
 using GroundControl.Api.Shared.Notification;
@@ -43,6 +44,8 @@ var keyRingConfigurator = new FileSystemKeyRingConfigurator();
 keyRingConfigurator.Configure(dataProtectionBuilder, builder.Configuration);
 builder.Services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
 builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditRecorder>();
 
 builder.Services.AddApiVersioning(options =>
 {

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,10 +9,12 @@ namespace GroundControl.Api.Features.PersonalAccessTokens;
 internal sealed class RevokePatHandler : IEndpointHandler
 {
     private readonly IPersonalAccessTokenStore _store;
+    private readonly AuditRecorder _audit;
 
-    public RevokePatHandler(IPersonalAccessTokenStore store)
+    public RevokePatHandler(IPersonalAccessTokenStore store, AuditRecorder audit)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -44,6 +47,8 @@ internal sealed class RevokePatHandler : IEndpointHandler
         }
 
         await _store.RevokeAsync(id, cancellationToken).ConfigureAwait(false);
+
+        await _audit.RecordAsync("PersonalAccessToken", id, null, "Revoked", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Features.Users.Contracts;
 using GroundControl.Api.Shared;
+using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security.Auth;
 using GroundControl.Api.Shared.Validation;
 using Microsoft.AspNetCore.Identity;
@@ -13,11 +14,13 @@ internal sealed class ChangePasswordHandler : IEndpointHandler
 {
     private readonly IAuthConfigurator _authConfigurator;
     private readonly IServiceProvider _serviceProvider;
+    private readonly AuditRecorder _audit;
 
-    public ChangePasswordHandler(IAuthConfigurator authConfigurator, IServiceProvider serviceProvider)
+    public ChangePasswordHandler(IAuthConfigurator authConfigurator, IServiceProvider serviceProvider, AuditRecorder audit)
     {
         _authConfigurator = authConfigurator ?? throw new ArgumentNullException(nameof(authConfigurator));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -67,6 +70,8 @@ internal sealed class ChangePasswordHandler : IEndpointHandler
                 detail: errors,
                 statusCode: StatusCodes.Status422UnprocessableEntity);
         }
+
+        await _audit.RecordAsync("User", id, null, "PasswordChanged", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return TypedResults.NoContent();
     }
