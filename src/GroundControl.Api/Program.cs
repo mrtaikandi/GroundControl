@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using GroundControl.Api.Features.Audit;
 using GroundControl.Api.Features.ClientApi;
 using GroundControl.Api.Features.Clients;
 using GroundControl.Api.Features.ConfigEntries;
@@ -84,6 +85,7 @@ if (builder.Configuration.GetValue<bool>("Cache:PrewarmOnStartup"))
     builder.Services.AddHostedService<SnapshotCacheWarmupService>();
 }
 
+builder.Services.AddAuditHandlers();
 builder.Services.AddScopesHandlers();
 builder.Services.AddGroupsHandlers();
 builder.Services.AddRolesHandlers();
@@ -119,6 +121,7 @@ authConfigurator = app.Services.GetRequiredService<IAuthConfigurator>();
 authConfigurator.ConfigureMiddleware(app);
 authConfigurator.MapEndpoints(app);
 
+app.MapAuditEndpoints();
 app.MapScopesEndpoints();
 app.MapGroupsEndpoints();
 app.MapRolesEndpoints();
