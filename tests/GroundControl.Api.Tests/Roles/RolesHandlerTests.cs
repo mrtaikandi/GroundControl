@@ -7,7 +7,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Roles;
 
-[Collection("MongoDB")]
 public sealed class RolesHandlerTests : ApiHandlerTestBase
 {
     public RolesHandlerTests(MongoFixture mongoFixture)

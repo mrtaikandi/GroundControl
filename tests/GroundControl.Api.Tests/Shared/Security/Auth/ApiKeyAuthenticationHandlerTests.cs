@@ -12,7 +12,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Shared.Security.Auth;
 
-[Collection("MongoDB")]
 public sealed class ApiKeyAuthenticationHandlerTests : ApiHandlerTestBase
 {
     public ApiKeyAuthenticationHandlerTests(MongoFixture mongoFixture)

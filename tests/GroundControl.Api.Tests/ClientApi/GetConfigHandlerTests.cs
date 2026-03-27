@@ -14,7 +14,6 @@ using ScopedValueRequest = GroundControl.Api.Features.ConfigEntries.Contracts.Sc
 
 namespace GroundControl.Api.Tests.ClientApi;
 
-[Collection("MongoDB")]
 public sealed class GetConfigHandlerTests : ApiHandlerTestBase
 {
     public GetConfigHandlerTests(MongoFixture mongoFixture)

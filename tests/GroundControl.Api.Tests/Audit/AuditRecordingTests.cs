@@ -11,7 +11,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Audit;
 
-[Collection("MongoDB")]
 public sealed class AuditRecordingTests : ApiHandlerTestBase
 {
     public AuditRecordingTests(MongoFixture mongoFixture)

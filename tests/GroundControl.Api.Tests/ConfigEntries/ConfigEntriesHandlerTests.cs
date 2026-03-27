@@ -10,7 +10,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.ConfigEntries;
 
-[Collection("MongoDB")]
 public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
 {
     public ConfigEntriesHandlerTests(MongoFixture mongoFixture)

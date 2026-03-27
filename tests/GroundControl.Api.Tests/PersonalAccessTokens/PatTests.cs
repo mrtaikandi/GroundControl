@@ -12,7 +12,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.PersonalAccessTokens;
 
-[Collection("MongoDB")]
 public sealed class PatTests : ApiHandlerTestBase
 {
     private static readonly string JwtSecret = Convert.ToBase64String(

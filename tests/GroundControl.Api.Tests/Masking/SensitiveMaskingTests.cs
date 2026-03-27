@@ -21,7 +21,6 @@ using VariableScopedValueRequest = GroundControl.Api.Features.Variables.Contract
 
 namespace GroundControl.Api.Tests.Masking;
 
-[Collection("MongoDB")]
 public sealed class SensitiveMaskingTests : ApiHandlerTestBase
 {
     public SensitiveMaskingTests(MongoFixture mongoFixture)

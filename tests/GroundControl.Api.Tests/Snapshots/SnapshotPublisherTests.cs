@@ -19,7 +19,6 @@ using ScopedValueRequest = GroundControl.Api.Features.ConfigEntries.Contracts.Sc
 
 namespace GroundControl.Api.Tests.Snapshots;
 
-[Collection("MongoDB")]
 public sealed class SnapshotPublisherTests : ApiHandlerTestBase
 {
     public SnapshotPublisherTests(MongoFixture mongoFixture)

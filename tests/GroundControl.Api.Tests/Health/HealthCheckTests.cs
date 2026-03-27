@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
 using GroundControl.Api.Shared.Notification;
@@ -12,7 +13,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Health;
 
-[Collection("MongoDB")]
 public sealed class HealthCheckTests : ApiHandlerTestBase
 {
     public HealthCheckTests(MongoFixture mongoFixture)
@@ -195,7 +195,7 @@ public sealed class HealthCheckTests : ApiHandlerTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "WithWebHostBuilder wraps and disposes the inner factory")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "WithWebHostBuilder wraps and disposes the inner factory")]
     private static WebApplicationFactory<Program> CreateFactoryWithUnreachableMongo()
     {
         return new WebApplicationFactory<Program>()

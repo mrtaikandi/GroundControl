@@ -19,7 +19,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Audit;
 
-[Collection("MongoDB")]
 public sealed class AuditEndpointTests : ApiHandlerTestBase
 {
     private const string TestUserIdHeader = "X-Test-User-Id";

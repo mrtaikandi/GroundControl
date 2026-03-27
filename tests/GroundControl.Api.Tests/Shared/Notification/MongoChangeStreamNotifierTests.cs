@@ -9,7 +9,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Shared.Notification;
 
-[Collection("MongoDB")]
 public sealed class MongoChangeStreamNotifierTests
 {
     private readonly MongoFixture _mongoFixture;

@@ -14,7 +14,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Auth;
 
-[Collection("MongoDB")]
 public sealed class ExternalAuthTests : ApiHandlerTestBase
 {
     private const string ProviderName = "test-oidc";

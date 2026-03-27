@@ -9,7 +9,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Auth;
 
-[Collection("MongoDB")]
 public sealed class AuthEndpointTests : ApiHandlerTestBase
 {
     private static readonly string JwtSecret = Convert.ToBase64String(

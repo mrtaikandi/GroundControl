@@ -12,7 +12,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Projects;
 
-[Collection("MongoDB")]
 public sealed class ProjectsHandlerTests : ApiHandlerTestBase
 {
     public ProjectsHandlerTests(MongoFixture mongoFixture)

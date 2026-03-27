@@ -21,7 +21,6 @@ namespace GroundControl.Api.Tests.Shared.Security.Authorization;
 /// Integration tests that verify authorization behavior through the full HTTP pipeline.
 /// Uses a test authentication handler to simulate authenticated users with specific grants.
 /// </summary>
-[Collection("MongoDB")]
 public sealed class AuthorizationIntegrationTests : ApiHandlerTestBase
 {
     private const string TestUserIdHeader = "X-Test-User-Id";

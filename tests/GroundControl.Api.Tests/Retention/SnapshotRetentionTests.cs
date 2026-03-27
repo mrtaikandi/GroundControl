@@ -13,7 +13,6 @@ using ScopedValueRequest = GroundControl.Api.Features.ConfigEntries.Contracts.Sc
 
 namespace GroundControl.Api.Tests.Retention;
 
-[Collection("MongoDB")]
 public sealed class SnapshotRetentionTests : ApiHandlerTestBase
 {
     public SnapshotRetentionTests(MongoFixture mongoFixture)

@@ -9,7 +9,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Templates;
 
-[Collection("MongoDB")]
 public sealed class TemplatesHandlerTests : ApiHandlerTestBase
 {
     public TemplatesHandlerTests(MongoFixture mongoFixture)

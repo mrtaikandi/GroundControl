@@ -7,7 +7,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Retention;
 
-[Collection("MongoDB")]
 public sealed class ClientCleanupTests : ApiHandlerTestBase
 {
     public ClientCleanupTests(MongoFixture mongoFixture)

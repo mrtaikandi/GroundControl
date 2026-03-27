@@ -14,7 +14,6 @@ using ScopedValueRequest = GroundControl.Api.Features.ConfigEntries.Contracts.Sc
 
 namespace GroundControl.Api.Tests.ClientApi;
 
-[Collection("MongoDB")]
 public sealed class StreamConfigHandlerTests : ApiHandlerTestBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
