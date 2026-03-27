@@ -36,40 +36,50 @@ The simplest deployment: one GroundControl API container and one MongoDB contain
 - No load balancer required.
 - Suitable for personal use, small teams, or development environments.
 
-**Docker Compose example:**
+**Docker Compose quick start:**
+
+```bash
+docker compose up
+```
+
+The repository ships a `docker-compose.yml` at the solution root that starts MongoDB (single-node replica set) and the GroundControl API. MongoDB is initialized with `infra/mongo-init.js`, which calls `rs.initiate()` on first startup to enable change stream support.
 
 ```yaml
 services:
   mongodb:
     image: mongo:8
-    command: ["--replSet", "rs0"]
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     volumes:
-      - mongo-data:/data/db
-    ports:
-      - "27017:27017"
+      - mongo_data:/data/db
+      - ./infra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
 
-  groundcontrol:
-    image: groundcontrol/api:latest
-    environment:
-      - ConnectionStrings__MongoDB=mongodb://mongodb:27017/groundcontrol
-      - ChangeNotifier__Type=InProcess
-      - DataProtection__KeyRing=FileSystem
-      - DataProtection__KeyStorePath=/app/keys
-    volumes:
-      - dp-keys:/app/keys
+  api:
+    build: .
     ports:
       - "8080:8080"
+    volumes:
+      - dp_keys:/keys
+    environment:
+      ConnectionStrings__Storage: "mongodb://mongodb:27017/?replicaSet=rs0"
+      Persistence__MongoDb__DatabaseName: "groundcontrol"
+      GroundControl__Security__AuthenticationMode: "None"
+      DataProtection__Mode: "FileSystem"
+      DataProtection__KeyStorePath: "/keys"
+      ChangeNotifier__Mode: "InProcess"
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
 
 volumes:
-  mongo-data:
-  dp-keys:
+  mongo_data:
+  dp_keys:
 ```
 
-On Windows hosts, set `DataProtection__UseDpapi=true` for additional key ring protection. On Linux, consider `CertificateFile` with a self-signed certificate for production use.
+The API container runs as a non-root user and exposes port 8080. Health endpoints are available at `/healthz/liveness` and `/healthz/ready`. For production use, change `GroundControl__Security__AuthenticationMode` from `None` to `BuiltIn` or `External` and add a TLS-terminating reverse proxy in front.
 
-A one-time MongoDB replica set initiation script is included to run `rs.initiate()` on first startup.
+On Linux, consider `DataProtection__Mode=Certificate` with a self-signed `.pfx` for key ring protection.
 
 ---
 
@@ -112,11 +122,12 @@ Multiple GroundControl API pods behind a service, backed by a MongoDB replica se
 
 ```yaml
 environment:
-  - ChangeNotifier__Type=MongoChangeStream
-  - ConnectionStrings__MongoDB=mongodb://mongo-0,mongo-1,mongo-2:27017/groundcontrol?replicaSet=rs0
-  - DataProtection__KeyRing=Certificate
+  - ChangeNotifier__Mode=MongoChangeStream
+  - ConnectionStrings__Storage=mongodb://mongo-0,mongo-1,mongo-2:27017/?replicaSet=rs0
+  - Persistence__MongoDb__DatabaseName=groundcontrol
+  - DataProtection__Mode=Certificate
   - DataProtection__KeyStorePath=/app/keys
-  - DataProtection__Certificate__Provider=FileSystem
+  - DataProtection__CertificateProvider=FileSystem
   - DataProtection__Certificate__FileSystem__CurrentPath=/certs/dp-current.pfx
   - DataProtection__Certificate__FileSystem__Password=<from-k8s-secret>
   - DataProtection__Certificate__FileSystem__PreviousPaths__0=/certs/dp-previous.pfx  # only during rotation
@@ -163,9 +174,10 @@ Multiple Kubernetes clusters across regions, each with their own GroundControl A
 
 ```yaml
 environment:
-  - ChangeNotifier__Type=MongoChangeStream
-  - ConnectionStrings__MongoDB=mongodb+srv://cluster.example.com/groundcontrol?readPreference=secondaryPreferred
-  - DataProtection__KeyRing=Azure
+  - ChangeNotifier__Mode=MongoChangeStream
+  - ConnectionStrings__Storage=mongodb+srv://cluster.example.com/?readPreference=secondaryPreferred
+  - Persistence__MongoDb__DatabaseName=groundcontrol
+  - DataProtection__Mode=Azure
   - DataProtection__Azure__BlobStorageUri=https://<account>.blob.core.windows.net/data-protection/keys.xml
   - DataProtection__Azure__KeyVaultKeyUri=https://<vault>.vault.azure.net/keys/groundcontrol-dp
 ```
@@ -191,9 +203,9 @@ IChangeNotifier
 
 | Implementation | When to Use | Configuration |
 |---------------|-------------|---------------|
-| `InProcessChangeNotifier` | Single instance (homelab) | `ChangeNotifier:Type = InProcess` |
-| `MongoChangeStreamNotifier` | Multi-instance (K8s, multi-region) | `ChangeNotifier:Type = MongoChangeStream` |
-| *Future: Redis* | High-frequency, low-latency scenarios | `ChangeNotifier:Type = Redis` |
+| `InProcessChangeNotifier` | Single instance (homelab) | `ChangeNotifier:Mode = InProcess` |
+| `MongoChangeStreamNotifier` | Multi-instance (K8s, multi-region) | `ChangeNotifier:Mode = MongoChangeStream` |
+| *Future: Redis* | High-frequency, low-latency scenarios | `ChangeNotifier:Mode = Redis` |
 
 ### InProcess Notifier
 
@@ -312,9 +324,10 @@ Application configuration for GroundControl server:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `ConnectionStrings:MongoDB` | *required* | MongoDB connection string. Put the database name in the URI path, for example `mongodb://localhost:27017/groundcontrol?replicaSet=rs0` |
-| `ChangeNotifier:Type` | `InProcess` | `InProcess` or `MongoChangeStream` |
-| `DataProtection:KeyRing` | `FileSystem` | Key ring configurator: `FileSystem`, `Certificate`, `Redis`, `Azure` |
+| `ConnectionStrings:Storage` | *required* | MongoDB connection string, for example `mongodb://localhost:27017/?replicaSet=rs0` |
+| `Persistence:MongoDb:DatabaseName` | `GroundControl` | MongoDB database name |
+| `ChangeNotifier:Mode` | `InProcess` | `InProcess` or `MongoChangeStream` |
+| `DataProtection:Mode` | `FileSystem` | Key ring configurator: `FileSystem`, `Certificate`, `Redis`, `Azure` |
 | `DataProtection:KeyStorePath` | `./keys` | File system path for key ring storage (`FileSystem`, `Certificate`) |
 | `DataProtection:UseDpapi` | `false` | Use DPAPI for key protection (`FileSystem` on Windows only) |
 | `DataProtection:Certificate:Provider` | `FileSystem` | Certificate provider: `FileSystem`, `AzureBlob` |

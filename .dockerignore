@@ -1,0 +1,14 @@
+**/.git
+**/.vs
+**/.vscode
+**/.idea
+**/bin
+**/obj
+**/artifacts
+**/*.user
+**/*.DotSettings.user
+planning/
+docs/
+tests/
+.claude/
+.github/
