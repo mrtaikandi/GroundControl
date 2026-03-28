@@ -34,9 +34,13 @@ internal static class GeneratorTestHelper
         var driver = CSharpGeneratorDriver.Create(generator).WithUpdatedParseOptions(ParseOptions);
 
         driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-            compilation, out var outputCompilation, out var diagnostics);
+            compilation, out var outputCompilation, out _);
 
-        return new GeneratorRunResult(outputCompilation, diagnostics, driver.GetRunResult());
+        return new GeneratorRunResult
+        {
+            OutputCompilation = outputCompilation,
+            DriverRunResult = driver.GetRunResult(),
+        };
     }
 
     /// <summary>
@@ -92,11 +96,17 @@ internal static class GeneratorTestHelper
     }
 }
 
-internal sealed record GeneratorRunResult(
-    Compilation OutputCompilation,
-    ImmutableArray<Diagnostic> Diagnostics,
-    GeneratorDriverRunResult DriverRunResult)
+internal sealed record GeneratorRunResult
 {
+    public required Compilation OutputCompilation { get; init; }
+
+    public required GeneratorDriverRunResult DriverRunResult { get; init; }
+
+    /// <summary>
+    /// Gets all diagnostics reported by the generator.
+    /// </summary>
+    public ImmutableArray<Diagnostic> Diagnostics => DriverRunResult.Diagnostics;
+
     /// <summary>
     /// Gets the generated source text for the bootstrap extensions file, or null if not emitted.
     /// </summary>
@@ -112,7 +122,7 @@ internal sealed record GeneratorRunResult(
     /// Gets all diagnostics with the specified ID.
     /// </summary>
     public ImmutableArray<Diagnostic> GetDiagnostics(string id) =>
-        DriverRunResult.Diagnostics
+        Diagnostics
             .Where(d => d.Id == id)
             .ToImmutableArray();
 

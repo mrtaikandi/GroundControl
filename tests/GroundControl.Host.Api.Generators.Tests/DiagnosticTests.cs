@@ -211,7 +211,7 @@ public sealed class DiagnosticTests
         var source = """
             using GroundControl.Host.Api;
 
-            internal sealed class NotAModule : IWebApiModule
+            internal sealed class ExistingModule : IWebApiModule
             {
                 public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
                 public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
