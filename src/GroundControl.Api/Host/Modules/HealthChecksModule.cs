@@ -4,7 +4,7 @@ using GroundControl.Persistence.MongoDb;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
-namespace GroundControl.Api.Shared.Hosting.Modules;
+namespace GroundControl.Api.Host.Modules;
 
 [RunsAfter<PersistenceModule>(Required = true)]
 [RunsAfter<ChangeNotificationModule>(Required = true)]

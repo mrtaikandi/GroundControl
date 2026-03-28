@@ -6,7 +6,7 @@ using GroundControl.Host.Api;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 
-namespace GroundControl.Api.Shared.Hosting.Modules;
+namespace GroundControl.Api.Host.Modules;
 
 [RunsAfter<CoreServicesModule>]
 [RunsAfter<ConfigurationModule>(Required = true)]

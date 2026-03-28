@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GroundControl.Host.Api.Generators.Tests.Infrastructure;
 
@@ -60,11 +62,11 @@ internal static class GeneratorTestHelper
             typeof(object).Assembly, // System.Runtime / mscorlib
             typeof(Attribute).Assembly, // System.Runtime
             typeof(Console).Assembly, // System.Console
-            typeof(Microsoft.AspNetCore.Builder.WebApplication).Assembly,
-            typeof(Microsoft.AspNetCore.Builder.WebApplicationBuilder).Assembly,
-            typeof(Microsoft.Extensions.Configuration.IConfiguration).Assembly,
-            typeof(Microsoft.Extensions.Configuration.ConfigurationExtensions).Assembly,
-            typeof(Microsoft.Extensions.DependencyInjection.IServiceCollection).Assembly,
+            typeof(WebApplication).Assembly,
+            typeof(WebApplicationBuilder).Assembly,
+            typeof(IConfiguration).Assembly,
+            typeof(ConfigurationExtensions).Assembly,
+            typeof(IServiceCollection).Assembly,
         };
 
         var references = ImmutableArray.CreateBuilder<MetadataReference>();

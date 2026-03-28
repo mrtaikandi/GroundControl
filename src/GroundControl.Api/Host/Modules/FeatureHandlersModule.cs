@@ -13,7 +13,7 @@ using GroundControl.Api.Features.Users;
 using GroundControl.Api.Features.Variables;
 using GroundControl.Host.Api;
 
-namespace GroundControl.Api.Shared.Hosting.Modules;
+namespace GroundControl.Api.Host.Modules;
 
 [RunsAfter<CoreServicesModule>(Required = true)]
 [RunsAfter<AuthModule>(Required = true)]

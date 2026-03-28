@@ -1,7 +1,7 @@
 using GroundControl.Api.Shared.Configuration;
 using GroundControl.Host.Api;
 
-namespace GroundControl.Api.Shared.Hosting.Modules;
+namespace GroundControl.Api.Host.Modules;
 
 internal sealed class ConfigurationModule : IWebApiModule
 {

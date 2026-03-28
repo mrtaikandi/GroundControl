@@ -4,7 +4,7 @@ using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Host.Api;
 
-namespace GroundControl.Api.Shared.Hosting.Modules;
+namespace GroundControl.Api.Host.Modules;
 
 [RunsAfter<ConfigurationModule>(Required = true)]
 internal sealed class CoreServicesModule : IWebApiModule
