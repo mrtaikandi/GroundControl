@@ -24,7 +24,7 @@ public sealed class MongoChangeStreamNotifierTests
     public async Task ChangeStream_SnapshotPublish_FiresNotification()
     {
         // Arrange
-        var (notifier, collection) = await CreateNotifierAsync();
+        var (notifier, collection) = CreateNotifier();
         await notifier.StartAsync(TestCancellationToken);
 
         try
@@ -73,7 +73,7 @@ public sealed class MongoChangeStreamNotifierTests
     public async Task ChangeStream_NonSnapshotUpdate_DoesNotFireNotification()
     {
         // Arrange
-        var (notifier, collection) = await CreateNotifierAsync();
+        var (notifier, collection) = CreateNotifier();
         await notifier.StartAsync(TestCancellationToken);
 
         try
@@ -116,7 +116,7 @@ public sealed class MongoChangeStreamNotifierTests
     public async Task IsConnected_WhenStarted_ReturnsTrue()
     {
         // Arrange
-        var (notifier, _) = await CreateNotifierAsync();
+        var (notifier, _) = CreateNotifier();
 
         try
         {
@@ -138,7 +138,7 @@ public sealed class MongoChangeStreamNotifierTests
     public async Task IsConnected_WhenStopped_ReturnsFalse()
     {
         // Arrange
-        var (notifier, _) = await CreateNotifierAsync();
+        var (notifier, _) = CreateNotifier();
         await notifier.StartAsync(TestCancellationToken);
         await TestWaiter.WaitUntilAsync(() => notifier.IsConnected, cancellationToken: TestCancellationToken);
 
@@ -153,7 +153,7 @@ public sealed class MongoChangeStreamNotifierTests
     public async Task NotifyAsync_DirectNotification_ReachesSubscribers()
     {
         // Arrange
-        var (notifier, _) = await CreateNotifierAsync();
+        var (notifier, _) = CreateNotifier();
         var projectId = Guid.CreateVersion7();
         var snapshotId = Guid.CreateVersion7();
 
@@ -188,7 +188,7 @@ public sealed class MongoChangeStreamNotifierTests
     public async Task ChangeStream_MultipleUpdates_AllNotificationsReceived()
     {
         // Arrange
-        var (notifier, collection) = await CreateNotifierAsync();
+        var (notifier, collection) = CreateNotifier();
         await notifier.StartAsync(TestCancellationToken);
 
         try
@@ -239,7 +239,7 @@ public sealed class MongoChangeStreamNotifierTests
         }
     }
 
-    private async Task<(MongoChangeStreamNotifier Notifier, IMongoCollection<Project> Collection)> CreateNotifierAsync()
+    private (MongoChangeStreamNotifier Notifier, IMongoCollection<Project> Collection) CreateNotifier()
     {
         var database = _mongoFixture.CreateDatabase();
         var context = CreateContext(database);
