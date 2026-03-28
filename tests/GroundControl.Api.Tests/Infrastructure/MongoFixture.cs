@@ -12,7 +12,6 @@ public sealed class MongoFixture : IAsyncLifetime
 {
     private readonly MongoDbContainer _container = new MongoDbBuilder("mongo:8")
         .WithReplicaSet()
-        .WithReuse(true)
         .Build();
 
     private MongoClient? _client;
