@@ -118,6 +118,7 @@ MongoDB used directly via `IMongoCollection<T>` with LINQ/Builders — no ORM la
 ## Commit Convention
 
 Conventional Commits format: `<type>[scope]: <description>`. See `.github/git-commit-instructions.md` for full details. Scope derived from last segment of project name, lowercased (e.g., `GroundControl.Api` -> `api`).
+Do **not** append `Co-Authored-By` trailers or any AI attribution to commits or PR descriptions.
 
 ## Planning
 
