@@ -35,6 +35,9 @@
     <ItemGroup>
         <ProjectReference Include="..\GroundControl.Persistence.Abstractions\GroundControl.Persistence.Abstractions.csproj" />
         <ProjectReference Include="..\GroundControl.Persistence.MongoDb\GroundControl.Persistence.MongoDb.csproj" />
+        <ProjectReference Include="..\GroundControl.Host.Api.Generators\GroundControl.Host.Api.Generators.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>
