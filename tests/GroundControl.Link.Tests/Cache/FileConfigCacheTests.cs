@@ -26,7 +26,7 @@ public sealed class FileConfigCacheTests : IDisposable
     public async Task LoadAsync_MissingFile_ReturnsNull()
     {
         // Arrange
-        var cache = CreateCache();
+        using var cache = CreateCache();
 
         // Act
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
@@ -40,7 +40,7 @@ public sealed class FileConfigCacheTests : IDisposable
     {
         // Arrange
         await File.WriteAllTextAsync(_cachePath, "not valid json {{{", TestContext.Current.CancellationToken);
-        var cache = CreateCache();
+        using var cache = CreateCache();
 
         // Act
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
@@ -54,7 +54,7 @@ public sealed class FileConfigCacheTests : IDisposable
     {
         // Arrange
         await File.WriteAllTextAsync(_cachePath, """{"timestamp":"2026-01-01T00:00:00Z","entries":null}""", TestContext.Current.CancellationToken);
-        var cache = CreateCache();
+        using var cache = CreateCache();
 
         // Act
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
@@ -67,7 +67,7 @@ public sealed class FileConfigCacheTests : IDisposable
     public async Task SaveAsync_ThenLoadAsync_ReturnsSameConfig()
     {
         // Arrange
-        var cache = CreateCache();
+        using var cache = CreateCache();
         var config = new Dictionary<string, string>
         {
             ["Logging:LogLevel:Default"] = "Warning",
@@ -91,7 +91,7 @@ public sealed class FileConfigCacheTests : IDisposable
     public async Task SaveAsync_CreatesFile()
     {
         // Arrange
-        var cache = CreateCache();
+        using var cache = CreateCache();
         var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
 
         // Act
@@ -107,7 +107,7 @@ public sealed class FileConfigCacheTests : IDisposable
         // Arrange
         var nestedDir = Path.Combine(_cacheDir, "nested", "deep");
         var nestedPath = Path.Combine(nestedDir, "cache.json");
-        var cache = CreateCache(cachePath: nestedPath);
+        using var cache = CreateCache(cachePath: nestedPath);
         var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
 
         // Act
@@ -121,7 +121,7 @@ public sealed class FileConfigCacheTests : IDisposable
     public async Task SaveAsync_OverwritesExistingFile()
     {
         // Arrange
-        var cache = CreateCache();
+        using var cache = CreateCache();
         var config1 = new Dictionary<string, string> { ["Key1"] = "Original" };
         var config2 = new Dictionary<string, string> { ["Key1"] = "Updated", ["Key2"] = "New" };
 
@@ -142,7 +142,7 @@ public sealed class FileConfigCacheTests : IDisposable
     {
         // Arrange
         var (provider, _) = CreateMockDataProtection();
-        var cache = CreateCache(dataProtection: provider);
+        using var cache = CreateCache(dataProtection: provider);
         var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
 
         // Act
@@ -159,7 +159,7 @@ public sealed class FileConfigCacheTests : IDisposable
     {
         // Arrange
         var (provider, _) = CreateMockDataProtection();
-        var cache = CreateCache(dataProtection: provider);
+        using var cache = CreateCache(dataProtection: provider);
         var config = new Dictionary<string, string>
         {
             ["Secret"] = "my-password",
@@ -180,7 +180,7 @@ public sealed class FileConfigCacheTests : IDisposable
     public async Task SaveAsync_WithoutDataProtection_StoresPlaintext()
     {
         // Arrange
-        var cache = CreateCache();
+        using var cache = CreateCache();
         var config = new Dictionary<string, string> { ["Key1"] = "plaintext-value" };
 
         // Act
@@ -197,12 +197,12 @@ public sealed class FileConfigCacheTests : IDisposable
     {
         // Arrange — write encrypted values using DataProtection
         var (provider, _) = CreateMockDataProtection();
-        var encryptedCache = CreateCache(dataProtection: provider);
+        using var encryptedCache = CreateCache(dataProtection: provider);
         var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
         await encryptedCache.SaveAsync(config, TestContext.Current.CancellationToken);
 
         // Act — read without DataProtection
-        var plainCache = CreateCache();
+        using var plainCache = CreateCache();
         var result = await plainCache.LoadAsync(TestContext.Current.CancellationToken);
 
         // Assert
@@ -214,7 +214,7 @@ public sealed class FileConfigCacheTests : IDisposable
     {
         // Arrange
         var customPath = Path.Combine(_cacheDir, "custom", "path.json");
-        var cache = CreateCache(cachePath: customPath);
+        using var cache = CreateCache(cachePath: customPath);
         var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
 
         // Act
@@ -228,7 +228,7 @@ public sealed class FileConfigCacheTests : IDisposable
     public async Task SaveAsync_ConcurrentWrites_NoCorruption()
     {
         // Arrange
-        var cache = CreateCache();
+        using var cache = CreateCache();
         var tasks = new List<Task>();
 
         // Act — fire multiple concurrent writes
@@ -253,7 +253,7 @@ public sealed class FileConfigCacheTests : IDisposable
     public async Task SaveAsync_CacheFileContainsTimestamp()
     {
         // Arrange
-        var cache = CreateCache();
+        using var cache = CreateCache();
         var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
 
         // Act
@@ -268,7 +268,7 @@ public sealed class FileConfigCacheTests : IDisposable
     public async Task LoadAsync_CaseInsensitiveKeys()
     {
         // Arrange
-        var cache = CreateCache();
+        using var cache = CreateCache();
         var config = new Dictionary<string, string> { ["MyKey"] = "Value" };
         await cache.SaveAsync(config, TestContext.Current.CancellationToken);
 

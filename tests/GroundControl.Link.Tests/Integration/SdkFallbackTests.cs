@@ -25,7 +25,7 @@ public sealed class SdkFallbackTests : IDisposable
     {
         // Arrange — pre-populate cache file
         var cachePath = Path.Combine(_cacheDir, "fallback.cache.json");
-        var cache = CreateFileConfigCache(cachePath);
+        using var cache = CreateFileConfigCache(cachePath);
         var config = new Dictionary<string, string>
         {
             ["app.name"] = "CachedApp",
@@ -90,7 +90,7 @@ public sealed class SdkFallbackTests : IDisposable
     {
         // Arrange — pre-populate cache file
         var cachePath = Path.Combine(_cacheDir, "polling-fallback.cache.json");
-        var cache = CreateFileConfigCache(cachePath);
+        using var cache = CreateFileConfigCache(cachePath);
         var config = new Dictionary<string, string> { ["key1"] = "cached-value" };
         await cache.SaveAsync(config, TestContext.Current.CancellationToken);
 
@@ -121,7 +121,7 @@ public sealed class SdkFallbackTests : IDisposable
     {
         // Arrange
         var cachePath = Path.Combine(_cacheDir, "sse-only-fallback.cache.json");
-        var cache = CreateFileConfigCache(cachePath);
+        using var cache = CreateFileConfigCache(cachePath);
         var config = new Dictionary<string, string> { ["key1"] = "sse-cached" };
         await cache.SaveAsync(config, TestContext.Current.CancellationToken);
 

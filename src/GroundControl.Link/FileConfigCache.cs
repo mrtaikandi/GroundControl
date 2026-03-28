@@ -13,7 +13,7 @@ namespace GroundControl.Link;
 /// The current <see cref="IConfigCache"/> interface does not carry per-key sensitivity metadata, so selective
 /// encryption (encrypting only sensitive keys) will be added when the interface is extended with that information.
 /// </remarks>
-public sealed partial class FileConfigCache : IConfigCache
+public sealed partial class FileConfigCache : IConfigCache, IDisposable
 {
     private const string EncryptedPrefix = "***ENCRYPTED:";
     private const string ProtectorPurpose = "GroundControl.Link.ConfigCache";
@@ -23,6 +23,7 @@ public sealed partial class FileConfigCache : IConfigCache
         WriteIndented = true
     };
 
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly string _cachePath;
     private readonly IDataProtector? _protector;
     private readonly ILogger<FileConfigCache> _logger;
@@ -129,6 +130,8 @@ public sealed partial class FileConfigCache : IConfigCache
         var json = JsonSerializer.Serialize(cacheFile, SerializerOptions);
         var tmpPath = _cachePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
 
+        await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+
         try
         {
             await File.WriteAllTextAsync(tmpPath, json, cancellationToken).ConfigureAwait(false);
@@ -136,6 +139,8 @@ public sealed partial class FileConfigCache : IConfigCache
         }
         finally
         {
+            _writeLock.Release();
+
             if (File.Exists(tmpPath))
             {
                 try
@@ -149,6 +154,9 @@ public sealed partial class FileConfigCache : IConfigCache
             }
         }
     }
+
+    /// <inheritdoc />
+    public void Dispose() => _writeLock.Dispose();
 
     [LoggerMessage(1, LogLevel.Information, "Data protection is not available. Cache values will be stored unencrypted.")]
     private static partial void LogDataProtectionUnavailable(ILogger logger);
