@@ -2,6 +2,7 @@ using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 
 namespace GroundControl.Host.Api.Generators;
 
@@ -46,7 +47,11 @@ internal readonly struct ModuleInfo : IEquatable<ModuleInfo>
 
     public ImmutableArray<string> RunsBefore { get; }
 
-    public Location? Location { get; }
+    public string? LocationFilePath { get; }
+
+    public TextSpan LocationSpan { get; }
+
+    public LinePositionSpan LocationLineSpan { get; }
 
     public string? OptionsTypeFullyQualifiedName { get; }
 
@@ -61,7 +66,9 @@ internal readonly struct ModuleInfo : IEquatable<ModuleInfo>
         string typeName,
         ImmutableArray<DependencyInfo> runsAfter,
         ImmutableArray<string> runsBefore,
-        Location? location,
+        string? locationFilePath,
+        TextSpan locationSpan,
+        LinePositionSpan locationLineSpan,
         string? optionsTypeFullyQualifiedName,
         string? optionsTypeName,
         string? configurationSectionName)
@@ -70,17 +77,27 @@ internal readonly struct ModuleInfo : IEquatable<ModuleInfo>
         TypeName = typeName;
         RunsAfter = runsAfter;
         RunsBefore = runsBefore;
-        Location = location;
+        LocationFilePath = locationFilePath;
+        LocationSpan = locationSpan;
+        LocationLineSpan = locationLineSpan;
         OptionsTypeFullyQualifiedName = optionsTypeFullyQualifiedName;
         OptionsTypeName = optionsTypeName;
         ConfigurationSectionName = configurationSectionName;
     }
+
+    public Location GetLocation() =>
+        LocationFilePath is not null
+            ? Location.Create(LocationFilePath, LocationSpan, LocationLineSpan)
+            : Location.None;
 
     public bool Equals(ModuleInfo other) =>
         FullyQualifiedName == other.FullyQualifiedName &&
         TypeName == other.TypeName &&
         RunsAfter.SequenceEqual(other.RunsAfter) &&
         RunsBefore.SequenceEqual(other.RunsBefore) &&
+        LocationFilePath == other.LocationFilePath &&
+        LocationSpan.Equals(other.LocationSpan) &&
+        LocationLineSpan.Equals(other.LocationLineSpan) &&
         OptionsTypeFullyQualifiedName == other.OptionsTypeFullyQualifiedName &&
         OptionsTypeName == other.OptionsTypeName &&
         ConfigurationSectionName == other.ConfigurationSectionName;
@@ -95,6 +112,9 @@ internal readonly struct ModuleInfo : IEquatable<ModuleInfo>
             hash = (hash * 397) ^ (TypeName != null ? TypeName.GetHashCode() : 0);
             hash = (hash * 397) ^ RunsAfter.Length;
             hash = (hash * 397) ^ RunsBefore.Length;
+            hash = (hash * 397) ^ (LocationFilePath != null ? LocationFilePath.GetHashCode() : 0);
+            hash = (hash * 397) ^ LocationSpan.GetHashCode();
+            hash = (hash * 397) ^ LocationLineSpan.GetHashCode();
             hash = (hash * 397) ^ (OptionsTypeFullyQualifiedName != null ? OptionsTypeFullyQualifiedName.GetHashCode() : 0);
             hash = (hash * 397) ^ (OptionsTypeName != null ? OptionsTypeName.GetHashCode() : 0);
             hash = (hash * 397) ^ (ConfigurationSectionName != null ? ConfigurationSectionName.GetHashCode() : 0);
