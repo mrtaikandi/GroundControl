@@ -5,7 +5,7 @@ using GroundControl.Host.Api;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace GroundControl.Api.Shared.Hosting.Modules;
+namespace GroundControl.Api.Host.Modules;
 
 [RunsAfter<ConfigurationModule>(Required = true)]
 internal sealed class DataProtectionModule : IWebApiModule

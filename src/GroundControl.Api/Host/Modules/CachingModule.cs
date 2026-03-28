@@ -2,7 +2,7 @@ using GroundControl.Api.Features.ClientApi;
 using GroundControl.Api.Features.Clients;
 using GroundControl.Host.Api;
 
-namespace GroundControl.Api.Shared.Hosting.Modules;
+namespace GroundControl.Api.Host.Modules;
 
 [RunsAfter<ChangeNotificationModule>(Required = true)]
 internal sealed class CachingModule : IWebApiModule

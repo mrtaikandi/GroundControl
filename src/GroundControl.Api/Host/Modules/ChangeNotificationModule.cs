@@ -1,7 +1,7 @@
 using GroundControl.Api.Shared.Notification;
 using GroundControl.Host.Api;
 
-namespace GroundControl.Api.Shared.Hosting.Modules;
+namespace GroundControl.Api.Host.Modules;
 
 [RunsAfter<PersistenceModule>(Required = true)]
 internal sealed class ChangeNotificationModule : IWebApiModule
