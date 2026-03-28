@@ -164,16 +164,16 @@ public class WebApiModuleGenerator : IIncrementalGenerator
         var lineSpan = identifierLocation.GetLineSpan();
 
         var moduleInfo = new ModuleInfo(
-            fullyQualifiedName: fqn,
-            typeName: symbol.Name,
-            runsAfter: runsAfterBuilder.ToImmutable(),
-            runsBefore: runsBeforeBuilder.ToImmutable(),
-            locationFilePath: lineSpan.Path,
-            locationSpan: identifierLocation.SourceSpan,
-            locationLineSpan: lineSpan.Span,
-            optionsTypeFullyQualifiedName: optionsFqn,
-            optionsTypeName: optionsTypeName,
-            configurationSectionName: configSectionName);
+            FullyQualifiedName: fqn,
+            TypeName: symbol.Name,
+            RunsAfter: runsAfterBuilder.ToImmutable(),
+            RunsBefore: runsBeforeBuilder.ToImmutable(),
+            LocationFilePath: lineSpan.Path,
+            LocationSpan: identifierLocation.SourceSpan,
+            LocationLineSpan: lineSpan.Span,
+            OptionsTypeFullyQualifiedName: optionsFqn,
+            OptionsTypeName: optionsTypeName,
+            ConfigurationSectionName: configSectionName);
 
         return new ModuleResult(moduleInfo, constructorError);
     }

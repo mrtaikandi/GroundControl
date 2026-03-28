@@ -65,7 +65,7 @@ internal static class TopologicalSorter
 
         while (queue.Count > 0)
         {
-            var current = queue.Min;
+            var current = queue.Min!;
             queue.Remove(current);
             sorted.Add(moduleMap[current]);
 
@@ -93,26 +93,4 @@ internal static class TopologicalSorter
 
         return TopologicalSortResult.Sorted(sorted.ToImmutableArray());
     }
-}
-
-internal readonly struct TopologicalSortResult
-{
-    public bool IsCycle { get; }
-
-    public ImmutableArray<ModuleInfo> SortedModules { get; }
-
-    public ImmutableArray<string> CycleParticipants { get; }
-
-    private TopologicalSortResult(bool isCycle, ImmutableArray<ModuleInfo> sortedModules, ImmutableArray<string> cycleParticipants)
-    {
-        IsCycle = isCycle;
-        SortedModules = sortedModules;
-        CycleParticipants = cycleParticipants;
-    }
-
-    public static TopologicalSortResult Sorted(ImmutableArray<ModuleInfo> sortedModules) =>
-        new TopologicalSortResult(false, sortedModules, ImmutableArray<string>.Empty);
-
-    public static TopologicalSortResult Cycle(ImmutableArray<string> cycleParticipants) =>
-        new TopologicalSortResult(true, ImmutableArray<ModuleInfo>.Empty, cycleParticipants);
 }
