@@ -3,7 +3,6 @@ using Xunit;
 
 namespace GroundControl.Api.Tests.Shared.Security;
 
-[Collection("MongoDB")]
 public sealed class KeyRingModeSelectionTests(MongoFixture mongoFixture) : ApiHandlerTestBase(mongoFixture)
 {
     [Fact]

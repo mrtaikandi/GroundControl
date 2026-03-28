@@ -56,8 +56,10 @@ public sealed class SnapshotCacheInvalidatorTests
         // Act — send a change notification
         await notifier.NotifyAsync(projectId, snapshotId, TestCancellationToken);
 
-        // Give time for the invalidation to process
-        await Task.Delay(100, TestCancellationToken);
+        // Wait for the invalidation to process
+        await TestWaiter.WaitUntilAsync(
+            () => _snapshotStore.ReceivedCalls().Any(),
+            cancellationToken: TestCancellationToken);
 
         // Assert — store was called again due to invalidation
         await _snapshotStore.Received(1).GetActiveForProjectAsync(projectId, Arg.Any<CancellationToken>());

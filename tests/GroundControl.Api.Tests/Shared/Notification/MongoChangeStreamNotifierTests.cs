@@ -48,8 +48,8 @@ public sealed class MongoChangeStreamNotifierTests
                 }
             }, TestCancellationToken);
 
-            // Give the subscriber and change stream time to establish
-            await Task.Delay(500, TestCancellationToken);
+            // Wait for the change stream to connect before triggering the update
+            await TestWaiter.WaitUntilAsync(() => notifier.IsConnected, cancellationToken: TestCancellationToken);
 
             // Act
             var update = Builders<Project>.Update.Set(p => p.ActiveSnapshotId, snapshotId);
@@ -94,7 +94,7 @@ public sealed class MongoChangeStreamNotifierTests
                 }
             }, TestCancellationToken);
 
-            await Task.Delay(500, TestCancellationToken);
+            await TestWaiter.WaitUntilAsync(() => notifier.IsConnected, cancellationToken: TestCancellationToken);
 
             // Act — update description, not activeSnapshotId
             var update = Builders<Project>.Update.Set(p => p.Description, "Updated description");
@@ -123,10 +123,8 @@ public sealed class MongoChangeStreamNotifierTests
             // Act
             await notifier.StartAsync(TestCancellationToken);
 
-            // Give the change stream time to connect
-            await Task.Delay(1000, TestCancellationToken);
-
             // Assert
+            await TestWaiter.WaitUntilAsync(() => notifier.IsConnected, cancellationToken: TestCancellationToken);
             notifier.IsConnected.ShouldBeTrue();
         }
         finally
@@ -142,7 +140,7 @@ public sealed class MongoChangeStreamNotifierTests
         // Arrange
         var (notifier, _) = await CreateNotifierAsync();
         await notifier.StartAsync(TestCancellationToken);
-        await Task.Delay(500, TestCancellationToken);
+        await TestWaiter.WaitUntilAsync(() => notifier.IsConnected, cancellationToken: TestCancellationToken);
 
         // Act
         await notifier.StopAsync(TestCancellationToken);
@@ -219,7 +217,7 @@ public sealed class MongoChangeStreamNotifierTests
                 }
             }, TestCancellationToken);
 
-            await Task.Delay(500, TestCancellationToken);
+            await TestWaiter.WaitUntilAsync(() => notifier.IsConnected, cancellationToken: TestCancellationToken);
 
             // Act
             await UpdateActiveSnapshot(collection, projectId, snapshotId1);

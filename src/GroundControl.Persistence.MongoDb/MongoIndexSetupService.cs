@@ -34,10 +34,8 @@ public sealed class MongoIndexSetupService : IHostedService
     {
         _logger.LogIndexSetupStarting(_documentConfigurations.Length);
 
-        foreach (var documentConfiguration in _documentConfigurations)
-        {
-            await documentConfiguration.ConfigureAsync(cancellationToken).ConfigureAwait(false);
-        }
+        var tasks = _documentConfigurations.Select(dc => dc.ConfigureAsync(cancellationToken));
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         _logger.LogIndexSetupCompleted(_documentConfigurations.Length);
     }
