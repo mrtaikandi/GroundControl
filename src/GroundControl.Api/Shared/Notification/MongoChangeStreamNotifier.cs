@@ -146,7 +146,6 @@ internal sealed partial class MongoChangeStreamNotifier : IChangeNotifier, IHost
 
                 var options = new ChangeStreamOptions
                 {
-                    FullDocument = ChangeStreamFullDocumentOption.UpdateLookup,
                     ResumeAfter = _resumeToken
                 };
 
@@ -162,12 +161,14 @@ internal sealed partial class MongoChangeStreamNotifier : IChangeNotifier, IHost
                     {
                         _resumeToken = change.ResumeToken;
 
-                        if (change.FullDocument?.ActiveSnapshotId is not { } snapshotId)
+                        var updatedFields = change.UpdateDescription?.UpdatedFields;
+                        if (updatedFields is null || !updatedFields.TryGetValue("activeSnapshotId", out var snapshotValue))
                         {
                             continue;
                         }
 
-                        var projectId = change.FullDocument.Id;
+                        var snapshotId = snapshotValue.AsGuid;
+                        var projectId = change.DocumentKey["_id"].AsGuid;
                         LogChangeDetected(_logger, projectId, snapshotId);
                         GroundControlMetrics.ChangeNotifierEvents.Add(1);
 
