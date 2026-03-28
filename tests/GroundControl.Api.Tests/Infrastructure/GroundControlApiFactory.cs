@@ -1,9 +1,13 @@
+using GroundControl.Api.Features.ClientApi;
+using GroundControl.Api.Features.Clients;
 using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Auth;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using MongoDB.Driver;
@@ -56,6 +60,17 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
             {
                 var gcOptions = context.Configuration.GetSection(GroundControlOptions.SectionName).Get<GroundControlOptions>()!;
                 new BuiltInAuthConfigurator(gcOptions).ConfigureServices(services, context.Configuration);
+            }
+
+            // Remove background services that never trigger during tests to reduce per-factory startup cost
+            Type[] unnecessaryServices = [typeof(ClientCleanupService), typeof(SnapshotCacheInvalidator)];
+            var descriptorsToRemove = services
+                .Where(d => d.ServiceType == typeof(IHostedService) && unnecessaryServices.Contains(d.ImplementationType))
+                .ToList();
+
+            foreach (var descriptor in descriptorsToRemove)
+            {
+                services.Remove(descriptor);
             }
         });
 
