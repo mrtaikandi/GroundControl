@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CA2007</NoWarn>
+    </PropertyGroup>
+
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />
     </ItemGroup>

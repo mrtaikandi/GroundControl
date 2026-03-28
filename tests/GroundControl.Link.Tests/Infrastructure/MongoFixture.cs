@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using GroundControl.Persistence.MongoDb.Conventions;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
-using Xunit;
 
 namespace GroundControl.Link.Tests.Infrastructure;
 

@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using MongoDB.Driver;
-using Xunit;
 using ApiAuthenticationMode = GroundControl.Api.Shared.Security.AuthenticationMode;
 using ApiGroundControlOptions = GroundControl.Api.Shared.Configuration.GroundControlOptions;
 using BuiltInAuthConfigurator = GroundControl.Api.Shared.Security.Auth.BuiltInAuthConfigurator;

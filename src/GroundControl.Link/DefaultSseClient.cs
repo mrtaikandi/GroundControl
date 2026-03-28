@@ -79,9 +79,7 @@ public sealed partial class DefaultSseClient : ISseClient
         string? data = null;
         string? id = null;
 
-        string? line;
-
-        while ((line = await reader.ReadLineAsync(heartbeatCts.Token).ConfigureAwait(false)) is not null)
+        while (await reader.ReadLineAsync(heartbeatCts.Token).ConfigureAwait(false) is { } line)
         {
             if (line.Length == 0)
             {
@@ -121,6 +119,7 @@ public sealed partial class DefaultSseClient : ISseClient
             if (colonIndex >= 0)
             {
                 fieldName = line[..colonIndex];
+
                 // Per W3C SSE spec: strip one leading space after the colon if present
                 fieldValue = colonIndex + 1 < line.Length && line[colonIndex + 1] == ' '
                     ? line[(colonIndex + 2)..]
