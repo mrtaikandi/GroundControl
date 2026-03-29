@@ -15,7 +15,7 @@ using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Host.Modules;
 
-[RunsAfter<CoreServicesModule>(Required = true)]
+[RunsAfter<AppCommonModule>(Required = true)]
 [RunsAfter<AuthModule>(Required = true)]
 internal sealed class FeatureHandlersModule : IWebApiModule
 {

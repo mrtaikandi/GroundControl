@@ -6,12 +6,13 @@ using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Host.Modules;
 
-internal sealed class CoreServicesModule : IWebApiModule
+internal sealed class AppCommonModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)
     {
-        builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();
         builder.Services.AddHttpContextAccessor();
+
+        builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();
         builder.Services.AddScoped<AuditRecorder>();
         builder.Services.AddScoped<SensitiveValueMasker>();
 
