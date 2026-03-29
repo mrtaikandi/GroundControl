@@ -3,7 +3,7 @@ namespace GroundControl.Host.Api.Generators.Tests;
 public sealed class EnabledDisabledTests
 {
     [Fact]
-    public void ModuleEnabled_Check()
+    public Task ModuleEnabled_Check()
     {
         // Arrange
         var source = """
@@ -17,16 +17,15 @@ public sealed class EnabledDisabledTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain("IsModuleEnabled(builder.Configuration, \"My\")");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void ModuleNameStripsModuleSuffix()
+    public Task ModuleNameStripsModuleSuffix()
     {
         // Arrange — FooModule should use config path "Foo"
         var source = """
@@ -40,16 +39,15 @@ public sealed class EnabledDisabledTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain("IsModuleEnabled(builder.Configuration, \"Foo\")");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void ModuleNameWithoutSuffix_UsesFullName()
+    public Task ModuleNameWithoutSuffix_UsesFullName()
     {
         // Arrange — FooSetup (no "Module" suffix) should use config path "FooSetup"
         var source = """
@@ -63,11 +61,10 @@ public sealed class EnabledDisabledTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain("IsModuleEnabled(builder.Configuration, \"FooSetup\")");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 }

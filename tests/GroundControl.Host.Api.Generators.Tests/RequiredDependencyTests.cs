@@ -3,7 +3,7 @@ namespace GroundControl.Host.Api.Generators.Tests;
 public sealed class RequiredDependencyTests
 {
     [Fact]
-    public void RequiredDependency_CheckEmitted()
+    public Task RequiredDependency_CheckEmitted()
     {
         // Arrange — B has a required dependency on A
         var source = """
@@ -24,18 +24,15 @@ public sealed class RequiredDependencyTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain("requires");
-        bootstrapSource.ShouldContain("IsModuleEnabled(builder.Configuration, \"ModuleA\")");
-        bootstrapSource.ShouldContain("throw new global::System.InvalidOperationException(");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void SoftDependency_NoCheck()
+    public Task SoftDependency_NoCheck()
     {
         // Arrange — B has a soft (non-required) dependency on A
         var source = """
@@ -56,14 +53,10 @@ public sealed class RequiredDependencyTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-
-        // The moduleB section should NOT contain a throw for required dependency
-        var moduleBSection = bootstrapSource[bootstrapSource.IndexOf("new global::ModuleB()", StringComparison.Ordinal)..];
-        moduleBSection.ShouldNotContain("throw new global::System.InvalidOperationException(");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 }

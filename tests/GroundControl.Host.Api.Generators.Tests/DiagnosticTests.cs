@@ -3,7 +3,7 @@ namespace GroundControl.Host.Api.Generators.Tests;
 public sealed class DiagnosticTests
 {
     [Fact]
-    public void CircularDependency_GCA001()
+    public Task CircularDependency_GCA001()
     {
         // Arrange — A → B → A
         var source = """
@@ -25,16 +25,15 @@ public sealed class DiagnosticTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        var diagnostics = result.GetDiagnostics("GCA001");
-        diagnostics.Length.ShouldBe(2);
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void SelfReference_GCA001()
+    public Task SelfReference_GCA001()
     {
         // Arrange — A references itself
         var source = """
@@ -49,16 +48,15 @@ public sealed class DiagnosticTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        var diagnostics = result.GetDiagnostics("GCA001");
-        diagnostics.Length.ShouldBe(1);
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void WrongConstructor_PlainModule_GCA002()
+    public Task WrongConstructor_PlainModule_GCA002()
     {
         // Arrange — plain IWebApiModule with a required constructor parameter
         var source = """
@@ -73,17 +71,15 @@ public sealed class DiagnosticTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        var diagnostics = result.GetDiagnostics("GCA002");
-        diagnostics.Length.ShouldBe(1);
-        diagnostics[0].GetMessage().ShouldContain("parameterless constructor");
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void WrongConstructor_OptionsModule_GCA002()
+    public Task WrongConstructor_OptionsModule_GCA002()
     {
         // Arrange — IWebApiModule<TOptions> without a constructor accepting TOptions
         var source = """
@@ -102,17 +98,15 @@ public sealed class DiagnosticTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        var diagnostics = result.GetDiagnostics("GCA002");
-        diagnostics.Length.ShouldBe(1);
-        diagnostics[0].GetMessage().ShouldContain("MyOptions");
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void DuplicateRunsAfter_GCA003()
+    public Task DuplicateRunsAfter_GCA003()
     {
         // Arrange — two [RunsAfter<ModuleA>] on same class
         var source = """
@@ -134,16 +128,15 @@ public sealed class DiagnosticTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        var diagnostics = result.GetDiagnostics("GCA003");
-        diagnostics.Length.ShouldBe(1);
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void DuplicateRunsBefore_GCA003()
+    public Task DuplicateRunsBefore_GCA003()
     {
         // Arrange — two [RunsBefore<ModuleB>] on same class
         var source = """
@@ -165,16 +158,15 @@ public sealed class DiagnosticTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        var diagnostics = result.GetDiagnostics("GCA003");
-        diagnostics.Length.ShouldBe(1);
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void CrossDuplicate_GCA003()
+    public Task CrossDuplicate_GCA003()
     {
         // Arrange — [RunsAfter<ModuleA>] and [RunsBefore<ModuleA>] on same class targeting same module
         var source = """
@@ -196,16 +188,15 @@ public sealed class DiagnosticTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        var diagnostics = result.GetDiagnostics("GCA003");
-        diagnostics.Length.ShouldBe(1);
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void TargetNotFound_GCA004()
+    public Task TargetNotFound_GCA004()
     {
         // Arrange — RunsAfter referencing a class that doesn't implement IWebApiModule
         var source = """
@@ -230,12 +221,10 @@ public sealed class DiagnosticTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        var diagnostics = result.GetDiagnostics("GCA004");
-        diagnostics.Length.ShouldBe(1);
-        diagnostics[0].GetMessage().ShouldContain("MyModule");
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 }

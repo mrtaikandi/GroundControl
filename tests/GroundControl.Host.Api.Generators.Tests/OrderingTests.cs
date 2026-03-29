@@ -3,7 +3,7 @@ namespace GroundControl.Host.Api.Generators.Tests;
 public sealed class OrderingTests
 {
     [Fact]
-    public void RunsAfter_OrderRespected()
+    public Task RunsAfter_OrderRespected()
     {
         // Arrange — B runs after A, so A should appear first
         var source = """
@@ -24,20 +24,15 @@ public sealed class OrderingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        var indexA = bootstrapSource.IndexOf("new global::ModuleA()", StringComparison.Ordinal);
-        var indexB = bootstrapSource.IndexOf("new global::ModuleB()", StringComparison.Ordinal);
-        indexA.ShouldBeGreaterThan(-1);
-        indexB.ShouldBeGreaterThan(-1);
-        indexA.ShouldBeLessThan(indexB);
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void RunsBefore_OrderRespected()
+    public Task RunsBefore_OrderRespected()
     {
         // Arrange — A runs before B, so A should appear first
         var source = """
@@ -58,20 +53,15 @@ public sealed class OrderingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        var indexA = bootstrapSource.IndexOf("new global::ModuleA()", StringComparison.Ordinal);
-        var indexB = bootstrapSource.IndexOf("new global::ModuleB()", StringComparison.Ordinal);
-        indexA.ShouldBeGreaterThan(-1);
-        indexB.ShouldBeGreaterThan(-1);
-        indexA.ShouldBeLessThan(indexB);
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void AlphabeticalTieBreak()
+    public Task AlphabeticalTieBreak()
     {
         // Arrange — two independent modules, should appear in alphabetical order by FQN
         var source = """
@@ -91,20 +81,15 @@ public sealed class OrderingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        var indexAlpha = bootstrapSource.IndexOf("new global::AlphaModule()", StringComparison.Ordinal);
-        var indexZebra = bootstrapSource.IndexOf("new global::ZebraModule()", StringComparison.Ordinal);
-        indexAlpha.ShouldBeGreaterThan(-1);
-        indexZebra.ShouldBeGreaterThan(-1);
-        indexAlpha.ShouldBeLessThan(indexZebra);
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void DiamondDependency_Handled()
+    public Task DiamondDependency_Handled()
     {
         // Arrange — Diamond: D has no deps, B→D, C→D, A→B, A→C
         // Expected order: D, then B and C (alphabetical), then A
@@ -141,28 +126,15 @@ public sealed class OrderingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        var indexA = bootstrapSource.IndexOf("new global::ModuleA()", StringComparison.Ordinal);
-        var indexB = bootstrapSource.IndexOf("new global::ModuleB()", StringComparison.Ordinal);
-        var indexC = bootstrapSource.IndexOf("new global::ModuleC()", StringComparison.Ordinal);
-        var indexD = bootstrapSource.IndexOf("new global::ModuleD()", StringComparison.Ordinal);
-
-        // D before B and C
-        indexD.ShouldBeLessThan(indexB);
-        indexD.ShouldBeLessThan(indexC);
-        // B and C before A
-        indexB.ShouldBeLessThan(indexA);
-        indexC.ShouldBeLessThan(indexA);
-        // B before C (alphabetical tie-break)
-        indexB.ShouldBeLessThan(indexC);
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void MultipleRoots_AlphabeticalOrder()
+    public Task MultipleRoots_AlphabeticalOrder()
     {
         // Arrange — two independent modules
         var source = """
@@ -182,13 +154,10 @@ public sealed class OrderingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        var indexA = bootstrapSource.IndexOf("new global::ModuleA()", StringComparison.Ordinal);
-        var indexB = bootstrapSource.IndexOf("new global::ModuleB()", StringComparison.Ordinal);
-        indexA.ShouldBeLessThan(indexB);
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 }

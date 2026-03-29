@@ -3,7 +3,7 @@ namespace GroundControl.Host.Api.Generators.Tests;
 public sealed class DiscoveryTests
 {
     [Fact]
-    public void SingleModule_Discovered()
+    public Task SingleModule_Discovered()
     {
         // Arrange
         var source = """
@@ -17,17 +17,15 @@ public sealed class DiscoveryTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        result.HasBootstrapSource.ShouldBeTrue();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain("new global::MyModule()");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void AbstractModule_Ignored()
+    public Task AbstractModule_Ignored()
     {
         // Arrange
         var source = """
@@ -41,15 +39,15 @@ public sealed class DiscoveryTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void NoModules_NoOutput()
+    public Task NoModules_NoOutput()
     {
         // Arrange
         var source = """
@@ -60,15 +58,15 @@ public sealed class DiscoveryTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void ModuleWithoutBaseList_Ignored()
+    public Task ModuleWithoutBaseList_Ignored()
     {
         // Arrange — class has no base list at all (no : IWebApiModule)
         var source = """
@@ -80,10 +78,10 @@ public sealed class DiscoveryTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        result.HasBootstrapSource.ShouldBeFalse();
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 }

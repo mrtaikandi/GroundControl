@@ -485,6 +485,9 @@ $RECYCLE.BIN/
 .claude/settings.local.json
 .claude/worktrees/
 
+# Verify snapshot failures
+*.received.*
+
 # Project specific files and folders
 planning/
 appsettings.local.json

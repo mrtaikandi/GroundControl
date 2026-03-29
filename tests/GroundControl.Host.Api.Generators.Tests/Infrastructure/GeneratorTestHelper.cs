@@ -28,30 +28,15 @@ internal static class GeneratorTestHelper
     }
 
     /// <summary>
-    /// Runs the <see cref="WebApiModuleGenerator"/> on the provided compilation and returns the result.
+    /// Runs the <see cref="WebApiModuleGenerator"/> on the provided compilation and returns the driver
+    /// for snapshot verification with Verify.
     /// </summary>
-    public static GeneratorRunResult RunGenerator(CSharpCompilation compilation)
+    public static GeneratorDriver CreateDriver(CSharpCompilation compilation)
     {
         var generator = new WebApiModuleGenerator();
         var driver = CSharpGeneratorDriver.Create(generator).WithUpdatedParseOptions(ParseOptions);
 
-        driver = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-            compilation, out var outputCompilation, out _);
-
-        return new GeneratorRunResult
-        {
-            OutputCompilation = outputCompilation,
-            DriverRunResult = driver.GetRunResult(),
-        };
-    }
-
-    /// <summary>
-    /// Creates a compilation from the source and runs the generator in one step.
-    /// </summary>
-    public static GeneratorRunResult CreateAndRun(string source, string assemblyName = "TestAssembly")
-    {
-        var compilation = CreateCompilation(source, assemblyName);
-        return RunGenerator(compilation);
+        return driver.RunGenerators(compilation);
     }
 
     private static ImmutableArray<MetadataReference> GetMetadataReferences()
@@ -96,40 +81,4 @@ internal static class GeneratorTestHelper
 
         return references.ToImmutable();
     }
-}
-
-internal sealed record GeneratorRunResult
-{
-    public required Compilation OutputCompilation { get; init; }
-
-    public required GeneratorDriverRunResult DriverRunResult { get; init; }
-
-    /// <summary>
-    /// Gets all diagnostics reported by the generator.
-    /// </summary>
-    public ImmutableArray<Diagnostic> Diagnostics => DriverRunResult.Diagnostics;
-
-    /// <summary>
-    /// Gets the generated source text for the bootstrap extensions file, or null if not emitted.
-    /// </summary>
-    public string? GetBootstrapSource()
-    {
-        var tree = OutputCompilation.SyntaxTrees
-            .FirstOrDefault(t => t.FilePath.EndsWith("WebApiModuleExtensions.g.cs", StringComparison.Ordinal));
-
-        return tree?.GetText().ToString();
-    }
-
-    /// <summary>
-    /// Gets all diagnostics with the specified ID.
-    /// </summary>
-    public ImmutableArray<Diagnostic> GetDiagnostics(string id) =>
-        Diagnostics
-            .Where(d => d.Id == id)
-            .ToImmutableArray();
-
-    /// <summary>
-    /// Gets whether the generator emitted the bootstrap extensions file.
-    /// </summary>
-    public bool HasBootstrapSource => GetBootstrapSource() is not null;
 }

@@ -1,0 +1,30 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (3,22)-(3,29),
+      Message: Module 'ModuleA' has a circular dependency involving 'ModuleA, ModuleB',
+      Severity: Error,
+      Descriptor: {
+        Id: GCA001,
+        Title: Circular dependency detected,
+        MessageFormat: Module '{0}' has a circular dependency involving '{1}',
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: : (10,22)-(10,29),
+      Message: Module 'ModuleB' has a circular dependency involving 'ModuleA, ModuleB',
+      Severity: Error,
+      Descriptor: {
+        Id: GCA001,
+        Title: Circular dependency detected,
+        MessageFormat: Module '{0}' has a circular dependency involving '{1}',
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

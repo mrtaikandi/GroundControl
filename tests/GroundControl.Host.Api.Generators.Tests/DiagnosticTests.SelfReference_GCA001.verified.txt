@@ -1,0 +1,17 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (3,22)-(3,32),
+      Message: Module 'SelfModule' has a circular dependency involving 'SelfModule',
+      Severity: Error,
+      Descriptor: {
+        Id: GCA001,
+        Title: Circular dependency detected,
+        MessageFormat: Module '{0}' has a circular dependency involving '{1}',
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@ namespace GroundControl.Host.Api.Generators.Tests;
 public sealed class IntegrationTests
 {
     [Fact]
-    public void RealisticGraph_CorrectOrder()
+    public Task RealisticGraph_CorrectOrder()
     {
         // Arrange — 6 modules with a realistic dependency graph:
         //   Logging (root, no deps)
@@ -60,48 +60,15 @@ public sealed class IntegrationTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-
-        var positions = new Dictionary<string, int>
-        {
-            ["Config"] = bootstrapSource.IndexOf("new global::ConfigModule()", StringComparison.Ordinal),
-            ["Logging"] = bootstrapSource.IndexOf("new global::LoggingModule()", StringComparison.Ordinal),
-            ["Database"] = bootstrapSource.IndexOf("new global::DatabaseModule()", StringComparison.Ordinal),
-            ["Auth"] = bootstrapSource.IndexOf("new global::AuthModule()", StringComparison.Ordinal),
-            ["Api"] = bootstrapSource.IndexOf("new global::ApiModule()", StringComparison.Ordinal),
-            ["HealthChecks"] = bootstrapSource.IndexOf("new global::HealthChecksModule()", StringComparison.Ordinal),
-        };
-
-        // All modules should be present
-        foreach (var (name, pos) in positions)
-        {
-            pos.ShouldBeGreaterThan(-1, $"Module {name} should be present in generated code");
-        }
-
-        // Config before Database, Auth
-        positions["Config"].ShouldBeLessThan(positions["Database"]);
-        positions["Config"].ShouldBeLessThan(positions["Auth"]);
-
-        // Logging before Auth
-        positions["Logging"].ShouldBeLessThan(positions["Auth"]);
-
-        // Database before Api and HealthChecks
-        positions["Database"].ShouldBeLessThan(positions["Api"]);
-        positions["Database"].ShouldBeLessThan(positions["HealthChecks"]);
-
-        // Auth before Api
-        positions["Auth"].ShouldBeLessThan(positions["Api"]);
-
-        // HealthChecks before Api (via RunsBefore)
-        positions["HealthChecks"].ShouldBeLessThan(positions["Api"]);
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void MixedModules_WithAndWithoutOptions()
+    public Task MixedModules_WithAndWithoutOptions()
     {
         // Arrange — mix of plain and options modules
         var source = """
@@ -149,29 +116,15 @@ public sealed class IntegrationTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-
-        // Plain module: simple instantiation
-        bootstrapSource.ShouldContain("new global::LoggingModule()");
-        bootstrapSource.ShouldContain("new global::ApiModule()");
-
-        // Options module: config binding and constructor injection
-        bootstrapSource.ShouldContain(".GetSection(\"Auth\")");
-        bootstrapSource.ShouldContain(".Get<global::AuthOptions>()");
-        bootstrapSource.ShouldContain("new global::AuthModule(authModuleOptions)");
-
-        // CacheConfig has no suffix to strip
-        bootstrapSource.ShouldContain(".GetSection(\"CacheConfig\")");
-        bootstrapSource.ShouldContain(".Get<global::CacheConfig>()");
-        bootstrapSource.ShouldContain("new global::CacheModule(cacheModuleOptions)");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void FullFeatureGraph_AllDiagnosticsClean()
+    public Task FullFeatureGraph_AllDiagnosticsClean()
     {
         // Arrange — complex graph with all feature types, no errors expected
         var source = """
@@ -228,31 +181,10 @@ public sealed class IntegrationTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        result.HasBootstrapSource.ShouldBeTrue();
-
-        var bootstrapSource = result.GetBootstrapSource()!;
-
-        // ConfigurationKey override is respected
-        bootstrapSource.ShouldContain(".GetSection(\"Telemetry\")");
-
-        // DatabaseOptions uses suffix stripping
-        bootstrapSource.ShouldContain(".GetSection(\"Database\")");
-
-        // Required dependency check is present for Api → Database
-        bootstrapSource.ShouldContain("requires 'DatabaseModule' to be enabled");
-
-        // Verify it returns WebApplication
-        bootstrapSource.ShouldContain("return app;");
-
-        // Verify all modules appear
-        bootstrapSource.ShouldContain("new global::CoreModule()");
-        bootstrapSource.ShouldContain("new global::ObservabilityModule(");
-        bootstrapSource.ShouldContain("new global::DatabaseModule(");
-        bootstrapSource.ShouldContain("new global::ApiModule()");
-        bootstrapSource.ShouldContain("new global::MigrationModule()");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 }

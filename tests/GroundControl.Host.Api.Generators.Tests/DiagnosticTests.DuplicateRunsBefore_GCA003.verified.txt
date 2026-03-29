@@ -1,0 +1,17 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (4,22)-(4,29),
+      Message: Module 'ModuleA' has duplicate RunsAfter/RunsBefore targeting 'ModuleB',
+      Severity: Error,
+      Descriptor: {
+        Id: GCA003,
+        Title: Duplicate dependency,
+        MessageFormat: Module '{0}' has duplicate RunsAfter/RunsBefore targeting '{1}',
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

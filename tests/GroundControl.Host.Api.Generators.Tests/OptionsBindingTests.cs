@@ -3,7 +3,7 @@ namespace GroundControl.Host.Api.Generators.Tests;
 public sealed class OptionsBindingTests
 {
     [Fact]
-    public void OptionsModule_ConstructorInjection()
+    public Task OptionsModule_ConstructorInjection()
     {
         // Arrange
         var source = """
@@ -23,18 +23,15 @@ public sealed class OptionsBindingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain(".GetSection(\"My\")");
-        bootstrapSource.ShouldContain(".Get<global::MyOptions>()");
-        bootstrapSource.ShouldContain("new global::MyModule(myModuleOptions)");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void OptionsModule_ConfigurationKeyOverride()
+    public Task OptionsModule_ConfigurationKeyOverride()
     {
         // Arrange — TOptions has [ConfigurationKey("CustomKey")]
         var source = """
@@ -55,16 +52,15 @@ public sealed class OptionsBindingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain(".GetSection(\"CustomKey\")");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void OptionsModule_StripOptionsSuffix()
+    public Task OptionsModule_StripOptionsSuffix()
     {
         // Arrange — FooOptions → section name "Foo"
         var source = """
@@ -84,16 +80,15 @@ public sealed class OptionsBindingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain(".GetSection(\"Foo\")");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void OptionsModule_StripOptionSuffix()
+    public Task OptionsModule_StripOptionSuffix()
     {
         // Arrange — FooOption → section name "Foo"
         var source = """
@@ -113,16 +108,15 @@ public sealed class OptionsBindingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain(".GetSection(\"Foo\")");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void OptionsModule_NoSuffix_UsesFullName()
+    public Task OptionsModule_NoSuffix_UsesFullName()
     {
         // Arrange — FooConfig (no Options/Option suffix) → section name "FooConfig"
         var source = """
@@ -142,16 +136,15 @@ public sealed class OptionsBindingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        bootstrapSource.ShouldContain(".GetSection(\"FooConfig\")");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void OptionsModule_EmptyAfterStrip_UsesFullName()
+    public Task OptionsModule_EmptyAfterStrip_UsesFullName()
     {
         // Arrange — "Options" type name → stripping "Options" leaves empty, so use "Options"
         var source = """
@@ -171,12 +164,10 @@ public sealed class OptionsBindingTests
             """;
 
         // Act
-        var result = GeneratorTestHelper.CreateAndRun(source);
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
 
         // Assert
-        result.Diagnostics.ShouldBeEmpty();
-        var bootstrapSource = result.GetBootstrapSource()!;
-        // "Options" has length 7, which equals 7 (not > 7), so the suffix isn't stripped
-        bootstrapSource.ShouldContain(".GetSection(\"Options\")");
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
 }
