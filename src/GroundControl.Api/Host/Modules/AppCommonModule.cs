@@ -26,8 +26,4 @@ internal sealed class AppCommonModule : IWebApiModule
             options.ApiVersionReader = new HeaderApiVersionReader("api-version");
         });
     }
-
-    public void OnApplicationConfiguration(WebApplication app)
-    {
-    }
 }

@@ -20,8 +20,4 @@ internal sealed class ChangeNotificationModule : IWebApiModule
             builder.Services.AddSingleton<IChangeNotifier, InProcessChangeNotifier>();
         }
     }
-
-    public void OnApplicationConfiguration(WebApplication app)
-    {
-    }
 }
