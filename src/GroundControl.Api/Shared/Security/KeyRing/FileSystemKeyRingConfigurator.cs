@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.DataProtection;
+using DataProtectionOptions = GroundControl.Api.Shared.Security.DataProtection.DataProtectionOptions;
 
 namespace GroundControl.Api.Shared.Security.KeyRing;
 
@@ -7,18 +8,14 @@ namespace GroundControl.Api.Shared.Security.KeyRing;
 /// </summary>
 internal sealed class FileSystemKeyRingConfigurator : IKeyRingConfigurator
 {
-    private const string DefaultKeyStorePath = "./keys";
-
     /// <inheritdoc />
-    public void Configure(IDataProtectionBuilder builder, IConfiguration configuration)
+    public void Configure(IDataProtectionBuilder builder, DataProtectionOptions options)
     {
-        var keyStorePath = configuration["DataProtection:KeyStorePath"] ?? DefaultKeyStorePath;
-        var keyDirectory = new DirectoryInfo(keyStorePath);
+        var keyDirectory = new DirectoryInfo(options.KeyStorePath);
 
         builder.PersistKeysToFileSystem(keyDirectory);
 
-        if (OperatingSystem.IsWindows()
-            && configuration.GetValue<bool>("DataProtection:UseDpapi"))
+        if (OperatingSystem.IsWindows() && options.UseDpapi)
         {
             builder.ProtectKeysWithDpapi();
         }

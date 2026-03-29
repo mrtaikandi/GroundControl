@@ -1,51 +1,39 @@
-using GroundControl.Api.Shared.Security.Certificate;
+using GroundControl.Api.Shared.Extensions.Options;
+using GroundControl.Api.Shared.Security.DataProtection;
 using Microsoft.AspNetCore.DataProtection;
 using StackExchange.Redis;
+using DataProtectionOptions = GroundControl.Api.Shared.Security.DataProtection.DataProtectionOptions;
 
 namespace GroundControl.Api.Shared.Security.KeyRing;
 
 /// <summary>
-/// Persists Data Protection keys to Redis and protects them with an X.509 certificate.
+/// Persists Data Protection keys to Redis.
+/// Certificate-based key encryption is handled separately by
+/// <see cref="Certificate.CertificateKeyEncryptionConfigurator"/>.
 /// </summary>
-internal sealed class RedisKeyRingConfigurator(IDataProtectionCertificateProvider certificateProvider) : IKeyRingConfigurator
+internal sealed class RedisKeyRingConfigurator : IKeyRingConfigurator
 {
-    private const string DefaultKeyName = "groundcontrol-data-protection";
-    private const int DefaultConnectTimeoutMs = 5000;
-
     /// <inheritdoc />
-    public void Configure(IDataProtectionBuilder builder, IConfiguration configuration)
+    public void Configure(IDataProtectionBuilder builder, DataProtectionOptions options)
     {
-        var connectionString = configuration["DataProtection:Redis:ConnectionString"]
-            ?? throw new InvalidOperationException("DataProtection:Redis:ConnectionString is required for Redis mode.");
+        RedisOptions.Validator.ThrowIfInvalid(options.Redis);
 
-        var keyName = configuration["DataProtection:Redis:KeyName"] ?? DefaultKeyName;
+        var connectionString = options.Redis.ConnectionString;
+        var redisOptions = ConfigurationOptions.Parse(connectionString);
 
-        var options = ConfigurationOptions.Parse(connectionString);
-        options.ConnectTimeout = configuration.GetValue("DataProtection:Redis:ConnectTimeoutMs", DefaultConnectTimeoutMs);
-        options.AbortOnConnectFail = true;
+        redisOptions.ConnectTimeout = options.Redis.ConnectTimeoutMs;
+        redisOptions.AbortOnConnectFail = true;
 
         IConnectionMultiplexer redis;
         try
         {
-            redis = ConnectionMultiplexer.Connect(options);
+            redis = ConnectionMultiplexer.Connect(redisOptions);
         }
         catch (RedisConnectionException ex)
         {
-            throw new InvalidOperationException(
-                $"Failed to connect to Redis for Data Protection key ring. Connection string: '{connectionString}'.", ex);
+            throw new InvalidOperationException($"Failed to connect to Redis for Data Protection key ring. Connection string: '{connectionString}'.", ex);
         }
 
-        // Sync-over-async: safe here because this runs in the startup path with no SynchronizationContext.
-        var certificate = certificateProvider.GetCurrentCertificateAsync()
-            .GetAwaiter().GetResult();
-
-        builder
-            .PersistKeysToStackExchangeRedis(redis, keyName)
-            .ProtectKeysWithCertificate(certificate);
-
-        foreach (var previous in certificateProvider.GetPreviousCertificatesAsync().GetAwaiter().GetResult())
-        {
-            builder.UnprotectKeysWithAnyCertificate(previous);
-        }
+        builder.PersistKeysToStackExchangeRedis(redis, options.Redis.KeyName);
     }
 }

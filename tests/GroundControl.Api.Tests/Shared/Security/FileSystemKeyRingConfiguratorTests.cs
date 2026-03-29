@@ -1,10 +1,10 @@
 using GroundControl.Api.Shared.Security.KeyRing;
 using GroundControl.Api.Shared.Security.Protection;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
+using DataProtectionOptions = GroundControl.Api.Shared.Security.DataProtection.DataProtectionOptions;
 
 namespace GroundControl.Api.Tests.Shared.Security;
 
@@ -16,12 +16,10 @@ public sealed class FileSystemKeyRingConfiguratorTests : IDisposable
     public void Configure_PersistsKeysToConfiguredDirectory()
     {
         // Arrange
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["DataProtection:KeyStorePath"] = _tempDir
-            })
-            .Build();
+        var options = new DataProtectionOptions
+        {
+            KeyStorePath = _tempDir
+        };
 
         var services = new ServiceCollection();
         var dpBuilder = services.AddDataProtection()
@@ -30,7 +28,7 @@ public sealed class FileSystemKeyRingConfiguratorTests : IDisposable
         var configurator = new FileSystemKeyRingConfigurator();
 
         // Act
-        configurator.Configure(dpBuilder, configuration);
+        configurator.Configure(dpBuilder, options);
         services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
 
         var provider = services.BuildServiceProvider();
@@ -48,7 +46,7 @@ public sealed class FileSystemKeyRingConfiguratorTests : IDisposable
     public void Configure_UsesDefaultPath_WhenNotConfigured()
     {
         // Arrange
-        var configuration = new ConfigurationBuilder().Build();
+        var options = new DataProtectionOptions();
         var services = new ServiceCollection();
         var dpBuilder = services.AddDataProtection()
             .SetApplicationName("GroundControl.Tests");
@@ -56,7 +54,7 @@ public sealed class FileSystemKeyRingConfiguratorTests : IDisposable
         var configurator = new FileSystemKeyRingConfigurator();
 
         // Act & Assert — should not throw
-        Should.NotThrow(() => configurator.Configure(dpBuilder, configuration));
+        Should.NotThrow(() => configurator.Configure(dpBuilder, options));
     }
 
     public void Dispose()
