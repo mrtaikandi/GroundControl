@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
+using GroundControl.Host.Api.Generators.WebApiModule.Descriptors;
 
-namespace GroundControl.Host.Api.Generators;
+namespace GroundControl.Host.Api.Generators.Internals;
 
 internal static class TopologicalSorter
 {
@@ -11,9 +9,9 @@ internal static class TopologicalSorter
     /// Sorts modules topologically using Kahn's algorithm with deterministic alphabetical tie-breaking.
     /// RunsBefore edges are converted to reverse RunsAfter edges before sorting.
     /// </summary>
-    public static TopologicalSortResult Sort(ImmutableArray<ModuleInfo> modules)
+    public static TopologicalSortResult Sort(ImmutableArray<ModuleDescriptor> modules)
     {
-        var moduleMap = new Dictionary<string, ModuleInfo>();
+        var moduleMap = new Dictionary<string, ModuleDescriptor>();
         var adjacency = new Dictionary<string, List<string>>();
         var inDegree = new Dictionary<string, int>();
 
@@ -29,9 +27,9 @@ internal static class TopologicalSorter
         {
             foreach (var dep in module.RunsAfter)
             {
-                if (adjacency.ContainsKey(dep.TargetFullyQualifiedName))
+                if (adjacency.TryGetValue(dep.TargetFullyQualifiedName, out var value))
                 {
-                    adjacency[dep.TargetFullyQualifiedName].Add(module.FullyQualifiedName);
+                    value.Add(module.FullyQualifiedName);
                     inDegree[module.FullyQualifiedName]++;
                 }
             }
@@ -42,26 +40,22 @@ internal static class TopologicalSorter
         {
             foreach (var target in module.RunsBefore)
             {
-                if (inDegree.ContainsKey(target))
+                if (inDegree.TryGetValue(target, out var value))
                 {
                     adjacency[module.FullyQualifiedName].Add(target);
-                    inDegree[target]++;
+                    inDegree[target] = ++value;
                 }
             }
         }
 
         // Kahn's algorithm with alphabetical tie-breaking via SortedSet
         var queue = new SortedSet<string>(StringComparer.Ordinal);
-
-        foreach (var kvp in inDegree)
+        foreach (var kvp in inDegree.Where(kvp => kvp.Value == 0))
         {
-            if (kvp.Value == 0)
-            {
-                queue.Add(kvp.Key);
-            }
+            queue.Add(kvp.Key);
         }
 
-        var sorted = new List<ModuleInfo>();
+        var sorted = new List<ModuleDescriptor>();
 
         while (queue.Count > 0)
         {
@@ -72,7 +66,6 @@ internal static class TopologicalSorter
             foreach (var neighbor in adjacency[current])
             {
                 inDegree[neighbor]--;
-
                 if (inDegree[neighbor] == 0)
                 {
                     queue.Add(neighbor);
@@ -80,17 +73,17 @@ internal static class TopologicalSorter
             }
         }
 
-        if (sorted.Count < modules.Length)
+        if (sorted.Count >= modules.Length)
         {
-            var cycleParticipants = inDegree
-                .Where(kvp => kvp.Value > 0)
-                .Select(kvp => kvp.Key)
-                .OrderBy(x => x, StringComparer.Ordinal)
-                .ToImmutableArray();
-
-            return TopologicalSortResult.Cycle(cycleParticipants);
+            return TopologicalSortResult.Sorted(sorted.ToImmutableArray());
         }
 
-        return TopologicalSortResult.Sorted(sorted.ToImmutableArray());
+        var cycleParticipants = inDegree
+            .Where(kvp => kvp.Value > 0)
+            .Select(kvp => kvp.Key)
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToImmutableArray();
+
+        return TopologicalSortResult.Cycle(cycleParticipants);
     }
 }

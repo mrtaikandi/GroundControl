@@ -1,15 +1,16 @@
 using System.Collections.Immutable;
+using GroundControl.Host.Api.Generators.WebApiModule.Descriptors;
 
-namespace GroundControl.Host.Api.Generators;
+namespace GroundControl.Host.Api.Generators.Internals;
 
 internal readonly record struct TopologicalSortResult(
     bool IsCycle,
-    ImmutableArray<ModuleInfo> SortedModules,
+    ImmutableArray<ModuleDescriptor> SortedModules,
     ImmutableArray<string> CycleParticipants)
 {
-    public static TopologicalSortResult Sorted(ImmutableArray<ModuleInfo> sortedModules) =>
-        new(false, sortedModules, ImmutableArray<string>.Empty);
+    public static TopologicalSortResult Sorted(ImmutableArray<ModuleDescriptor> sortedModules) =>
+        new(false, sortedModules, []);
 
     public static TopologicalSortResult Cycle(ImmutableArray<string> cycleParticipants) =>
-        new(true, ImmutableArray<ModuleInfo>.Empty, cycleParticipants);
+        new(true, [], cycleParticipants);
 }
