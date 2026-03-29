@@ -9,8 +9,4 @@ internal sealed class PersistenceModule : IWebApiModule
     {
         builder.Services.AddGroundControlMongo();
     }
-
-    public void OnApplicationConfiguration(WebApplication app)
-    {
-    }
 }

@@ -38,8 +38,6 @@ internal sealed class DataProtectionModule(DataProtectionOptions options) : IWeb
         builder.Services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
     }
 
-    public void OnApplicationConfiguration(WebApplication app) { }
-
     private static IKeyRingConfigurator CreateKeyRingConfigurator(DataProtectionMode mode) => mode switch
     {
         DataProtectionMode.FileSystem => new FileSystemKeyRingConfigurator(),

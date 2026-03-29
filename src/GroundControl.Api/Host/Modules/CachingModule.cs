@@ -19,8 +19,4 @@ internal sealed class CachingModule : IWebApiModule
 
         builder.Services.AddHostedService<ClientCleanupService>();
     }
-
-    public void OnApplicationConfiguration(WebApplication app)
-    {
-    }
 }

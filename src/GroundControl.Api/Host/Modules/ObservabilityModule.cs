@@ -40,8 +40,4 @@ internal sealed class ObservabilityModule : IWebApiModule
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
     }
-
-    public void OnApplicationConfiguration(WebApplication app)
-    {
-    }
 }
