@@ -12,6 +12,7 @@ internal static class GroundControlOptionsExtensions
     {
         var section = configuration.GetRequiredSection(GroundControlOptions.SectionName);
 
+        services.AddValidation();
         services.Configure<GroundControlOptions>(section);
         services.AddSingleton<IValidateOptions<GroundControlOptions>, GroundControlOptions.Validator>();
 

@@ -10,6 +10,8 @@ namespace GroundControl.Api.Host.Modules;
 [RunsAfter<ChangeNotificationModule>(Required = true)]
 internal sealed class HealthChecksModule : IWebApiModule
 {
+    internal const string HealthEndpointPrefix = "/healthz";
+
     public void OnServiceConfiguration(WebApplicationBuilder builder)
     {
         builder.Services.AddHealthChecks()
@@ -23,8 +25,8 @@ internal sealed class HealthChecksModule : IWebApiModule
 
     public void OnApplicationConfiguration(WebApplication app)
     {
-        app.MapHealthChecks("/healthz/liveness", new HealthCheckOptions { Predicate = _ => false });
-        app.MapHealthChecks("/healthz/ready", new HealthCheckOptions
+        app.MapHealthChecks($"{HealthEndpointPrefix}/liveness", new HealthCheckOptions { Predicate = _ => false });
+        app.MapHealthChecks($"{HealthEndpointPrefix}/ready", new HealthCheckOptions
         {
             Predicate = p => p.Tags.Contains("ready"),
             ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse

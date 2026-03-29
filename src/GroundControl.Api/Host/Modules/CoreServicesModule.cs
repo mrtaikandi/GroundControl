@@ -6,7 +6,6 @@ using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Host.Modules;
 
-[RunsAfter<ConfigurationModule>(Required = true)]
 internal sealed class CoreServicesModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)

@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 namespace GroundControl.Api.Host.Modules;
 
 [RunsAfter<CoreServicesModule>]
-[RunsAfter<ConfigurationModule>(Required = true)]
 internal sealed class AuthModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)

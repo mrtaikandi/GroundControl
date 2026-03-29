@@ -1,52 +1,44 @@
-using GroundControl.Api.Shared.Observability;
 using GroundControl.Host.Api;
-using OpenTelemetry.Logs;
+using OpenTelemetry;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace GroundControl.Api.Host.Modules;
 
-[RunsAfter<ConfigurationModule>(Required = true)]
 internal sealed class ObservabilityModule : IWebApiModule
 {
+    private const string OtlpEndpointVariableName = "OTEL_EXPORTER_OTLP_ENDPOINT";
+
     public void OnServiceConfiguration(WebApplicationBuilder builder)
     {
-        var serviceName = builder.Configuration["OpenTelemetry:ServiceName"] ?? "GroundControl";
-        var otlpEndpoint = builder.Configuration["OpenTelemetry:Endpoint"];
+        builder.Logging.AddOpenTelemetry(logging =>
+        {
+            logging.IncludeFormattedMessage = true;
+            logging.IncludeScopes = true;
+        });
 
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService(serviceName))
             .WithMetrics(metrics =>
             {
-                metrics.AddAspNetCoreInstrumentation();
-                metrics.AddMeter(GroundControlMetrics.MeterName);
-
-                if (otlpEndpoint is not null)
-                {
-                    metrics.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
-                }
+                metrics.AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation();
             })
             .WithTracing(tracing =>
             {
-                tracing.AddAspNetCoreInstrumentation();
-                tracing.AddSource(GroundControlMetrics.ActivitySourceName);
-
-                if (otlpEndpoint is not null)
-                {
-                    tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
-                }
+                tracing.AddSource("ground-control.api")
+                    .AddAspNetCoreInstrumentation(options =>
+                        // Exclude health check requests from tracing
+                        options.Filter = context => !context.Request.Path.StartsWithSegments(HealthChecksModule.HealthEndpointPrefix, StringComparison.OrdinalIgnoreCase)
+                    )
+                    .AddHttpClientInstrumentation();
             });
 
-        builder.Logging.AddOpenTelemetry(logging =>
+        var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration[OtlpEndpointVariableName]);
+        if (useOtlpExporter)
         {
-            logging.IncludeScopes = true;
-
-            if (otlpEndpoint is not null)
-            {
-                logging.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
-            }
-        });
+            builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
     }
 
     public void OnApplicationConfiguration(WebApplication app)
