@@ -14,7 +14,7 @@ public class WebApiModuleGenerator : IIncrementalGenerator
         context.RegisterPostInitializationOutput(static ctx =>
         {
             ctx.GenerateSource(new WebApiModuleInterfaceEmitter());
-            ctx.GenerateSource(new GenericWebApiModuleInterfaceEmitter());
+            ctx.GenerateSource(new WebApiModuleGenericInterfaceEmitter());
             ctx.GenerateSource(new RunsAfterAttributeEmitter());
             ctx.GenerateSource(new RunsBeforeAttributeEmitter());
             ctx.GenerateSource(new ConfigurationKeyAttributeEmitter());
