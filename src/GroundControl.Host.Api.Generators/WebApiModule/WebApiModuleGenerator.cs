@@ -18,6 +18,7 @@ public class WebApiModuleGenerator : IIncrementalGenerator
             ctx.GenerateSource(new RunsAfterAttributeEmitter());
             ctx.GenerateSource(new RunsBeforeAttributeEmitter());
             ctx.GenerateSource(new ConfigurationKeyAttributeEmitter());
+            ctx.GenerateSource(new ModuleConfigurationExceptionEmitter());
         });
 
         var moduleResults = context.SyntaxProvider.CreateSyntaxProvider(

@@ -18,4 +18,5 @@ internal static class KnownTypes
     internal const string ArgumentNullException = "System.ArgumentNullException";
     internal const string ArgumentOutOfRangeException = "System.ArgumentOutOfRangeException";
     internal const string InvalidOperationException = "System.InvalidOperationException";
+    internal const string ModuleConfigurationException = $"{ApiHostNamespace}.ModuleConfigurationException";
 }

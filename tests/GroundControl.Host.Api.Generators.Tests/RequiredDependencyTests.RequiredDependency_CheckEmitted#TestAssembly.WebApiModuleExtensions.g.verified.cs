@@ -29,7 +29,7 @@ internal static class WebApiModuleExtensions
         {
             if (!IsModuleEnabled(builder.Configuration, "ModuleA"))
             {
-                throw new global::System.InvalidOperationException("Module 'ModuleB' requires 'ModuleA' to be enabled.");
+                throw new global::GroundControl.Host.Api.ModuleConfigurationException("Module 'ModuleB' requires 'ModuleA' to be enabled.");
             }
 
             moduleB = new global::ModuleB();
