@@ -5,6 +5,7 @@ namespace GroundControl.Host.Api.Generators.WebApiModule.Emitters;
 
 internal readonly record struct WebApiModuleExtensionsEmitter(
     ImmutableArray<ModuleDescriptor> SortedModules,
+    ImmutableArray<OptionsValidatorDescriptor> Validators,
     string RootNamespace) : ISourceEmitter
 {
     public string HintName => $"{RootNamespace}.WebApiModuleExtensions.g.cs";
@@ -13,6 +14,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
     {
         var moduleMap = SortedModules.ToDictionary(m => m.FullyQualifiedName);
         var varNameMap = BuildVariableNameMap(SortedModules);
+        var validatorLookup = BuildValidatorLookup(Validators);
 
         using var writer = new CodeWriter();
 
@@ -36,7 +38,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             .WriteLine($"public static global::{KnownTypes.WebApplication} BuildWebApiModules(this global::{KnownTypes.WebApplicationBuilder} builder)")
             .WriteOpeningBracket();
 
-        WriteServiceConfigurationPhase(writer, moduleMap, varNameMap);
+        WriteServiceConfigurationPhase(writer, moduleMap, varNameMap, validatorLookup);
 
         writer
             .WriteLine()
@@ -60,7 +62,8 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
     private void WriteServiceConfigurationPhase(
         CodeWriter writer,
         Dictionary<string, ModuleDescriptor> moduleMap,
-        Dictionary<string, string> varNameMap)
+        Dictionary<string, string> varNameMap,
+        Dictionary<string, List<string>> validatorLookup)
     {
         for (var i = 0; i < SortedModules.Length; i++)
         {
@@ -74,6 +77,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
                 .WriteOpeningBracket();
 
             WriteRequiredDependencyChecks(writer, module, moduleMap);
+            WriteValidatorRegistrations(writer, module, validatorLookup);
             WriteModuleInstantiation(writer, module, varName);
 
             writer
@@ -102,6 +106,22 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
                 .WriteLine($"throw new global::{KnownTypes.ModuleConfigurationException}(\"Module '{module.TypeName}' requires '{depModule.TypeName}' to be enabled.\");")
                 .WriteClosingBracket()
                 .WriteLine();
+        }
+    }
+
+    private static void WriteValidatorRegistrations(
+        CodeWriter writer,
+        ModuleDescriptor module,
+        Dictionary<string, List<string>> validatorLookup)
+    {
+        if (!module.HasOptions || !validatorLookup.TryGetValue(module.OptionsTypeFullyQualifiedName!, out var validators))
+        {
+            return;
+        }
+
+        foreach (var validatorFqn in validators)
+        {
+            writer.WriteLine($"builder.Services.AddSingleton<global::{KnownTypes.ValidateOptionsInterfaceFullName}<{module.OptionsTypeFullyQualifiedName}>, {validatorFqn}>();");
         }
     }
 
@@ -201,5 +221,23 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
         }
 
         return char.ToLowerInvariant(name[0]) + name.Substring(1);
+    }
+
+    private static Dictionary<string, List<string>> BuildValidatorLookup(ImmutableArray<OptionsValidatorDescriptor> validators)
+    {
+        var lookup = new Dictionary<string, List<string>>();
+
+        foreach (var validator in validators)
+        {
+            if (!lookup.TryGetValue(validator.OptionsTypeFullyQualifiedName, out var list))
+            {
+                list = [];
+                lookup[validator.OptionsTypeFullyQualifiedName] = list;
+            }
+
+            list.Add(validator.ValidatorFullyQualifiedName);
+        }
+
+        return lookup;
     }
 }

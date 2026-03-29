@@ -27,15 +27,31 @@ public class WebApiModuleGenerator : IIncrementalGenerator
             .Where(static r => r.HasValue)
             .Select(static (r, _) => r.GetValueOrDefault());
 
+        var validatorResults = context.SyntaxProvider.CreateSyntaxProvider(
+                predicate: static (node, _) => node is ClassDeclarationSyntax { BaseList: not null },
+                transform: static (ctx, ct) => OptionsValidatorParser.TransformToDescriptor(ctx, ct))
+            .Where(static r => r.HasValue)
+            .Select(static (r, _) => r.GetValueOrDefault());
+
         var assemblyName = context.CompilationProvider.Select(
             static (c, _) => c.AssemblyName ?? "GeneratedNamespace");
 
-        var combined = moduleResults.Collect().Combine(assemblyName);
+        var combined = moduleResults.Collect()
+            .Combine(validatorResults.Collect())
+            .Combine(assemblyName);
 
-        context.RegisterSourceOutput(combined, static (spc, pair) => Emit(spc, pair.Left, pair.Right));
+        context.RegisterSourceOutput(combined, static (spc, pair) =>
+        {
+            var ((moduleResult, optionsValidators), rootNamespace) = pair;
+            Emit(spc, moduleResult, optionsValidators, rootNamespace);
+        });
     }
 
-    private static void Emit(SourceProductionContext context, ImmutableArray<ModuleResult> results, string rootNamespace)
+    private static void Emit(
+        SourceProductionContext context,
+        ImmutableArray<ModuleResult> results,
+        ImmutableArray<OptionsValidatorDescriptor> validators,
+        string rootNamespace)
     {
         if (results.IsDefaultOrEmpty)
         {
@@ -152,7 +168,7 @@ public class WebApiModuleGenerator : IIncrementalGenerator
             return;
         }
 
-        context.GenerateSource(new WebApiModuleExtensionsEmitter(sortResult.SortedModules, rootNamespace));
+        context.GenerateSource(new WebApiModuleExtensionsEmitter(sortResult.SortedModules, validators, rootNamespace));
     }
 
     private static string ForDisplay(string fullyQualifiedName) =>
