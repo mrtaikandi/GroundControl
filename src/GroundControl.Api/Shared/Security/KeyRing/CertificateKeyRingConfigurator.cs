@@ -1,32 +1,19 @@
-using GroundControl.Api.Shared.Security.Certificate;
 using Microsoft.AspNetCore.DataProtection;
+using DataProtectionOptions = GroundControl.Api.Shared.Security.DataProtection.DataProtectionOptions;
 
 namespace GroundControl.Api.Shared.Security.KeyRing;
 
 /// <summary>
-/// Persists Data Protection keys to the file system and protects them with an X.509 certificate.
+/// Persists Data Protection keys to the file system.
+/// Certificate-based key encryption is handled separately by
+/// <see cref="Certificate.CertificateKeyEncryptionConfigurator"/>.
 /// </summary>
-internal sealed class CertificateKeyRingConfigurator(IDataProtectionCertificateProvider certificateProvider) : IKeyRingConfigurator
+internal sealed class CertificateKeyRingConfigurator : IKeyRingConfigurator
 {
     /// <inheritdoc />
-    public void Configure(IDataProtectionBuilder builder, IConfiguration configuration)
+    public void Configure(IDataProtectionBuilder builder, DataProtectionOptions options)
     {
-        var keyStorePath = configuration["DataProtection:KeyStorePath"]
-            ?? throw new InvalidOperationException("DataProtection:KeyStorePath is required for Certificate mode.");
-
-        var keyDirectory = new DirectoryInfo(keyStorePath);
-
-        // Sync-over-async: safe here because this runs in the startup path with no SynchronizationContext.
-        var certificate = certificateProvider.GetCurrentCertificateAsync()
-            .GetAwaiter().GetResult();
-
-        builder
-            .PersistKeysToFileSystem(keyDirectory)
-            .ProtectKeysWithCertificate(certificate);
-
-        foreach (var previous in certificateProvider.GetPreviousCertificatesAsync().GetAwaiter().GetResult())
-        {
-            builder.UnprotectKeysWithAnyCertificate(previous);
-        }
+        var keyDirectory = new DirectoryInfo(options.KeyStorePath);
+        builder.PersistKeysToFileSystem(keyDirectory);
     }
 }

@@ -1,5 +1,8 @@
 using Azure.Identity;
+using GroundControl.Api.Shared.Extensions.Options;
+using GroundControl.Api.Shared.Security.DataProtection;
 using Microsoft.AspNetCore.DataProtection;
+using DataProtectionOptions = GroundControl.Api.Shared.Security.DataProtection.DataProtectionOptions;
 
 namespace GroundControl.Api.Shared.Security.KeyRing;
 
@@ -11,16 +14,12 @@ internal sealed class AzureKeyRingConfigurator : IKeyRingConfigurator
     private static readonly DefaultAzureCredential Credential = new();
 
     /// <inheritdoc />
-    public void Configure(IDataProtectionBuilder builder, IConfiguration configuration)
+    public void Configure(IDataProtectionBuilder builder, DataProtectionOptions options)
     {
-        var blobUri = configuration["DataProtection:Azure:BlobUri"]
-            ?? throw new InvalidOperationException("DataProtection:Azure:BlobUri is required for Azure mode.");
-
-        var keyVaultKeyId = configuration["DataProtection:Azure:KeyVaultKeyId"]
-            ?? throw new InvalidOperationException("DataProtection:Azure:KeyVaultKeyId is required for Azure mode.");
+        AzureOptions.Validator.ThrowIfInvalid(options.Azure);
 
         builder
-            .PersistKeysToAzureBlobStorage(new Uri(blobUri), Credential)
-            .ProtectKeysWithAzureKeyVault(new Uri(keyVaultKeyId), Credential);
+            .PersistKeysToAzureBlobStorage(options.Azure.BlobUri, Credential)
+            .ProtectKeysWithAzureKeyVault(options.Azure.KeyVaultKeyId, Credential);
     }
 }

@@ -1,43 +1,49 @@
+using GroundControl.Api.Shared.Security.DataProtection;
 using GroundControl.Api.Shared.Security.KeyRing;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Shouldly;
 using Xunit;
+using DataProtectionOptions = GroundControl.Api.Shared.Security.DataProtection.DataProtectionOptions;
 
 namespace GroundControl.Api.Tests.Shared.Security;
 
 public sealed class AzureKeyRingConfiguratorTests
 {
     [Fact]
-    public void Configure_ThrowsInvalidOperationException_WhenBlobUriNotConfigured()
+    public void Configure_OptionsValidationException_WhenBlobUriNotConfigured()
     {
         // Arrange
-        var configuration = new ConfigurationBuilder().Build();
+        var options = new DataProtectionOptions
+        {
+            Mode = DataProtectionMode.Azure
+        };
 
         var services = new ServiceCollection();
-        var dpBuilder = services.AddDataProtection()
+        var builder = services.AddDataProtection()
             .SetApplicationName("GroundControl.Tests");
 
         var configurator = new AzureKeyRingConfigurator();
 
         // Act & Assert
-        var exception = Should.Throw<InvalidOperationException>(
-            () => configurator.Configure(dpBuilder, configuration));
+        var exception = Should.Throw<OptionsValidationException>(() => configurator.Configure(builder, options));
 
-        exception.Message.ShouldContain("BlobUri");
+        exception.Message.ShouldContain("BlobUri: The AzureOptions.BlobUri field is required.");
     }
 
     [Fact]
-    public void Configure_ThrowsInvalidOperationException_WhenKeyVaultKeyIdNotConfigured()
+    public void Configure_OptionsValidationException_WhenKeyVaultKeyIdNotConfigured()
     {
         // Arrange
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
+        var options = new DataProtectionOptions
+        {
+            Mode = DataProtectionMode.Azure,
+            Azure = new AzureOptions
             {
-                ["DataProtection:Azure:BlobUri"] = "https://test.blob.core.windows.net/keys/key.xml"
-            })
-            .Build();
+                BlobUri = new Uri("https://test.blob.core.windows.net/keys/key.xml")
+            }
+        };
 
         var services = new ServiceCollection();
         var dpBuilder = services.AddDataProtection()
@@ -46,9 +52,8 @@ public sealed class AzureKeyRingConfiguratorTests
         var configurator = new AzureKeyRingConfigurator();
 
         // Act & Assert
-        var exception = Should.Throw<InvalidOperationException>(
-            () => configurator.Configure(dpBuilder, configuration));
+        var exception = Should.Throw<OptionsValidationException>(() => configurator.Configure(dpBuilder, options));
 
-        exception.Message.ShouldContain("KeyVaultKeyId");
+        exception.Message.ShouldContain("KeyVaultKeyId: The AzureOptions.KeyVaultKeyId field is required.");
     }
 }
