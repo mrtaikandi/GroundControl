@@ -123,11 +123,8 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
         }
     }
 
-    private void WriteApplicationConfigurationPhase(CodeWriter writer, Dictionary<string, string> varNameMap)
-    {
-        writer.WriteLines(SortedModules.Select(m =>
-            $"{varNameMap[m.FullyQualifiedName]}?.OnApplicationConfiguration(app);"));
-    }
+    private void WriteApplicationConfigurationPhase(CodeWriter writer, Dictionary<string, string> varNameMap) => writer
+        .WriteLines(SortedModules.Select(m => $"{varNameMap[m.FullyQualifiedName]}?.OnApplicationConfiguration(app);"));
 
     private static void WriteIsModuleEnabledMethod(CodeWriter writer)
     {

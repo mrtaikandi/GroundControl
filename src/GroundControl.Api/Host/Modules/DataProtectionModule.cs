@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GroundControl.Api.Host.Modules;
 
-[RunsAfter<ConfigurationModule>(Required = true)]
 internal sealed class DataProtectionModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)
