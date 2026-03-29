@@ -1,14 +1,13 @@
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace GroundControl.Host.Api.Generators;
+namespace GroundControl.Host.Api.Generators.WebApiModule.Descriptors;
 
-internal readonly record struct ModuleInfo(
+internal readonly record struct ModuleDescriptor(
     string FullyQualifiedName,
     string TypeName,
-    ImmutableArray<DependencyInfo> RunsAfter,
+    ImmutableArray<ModuleDependencyDescriptor> RunsAfter,
     ImmutableArray<string> RunsBefore,
     string? LocationFilePath,
     TextSpan LocationSpan,
@@ -24,7 +23,7 @@ internal readonly record struct ModuleInfo(
             ? Location.Create(LocationFilePath, LocationSpan, LocationLineSpan)
             : Location.None;
 
-    public bool Equals(ModuleInfo other) =>
+    public bool Equals(ModuleDescriptor other) =>
         FullyQualifiedName == other.FullyQualifiedName &&
         TypeName == other.TypeName &&
         RunsAfter.SequenceEqual(other.RunsAfter) &&

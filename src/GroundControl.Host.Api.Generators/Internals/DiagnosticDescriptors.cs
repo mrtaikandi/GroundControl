@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace GroundControl.Host.Api.Generators;
+namespace GroundControl.Host.Api.Generators.Internals;
 
 internal static class DiagnosticDescriptors
 {
