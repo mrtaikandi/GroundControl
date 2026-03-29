@@ -56,7 +56,7 @@ internal static class WebApiModuleExtensions
         {
             if (!IsModuleEnabled(builder.Configuration, "Database"))
             {
-                throw new global::System.InvalidOperationException("Module 'ApiModule' requires 'DatabaseModule' to be enabled.");
+                throw new global::GroundControl.Host.Api.ModuleConfigurationException("Module 'ApiModule' requires 'DatabaseModule' to be enabled.");
             }
 
             apiModule = new global::ApiModule();

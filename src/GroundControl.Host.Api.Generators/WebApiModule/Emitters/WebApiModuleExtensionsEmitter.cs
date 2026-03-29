@@ -99,7 +99,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             writer
                 .WriteLine($"if (!IsModuleEnabled(builder.Configuration, \"{depModuleName}\"))")
                 .WriteOpeningBracket()
-                .WriteLine($"throw new global::{KnownTypes.InvalidOperationException}(\"Module '{module.TypeName}' requires '{depModule.TypeName}' to be enabled.\");")
+                .WriteLine($"throw new global::{KnownTypes.ModuleConfigurationException}(\"Module '{module.TypeName}' requires '{depModule.TypeName}' to be enabled.\");")
                 .WriteClosingBracket()
                 .WriteLine();
         }
