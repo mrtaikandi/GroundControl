@@ -19,4 +19,7 @@ internal static class KnownTypes
     internal const string ArgumentOutOfRangeException = "System.ArgumentOutOfRangeException";
     internal const string InvalidOperationException = "System.InvalidOperationException";
     internal const string ModuleConfigurationException = $"{RootNamespace}.ModuleConfigurationException";
+
+    internal const string ValidateOptionsInterfaceMetadataName = "Microsoft.Extensions.Options.IValidateOptions`1";
+    internal const string ValidateOptionsInterfaceFullName = "Microsoft.Extensions.Options.IValidateOptions";
 }

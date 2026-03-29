@@ -1,0 +1,3 @@
+namespace GroundControl.Host.Api.Generators.WebApiModule.Descriptors;
+
+internal readonly record struct OptionsValidatorDescriptor(string ValidatorFullyQualifiedName, string OptionsTypeFullyQualifiedName);
