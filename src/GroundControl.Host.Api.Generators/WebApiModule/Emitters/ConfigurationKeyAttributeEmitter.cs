@@ -14,14 +14,24 @@ internal readonly record struct ConfigurationKeyAttributeEmitter : ISourceEmitte
             .WriteLine()
             .WriteLine($"namespace {KnownTypes.ApiHostNamespace};")
             .WriteLine()
+            .WriteLine("/// <summary>")
+            .WriteLine("/// Specifies the configuration key used to bind options for a web API module.")
+            .WriteLine("/// </summary>")
             .WriteGeneratedCodeAttribute()
             .WriteRaw(
                 """
                 [global::System.AttributeUsage(System.AttributeTargets.Class, Inherited = false)]
                 internal sealed class ConfigurationKeyAttribute : System.Attribute
                 {
+                    /// <summary>
+                    /// Initializes a new instance of the <see cref="ConfigurationKeyAttribute"/> class.
+                    /// </summary>
+                    /// <param name="key">The configuration section key.</param>
                     public ConfigurationKeyAttribute(string key) => Key = key;
 
+                    /// <summary>
+                    /// Gets the configuration section key.
+                    /// </summary>
                     public string Key { get; }
                 }
                 """);

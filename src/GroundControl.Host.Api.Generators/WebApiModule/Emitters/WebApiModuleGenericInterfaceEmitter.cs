@@ -14,6 +14,10 @@ internal readonly record struct WebApiModuleGenericInterfaceEmitter : ISourceEmi
             .WriteLine()
             .WriteLine($"namespace {KnownTypes.ApiHostNamespace};")
             .WriteLine()
+            .WriteLine("/// <summary>")
+            .WriteLine("/// Defines a web API module that requires strongly-typed options bound from configuration.")
+            .WriteLine("/// </summary>")
+            .WriteLine("/// <typeparam name=\"TOptions\">The options type bound from configuration.</typeparam>")
             .WriteGeneratedCodeAttribute()
             .WriteRaw(
                 $"internal interface IWebApiModule<TOptions> : global::{KnownTypes.ApiHostNamespace}.IWebApiModule where TOptions : class, new();");

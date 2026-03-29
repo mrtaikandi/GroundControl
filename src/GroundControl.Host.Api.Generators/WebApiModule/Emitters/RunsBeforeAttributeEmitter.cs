@@ -14,6 +14,10 @@ internal readonly record struct RunsBeforeAttributeEmitter : ISourceEmitter
             .WriteLine()
             .WriteLine($"namespace {KnownTypes.ApiHostNamespace};")
             .WriteLine()
+            .WriteLine("/// <summary>")
+            .WriteLine("/// Specifies that the decorated module runs before the module of type <typeparamref name=\"T\"/>.")
+            .WriteLine("/// </summary>")
+            .WriteLine("/// <typeparam name=\"T\">The type of the module that must run after.</typeparam>")
             .WriteGeneratedCodeAttribute()
             .WriteRaw(
                 """

@@ -22,9 +22,17 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             .WriteLine()
             .WriteLine($"namespace {RootNamespace};")
             .WriteLine()
+            .WriteLine("/// <summary>")
+            .WriteLine("/// Provides extension methods for building and configuring web API modules.")
+            .WriteLine("/// </summary>")
             .WriteGeneratedCodeAttribute()
             .WriteLine("internal static class WebApiModuleExtensions")
             .WriteOpeningBracket()
+            .WriteLine("/// <summary>")
+            .WriteLine("/// Builds and configures all registered web API modules.")
+            .WriteLine("/// </summary>")
+            .WriteLine("/// <param name=\"builder\">The web application builder.</param>")
+            .WriteLine("/// <returns>The configured web application.</returns>")
             .WriteLine($"public static global::{KnownTypes.WebApplication} BuildWebApiModules(this global::{KnownTypes.WebApplicationBuilder} builder)")
             .WriteOpeningBracket();
 

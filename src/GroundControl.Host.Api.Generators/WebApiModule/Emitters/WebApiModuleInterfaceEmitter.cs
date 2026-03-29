@@ -14,13 +14,24 @@ internal readonly record struct WebApiModuleInterfaceEmitter : ISourceEmitter
             .WriteLine()
             .WriteLine($"namespace {KnownTypes.ApiHostNamespace};")
             .WriteLine()
+            .WriteLine("/// <summary>")
+            .WriteLine("/// Defines a web API module that participates in application startup.")
+            .WriteLine("/// </summary>")
             .WriteGeneratedCodeAttribute()
             .WriteRaw(
                 $$"""
                 internal interface IWebApiModule
                 {
+                    /// <summary>
+                    /// Configures services for this module during application startup.
+                    /// </summary>
+                    /// <param name="builder">The web application builder.</param>
                     void OnServiceConfiguration(global::{{KnownTypes.WebApplicationBuilder}} builder);
 
+                    /// <summary>
+                    /// Configures the application pipeline for this module after the application is built.
+                    /// </summary>
+                    /// <param name="app">The web application.</param>
                     void OnApplicationConfiguration(global::{{KnownTypes.WebApplication}} app);
                 }
                 """);
