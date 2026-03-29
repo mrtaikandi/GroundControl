@@ -4,9 +4,17 @@
 
 namespace TestAssembly;
 
+/// <summary>
+/// Provides extension methods for building and configuring web API modules.
+/// </summary>
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute(""GroundControl.Host.Api.Generators", "1.0.0.0"")]
 internal static class WebApiModuleExtensions
 {
+    /// <summary>
+    /// Builds and configures all registered web API modules.
+    /// </summary>
+    /// <param name="builder">The web application builder.</param>
+    /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
         global::LoggingModule? loggingModule = null;

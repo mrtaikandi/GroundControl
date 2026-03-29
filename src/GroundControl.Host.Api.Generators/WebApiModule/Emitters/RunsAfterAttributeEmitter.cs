@@ -14,12 +14,19 @@ internal readonly record struct RunsAfterAttributeEmitter : ISourceEmitter
             .WriteLine()
             .WriteLine($"namespace {KnownTypes.ApiHostNamespace};")
             .WriteLine()
+            .WriteLine("/// <summary>")
+            .WriteLine("/// Specifies that the decorated module runs after the module of type <typeparamref name=\"T\"/>.")
+            .WriteLine("/// </summary>")
+            .WriteLine("/// <typeparam name=\"T\">The type of the module that must run first.</typeparam>")
             .WriteGeneratedCodeAttribute()
             .WriteRaw(
                 """
                 [global::System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
                 internal sealed class RunsAfterAttribute<T> : System.Attribute where T : IWebApiModule
                 {
+                    /// <summary>
+                    /// Gets or sets a value indicating whether the dependency on <typeparamref name="T"/> is required.
+                    /// </summary>
                     public bool Required { get; init; }
                 }
                 """);
