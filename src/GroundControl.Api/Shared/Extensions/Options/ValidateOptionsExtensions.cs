@@ -4,7 +4,7 @@ namespace GroundControl.Api.Shared.Extensions.Options;
 
 internal static class ValidateOptionsExtensions
 {
-    extension<T, TOption>(T validator)
+    extension<T, TOption>(T)
         where T : IValidateOptions<TOption>, new()
         where TOption : class
     {
@@ -12,9 +12,11 @@ internal static class ValidateOptionsExtensions
         {
             var instance = new T();
             var validationResult = instance.Validate(name, option);
+
             if (validationResult.Failed)
             {
-                throw new OptionsValidationException(typeof(T).Name, typeof(T), validationResult.Failures);
+                var optionsType = typeof(TOption);
+                throw new OptionsValidationException(name ?? optionsType.Name, optionsType, validationResult.Failures);
             }
         }
 

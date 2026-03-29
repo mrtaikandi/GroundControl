@@ -1,3 +1,4 @@
+using GroundControl.Api.Shared.Extensions.Options;
 using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Shared.Configuration;
@@ -19,16 +20,7 @@ internal static class GroundControlOptionsExtensions
         var options = section.Get<GroundControlOptions>()
                      ?? throw new InvalidOperationException($"Failed to bind '{GroundControlOptions.SectionName}' configuration section.");
 
-        var validator = new GroundControlOptions.Validator();
-        var result = validator.Validate(null, options);
-
-        if (result is { Failed: true })
-        {
-            throw new OptionsValidationException(
-                GroundControlOptions.SectionName,
-                typeof(GroundControlOptions),
-                result.Failures);
-        }
+        GroundControlOptions.Validator.ThrowIfInvalid(options);
 
         return options;
     }
