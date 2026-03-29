@@ -22,12 +22,10 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             .WriteLine()
             .WriteLine($"namespace {RootNamespace};")
             .WriteLine()
+            .WriteGeneratedCodeAttribute()
             .WriteLine("internal static class WebApiModuleExtensions")
             .WriteOpeningBracket()
-            .WriteLine($"public static global::{KnownTypes.WebApplication} BuildWebApiModules(")
-            .Indent()
-            .WriteLine($"this global::{KnownTypes.WebApplicationBuilder} builder)")
-            .Unindent()
+            .WriteLine($"public static global::{KnownTypes.WebApplication} BuildWebApiModules(this global::{KnownTypes.WebApplicationBuilder} builder)")
             .WriteOpeningBracket();
 
         WriteServiceConfigurationPhase(writer, moduleMap, varNameMap);
@@ -93,10 +91,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             writer
                 .WriteLine($"if (!IsModuleEnabled(builder.Configuration, \"{depModuleName}\"))")
                 .WriteOpeningBracket()
-                .WriteLine($"throw new global::{KnownTypes.InvalidOperationException}(")
-                .Indent()
-                .WriteLine($"\"Module '{module.TypeName}' requires '{depModule.TypeName}' to be enabled.\");")
-                .Unindent()
+                .WriteLine($"throw new global::{KnownTypes.InvalidOperationException}(\"Module '{module.TypeName}' requires '{depModule.TypeName}' to be enabled.\");")
                 .WriteClosingBracket()
                 .WriteLine();
         }

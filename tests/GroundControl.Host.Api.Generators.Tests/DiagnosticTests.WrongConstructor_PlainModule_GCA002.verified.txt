@@ -1,0 +1,17 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (2,22)-(2,31),
+      Message: Module 'BadModule' must have a parameterless constructor,
+      Severity: Error,
+      Descriptor: {
+        Id: GCA002,
+        Title: Invalid module constructor,
+        MessageFormat: {0},
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

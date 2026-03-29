@@ -1,0 +1,17 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (9,22)-(9,30),
+      Message: Module 'MyModule' references 'NotDiscoveredModule' in RunsAfter/RunsBefore but it was not found in discovered modules,
+      Severity: Error,
+      Descriptor: {
+        Id: GCA004,
+        Title: Dependency target not found,
+        MessageFormat: Module '{0}' references '{1}' in RunsAfter/RunsBefore but it was not found in discovered modules,
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

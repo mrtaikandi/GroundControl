@@ -9,14 +9,23 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Regular project reference (not analyzer) so we can instantiate the generator -->
         <ProjectReference Include="..\..\src\GroundControl.Host.Api.Generators\GroundControl.Host.Api.Generators.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-        <PackageReference Include="Shouldly" />
+        <PackageReference Include="Verify.SourceGenerators" />
+        <PackageReference Include="Verify.XunitV3" />
         <PackageReference Include="xunit.v3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+          Verify.SourceGenerators names snapshot files after the HintName, inheriting the .cs
+          extension. Exclude them from compilation so MSBuild doesn't treat them as source.
+         -->
+        <Compile Remove="**\*.verified.cs" />
+        <Compile Remove="**\*.received.cs" />
     </ItemGroup>
 
 </Project>

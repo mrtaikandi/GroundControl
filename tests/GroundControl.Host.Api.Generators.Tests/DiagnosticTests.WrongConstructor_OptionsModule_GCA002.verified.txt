@@ -1,0 +1,17 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (7,22)-(7,38),
+      Message: Module 'BadOptionsModule' must have a constructor accepting 'MyOptions',
+      Severity: Error,
+      Descriptor: {
+        Id: GCA002,
+        Title: Invalid module constructor,
+        MessageFormat: {0},
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}
