@@ -27,9 +27,7 @@ internal static class WebApiModuleExtensions
         global::AuthModule? authModule = null;
         if (IsModuleEnabled(builder.Configuration, "Auth"))
         {
-            var authModuleOptions = builder.Configuration
-                .GetSection("Auth")
-                .Get<global::AuthOptions>() ?? new global::AuthOptions();
+            var authModuleOptions = BindOptions<global::AuthOptions>(builder.Configuration, "Auth");
             authModule = new global::AuthModule(authModuleOptions);
             authModule.OnServiceConfiguration(builder);
         }
@@ -37,9 +35,7 @@ internal static class WebApiModuleExtensions
         global::CacheModule? cacheModule = null;
         if (IsModuleEnabled(builder.Configuration, "Cache"))
         {
-            var cacheModuleOptions = builder.Configuration
-                .GetSection("CacheConfig")
-                .Get<global::CacheConfig>() ?? new global::CacheConfig();
+            var cacheModuleOptions = BindOptions<global::CacheConfig>(builder.Configuration, "CacheConfig");
             cacheModule = new global::CacheModule(cacheModuleOptions);
             cacheModule.OnServiceConfiguration(builder);
         }
@@ -66,5 +62,15 @@ internal static class WebApiModuleExtensions
         string moduleName)
     {
         return configuration.GetValue<bool?>($"Modules:{moduleName}:Enabled") ?? true;
+    }
+
+    private static T BindOptions<T>(
+        global::Microsoft.Extensions.Configuration.IConfiguration configuration,
+        string sectionKey,
+        global::System.Action<global::Microsoft.Extensions.Configuration.IConfiguration, T>? bindPropertyOverrides = null) where T : new()
+    {
+        var options = configuration.GetSection(sectionKey).Get<T>() ?? new T();
+        bindPropertyOverrides?.Invoke(configuration, options);
+        return options;
     }
 }

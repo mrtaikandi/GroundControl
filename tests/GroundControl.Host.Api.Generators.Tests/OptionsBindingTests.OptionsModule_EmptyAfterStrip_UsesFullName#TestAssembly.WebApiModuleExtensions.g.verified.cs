@@ -20,9 +20,7 @@ internal static class WebApiModuleExtensions
         global::FooModule? fooModule = null;
         if (IsModuleEnabled(builder.Configuration, "Foo"))
         {
-            var fooModuleOptions = builder.Configuration
-                .GetSection("Options")
-                .Get<global::Options>() ?? new global::Options();
+            var fooModuleOptions = BindOptions<global::Options>(builder.Configuration, "Options");
             fooModule = new global::FooModule(fooModuleOptions);
             fooModule.OnServiceConfiguration(builder);
         }
@@ -39,5 +37,15 @@ internal static class WebApiModuleExtensions
         string moduleName)
     {
         return configuration.GetValue<bool?>($"Modules:{moduleName}:Enabled") ?? true;
+    }
+
+    private static T BindOptions<T>(
+        global::Microsoft.Extensions.Configuration.IConfiguration configuration,
+        string sectionKey,
+        global::System.Action<global::Microsoft.Extensions.Configuration.IConfiguration, T>? bindPropertyOverrides = null) where T : new()
+    {
+        var options = configuration.GetSection(sectionKey).Get<T>() ?? new T();
+        bindPropertyOverrides?.Invoke(configuration, options);
+        return options;
     }
 }
