@@ -1,13 +1,13 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using GroundControl.Api.Features.Auth.Contracts;
+using GroundControl.Api.Features.Authentication.Contracts;
 using GroundControl.Persistence.Contracts;
 using MongoDB.Driver;
 using Shouldly;
 using Xunit;
 
-namespace GroundControl.Api.Tests.Auth;
+namespace GroundControl.Api.Tests.Authentication;
 
 public sealed class AuthEndpointTests : ApiHandlerTestBase
 {

@@ -1,10 +1,10 @@
 using System.Security.Claims;
-using GroundControl.Api.Features.Auth.Contracts;
+using GroundControl.Api.Features.Authentication.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GroundControl.Api.Features.Auth;
+namespace GroundControl.Api.Features.Authentication;
 
 internal sealed class GetCurrentUserHandler : IEndpointHandler
 {

@@ -9,7 +9,7 @@ using MongoDB.Driver;
 using Shouldly;
 using Xunit;
 
-namespace GroundControl.Api.Tests.Auth;
+namespace GroundControl.Api.Tests.Authentication;
 
 public sealed class BuiltInAuthTests : ApiHandlerTestBase
 {

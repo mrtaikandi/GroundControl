@@ -1,4 +1,4 @@
-namespace GroundControl.Api.Features.Auth;
+namespace GroundControl.Api.Features.Authentication;
 
 internal static class AuthEndpoints
 {

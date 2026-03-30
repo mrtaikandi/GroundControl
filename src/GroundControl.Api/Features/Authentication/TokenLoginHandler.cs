@@ -2,7 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using AspNetCore.Identity.MongoDbCore.Models;
-using GroundControl.Api.Features.Auth.Contracts;
+using GroundControl.Api.Features.Authentication.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security.Authentication;
 using GroundControl.Persistence.Contracts;
@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using JwtOptions = GroundControl.Api.Shared.Security.Authentication.JwtOptions;
 
-namespace GroundControl.Api.Features.Auth;
+namespace GroundControl.Api.Features.Authentication;
 
 internal sealed class TokenLoginHandler : IEndpointHandler
 {

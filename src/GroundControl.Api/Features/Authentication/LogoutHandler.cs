@@ -3,7 +3,7 @@ using GroundControl.Api.Shared;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GroundControl.Api.Features.Auth;
+namespace GroundControl.Api.Features.Authentication;
 
 internal sealed class LogoutHandler : IEndpointHandler
 {

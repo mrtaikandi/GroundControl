@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using GroundControl.Api.Features.Auth;
+using GroundControl.Api.Features.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
