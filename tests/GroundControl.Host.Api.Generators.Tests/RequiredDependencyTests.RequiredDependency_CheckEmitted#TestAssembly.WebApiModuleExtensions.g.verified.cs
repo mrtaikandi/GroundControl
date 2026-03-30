@@ -21,7 +21,7 @@ internal static class WebApiModuleExtensions
         if (IsModuleEnabled(builder.Configuration, "ModuleA"))
         {
             moduleA = new global::ModuleA();
-            moduleA.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)moduleA).OnServiceConfiguration(builder);
         }
         
         global::ModuleB? moduleB = null;
@@ -33,13 +33,13 @@ internal static class WebApiModuleExtensions
             }
 
             moduleB = new global::ModuleB();
-            moduleB.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)moduleB).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        moduleA?.OnApplicationConfiguration(app);
-        moduleB?.OnApplicationConfiguration(app);
+        (moduleA as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (moduleB as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }

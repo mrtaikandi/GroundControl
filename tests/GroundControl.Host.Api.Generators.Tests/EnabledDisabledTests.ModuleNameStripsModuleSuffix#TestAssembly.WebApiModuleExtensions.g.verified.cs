@@ -21,12 +21,12 @@ internal static class WebApiModuleExtensions
         if (IsModuleEnabled(builder.Configuration, "Foo"))
         {
             fooModule = new global::FooModule();
-            fooModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)fooModule).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        fooModule?.OnApplicationConfiguration(app);
+        (fooModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }

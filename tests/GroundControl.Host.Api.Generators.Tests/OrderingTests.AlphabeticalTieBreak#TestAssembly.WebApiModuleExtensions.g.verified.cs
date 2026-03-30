@@ -21,20 +21,20 @@ internal static class WebApiModuleExtensions
         if (IsModuleEnabled(builder.Configuration, "Alpha"))
         {
             alphaModule = new global::AlphaModule();
-            alphaModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)alphaModule).OnServiceConfiguration(builder);
         }
         
         global::ZebraModule? zebraModule = null;
         if (IsModuleEnabled(builder.Configuration, "Zebra"))
         {
             zebraModule = new global::ZebraModule();
-            zebraModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)zebraModule).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        alphaModule?.OnApplicationConfiguration(app);
-        zebraModule?.OnApplicationConfiguration(app);
+        (alphaModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (zebraModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }

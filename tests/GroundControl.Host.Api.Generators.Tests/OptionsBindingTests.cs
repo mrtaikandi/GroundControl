@@ -399,4 +399,42 @@ public sealed class OptionsBindingTests
         return Verify(driver)
             .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public Task OptionsModule_NestedPropertyFallbackKey()
+    {
+        // Arrange — [ConfigurationKey] on a property of a nested options type
+        var source = """
+            using GroundControl.Host.Api;
+
+            [ConfigurationKey("Authentication")]
+            public class AuthOptions
+            {
+                public string Mode { get; set; } = "None";
+                public BuiltInOptions BuiltIn { get; set; } = new();
+            }
+
+            public class BuiltInOptions
+            {
+                [ConfigurationKey("ConnectionStrings:Storage", IsFallback = true)]
+                public string ConnectionString { get; set; } = "";
+
+                public string Issuer { get; set; } = "";
+            }
+
+            internal sealed class AuthModule : IWebApiModule<AuthOptions>
+            {
+                public AuthModule(AuthOptions options) { }
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
 }

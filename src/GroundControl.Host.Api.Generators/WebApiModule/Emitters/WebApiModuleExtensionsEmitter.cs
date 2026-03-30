@@ -12,8 +12,8 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
 
     public string Emit()
     {
-        var moduleMap = SortedModules.ToDictionary(m => m.FullyQualifiedName);
-        var varNameMap = BuildVariableNameMap(SortedModules);
+        var modules = SortedModules.ToDictionary(m => m.FullyQualifiedName);
+        var variableNames = BuildVariableNameMap(SortedModules);
         var validatorLookup = BuildValidatorLookup(Validators);
 
         using var writer = new CodeWriter();
@@ -38,14 +38,14 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             .WriteLine($"public static global::{KnownTypes.WebApplication} BuildWebApiModules(this global::{KnownTypes.WebApplicationBuilder} builder)")
             .WriteOpeningBracket();
 
-        WriteServiceConfigurationPhase(writer, moduleMap, varNameMap, validatorLookup);
+        WriteServiceConfigurationPhase(writer, modules, variableNames, validatorLookup);
 
         writer
             .WriteLine()
             .WriteLine("var app = builder.Build();")
             .WriteLine();
 
-        WriteApplicationConfigurationPhase(writer, varNameMap);
+        WriteApplicationConfigurationPhase(writer, variableNames);
 
         writer
             .WriteLine()
@@ -66,14 +66,14 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
 
     private void WriteServiceConfigurationPhase(
         CodeWriter writer,
-        Dictionary<string, ModuleDescriptor> moduleMap,
-        Dictionary<string, string> varNameMap,
-        Dictionary<string, List<string>> validatorLookup)
+        Dictionary<string, ModuleDescriptor> modules,
+        Dictionary<string, string> variableNames,
+        Dictionary<string, List<string>> validators)
     {
         for (var i = 0; i < SortedModules.Length; i++)
         {
             var module = SortedModules[i];
-            var varName = varNameMap[module.FullyQualifiedName];
+            var varName = variableNames[module.FullyQualifiedName];
             var moduleName = GetModuleName(module.TypeName);
 
             writer
@@ -81,12 +81,12 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
                 .WriteLine($"if (IsModuleEnabled(builder.Configuration, \"{moduleName}\"))")
                 .WriteOpeningBracket();
 
-            WriteRequiredDependencyChecks(writer, module, moduleMap);
-            WriteValidatorRegistrations(writer, module, validatorLookup);
+            WriteRequiredDependencyChecks(writer, module, modules);
+            WriteValidatorRegistrations(writer, module, validators);
             WriteModuleInstantiation(writer, module, varName);
 
             writer
-                .WriteLine($"{varName}.OnServiceConfiguration(builder);")
+                .WriteLine($"((global::{KnownTypes.ModuleInterfaceMetadataName}){varName}).OnServiceConfiguration(builder);")
                 .WriteClosingBracket()
                 .WriteNewLineIf(i < SortedModules.Length - 1);
         }
@@ -95,11 +95,11 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
     private static void WriteRequiredDependencyChecks(
         CodeWriter writer,
         ModuleDescriptor module,
-        Dictionary<string, ModuleDescriptor> moduleMap)
+        Dictionary<string, ModuleDescriptor> modules)
     {
         foreach (var dep in module.RunsAfter)
         {
-            if (!dep.Required || !moduleMap.TryGetValue(dep.TargetFullyQualifiedName, out var depModule))
+            if (!dep.Required || !modules.TryGetValue(dep.TargetFullyQualifiedName, out var depModule))
             {
                 continue;
             }
@@ -130,22 +130,22 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
         }
     }
 
-    private static void WriteModuleInstantiation(CodeWriter writer, ModuleDescriptor module, string varName)
+    private static void WriteModuleInstantiation(CodeWriter writer, ModuleDescriptor module, string variableName)
     {
         if (!module.HasOptions)
         {
-            writer.WriteLine($"{varName} = new {module.FullyQualifiedName}();");
+            writer.WriteLine($"{variableName} = new {module.FullyQualifiedName}();");
             return;
         }
 
         if (module.PropertyConfigurationOverrides.IsDefaultOrEmpty)
         {
-            writer.WriteLine($"var {varName}Options = BindOptions<{module.OptionsTypeFullyQualifiedName}>(builder.Configuration, \"{module.ConfigurationSectionName}\");");
+            writer.WriteLine($"var {variableName}Options = BindOptions<{module.OptionsTypeFullyQualifiedName}>(builder.Configuration, \"{module.ConfigurationSectionName}\");");
         }
         else
         {
             writer
-                .WriteLine($"var {varName}Options = BindOptions<{module.OptionsTypeFullyQualifiedName}>(")
+                .WriteLine($"var {variableName}Options = BindOptions<{module.OptionsTypeFullyQualifiedName}>(")
                 .Indent()
                 .WriteLine("builder.Configuration,")
                 .WriteLine($"\"{module.ConfigurationSectionName}\",")
@@ -160,7 +160,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
                 .Unindent();
         }
 
-        writer.WriteLine($"{varName} = new {module.FullyQualifiedName}({varName}Options);");
+        writer.WriteLine($"{variableName} = new {module.FullyQualifiedName}({variableName}Options);");
     }
 
     private static void WritePropertyConfigurationOverrides(CodeWriter writer, ModuleDescriptor module)
@@ -168,14 +168,16 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
         for (var i = 0; i < module.PropertyConfigurationOverrides.Length; i++)
         {
             var prop = module.PropertyConfigurationOverrides[i];
+            var varPrefix = ToVariableNamePrefix(prop.PropertyName);
+            var configPath = prop.PropertyName.Replace('.', ':');
 
             if (prop.IsFallback)
             {
-                var primaryVarName = ToCamelCase(prop.PropertyName) + "PrimarySection";
-                var fallbackVarName = ToCamelCase(prop.PropertyName) + "FallbackSection";
+                var primaryVarName = varPrefix + "PrimarySection";
+                var fallbackVarName = varPrefix + "FallbackSection";
 
                 writer
-                    .WriteLine($"var {primaryVarName} = configuration.GetSection(\"{module.ConfigurationSectionName}:{prop.PropertyName}\");")
+                    .WriteLine($"var {primaryVarName} = configuration.GetSection(\"{module.ConfigurationSectionName}:{configPath}\");")
                     .WriteLine($"if (!{primaryVarName}.Exists())")
                     .WriteOpeningBracket()
                     .WriteLine($"var {fallbackVarName} = configuration.GetSection(\"{prop.ConfigurationSectionKey}\");")
@@ -187,7 +189,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             }
             else
             {
-                var sectionVarName = ToCamelCase(prop.PropertyName) + "Section";
+                var sectionVarName = varPrefix + "Section";
 
                 writer
                     .WriteLine($"var {sectionVarName} = configuration.GetSection(\"{prop.ConfigurationSectionKey}\");")
@@ -202,7 +204,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
     }
 
     private void WriteApplicationConfigurationPhase(CodeWriter writer, Dictionary<string, string> varNameMap) => writer
-        .WriteLines(SortedModules.Select(m => $"{varNameMap[m.FullyQualifiedName]}?.OnApplicationConfiguration(app);"));
+        .WriteLines(SortedModules.Select(m => $"({varNameMap[m.FullyQualifiedName]} as global::{KnownTypes.ModuleInterfaceMetadataName})?.OnApplicationConfiguration(app);"));
 
     private static void WriteIsModuleEnabledMethod(CodeWriter writer)
     {
@@ -296,6 +298,18 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
         }
 
         return char.ToLowerInvariant(name[0]) + name.Substring(1);
+    }
+
+    private static string ToVariableNamePrefix(string propertyPath)
+    {
+        var dotIndex = propertyPath.IndexOf('.');
+        if (dotIndex < 0)
+        {
+            return ToCamelCase(propertyPath);
+        }
+
+        return ToCamelCase(propertyPath.Substring(0, dotIndex)) +
+               propertyPath.Substring(dotIndex + 1).Replace(".", "");
     }
 
     private static Dictionary<string, List<string>> BuildValidatorLookup(ImmutableArray<OptionsValidatorDescriptor> validators)

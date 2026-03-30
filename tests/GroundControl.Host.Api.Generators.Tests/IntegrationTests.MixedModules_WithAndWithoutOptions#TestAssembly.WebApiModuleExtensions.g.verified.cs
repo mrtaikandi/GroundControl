@@ -21,7 +21,7 @@ internal static class WebApiModuleExtensions
         if (IsModuleEnabled(builder.Configuration, "Logging"))
         {
             loggingModule = new global::LoggingModule();
-            loggingModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)loggingModule).OnServiceConfiguration(builder);
         }
         
         global::AuthModule? authModule = null;
@@ -29,7 +29,7 @@ internal static class WebApiModuleExtensions
         {
             var authModuleOptions = BindOptions<global::AuthOptions>(builder.Configuration, "Auth");
             authModule = new global::AuthModule(authModuleOptions);
-            authModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)authModule).OnServiceConfiguration(builder);
         }
         
         global::CacheModule? cacheModule = null;
@@ -37,22 +37,22 @@ internal static class WebApiModuleExtensions
         {
             var cacheModuleOptions = BindOptions<global::CacheConfig>(builder.Configuration, "CacheConfig");
             cacheModule = new global::CacheModule(cacheModuleOptions);
-            cacheModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)cacheModule).OnServiceConfiguration(builder);
         }
         
         global::ApiModule? apiModule = null;
         if (IsModuleEnabled(builder.Configuration, "Api"))
         {
             apiModule = new global::ApiModule();
-            apiModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)apiModule).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        loggingModule?.OnApplicationConfiguration(app);
-        authModule?.OnApplicationConfiguration(app);
-        cacheModule?.OnApplicationConfiguration(app);
-        apiModule?.OnApplicationConfiguration(app);
+        (loggingModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (authModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (cacheModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (apiModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }

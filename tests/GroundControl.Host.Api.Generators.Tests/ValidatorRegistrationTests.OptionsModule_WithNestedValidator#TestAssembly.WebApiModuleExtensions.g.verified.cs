@@ -23,12 +23,12 @@ internal static class WebApiModuleExtensions
             builder.Services.AddSingleton<global::Microsoft.Extensions.Options.IValidateOptions<global::MyOptions>, global::MyOptions.Validator>();
             var myModuleOptions = BindOptions<global::MyOptions>(builder.Configuration, "My");
             myModule = new global::MyModule(myModuleOptions);
-            myModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)myModule).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        myModule?.OnApplicationConfiguration(app);
+        (myModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }

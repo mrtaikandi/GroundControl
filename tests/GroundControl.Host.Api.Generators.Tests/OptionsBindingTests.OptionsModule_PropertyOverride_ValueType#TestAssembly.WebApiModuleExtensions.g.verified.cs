@@ -32,12 +32,12 @@ internal static class WebApiModuleExtensions
                     }
                 });
             appModule = new global::AppModule(appModuleOptions);
-            appModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)appModule).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        appModule?.OnApplicationConfiguration(app);
+        (appModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }

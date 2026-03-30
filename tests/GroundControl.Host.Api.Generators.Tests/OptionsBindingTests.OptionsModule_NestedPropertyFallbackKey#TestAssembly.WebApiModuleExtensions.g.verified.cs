@@ -17,31 +17,31 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::FooModule? fooModule = null;
-        if (IsModuleEnabled(builder.Configuration, "Foo"))
+        global::AuthModule? authModule = null;
+        if (IsModuleEnabled(builder.Configuration, "Auth"))
         {
-            var fooModuleOptions = BindOptions<global::FooOptions>(
+            var authModuleOptions = BindOptions<global::AuthOptions>(
                 builder.Configuration,
-                "Foo",
+                "Authentication",
                 static (configuration, options) =>
                 {
-                    var apiKeyPrimarySection = configuration.GetSection("Foo:ApiKey");
-                    if (!apiKeyPrimarySection.Exists())
+                    var builtInConnectionStringPrimarySection = configuration.GetSection("Authentication:BuiltIn:ConnectionString");
+                    if (!builtInConnectionStringPrimarySection.Exists())
                     {
-                        var apiKeyFallbackSection = configuration.GetSection("Defaults:ApiKey");
-                        if (apiKeyFallbackSection.Exists())
+                        var builtInConnectionStringFallbackSection = configuration.GetSection("ConnectionStrings:Storage");
+                        if (builtInConnectionStringFallbackSection.Exists())
                         {
-                            options.ApiKey = apiKeyFallbackSection.Get<string>()!;
+                            options.BuiltIn.ConnectionString = builtInConnectionStringFallbackSection.Get<string>()!;
                         }
                     }
                 });
-            fooModule = new global::FooModule(fooModuleOptions);
-            ((global::GroundControl.Host.Api.IWebApiModule)fooModule).OnServiceConfiguration(builder);
+            authModule = new global::AuthModule(authModuleOptions);
+            ((global::GroundControl.Host.Api.IWebApiModule)authModule).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (fooModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (authModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }
