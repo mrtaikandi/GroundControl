@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using GroundControl.Api.Features.Roles;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Resolvers;
@@ -24,5 +25,7 @@ internal sealed class AppCommonModule : IWebApiModule
             options.ReportApiVersions = true;
             options.ApiVersionReader = new HeaderApiVersionReader("api-version");
         });
+
+        builder.Services.AddHostedService<RoleSeedService>();
     }
 }

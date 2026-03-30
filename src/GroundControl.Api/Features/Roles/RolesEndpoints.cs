@@ -12,7 +12,6 @@ internal static class RolesEndpoints
         services.AddTransient<ListRolesHandler>();
         services.AddTransient<UpdateRoleHandler>();
         services.AddTransient<DeleteRoleHandler>();
-        services.AddHostedService<RoleSeedService>();
 
         services.AddTransient<IAsyncValidator<CreateRoleRequest>, CreateRoleValidator>();
         services.AddTransient<IAsyncValidator<UpdateRoleRequest>, UpdateRoleValidator>();

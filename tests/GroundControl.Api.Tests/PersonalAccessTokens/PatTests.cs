@@ -14,16 +14,6 @@ namespace GroundControl.Api.Tests.PersonalAccessTokens;
 
 public sealed class PatTests : ApiHandlerTestBase
 {
-    private static readonly string JwtSecret = Convert.ToBase64String(
-    [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
-    ]);
-
-    private const string SeedPassword = "Test!Password123";
-    private const string SeedEmail = "admin@test.local";
-    private const string SeedUsername = "admin";
-
     private static readonly string[] ScopesReadOnly = ["scopes:read"];
     private static readonly string[] InvalidPermissions = ["nonexistent:permission"];
 
@@ -35,7 +25,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task CreatePat_ReturnsRawTokenOnce()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -55,7 +45,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task GetPat_DoesNotReturnTokenValue()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -78,7 +68,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task ListPats_ReturnsOnlyCallingUsersTokens()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -100,7 +90,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task UseValidPat_AsBearer_AuthenticatesSuccessfully()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -120,7 +110,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task UseRevokedPat_Returns401()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -146,7 +136,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task UseExpiredPat_Returns401()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -174,7 +164,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task ScopedPat_WithinPermission_Succeeds()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -198,7 +188,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task ScopedPat_ExceedsPermission_Returns403()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -224,7 +214,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task RevokePat_Returns204()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -251,7 +241,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task StoreGetByTokenHash_ReturnsCorrectRecord()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -276,7 +266,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task CreatePat_WithInvalidPermission_Returns400()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -295,7 +285,7 @@ public sealed class PatTests : ApiHandlerTestBase
     public async Task GetPat_ForOtherUser_Returns404()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -306,23 +296,6 @@ public sealed class PatTests : ApiHandlerTestBase
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-    }
-
-    private GroundControlApiFactory CreateBuiltInFactory()
-    {
-        var config = new Dictionary<string, string?>
-        {
-            ["Authentication:AuthenticationMode"] = "BuiltIn",
-            ["Authentication:BuiltIn:Jwt:Secret"] = JwtSecret,
-            ["Authentication:BuiltIn:Jwt:Issuer"] = "GroundControl",
-            ["Authentication:BuiltIn:Jwt:Audience"] = "GroundControl",
-            ["Authentication:BuiltIn:Password:RequiredLength"] = "8",
-            ["Authentication:Seed:AdminUsername"] = SeedUsername,
-            ["Authentication:Seed:AdminEmail"] = SeedEmail,
-            ["Authentication:Seed:AdminPassword"] = SeedPassword,
-        };
-
-        return CreateFactory(config);
     }
 
     private static async Task<string> GetJwtAsync(HttpClient client)
