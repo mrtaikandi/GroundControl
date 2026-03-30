@@ -269,4 +269,134 @@ public sealed class OptionsBindingTests
         return Verify(driver)
             .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public Task OptionsModule_PropertyFallbackKey()
+    {
+        // Arrange — property with [ConfigurationKey(IsFallback = true)] uses fallback binding
+        var source = """
+            using GroundControl.Host.Api;
+
+            [ConfigurationKey("Authentication")]
+            public class SecurityOptions
+            {
+                [ConfigurationKey("ConnectionStrings:Storage", IsFallback = true)]
+                public string Storage { get; set; } = "";
+
+                public string Mode { get; set; } = "None";
+            }
+
+            internal sealed class SecurityModule : IWebApiModule<SecurityOptions>
+            {
+                public SecurityModule(SecurityOptions options) { }
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public Task OptionsModule_MixedOverrideAndFallback()
+    {
+        // Arrange — one override and one fallback property in the same class
+        var source = """
+            using GroundControl.Host.Api;
+
+            [ConfigurationKey("App")]
+            public class AppOptions
+            {
+                [ConfigurationKey("ConnectionStrings:Database")]
+                public string Database { get; set; } = "";
+
+                [ConfigurationKey("ConnectionStrings:Cache", IsFallback = true)]
+                public string Cache { get; set; } = "";
+
+                public string Name { get; set; } = "";
+            }
+
+            internal sealed class AppModule : IWebApiModule<AppOptions>
+            {
+                public AppModule(AppOptions options) { }
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public Task OptionsModule_PropertyFallbackKey_ValueType()
+    {
+        // Arrange — fallback on a value type (int) property
+        var source = """
+            using GroundControl.Host.Api;
+
+            [ConfigurationKey("App")]
+            public class AppOptions
+            {
+                [ConfigurationKey("Limits:MaxRetries", IsFallback = true)]
+                public int MaxRetries { get; set; } = 3;
+
+                public string Name { get; set; } = "";
+            }
+
+            internal sealed class AppModule : IWebApiModule<AppOptions>
+            {
+                public AppModule(AppOptions options) { }
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public Task OptionsModule_PropertyFallbackKey_ConventionSectionName()
+    {
+        // Arrange — fallback without class-level [ConfigurationKey], uses convention-based section name
+        var source = """
+            using GroundControl.Host.Api;
+
+            public class FooOptions
+            {
+                [ConfigurationKey("Defaults:ApiKey", IsFallback = true)]
+                public string ApiKey { get; set; } = "";
+
+                public string Name { get; set; } = "";
+            }
+
+            internal sealed class FooModule : IWebApiModule<FooOptions>
+            {
+                public FooModule(FooOptions options) { }
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
 }

@@ -35,6 +35,13 @@ internal readonly record struct ConfigurationKeyAttributeEmitter : ISourceEmitte
                     /// Gets the configuration section key.
                     /// </summary>
                     public string Key { get; }
+
+                    /// <summary>
+                    /// Gets or sets a value indicating whether this key acts as a fallback.
+                    /// When true, the property is first bound from the primary configuration section,
+                    /// and this key is only used if the primary key does not exist.
+                    /// </summary>
+                    public bool IsFallback { get; init; }
                 }
                 """);
 

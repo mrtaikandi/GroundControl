@@ -168,15 +168,36 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
         for (var i = 0; i < module.PropertyConfigurationOverrides.Length; i++)
         {
             var prop = module.PropertyConfigurationOverrides[i];
-            var sectionVarName = ToCamelCase(prop.PropertyName) + "Section";
 
-            writer
-                .WriteLine($"var {sectionVarName} = configuration.GetSection(\"{prop.ConfigurationSectionKey}\");")
-                .WriteLine($"if ({sectionVarName}.Exists())")
-                .WriteOpeningBracket()
-                .WriteLine($"options.{prop.PropertyName} = {sectionVarName}.Get<{prop.PropertyTypeFullyQualifiedName}>()!;")
-                .WriteClosingBracket()
-                .WriteNewLineIf(i < module.PropertyConfigurationOverrides.Length - 1);
+            if (prop.IsFallback)
+            {
+                var primaryVarName = ToCamelCase(prop.PropertyName) + "PrimarySection";
+                var fallbackVarName = ToCamelCase(prop.PropertyName) + "FallbackSection";
+
+                writer
+                    .WriteLine($"var {primaryVarName} = configuration.GetSection(\"{module.ConfigurationSectionName}:{prop.PropertyName}\");")
+                    .WriteLine($"if (!{primaryVarName}.Exists())")
+                    .WriteOpeningBracket()
+                    .WriteLine($"var {fallbackVarName} = configuration.GetSection(\"{prop.ConfigurationSectionKey}\");")
+                    .WriteLine($"if ({fallbackVarName}.Exists())")
+                    .WriteOpeningBracket()
+                    .WriteLine($"options.{prop.PropertyName} = {fallbackVarName}.Get<{prop.PropertyTypeFullyQualifiedName}>()!;")
+                    .WriteClosingBracket()
+                    .WriteClosingBracket();
+            }
+            else
+            {
+                var sectionVarName = ToCamelCase(prop.PropertyName) + "Section";
+
+                writer
+                    .WriteLine($"var {sectionVarName} = configuration.GetSection(\"{prop.ConfigurationSectionKey}\");")
+                    .WriteLine($"if ({sectionVarName}.Exists())")
+                    .WriteOpeningBracket()
+                    .WriteLine($"options.{prop.PropertyName} = {sectionVarName}.Get<{prop.PropertyTypeFullyQualifiedName}>()!;")
+                    .WriteClosingBracket();
+            }
+
+            writer.WriteNewLineIf(i < module.PropertyConfigurationOverrides.Length - 1);
         }
     }
 

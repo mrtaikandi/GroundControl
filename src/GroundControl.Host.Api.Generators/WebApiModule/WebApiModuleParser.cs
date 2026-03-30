@@ -206,10 +206,21 @@ internal static class WebApiModuleParser
                     attr.ConstructorArguments.Length == 1 &&
                     attr.ConstructorArguments[0].Value is string key)
                 {
+                    var isFallback = false;
+                    foreach (var namedArg in attr.NamedArguments)
+                    {
+                        if (namedArg.Key == "IsFallback" && namedArg.Value.Value is bool f)
+                        {
+                            isFallback = f;
+                            break;
+                        }
+                    }
+
                     builder.Add(new PropertyConfigurationOverrideDescriptor(
                         property.Name,
                         property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                        key));
+                        key,
+                        isFallback));
                     break;
                 }
             }
