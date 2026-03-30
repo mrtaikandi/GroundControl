@@ -77,7 +77,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             var moduleName = GetModuleName(module.TypeName);
 
             writer
-                .WriteLine($"{module.FullyQualifiedName}? {varName} = null;")
+                .WriteLine($"global::{KnownTypes.ModuleInterfaceMetadataName}? {varName} = null;")
                 .WriteLine($"if (IsModuleEnabled(builder.Configuration, \"{moduleName}\"))")
                 .WriteOpeningBracket();
 
@@ -86,7 +86,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             WriteModuleInstantiation(writer, module, varName);
 
             writer
-                .WriteLine($"((global::{KnownTypes.ModuleInterfaceMetadataName}){varName}).OnServiceConfiguration(builder);")
+                .WriteLine($"{varName}.OnServiceConfiguration(builder);")
                 .WriteClosingBracket()
                 .WriteNewLineIf(i < SortedModules.Length - 1);
         }
@@ -204,7 +204,7 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
     }
 
     private void WriteApplicationConfigurationPhase(CodeWriter writer, Dictionary<string, string> varNameMap) => writer
-        .WriteLines(SortedModules.Select(m => $"({varNameMap[m.FullyQualifiedName]} as global::{KnownTypes.ModuleInterfaceMetadataName})?.OnApplicationConfiguration(app);"));
+        .WriteLines(SortedModules.Select(m => $"{varNameMap[m.FullyQualifiedName]}?.OnApplicationConfiguration(app);"));
 
     private static void WriteIsModuleEnabledMethod(CodeWriter writer)
     {

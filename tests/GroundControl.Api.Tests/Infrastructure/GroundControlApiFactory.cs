@@ -1,10 +1,7 @@
-using GroundControl.Api.Features.ClientApi;
-using GroundControl.Api.Features.Clients;
 using GroundControl.Api.Shared.Security.Authentication;
+using GroundControl.Persistence.MongoDb;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using MongoDB.Driver;
@@ -30,46 +27,15 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+
+        builder.UseSetting("ConnectionStrings:Storage", _mongoFixture.ConnectionString);
+        builder.UseSetting($"{MongoDbOptions.SectionName}:{nameof(MongoDbOptions.DatabaseName)}", _database.DatabaseNamespace.DatabaseName);
+        builder.UseSetting($"{AuthenticationOptions.SectionName}:{nameof(AuthenticationOptions.Mode)}", nameof(AuthenticationMode.None));
+
+        foreach (var kvp in _extraConfig)
         {
-            var config = new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:Storage"] = _mongoFixture.ConnectionString,
-                ["Persistence:MongoDb:DatabaseName"] = _database.DatabaseNamespace.DatabaseName,
-                ["Authentication:AuthenticationMode"] = "None",
-            };
-
-            foreach (var kvp in _extraConfig)
-            {
-                config[kvp.Key] = kvp.Value;
-            }
-
-            configurationBuilder.AddInMemoryCollection(config);
-        });
-
-        // WebApplicationFactory applies config overrides AFTER Program.cs eagerly reads
-        // AuthOptions, so auth mode selection in Program.cs always sees the default.
-        // Re-apply auth services here when the test config specifies a non-default mode.
-        builder.ConfigureServices((context, services) =>
-        {
-            var authMode = context.Configuration.GetValue<AuthenticationMode>("Authentication:AuthenticationMode");
-            if (authMode == AuthenticationMode.BuiltIn)
-            {
-                var authOptions = context.Configuration.GetSection(AuthenticationOptions.SectionName).Get<AuthenticationOptions>()!;
-                new BuiltInAuthenticationBuilder(authOptions).Build(services, context.Configuration);
-            }
-
-            // Remove background services that never trigger during tests to reduce per-factory startup cost
-            Type[] unnecessaryServices = [typeof(ClientCleanupService), typeof(SnapshotCacheInvalidator)];
-            var descriptorsToRemove = services
-                .Where(d => d.ServiceType == typeof(IHostedService) && unnecessaryServices.Contains(d.ImplementationType))
-                .ToList();
-
-            foreach (var descriptor in descriptorsToRemove)
-            {
-                services.Remove(descriptor);
-            }
-        });
+            builder.UseSetting(kvp.Key, kvp.Value);
+        }
 
         builder.ConfigureLogging(logging =>
         {

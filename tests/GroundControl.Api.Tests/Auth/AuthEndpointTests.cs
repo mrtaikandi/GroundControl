@@ -11,16 +11,6 @@ namespace GroundControl.Api.Tests.Auth;
 
 public sealed class AuthEndpointTests : ApiHandlerTestBase
 {
-    private static readonly string JwtSecret = Convert.ToBase64String(
-    [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
-    ]);
-
-    private const string SeedPassword = "Test!Password123";
-    private const string SeedEmail = "admin@test.local";
-    private const string SeedUsername = "admin";
-
     public AuthEndpointTests(MongoFixture mongoFixture)
         : base(mongoFixture)
     { }
@@ -29,7 +19,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task TokenLogin_WithValidCredentials_ReturnsTokenResponse()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -49,7 +39,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task TokenLogin_WithWrongPassword_Returns401()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -64,7 +54,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task TokenRefresh_WithValidToken_ReturnsNewTokenPair()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -86,7 +76,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task TokenRefresh_WithReusedToken_RevokesEntireFamily()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -113,7 +103,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task TokenRefresh_WithExpiredToken_Returns401()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -136,7 +126,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task CookieLogin_WithValidCredentials_SetsCookieAndReturnsOk()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -155,7 +145,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task CookieLogout_ReturnsNoContent()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -178,7 +168,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task GetCurrentUser_WithValidJwt_ReturnsUser()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -202,7 +192,7 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
     public async Task GetCurrentUser_WithoutCredentials_Returns401()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await EnsureHostStartedAsync(client);
 
@@ -213,22 +203,6 @@ public sealed class AuthEndpointTests : ApiHandlerTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
-    private GroundControlApiFactory CreateBuiltInFactory()
-    {
-        var config = new Dictionary<string, string?>
-        {
-            ["Authentication:AuthenticationMode"] = "BuiltIn",
-            ["Authentication:BuiltIn:Jwt:Secret"] = JwtSecret,
-            ["Authentication:BuiltIn:Jwt:Issuer"] = "GroundControl",
-            ["Authentication:BuiltIn:Jwt:Audience"] = "GroundControl",
-            ["Authentication:BuiltIn:Password:RequiredLength"] = "8",
-            ["Authentication:Seed:AdminUsername"] = SeedUsername,
-            ["Authentication:Seed:AdminEmail"] = SeedEmail,
-            ["Authentication:Seed:AdminPassword"] = SeedPassword,
-        };
-
-        return CreateFactory(config);
-    }
 
     private static async Task EnsureHostStartedAsync(HttpClient client) =>
         await client.GetAsync("/healthz/liveness");

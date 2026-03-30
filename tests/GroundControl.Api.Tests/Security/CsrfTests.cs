@@ -11,15 +11,6 @@ namespace GroundControl.Api.Tests.Security;
 
 public sealed class CsrfTests : ApiHandlerTestBase
 {
-    private static readonly string JwtSecret = Convert.ToBase64String(
-    [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
-    ]);
-
-    private const string SeedPassword = "Test!Password123";
-    private const string SeedEmail = "admin@test.local";
-    private const string SeedUsername = "admin";
     private const string CsrfCookieName = "XSRF-TOKEN";
     private const string CsrfHeaderName = "X-XSRF-TOKEN";
 
@@ -33,7 +24,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
     public async Task CookieAuthPost_WithoutCsrfHeader_Returns403()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await LoginViaCookieAsync(client);
 
@@ -48,7 +39,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
     public async Task CookieAuthPost_WithValidCsrfToken_Returns201()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await LoginViaCookieAsync(client);
         var csrfToken = await ObtainCsrfTokenAsync(client);
@@ -67,7 +58,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
     public async Task CookieAuthPut_WithoutCsrfHeader_Returns403()
     {
         // Arrange — CSRF validation runs before the handler, so no real resource needed
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await LoginViaCookieAsync(client);
         await ObtainCsrfTokenAsync(client);
@@ -85,7 +76,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
     public async Task CookieAuthDelete_WithoutCsrfHeader_Returns403()
     {
         // Arrange — CSRF validation runs before the handler, so no real resource needed
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await LoginViaCookieAsync(client);
         await ObtainCsrfTokenAsync(client);
@@ -102,7 +93,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
     public async Task BearerJwtPost_WithoutCsrfHeader_Succeeds()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -120,7 +111,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
     public async Task PatBearerPost_WithoutCsrfHeader_Succeeds()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         var jwt = await GetJwtAsync(client);
 
@@ -145,7 +136,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
     public async Task CookieAuthPost_WithInvalidCsrfToken_Returns403()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await LoginViaCookieAsync(client);
         await ObtainCsrfTokenAsync(client);
@@ -164,7 +155,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
     public async Task CsrfTokenCookie_IsNotHttpOnly()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await LoginViaCookieAsync(client);
 
@@ -186,7 +177,7 @@ public sealed class CsrfTests : ApiHandlerTestBase
         // Arrange
         var customCookieName = "MY-CSRF-TOKEN";
         var customHeaderName = "X-MY-CSRF";
-        await using var factory = CreateBuiltInFactory(extraConfig: new Dictionary<string, string?>
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication(extraConfig: new Dictionary<string, string?>
         {
             ["Authentication:Csrf:CookieName"] = customCookieName,
             ["Authentication:Csrf:HeaderName"] = customHeaderName,
@@ -213,31 +204,6 @@ public sealed class CsrfTests : ApiHandlerTestBase
 
         // Assert
         postResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-    }
-
-    private GroundControlApiFactory CreateBuiltInFactory(Dictionary<string, string?>? extraConfig = null)
-    {
-        var config = new Dictionary<string, string?>
-        {
-            ["Authentication:AuthenticationMode"] = "BuiltIn",
-            ["Authentication:BuiltIn:Jwt:Secret"] = JwtSecret,
-            ["Authentication:BuiltIn:Jwt:Issuer"] = "GroundControl",
-            ["Authentication:BuiltIn:Jwt:Audience"] = "GroundControl",
-            ["Authentication:BuiltIn:Password:RequiredLength"] = "8",
-            ["Authentication:Seed:AdminUsername"] = SeedUsername,
-            ["Authentication:Seed:AdminEmail"] = SeedEmail,
-            ["Authentication:Seed:AdminPassword"] = SeedPassword,
-        };
-
-        if (extraConfig is not null)
-        {
-            foreach (var kvp in extraConfig)
-            {
-                config[kvp.Key] = kvp.Value;
-            }
-        }
-
-        return CreateFactory(config);
     }
 
     private static async Task LoginViaCookieAsync(HttpClient client)

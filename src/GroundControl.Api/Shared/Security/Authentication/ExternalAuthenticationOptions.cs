@@ -5,6 +5,8 @@ namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal sealed partial class ExternalAuthenticationOptions
 {
+    internal const string SectionName = $"{AuthenticationOptions.SectionName}:External";
+
     [Required(AllowEmptyStrings = false)]
     public string Authority { get; set; } = string.Empty;
 
@@ -38,6 +40,8 @@ internal sealed partial class ExternalAuthenticationOptions
 
 internal sealed class JitProvisioningOptions
 {
+    internal const string SectionName = $"{ExternalAuthenticationOptions.SectionName}:JitProvisioning";
+
     public bool Enabled { get; set; } = true;
 
     public bool MatchByEmail { get; set; } = true;
@@ -47,6 +51,8 @@ internal sealed class JitProvisioningOptions
 
 internal sealed partial class ExternalCookieOptions
 {
+    internal const string SectionName = $"{ExternalAuthenticationOptions.SectionName}:Cookie";
+
     [Required(AllowEmptyStrings = false)]
     public string Name { get; set; } = ".GroundControl.Auth";
 

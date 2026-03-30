@@ -6,6 +6,8 @@ namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal sealed partial class BuiltInAuthenticationOptions
 {
+    internal const string SectionName = "Authentication:BuiltIn";
+
     [ValidateObjectMembers]
     public JwtOptions Jwt { get; set; } = new();
 
@@ -26,6 +28,8 @@ internal sealed partial class BuiltInAuthenticationOptions
 
 internal sealed partial class JwtOptions
 {
+    internal const string SectionName = $"{BuiltInAuthenticationOptions.SectionName}:Jwt";
+
     [RequireValidJwtSecret]
     [Required(AllowEmptyStrings = false)]
     public string Secret { get; set; } = string.Empty;
@@ -46,6 +50,8 @@ internal sealed partial class JwtOptions
 
 internal sealed partial class BuiltInCookieOptions
 {
+    internal const string SectionName = $"{BuiltInAuthenticationOptions.SectionName}:Cookie";
+
     [Required(AllowEmptyStrings = false)]
     public string Name { get; set; } = ".GroundControl.Auth";
 
@@ -59,6 +65,8 @@ internal sealed partial class BuiltInCookieOptions
 
 internal sealed class PasswordPolicyOptions
 {
+    internal const string SectionName = $"{BuiltInAuthenticationOptions.SectionName}:Password";
+
     public int RequiredLength { get; set; } = 12;
 
     public bool RequireDigit { get; set; } = true;
@@ -72,6 +80,8 @@ internal sealed class PasswordPolicyOptions
 
 internal sealed class LockoutPolicyOptions
 {
+    internal const string SectionName = $"{BuiltInAuthenticationOptions.SectionName}:Lockout";
+
     public int MaxFailedAttempts { get; set; } = 5;
 
     public TimeSpan LockoutDuration { get; set; } = TimeSpan.FromMinutes(15);

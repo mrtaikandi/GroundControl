@@ -1,5 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using GroundControl.Api.Shared.Security.Authentication;
+using GroundControl.Persistence.MongoDb;
+using MongoDB.Driver;
 using Shouldly;
 using Xunit;
 
@@ -10,6 +13,16 @@ namespace GroundControl.Api.Tests.Infrastructure;
 /// </summary>
 public abstract class ApiHandlerTestBase
 {
+    protected static readonly string JwtSecret = Convert.ToBase64String(
+    [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
+    ]);
+
+    protected const string SeedPassword = "Test!Password123";
+    protected const string SeedEmail = "admin@test.local";
+    protected const string SeedUsername = "admin";
+
     private readonly MongoFixture _mongoFixture;
 
     protected ApiHandlerTestBase(MongoFixture mongoFixture)
@@ -31,6 +44,37 @@ public abstract class ApiHandlerTestBase
         var payload = await response.Content.ReadFromJsonAsync<TResponse>(WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
         payload.ShouldNotBeNull();
 
-        return payload!;
+        return payload;
     }
+
+    protected GroundControlApiFactory CreateApiFactoryWithBuiltInAuthentication(Dictionary<string, string?>? extraConfig = null, IMongoDatabase? existingDatabase = null)
+    {
+        var config = new Dictionary<string, string?>
+        {
+            [$"{AuthenticationOptions.SectionName}:{nameof(AuthenticationOptions.Mode)}"] = "BuiltIn",
+            [$"{JwtOptions.SectionName}:{nameof(JwtOptions.Secret)}"] = JwtSecret,
+            [$"{JwtOptions.SectionName}:{nameof(JwtOptions.Issuer)}"] = "GroundControl",
+            [$"{JwtOptions.SectionName}:{nameof(JwtOptions.Audience)}"] = "GroundControl",
+            [$"{PasswordPolicyOptions.SectionName}:{nameof(PasswordPolicyOptions.RequiredLength)}"] = "8",
+            [$"{SeedOptions.SectionName}:{nameof(SeedOptions.AdminUsername)}"] = SeedUsername,
+            [$"{SeedOptions.SectionName}:{nameof(SeedOptions.AdminEmail)}"] = SeedEmail,
+            [$"{SeedOptions.SectionName}:{nameof(SeedOptions.AdminPassword)}"] = SeedPassword
+        };
+
+        if (extraConfig is not null)
+        {
+            foreach (var kvp in extraConfig)
+            {
+                config[kvp.Key] = kvp.Value;
+            }
+        }
+
+        if (existingDatabase is not null)
+        {
+            config[$"{MongoDbOptions.SectionName}:{nameof(MongoDbOptions.DatabaseName)}"] = existingDatabase.DatabaseNamespace.DatabaseName;
+        }
+
+        return CreateFactory(config);
+    }
+
 }

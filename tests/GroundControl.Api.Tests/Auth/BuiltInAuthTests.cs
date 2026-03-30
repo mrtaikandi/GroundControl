@@ -13,16 +13,6 @@ namespace GroundControl.Api.Tests.Auth;
 
 public sealed class BuiltInAuthTests : ApiHandlerTestBase
 {
-    private static readonly string JwtSecret = Convert.ToBase64String(
-    [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-        17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
-    ]);
-
-    private const string SeedPassword = "Test!Password123";
-    private const string SeedEmail = "admin@test.local";
-    private const string SeedUsername = "admin";
-
     public BuiltInAuthTests(MongoFixture mongoFixture)
         : base(mongoFixture)
     { }
@@ -31,7 +21,7 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
     public async Task Startup_InBuiltInMode_SeedsAdminUserInBothCollections()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
 
         // Act — trigger host startup so hosted services run
@@ -55,12 +45,12 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
     public async Task Startup_SecondTime_DoesNotCreateDuplicateAdmin()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await client.GetAsync("/healthz/liveness", TestCancellationToken);
 
         // Act
-        await using var factory2 = CreateBuiltInFactory(factory.Database);
+        await using var factory2 = CreateApiFactoryWithBuiltInAuthentication(existingDatabase: factory.Database);
         using var client2 = factory2.CreateClient();
         await client2.GetAsync("/healthz/liveness", TestCancellationToken);
 
@@ -76,7 +66,7 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
     public async Task Request_WithValidJwt_ReturnsOk()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
         await client.GetAsync("/healthz/liveness", TestCancellationToken);
 
@@ -96,7 +86,7 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
     public async Task Request_WithExpiredJwt_ReturnsUnauthorized()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
 
         var token = GenerateJwtToken(Guid.CreateVersion7(), expires: DateTime.UtcNow.AddHours(-1));
@@ -114,7 +104,7 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
     public async Task Request_WithNoCredentials_ReturnsUnauthorized()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
 
         // Act
@@ -128,7 +118,7 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
     public async Task Request_WithInvalidJwt_ReturnsUnauthorized()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient();
 
         // Act
@@ -144,7 +134,7 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
     public async Task CookieRedirect_IsSuppressed_Returns401NotRedirect()
     {
         // Arrange
-        await using var factory = CreateBuiltInFactory();
+        await using var factory = CreateApiFactoryWithBuiltInAuthentication();
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         // Act — request without Authorization header uses cookie scheme
@@ -152,28 +142,6 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
 
         // Assert — should be 401, not 302 redirect
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
-    }
-
-    private GroundControlApiFactory CreateBuiltInFactory(IMongoDatabase? existingDatabase = null)
-    {
-        var config = new Dictionary<string, string?>
-        {
-            ["Authentication:AuthenticationMode"] = "BuiltIn",
-            ["Authentication:BuiltIn:Jwt:Secret"] = JwtSecret,
-            ["Authentication:BuiltIn:Jwt:Issuer"] = "GroundControl",
-            ["Authentication:BuiltIn:Jwt:Audience"] = "GroundControl",
-            ["Authentication:BuiltIn:Password:RequiredLength"] = "8",
-            ["Authentication:Seed:AdminUsername"] = SeedUsername,
-            ["Authentication:Seed:AdminEmail"] = SeedEmail,
-            ["Authentication:Seed:AdminPassword"] = SeedPassword,
-        };
-
-        if (existingDatabase is not null)
-        {
-            config["Persistence:MongoDb:DatabaseName"] = existingDatabase.DatabaseNamespace.DatabaseName;
-        }
-
-        return CreateFactory(config);
     }
 
     private static async Task<User?> GetSeededAdminUserAsync(IMongoDatabase database)
