@@ -21,36 +21,36 @@ internal static class WebApiModuleExtensions
         if (IsModuleEnabled(builder.Configuration, "ModuleD"))
         {
             moduleD = new global::ModuleD();
-            moduleD.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)moduleD).OnServiceConfiguration(builder);
         }
         
         global::ModuleB? moduleB = null;
         if (IsModuleEnabled(builder.Configuration, "ModuleB"))
         {
             moduleB = new global::ModuleB();
-            moduleB.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)moduleB).OnServiceConfiguration(builder);
         }
         
         global::ModuleC? moduleC = null;
         if (IsModuleEnabled(builder.Configuration, "ModuleC"))
         {
             moduleC = new global::ModuleC();
-            moduleC.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)moduleC).OnServiceConfiguration(builder);
         }
         
         global::ModuleA? moduleA = null;
         if (IsModuleEnabled(builder.Configuration, "ModuleA"))
         {
             moduleA = new global::ModuleA();
-            moduleA.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)moduleA).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        moduleD?.OnApplicationConfiguration(app);
-        moduleB?.OnApplicationConfiguration(app);
-        moduleC?.OnApplicationConfiguration(app);
-        moduleA?.OnApplicationConfiguration(app);
+        (moduleD as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (moduleB as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (moduleC as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (moduleA as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }

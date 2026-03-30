@@ -190,8 +190,28 @@ internal static class WebApiModuleParser
         }
 
         var builder = ImmutableArray.CreateBuilder<PropertyConfigurationOverrideDescriptor>();
+        var visitStack = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        foreach (var member in optionsType.GetMembers())
+        CollectPropertyOverrides(optionsType, configKeyAttr, builder, visitStack, "");
+
+        return builder.Count == 0
+            ? ImmutableArray<PropertyConfigurationOverrideDescriptor>.Empty
+            : builder.ToImmutable();
+    }
+
+    private static void CollectPropertyOverrides(
+        INamedTypeSymbol type,
+        INamedTypeSymbol configKeyAttr,
+        ImmutableArray<PropertyConfigurationOverrideDescriptor>.Builder builder,
+        HashSet<INamedTypeSymbol> visitStack,
+        string prefix)
+    {
+        if (!visitStack.Add(type))
+        {
+            return;
+        }
+
+        foreach (var member in type.GetMembers())
         {
             if (member is not IPropertySymbol property ||
                 property.SetMethod is null ||
@@ -199,6 +219,9 @@ internal static class WebApiModuleParser
             {
                 continue;
             }
+
+            var propertyPath = prefix.Length == 0 ? property.Name : prefix + "." + property.Name;
+            var hasConfigKey = false;
 
             foreach (var attr in property.GetAttributes())
             {
@@ -217,17 +240,40 @@ internal static class WebApiModuleParser
                     }
 
                     builder.Add(new PropertyConfigurationOverrideDescriptor(
-                        property.Name,
+                        propertyPath,
                         property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                         key,
                         isFallback));
+                    hasConfigKey = true;
                     break;
                 }
             }
+
+            // Recurse into complex property types that don't have their own ConfigurationKey
+            if (!hasConfigKey &&
+                property.Type is INamedTypeSymbol propertyType &&
+                IsRecursablePropertyType(propertyType))
+            {
+                CollectPropertyOverrides(propertyType, configKeyAttr, builder, visitStack, propertyPath);
+            }
         }
 
-        return builder.Count == 0
-            ? ImmutableArray<PropertyConfigurationOverrideDescriptor>.Empty
-            : builder.ToImmutable();
+        visitStack.Remove(type);
+    }
+
+    private static bool IsRecursablePropertyType(INamedTypeSymbol type)
+    {
+        if (type.SpecialType != SpecialType.None)
+        {
+            return false;
+        }
+
+        if (type.TypeKind != TypeKind.Class && type.TypeKind != TypeKind.Struct)
+        {
+            return false;
+        }
+
+        var ns = type.ContainingNamespace?.ToDisplayString();
+        return ns is null || !ns.StartsWith("System", StringComparison.Ordinal);
     }
 }

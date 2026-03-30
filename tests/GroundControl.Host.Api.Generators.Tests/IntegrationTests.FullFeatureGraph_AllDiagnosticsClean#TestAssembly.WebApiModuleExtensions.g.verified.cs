@@ -21,7 +21,7 @@ internal static class WebApiModuleExtensions
         if (IsModuleEnabled(builder.Configuration, "Core"))
         {
             coreModule = new global::CoreModule();
-            coreModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)coreModule).OnServiceConfiguration(builder);
         }
         
         global::DatabaseModule? databaseModule = null;
@@ -29,14 +29,14 @@ internal static class WebApiModuleExtensions
         {
             var databaseModuleOptions = BindOptions<global::DatabaseOptions>(builder.Configuration, "Database");
             databaseModule = new global::DatabaseModule(databaseModuleOptions);
-            databaseModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)databaseModule).OnServiceConfiguration(builder);
         }
         
         global::MigrationModule? migrationModule = null;
         if (IsModuleEnabled(builder.Configuration, "Migration"))
         {
             migrationModule = new global::MigrationModule();
-            migrationModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)migrationModule).OnServiceConfiguration(builder);
         }
         
         global::ObservabilityModule? observabilityModule = null;
@@ -44,7 +44,7 @@ internal static class WebApiModuleExtensions
         {
             var observabilityModuleOptions = BindOptions<global::ObservabilityOptions>(builder.Configuration, "Telemetry");
             observabilityModule = new global::ObservabilityModule(observabilityModuleOptions);
-            observabilityModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)observabilityModule).OnServiceConfiguration(builder);
         }
         
         global::ApiModule? apiModule = null;
@@ -56,16 +56,16 @@ internal static class WebApiModuleExtensions
             }
 
             apiModule = new global::ApiModule();
-            apiModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)apiModule).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        coreModule?.OnApplicationConfiguration(app);
-        databaseModule?.OnApplicationConfiguration(app);
-        migrationModule?.OnApplicationConfiguration(app);
-        observabilityModule?.OnApplicationConfiguration(app);
-        apiModule?.OnApplicationConfiguration(app);
+        (coreModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (databaseModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (migrationModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (observabilityModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        (apiModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }

@@ -22,12 +22,12 @@ internal static class WebApiModuleExtensions
         {
             var fooModuleOptions = BindOptions<global::FooConfig>(builder.Configuration, "FooConfig");
             fooModule = new global::FooModule(fooModuleOptions);
-            fooModule.OnServiceConfiguration(builder);
+            ((global::GroundControl.Host.Api.IWebApiModule)fooModule).OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        fooModule?.OnApplicationConfiguration(app);
+        (fooModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
 
         return app;
     }
