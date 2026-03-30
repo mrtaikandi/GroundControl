@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using GroundControl.Api.Core.Authentication.BuiltIn;
 using GroundControl.Api.Core.Authentication.External;
 using GroundControl.Api.Core.Authentication.NoAuth;
-using GroundControl.Api.Shared.Extensions.Options;
 using GroundControl.Host.Api;
 using Microsoft.Extensions.Options;
 
@@ -55,8 +54,8 @@ internal sealed class AuthenticationOptions
         {
             var result = options.Mode switch
             {
-                AuthenticationMode.BuiltIn => new BuiltInAuthenticationOptions.Validator().Validate(nameof(options.BuiltIn), options.BuiltIn),
-                AuthenticationMode.External => new ExternalAuthenticationOptions.Validator().Validate(nameof(options.External), options.External),
+                AuthenticationMode.BuiltIn => BuiltInAuthenticationOptions.Validator.Validate(options.BuiltIn, nameof(options.BuiltIn)),
+                AuthenticationMode.External => ExternalAuthenticationOptions.Validator.Validate(options.External, nameof(options.External)),
                 AuthenticationMode.None => ValidateOptionsResult.Success,
                 _ => ValidateOptionsResult.Fail($"Unsupported authentication mode: {options.Mode}.")
             };

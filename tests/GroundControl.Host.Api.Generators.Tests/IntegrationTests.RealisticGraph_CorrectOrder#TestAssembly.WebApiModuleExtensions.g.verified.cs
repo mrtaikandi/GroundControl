@@ -17,56 +17,56 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::ConfigModule? configModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? configModule = null;
         if (IsModuleEnabled(builder.Configuration, "Config"))
         {
             configModule = new global::ConfigModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)configModule).OnServiceConfiguration(builder);
+            configModule.OnServiceConfiguration(builder);
         }
         
-        global::DatabaseModule? databaseModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? databaseModule = null;
         if (IsModuleEnabled(builder.Configuration, "Database"))
         {
             databaseModule = new global::DatabaseModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)databaseModule).OnServiceConfiguration(builder);
+            databaseModule.OnServiceConfiguration(builder);
         }
         
-        global::HealthChecksModule? healthChecksModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? healthChecksModule = null;
         if (IsModuleEnabled(builder.Configuration, "HealthChecks"))
         {
             healthChecksModule = new global::HealthChecksModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)healthChecksModule).OnServiceConfiguration(builder);
+            healthChecksModule.OnServiceConfiguration(builder);
         }
         
-        global::LoggingModule? loggingModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? loggingModule = null;
         if (IsModuleEnabled(builder.Configuration, "Logging"))
         {
             loggingModule = new global::LoggingModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)loggingModule).OnServiceConfiguration(builder);
+            loggingModule.OnServiceConfiguration(builder);
         }
         
-        global::AuthModule? authModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? authModule = null;
         if (IsModuleEnabled(builder.Configuration, "Auth"))
         {
             authModule = new global::AuthModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)authModule).OnServiceConfiguration(builder);
+            authModule.OnServiceConfiguration(builder);
         }
         
-        global::ApiModule? apiModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? apiModule = null;
         if (IsModuleEnabled(builder.Configuration, "Api"))
         {
             apiModule = new global::ApiModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)apiModule).OnServiceConfiguration(builder);
+            apiModule.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (configModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (databaseModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (healthChecksModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (loggingModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (authModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (apiModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        configModule?.OnApplicationConfiguration(app);
+        databaseModule?.OnApplicationConfiguration(app);
+        healthChecksModule?.OnApplicationConfiguration(app);
+        loggingModule?.OnApplicationConfiguration(app);
+        authModule?.OnApplicationConfiguration(app);
+        apiModule?.OnApplicationConfiguration(app);
 
         return app;
     }

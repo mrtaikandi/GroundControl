@@ -1,4 +1,3 @@
-using GroundControl.Api.Shared.Extensions.Options;
 using Microsoft.AspNetCore.DataProtection;
 using StackExchange.Redis;
 

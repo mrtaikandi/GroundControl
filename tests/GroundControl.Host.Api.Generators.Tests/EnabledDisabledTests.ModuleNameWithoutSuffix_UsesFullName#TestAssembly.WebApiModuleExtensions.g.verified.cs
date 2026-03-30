@@ -17,16 +17,16 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::FooSetup? fooSetup = null;
+        global::GroundControl.Host.Api.IWebApiModule? fooSetup = null;
         if (IsModuleEnabled(builder.Configuration, "FooSetup"))
         {
             fooSetup = new global::FooSetup();
-            ((global::GroundControl.Host.Api.IWebApiModule)fooSetup).OnServiceConfiguration(builder);
+            fooSetup.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (fooSetup as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        fooSetup?.OnApplicationConfiguration(app);
 
         return app;
     }

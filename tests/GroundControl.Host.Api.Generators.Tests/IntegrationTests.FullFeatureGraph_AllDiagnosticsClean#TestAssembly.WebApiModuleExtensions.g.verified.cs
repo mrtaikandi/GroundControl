@@ -17,37 +17,37 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::CoreModule? coreModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? coreModule = null;
         if (IsModuleEnabled(builder.Configuration, "Core"))
         {
             coreModule = new global::CoreModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)coreModule).OnServiceConfiguration(builder);
+            coreModule.OnServiceConfiguration(builder);
         }
         
-        global::DatabaseModule? databaseModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? databaseModule = null;
         if (IsModuleEnabled(builder.Configuration, "Database"))
         {
             var databaseModuleOptions = BindOptions<global::DatabaseOptions>(builder.Configuration, "Database");
             databaseModule = new global::DatabaseModule(databaseModuleOptions);
-            ((global::GroundControl.Host.Api.IWebApiModule)databaseModule).OnServiceConfiguration(builder);
+            databaseModule.OnServiceConfiguration(builder);
         }
         
-        global::MigrationModule? migrationModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? migrationModule = null;
         if (IsModuleEnabled(builder.Configuration, "Migration"))
         {
             migrationModule = new global::MigrationModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)migrationModule).OnServiceConfiguration(builder);
+            migrationModule.OnServiceConfiguration(builder);
         }
         
-        global::ObservabilityModule? observabilityModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? observabilityModule = null;
         if (IsModuleEnabled(builder.Configuration, "Observability"))
         {
             var observabilityModuleOptions = BindOptions<global::ObservabilityOptions>(builder.Configuration, "Telemetry");
             observabilityModule = new global::ObservabilityModule(observabilityModuleOptions);
-            ((global::GroundControl.Host.Api.IWebApiModule)observabilityModule).OnServiceConfiguration(builder);
+            observabilityModule.OnServiceConfiguration(builder);
         }
         
-        global::ApiModule? apiModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? apiModule = null;
         if (IsModuleEnabled(builder.Configuration, "Api"))
         {
             if (!IsModuleEnabled(builder.Configuration, "Database"))
@@ -56,16 +56,16 @@ internal static class WebApiModuleExtensions
             }
 
             apiModule = new global::ApiModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)apiModule).OnServiceConfiguration(builder);
+            apiModule.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (coreModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (databaseModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (migrationModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (observabilityModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (apiModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        coreModule?.OnApplicationConfiguration(app);
+        databaseModule?.OnApplicationConfiguration(app);
+        migrationModule?.OnApplicationConfiguration(app);
+        observabilityModule?.OnApplicationConfiguration(app);
+        apiModule?.OnApplicationConfiguration(app);
 
         return app;
     }

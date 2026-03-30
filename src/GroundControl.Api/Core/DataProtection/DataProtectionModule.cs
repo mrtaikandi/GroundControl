@@ -1,6 +1,5 @@
 using GroundControl.Api.Core.DataProtection.Certificate;
 using GroundControl.Api.Core.DataProtection.KeyRing;
-using GroundControl.Api.Shared.Extensions.Options;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Host.Api;
 using Microsoft.AspNetCore.DataProtection;

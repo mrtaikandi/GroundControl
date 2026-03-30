@@ -1,4 +1,3 @@
-using GroundControl.Api.Shared.Extensions.Options;
 using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Core.DataProtection;

@@ -17,7 +17,7 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::AuthModule? authModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? authModule = null;
         if (IsModuleEnabled(builder.Configuration, "Auth"))
         {
             var authModuleOptions = BindOptions<global::AuthOptions>(
@@ -36,12 +36,12 @@ internal static class WebApiModuleExtensions
                     }
                 });
             authModule = new global::AuthModule(authModuleOptions);
-            ((global::GroundControl.Host.Api.IWebApiModule)authModule).OnServiceConfiguration(builder);
+            authModule.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (authModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        authModule?.OnApplicationConfiguration(app);
 
         return app;
     }

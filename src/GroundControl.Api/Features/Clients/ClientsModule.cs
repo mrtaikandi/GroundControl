@@ -5,7 +5,7 @@ using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.Clients;
 
-[RunsAfter<AppCommonModule>(Required = true)]
+[RunsAfter<ApplicationModule>(Required = true)]
 [RunsAfter<AuthenticationModule>(Required = true)]
 internal sealed class ClientsModule : IWebApiModule
 {

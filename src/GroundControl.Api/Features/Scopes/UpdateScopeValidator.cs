@@ -1,5 +1,4 @@
 using GroundControl.Api.Features.Scopes.Contracts;
-using GroundControl.Api.Shared.Extensions.Http;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 

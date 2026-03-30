@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 namespace GroundControl.Api.Core.HealthChecks;
 
-[RunsAfter<AppCommonModule>(Required = true)]
+[RunsAfter<ApplicationModule>(Required = true)]
 [RunsAfter<ChangeNotificationModule>(Required = true)]
 internal sealed class HealthChecksModule : IWebApiModule
 {

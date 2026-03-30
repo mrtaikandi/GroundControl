@@ -2,7 +2,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
-using GroundControl.Api.Shared.Extensions.Threading;
+using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Authentication;
@@ -12,7 +12,7 @@ namespace GroundControl.Api.Core.Authentication;
 
 internal sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    public const string SchemeName = Shared.Security.AuthenticationSchemes.ApiKey;
+    public const string SchemeName = AuthenticationSchemes.ApiKey;
 
     private readonly IClientStore _clientStore;
     private readonly IValueProtector _protector;

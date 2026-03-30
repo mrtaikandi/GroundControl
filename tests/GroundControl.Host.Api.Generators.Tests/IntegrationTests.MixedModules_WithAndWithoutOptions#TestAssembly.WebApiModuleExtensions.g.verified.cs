@@ -17,42 +17,42 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::LoggingModule? loggingModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? loggingModule = null;
         if (IsModuleEnabled(builder.Configuration, "Logging"))
         {
             loggingModule = new global::LoggingModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)loggingModule).OnServiceConfiguration(builder);
+            loggingModule.OnServiceConfiguration(builder);
         }
         
-        global::AuthModule? authModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? authModule = null;
         if (IsModuleEnabled(builder.Configuration, "Auth"))
         {
             var authModuleOptions = BindOptions<global::AuthOptions>(builder.Configuration, "Auth");
             authModule = new global::AuthModule(authModuleOptions);
-            ((global::GroundControl.Host.Api.IWebApiModule)authModule).OnServiceConfiguration(builder);
+            authModule.OnServiceConfiguration(builder);
         }
         
-        global::CacheModule? cacheModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? cacheModule = null;
         if (IsModuleEnabled(builder.Configuration, "Cache"))
         {
             var cacheModuleOptions = BindOptions<global::CacheConfig>(builder.Configuration, "CacheConfig");
             cacheModule = new global::CacheModule(cacheModuleOptions);
-            ((global::GroundControl.Host.Api.IWebApiModule)cacheModule).OnServiceConfiguration(builder);
+            cacheModule.OnServiceConfiguration(builder);
         }
         
-        global::ApiModule? apiModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? apiModule = null;
         if (IsModuleEnabled(builder.Configuration, "Api"))
         {
             apiModule = new global::ApiModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)apiModule).OnServiceConfiguration(builder);
+            apiModule.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (loggingModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (authModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (cacheModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (apiModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        loggingModule?.OnApplicationConfiguration(app);
+        authModule?.OnApplicationConfiguration(app);
+        cacheModule?.OnApplicationConfiguration(app);
+        apiModule?.OnApplicationConfiguration(app);
 
         return app;
     }
