@@ -1,6 +1,6 @@
 using GroundControl.Api.Shared;
 
-namespace GroundControl.Api.Features.Auth;
+namespace GroundControl.Api.Features.Authentication;
 
 internal sealed class ExternalCallbackHandler : IEndpointHandler
 {

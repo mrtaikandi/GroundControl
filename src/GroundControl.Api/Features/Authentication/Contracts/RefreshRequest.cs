@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace GroundControl.Api.Features.Auth.Contracts;
+namespace GroundControl.Api.Features.Authentication.Contracts;
 
 internal sealed record RefreshRequest
 {

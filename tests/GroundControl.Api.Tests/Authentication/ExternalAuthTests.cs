@@ -10,7 +10,7 @@ using Xunit;
 using ExternalAuthenticationOptions = GroundControl.Api.Shared.Security.Authentication.ExternalAuthenticationOptions;
 using JitProvisioningService = GroundControl.Api.Shared.Security.Authentication.JitProvisioningService;
 
-namespace GroundControl.Api.Tests.Auth;
+namespace GroundControl.Api.Tests.Authentication;
 
 public sealed class ExternalAuthTests : ApiHandlerTestBase
 {

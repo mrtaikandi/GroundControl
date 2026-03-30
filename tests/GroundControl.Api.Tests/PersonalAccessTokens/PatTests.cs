@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
-using GroundControl.Api.Features.Auth.Contracts;
+using GroundControl.Api.Features.Authentication.Contracts;
 using GroundControl.Api.Features.PersonalAccessTokens.Contracts;
 using GroundControl.Persistence.Contracts;
 using MongoDB.Driver;

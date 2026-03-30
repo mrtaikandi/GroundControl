@@ -2,7 +2,7 @@ using GroundControl.Api.Shared;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
-namespace GroundControl.Api.Features.Auth;
+namespace GroundControl.Api.Features.Authentication;
 
 internal sealed class ExternalLoginHandler : IEndpointHandler
 {

@@ -1,4 +1,4 @@
-using GroundControl.Api.Features.Auth.Contracts;
+using GroundControl.Api.Features.Authentication.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Security.Authentication;
 using GroundControl.Persistence.Contracts;
@@ -6,7 +6,7 @@ using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-namespace GroundControl.Api.Features.Auth;
+namespace GroundControl.Api.Features.Authentication;
 
 internal sealed partial class TokenRefreshHandler : IEndpointHandler
 {
