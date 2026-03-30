@@ -2,7 +2,7 @@ using System.Security.Claims;
 using GroundControl.Api.Features.ClientApi.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Resolvers;
-using GroundControl.Api.Core.Authentication;
+using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -30,7 +30,7 @@ internal sealed class GetConfigHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] GetConfigHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(httpContext, cancellationToken))
-            .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = ApiKeyAuthenticationHandler.SchemeName })
+            .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = AuthenticationSchemes.ApiKey })
             .WithName(nameof(GetConfigHandler));
     }
 

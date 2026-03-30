@@ -12,7 +12,7 @@ namespace GroundControl.Api.Core.Authentication;
 
 internal sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    public const string SchemeName = "ApiKey";
+    public const string SchemeName = Shared.Security.AuthenticationSchemes.ApiKey;
 
     private readonly IClientStore _clientStore;
     private readonly IValueProtector _protector;
