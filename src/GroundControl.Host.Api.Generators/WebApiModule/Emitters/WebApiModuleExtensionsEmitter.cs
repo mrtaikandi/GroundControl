@@ -54,6 +54,11 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
 
         WriteIsModuleEnabledMethod(writer);
 
+        if (SortedModules.Any(m => m.HasOptions))
+        {
+            WriteBindOptionsMethod(writer);
+        }
+
         writer.WriteClosingBracket(false);
 
         return writer.ToString();
@@ -127,19 +132,51 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
 
     private static void WriteModuleInstantiation(CodeWriter writer, ModuleDescriptor module, string varName)
     {
-        if (module.HasOptions)
+        if (!module.HasOptions)
         {
-            writer
-                .WriteLine($"var {varName}Options = builder.Configuration")
-                .Indent()
-                .WriteLine($".GetSection(\"{module.ConfigurationSectionName}\")")
-                .WriteLine($".Get<{module.OptionsTypeFullyQualifiedName}>() ?? new {module.OptionsTypeFullyQualifiedName}();")
-                .Unindent()
-                .WriteLine($"{varName} = new {module.FullyQualifiedName}({varName}Options);");
+            writer.WriteLine($"{varName} = new {module.FullyQualifiedName}();");
+            return;
+        }
+
+        if (module.PropertyConfigurationOverrides.IsDefaultOrEmpty)
+        {
+            writer.WriteLine($"var {varName}Options = BindOptions<{module.OptionsTypeFullyQualifiedName}>(builder.Configuration, \"{module.ConfigurationSectionName}\");");
         }
         else
         {
-            writer.WriteLine($"{varName} = new {module.FullyQualifiedName}();");
+            writer
+                .WriteLine($"var {varName}Options = BindOptions<{module.OptionsTypeFullyQualifiedName}>(")
+                .Indent()
+                .WriteLine("builder.Configuration,")
+                .WriteLine($"\"{module.ConfigurationSectionName}\",")
+                .WriteLine("static (configuration, options) =>")
+                .WriteOpeningBracket();
+
+            WritePropertyConfigurationOverrides(writer, module);
+
+            writer
+                .Unindent()
+                .WriteLine("});")
+                .Unindent();
+        }
+
+        writer.WriteLine($"{varName} = new {module.FullyQualifiedName}({varName}Options);");
+    }
+
+    private static void WritePropertyConfigurationOverrides(CodeWriter writer, ModuleDescriptor module)
+    {
+        for (var i = 0; i < module.PropertyConfigurationOverrides.Length; i++)
+        {
+            var prop = module.PropertyConfigurationOverrides[i];
+            var sectionVarName = ToCamelCase(prop.PropertyName) + "Section";
+
+            writer
+                .WriteLine($"var {sectionVarName} = configuration.GetSection(\"{prop.ConfigurationSectionKey}\");")
+                .WriteLine($"if ({sectionVarName}.Exists())")
+                .WriteOpeningBracket()
+                .WriteLine($"options.{prop.PropertyName} = {sectionVarName}.Get<{prop.PropertyTypeFullyQualifiedName}>()!;")
+                .WriteClosingBracket()
+                .WriteNewLineIf(i < module.PropertyConfigurationOverrides.Length - 1);
         }
     }
 
@@ -157,6 +194,23 @@ internal readonly record struct WebApiModuleExtensionsEmitter(
             .Unindent()
             .WriteOpeningBracket()
             .WriteLine("return configuration.GetValue<bool?>($\"Modules:{moduleName}:Enabled\") ?? true;")
+            .WriteClosingBracket();
+    }
+
+    private static void WriteBindOptionsMethod(CodeWriter writer)
+    {
+        writer
+            .WriteLine()
+            .WriteLine($"private static T BindOptions<T>(")
+            .Indent()
+            .WriteLine($"global::{KnownTypes.IConfiguration} configuration,")
+            .WriteLine("string sectionKey,")
+            .WriteLine("global::System.Action<global::Microsoft.Extensions.Configuration.IConfiguration, T>? bindPropertyOverrides = null) where T : new()")
+            .Unindent()
+            .WriteOpeningBracket()
+            .WriteLine("var options = configuration.GetSection(sectionKey).Get<T>() ?? new T();")
+            .WriteLine("bindPropertyOverrides?.Invoke(configuration, options);")
+            .WriteLine("return options;")
             .WriteClosingBracket();
     }
 

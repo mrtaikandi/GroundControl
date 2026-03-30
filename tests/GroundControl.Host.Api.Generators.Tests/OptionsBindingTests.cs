@@ -170,4 +170,103 @@ public sealed class OptionsBindingTests
         return Verify(driver)
             .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public Task OptionsModule_PropertyConfigurationKeyOverride()
+    {
+        // Arrange — class-level and property-level [ConfigurationKey]
+        var source = """
+            using GroundControl.Host.Api;
+
+            [ConfigurationKey("Authentication")]
+            public class SecurityOptions
+            {
+                [ConfigurationKey("ConnectionStrings:Storage")]
+                public string Storage { get; set; } = "";
+
+                public string Mode { get; set; } = "None";
+            }
+
+            internal sealed class SecurityModule : IWebApiModule<SecurityOptions>
+            {
+                public SecurityModule(SecurityOptions options) { }
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public Task OptionsModule_MultiplePropertyOverrides()
+    {
+        // Arrange — multiple properties with [ConfigurationKey]
+        var source = """
+            using GroundControl.Host.Api;
+
+            [ConfigurationKey("App")]
+            public class AppOptions
+            {
+                [ConfigurationKey("ConnectionStrings:Database")]
+                public string Database { get; set; } = "";
+
+                [ConfigurationKey("ConnectionStrings:Cache")]
+                public string Cache { get; set; } = "";
+
+                public string Name { get; set; } = "";
+            }
+
+            internal sealed class AppModule : IWebApiModule<AppOptions>
+            {
+                public AppModule(AppOptions options) { }
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public Task OptionsModule_PropertyOverride_ValueType()
+    {
+        // Arrange — property override on a value type (int)
+        var source = """
+            using GroundControl.Host.Api;
+
+            [ConfigurationKey("App")]
+            public class AppOptions
+            {
+                [ConfigurationKey("Limits:MaxRetries")]
+                public int MaxRetries { get; set; } = 3;
+
+                public string Name { get; set; } = "";
+            }
+
+            internal sealed class AppModule : IWebApiModule<AppOptions>
+            {
+                public AppModule(AppOptions options) { }
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
 }

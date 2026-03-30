@@ -16,11 +16,13 @@ internal readonly record struct ConfigurationKeyAttributeEmitter : ISourceEmitte
             .WriteLine()
             .WriteLine("/// <summary>")
             .WriteLine("/// Specifies the configuration key used to bind options for a web API module.")
+            .WriteLine("/// When applied to a class, it overrides the configuration section used to bind the options.")
+            .WriteLine("/// When applied to a property, it binds that property from a different configuration section.")
             .WriteLine("/// </summary>")
             .WriteGeneratedCodeAttribute()
             .WriteRaw(
                 """
-                [global::System.AttributeUsage(System.AttributeTargets.Class, Inherited = false)]
+                [global::System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Property, Inherited = false)]
                 internal sealed class ConfigurationKeyAttribute : System.Attribute
                 {
                     /// <summary>

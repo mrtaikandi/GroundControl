@@ -14,7 +14,8 @@ internal readonly record struct ModuleDescriptor(
     LinePositionSpan LocationLineSpan,
     string? OptionsTypeFullyQualifiedName,
     string? OptionsTypeName,
-    string? ConfigurationSectionName)
+    string? ConfigurationSectionName,
+    ImmutableArray<PropertyConfigurationOverrideDescriptor> PropertyConfigurationOverrides)
 {
     public bool HasOptions => OptionsTypeFullyQualifiedName is not null;
 
@@ -33,7 +34,8 @@ internal readonly record struct ModuleDescriptor(
         LocationLineSpan.Equals(other.LocationLineSpan) &&
         OptionsTypeFullyQualifiedName == other.OptionsTypeFullyQualifiedName &&
         OptionsTypeName == other.OptionsTypeName &&
-        ConfigurationSectionName == other.ConfigurationSectionName;
+        ConfigurationSectionName == other.ConfigurationSectionName &&
+        PropertyConfigurationOverrides.SequenceEqual(other.PropertyConfigurationOverrides);
 
     public override int GetHashCode()
     {
@@ -49,6 +51,7 @@ internal readonly record struct ModuleDescriptor(
             hash = (hash * 397) ^ (OptionsTypeFullyQualifiedName != null ? OptionsTypeFullyQualifiedName.GetHashCode() : 0);
             hash = (hash * 397) ^ (OptionsTypeName != null ? OptionsTypeName.GetHashCode() : 0);
             hash = (hash * 397) ^ (ConfigurationSectionName != null ? ConfigurationSectionName.GetHashCode() : 0);
+            hash = (hash * 397) ^ PropertyConfigurationOverrides.Length;
             return hash;
         }
     }

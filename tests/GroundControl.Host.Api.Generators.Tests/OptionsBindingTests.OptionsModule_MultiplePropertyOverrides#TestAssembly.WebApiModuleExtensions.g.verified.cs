@@ -17,17 +17,33 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::FooModule? fooModule = null;
-        if (IsModuleEnabled(builder.Configuration, "Foo"))
+        global::AppModule? appModule = null;
+        if (IsModuleEnabled(builder.Configuration, "App"))
         {
-            var fooModuleOptions = BindOptions<global::FooConfig>(builder.Configuration, "FooConfig");
-            fooModule = new global::FooModule(fooModuleOptions);
-            fooModule.OnServiceConfiguration(builder);
+            var appModuleOptions = BindOptions<global::AppOptions>(
+                builder.Configuration,
+                "App",
+                static (configuration, options) =>
+                {
+                    var databaseSection = configuration.GetSection("ConnectionStrings:Database");
+                    if (databaseSection.Exists())
+                    {
+                        options.Database = databaseSection.Get<string>()!;
+                    }
+                    
+                    var cacheSection = configuration.GetSection("ConnectionStrings:Cache");
+                    if (cacheSection.Exists())
+                    {
+                        options.Cache = cacheSection.Get<string>()!;
+                    }
+                });
+            appModule = new global::AppModule(appModuleOptions);
+            appModule.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        fooModule?.OnApplicationConfiguration(app);
+        appModule?.OnApplicationConfiguration(app);
 
         return app;
     }

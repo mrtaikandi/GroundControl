@@ -116,12 +116,14 @@ internal static class WebApiModuleParser
         string? optionsFqn = null;
         string? optionsTypeName = null;
         string? configSectionName = null;
+        var propertyOverrides = ImmutableArray<PropertyConfigurationOverrideDescriptor>.Empty;
 
         if (optionsType is not null)
         {
             optionsFqn = optionsType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             optionsTypeName = optionsType.Name;
             configSectionName = ResolveSectionName(optionsType, compilation);
+            propertyOverrides = ResolvePropertyOverrides(optionsType, compilation);
         }
 
         var fqn = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -139,7 +141,8 @@ internal static class WebApiModuleParser
             LocationLineSpan: lineSpan.Span,
             OptionsTypeFullyQualifiedName: optionsFqn,
             OptionsTypeName: optionsTypeName,
-            ConfigurationSectionName: configSectionName);
+            ConfigurationSectionName: configSectionName,
+            PropertyConfigurationOverrides: propertyOverrides);
 
         return new ModuleResult(moduleInfo, constructorError);
     }
@@ -174,5 +177,46 @@ internal static class WebApiModuleParser
         }
 
         return name;
+    }
+
+    private static ImmutableArray<PropertyConfigurationOverrideDescriptor> ResolvePropertyOverrides(
+        INamedTypeSymbol optionsType,
+        Compilation compilation)
+    {
+        var configKeyAttr = compilation.GetTypeByMetadataName(ConfigurationKeyAttributeMetadataName);
+        if (configKeyAttr is null)
+        {
+            return ImmutableArray<PropertyConfigurationOverrideDescriptor>.Empty;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<PropertyConfigurationOverrideDescriptor>();
+
+        foreach (var member in optionsType.GetMembers())
+        {
+            if (member is not IPropertySymbol property ||
+                property.SetMethod is null ||
+                property.SetMethod.DeclaredAccessibility != Accessibility.Public)
+            {
+                continue;
+            }
+
+            foreach (var attr in property.GetAttributes())
+            {
+                if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, configKeyAttr) &&
+                    attr.ConstructorArguments.Length == 1 &&
+                    attr.ConstructorArguments[0].Value is string key)
+                {
+                    builder.Add(new PropertyConfigurationOverrideDescriptor(
+                        property.Name,
+                        property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                        key));
+                    break;
+                }
+            }
+        }
+
+        return builder.Count == 0
+            ? ImmutableArray<PropertyConfigurationOverrideDescriptor>.Empty
+            : builder.ToImmutable();
     }
 }

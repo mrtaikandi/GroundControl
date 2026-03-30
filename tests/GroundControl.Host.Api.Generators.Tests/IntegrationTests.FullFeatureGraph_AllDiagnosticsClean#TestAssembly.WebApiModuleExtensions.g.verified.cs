@@ -27,9 +27,7 @@ internal static class WebApiModuleExtensions
         global::DatabaseModule? databaseModule = null;
         if (IsModuleEnabled(builder.Configuration, "Database"))
         {
-            var databaseModuleOptions = builder.Configuration
-                .GetSection("Database")
-                .Get<global::DatabaseOptions>() ?? new global::DatabaseOptions();
+            var databaseModuleOptions = BindOptions<global::DatabaseOptions>(builder.Configuration, "Database");
             databaseModule = new global::DatabaseModule(databaseModuleOptions);
             databaseModule.OnServiceConfiguration(builder);
         }
@@ -44,9 +42,7 @@ internal static class WebApiModuleExtensions
         global::ObservabilityModule? observabilityModule = null;
         if (IsModuleEnabled(builder.Configuration, "Observability"))
         {
-            var observabilityModuleOptions = builder.Configuration
-                .GetSection("Telemetry")
-                .Get<global::ObservabilityOptions>() ?? new global::ObservabilityOptions();
+            var observabilityModuleOptions = BindOptions<global::ObservabilityOptions>(builder.Configuration, "Telemetry");
             observabilityModule = new global::ObservabilityModule(observabilityModuleOptions);
             observabilityModule.OnServiceConfiguration(builder);
         }
@@ -79,5 +75,15 @@ internal static class WebApiModuleExtensions
         string moduleName)
     {
         return configuration.GetValue<bool?>($"Modules:{moduleName}:Enabled") ?? true;
+    }
+
+    private static T BindOptions<T>(
+        global::Microsoft.Extensions.Configuration.IConfiguration configuration,
+        string sectionKey,
+        global::System.Action<global::Microsoft.Extensions.Configuration.IConfiguration, T>? bindPropertyOverrides = null) where T : new()
+    {
+        var options = configuration.GetSection(sectionKey).Get<T>() ?? new T();
+        bindPropertyOverrides?.Invoke(configuration, options);
+        return options;
     }
 }
