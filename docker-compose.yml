@@ -29,7 +29,7 @@ services:
       ConnectionStrings__Storage: "mongodb://mongodb:27017/?replicaSet=rs0"
       Persistence__MongoDb__DatabaseName: "groundcontrol"
       # Authentication (set to None for initial setup; change to BuiltIn or External for production)
-      GroundControl__Security__AuthenticationMode: "None"
+      Authentication__AuthenticationMode: "None"
       # Data Protection (FileSystem mode, keys mounted at /keys)
       DataProtection__Mode: "FileSystem"
       DataProtection__KeyStorePath: "/keys"

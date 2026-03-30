@@ -1,4 +1,4 @@
-namespace GroundControl.Api.Shared.Security;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 /// <summary>
 /// Defines the authentication mode for the application.

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Antiforgery;
 
-namespace GroundControl.Api.Shared.Security;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 /// <summary>
 /// Middleware that enforces CSRF protection for cookie-authenticated state-changing requests

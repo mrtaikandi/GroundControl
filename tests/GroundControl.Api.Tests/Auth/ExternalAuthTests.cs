@@ -1,16 +1,14 @@
 using System.Security.Claims;
-using GroundControl.Api.Shared.Configuration;
-using GroundControl.Api.Shared.Security;
-using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.Authentication;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Shouldly;
 using Xunit;
+using ExternalAuthenticationOptions = GroundControl.Api.Shared.Security.Authentication.ExternalAuthenticationOptions;
+using JitProvisioningService = GroundControl.Api.Shared.Security.Authentication.JitProvisioningService;
 
 namespace GroundControl.Api.Tests.Auth;
 
@@ -194,62 +192,56 @@ public sealed class ExternalAuthTests : ApiHandlerTestBase
     }
 
     [Fact]
-    public void ExternalAuthConfigurator_MissingAuthority_ThrowsOnStartup()
+    public void AuthOptions_Validator_MissingAuthority_Fails()
     {
         // Arrange
-        var options = new GroundControlOptions
+        var options = new AuthenticationOptions
         {
-            Security = new SecurityOptions
+            Mode = AuthenticationMode.External,
+            External = new ExternalAuthenticationOptions
             {
-                AuthenticationMode = AuthenticationMode.External,
-                External = new ExternalSecurityOptions
-                {
-                    Authority = string.Empty,
-                    ClientId = "test-client"
-                }
+                Authority = string.Empty,
+                ClientId = "test-client"
             }
         };
 
-        var configurator = new ExternalAuthConfigurator(options);
-        var services = new ServiceCollection();
+        var validator = new AuthenticationOptions.Validator();
 
-        // Act & Assert
-        var ex = Should.Throw<InvalidOperationException>(() =>
-            configurator.ConfigureServices(services, new ConfigurationBuilder().Build()));
+        // Act
+        var result = validator.Validate(null, options);
 
-        ex.Message.ShouldContain("Authority");
+        // Assert
+        result.Failed.ShouldBeTrue();
+        result.Failures.ShouldContain(f => f.Contains("Authority"));
     }
 
     [Fact]
-    public void ExternalAuthConfigurator_MissingClientId_ThrowsOnStartup()
+    public void AuthOptions_Validator_MissingClientId_Fails()
     {
         // Arrange
-        var options = new GroundControlOptions
+        var options = new AuthenticationOptions
         {
-            Security = new SecurityOptions
+            Mode = AuthenticationMode.External,
+            External = new ExternalAuthenticationOptions
             {
-                AuthenticationMode = AuthenticationMode.External,
-                External = new ExternalSecurityOptions
-                {
-                    Authority = "https://idp.example.com",
-                    ClientId = string.Empty
-                }
+                Authority = "https://idp.example.com",
+                ClientId = string.Empty
             }
         };
 
-        var configurator = new ExternalAuthConfigurator(options);
-        var services = new ServiceCollection();
+        var validator = new AuthenticationOptions.Validator();
 
-        // Act & Assert
-        var ex = Should.Throw<InvalidOperationException>(() =>
-            configurator.ConfigureServices(services, new ConfigurationBuilder().Build()));
+        // Act
+        var result = validator.Validate(null, options);
 
-        ex.Message.ShouldContain("ClientId");
+        // Assert
+        result.Failed.ShouldBeTrue();
+        result.Failures.ShouldContain(f => f.Contains("ClientId"));
     }
 
     private static JitProvisioningService CreateJitService(
         IUserStore userStore,
-        ExternalSecurityOptions? options = null)
+        ExternalAuthenticationOptions? options = null)
     {
         var externalOptions = options ?? CreateExternalOptions();
         var logger = NullLoggerFactory.Instance.CreateLogger<JitProvisioningService>();
@@ -257,7 +249,7 @@ public sealed class ExternalAuthTests : ApiHandlerTestBase
         return new JitProvisioningService(userStore, externalOptions, logger);
     }
 
-    private static ExternalSecurityOptions CreateExternalOptions() => new()
+    private static ExternalAuthenticationOptions CreateExternalOptions() => new()
     {
         Authority = "https://idp.example.com",
         ClientId = "test-client",

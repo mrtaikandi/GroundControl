@@ -64,7 +64,7 @@ services:
     environment:
       ConnectionStrings__Storage: "mongodb://mongodb:27017/?replicaSet=rs0"
       Persistence__MongoDb__DatabaseName: "groundcontrol"
-      GroundControl__Security__AuthenticationMode: "None"
+      Authentication__AuthenticationMode: "None"
       DataProtection__Mode: "FileSystem"
       DataProtection__KeyStorePath: "/keys"
       ChangeNotifier__Mode: "InProcess"
@@ -77,7 +77,7 @@ volumes:
   dp_keys:
 ```
 
-The API container runs as a non-root user and exposes port 8080. Health endpoints are available at `/healthz/liveness` and `/healthz/ready`. For production use, change `GroundControl__Security__AuthenticationMode` from `None` to `BuiltIn` or `External` and add a TLS-terminating reverse proxy in front.
+The API container runs as a non-root user and exposes port 8080. Health endpoints are available at `/healthz/liveness` and `/healthz/ready`. For production use, change `Authentication__AuthenticationMode` from `None` to `BuiltIn` or `External` and add a TLS-terminating reverse proxy in front.
 
 On Linux, consider `DataProtection__Mode=Certificate` with a self-signed `.pfx` for key ring protection.
 

@@ -4,14 +4,14 @@ using System.Security.Cryptography;
 using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Features.Auth.Contracts;
 using GroundControl.Api.Shared;
-using GroundControl.Api.Shared.Configuration;
-using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Security.Authentication;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using JwtOptions = GroundControl.Api.Shared.Security.Authentication.JwtOptions;
 
 namespace GroundControl.Api.Features.Auth;
 
@@ -20,13 +20,13 @@ internal sealed class TokenLoginHandler : IEndpointHandler
     private readonly UserManager<MongoIdentityUser<Guid>> _userManager;
     private readonly SignInManager<MongoIdentityUser<Guid>> _signInManager;
     private readonly IRefreshTokenStore _refreshTokenStore;
-    private readonly GroundControlOptions _options;
+    private readonly AuthenticationOptions _options;
 
     public TokenLoginHandler(
         UserManager<MongoIdentityUser<Guid>> userManager,
         SignInManager<MongoIdentityUser<Guid>> signInManager,
         IRefreshTokenStore refreshTokenStore,
-        IOptions<GroundControlOptions> options)
+        IOptions<AuthenticationOptions> options)
     {
         _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
         _signInManager = signInManager ?? throw new ArgumentNullException(nameof(signInManager));
@@ -72,7 +72,7 @@ internal sealed class TokenLoginHandler : IEndpointHandler
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        var jwtOptions = _options.Security.BuiltIn.Jwt;
+        var jwtOptions = _options.BuiltIn.Jwt;
         var accessToken = GenerateJwt(identityUser.Id, jwtOptions);
         var (rawRefreshToken, tokenHash) = GenerateRefreshToken();
 

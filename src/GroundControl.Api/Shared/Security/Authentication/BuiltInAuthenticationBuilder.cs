@@ -1,32 +1,28 @@
 using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Features.Auth;
-using GroundControl.Api.Shared.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
-namespace GroundControl.Api.Shared.Security.Auth;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
-internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
+internal sealed class BuiltInAuthenticationBuilder : IAuthenticationBuilder
 {
     private const string AuthenticateScheme = "smart";
-    private readonly GroundControlOptions _options;
+    private readonly AuthenticationOptions _authOptions;
 
-    public BuiltInAuthConfigurator(GroundControlOptions options)
+    public BuiltInAuthenticationBuilder(AuthenticationOptions authOptions)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _authOptions = authOptions ?? throw new ArgumentNullException(nameof(authOptions));
     }
 
-    public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+    public AuthenticationBuilder Build(IServiceCollection services, IConfiguration configuration)
     {
-        var builtIn = _options.Security.BuiltIn;
+        var builtIn = _authOptions.BuiltIn;
 
-        ValidateJwtSecret(builtIn.Jwt);
-
-        var connectionString = configuration.GetConnectionString("Storage")
-                               ?? throw new InvalidOperationException("ConnectionStrings:Storage is not configured.");
+        var connectionString = configuration.GetConnectionString("Storage") ?? throw new InvalidOperationException("ConnectionStrings:Storage is not configured.");
 
         var databaseName = configuration.GetValue<string>("Persistence:MongoDb:DatabaseName") ?? "GroundControl";
 
@@ -110,7 +106,7 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
             };
         });
 
-        var csrfOptions = _options.Security.Csrf;
+        var csrfOptions = _authOptions.Csrf;
         services.AddSingleton(csrfOptions);
         services.AddAntiforgery(options =>
         {
@@ -120,41 +116,17 @@ internal sealed class BuiltInAuthConfigurator : IAuthConfigurator
         });
 
         services.AddAuthHandlers();
-        services.AddSingleton<IAuthConfigurator>(this);
         services.AddHostedService<AdminSeedService>();
+
+        return new AuthenticationBuilder(services);
     }
 
-    public void ConfigureMiddleware(IApplicationBuilder app)
+    public void Configure(WebApplication app)
     {
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseMiddleware<CsrfProtectionMiddleware>();
-    }
 
-    public void MapEndpoints(IEndpointRouteBuilder endpoints)
-    {
-        endpoints.MapAuthEndpoints();
-    }
-
-    private static void ValidateJwtSecret(JwtOptions jwt)
-    {
-        if (string.IsNullOrWhiteSpace(jwt.Secret))
-        {
-            throw new InvalidOperationException("JWT signing key is not configured. Set 'GroundControl__Security__BuiltIn__Jwt__Secret' environment variable.");
-        }
-
-        try
-        {
-            var keyBytes = Convert.FromBase64String(jwt.Secret);
-            if (keyBytes.Length < 32)
-            {
-                throw new InvalidOperationException("JWT signing key must be at least 256 bits (32 bytes). The configured key is too short.");
-            }
-        }
-        catch (FormatException)
-        {
-            throw new InvalidOperationException(
-                "JWT signing key must be a valid Base64-encoded string. Check the 'GroundControl__Security__BuiltIn__Jwt__Secret' environment variable.");
-        }
+        app.MapAuthEndpoints();
     }
 }

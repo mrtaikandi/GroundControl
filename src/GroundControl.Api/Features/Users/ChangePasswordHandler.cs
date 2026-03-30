@@ -3,23 +3,24 @@ using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Features.Users.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
-using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Features.Users;
 
 internal sealed class ChangePasswordHandler : IEndpointHandler
 {
-    private readonly IAuthConfigurator _authConfigurator;
     private readonly IServiceProvider _serviceProvider;
     private readonly AuditRecorder _audit;
+    private readonly AuthenticationOptions _options;
 
-    public ChangePasswordHandler(IAuthConfigurator authConfigurator, IServiceProvider serviceProvider, AuditRecorder audit)
+    public ChangePasswordHandler(IServiceProvider serviceProvider, AuditRecorder audit, IOptions<AuthenticationOptions> options)
     {
-        _authConfigurator = authConfigurator ?? throw new ArgumentNullException(nameof(authConfigurator));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _options = options.Value;
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -47,7 +48,7 @@ internal sealed class ChangePasswordHandler : IEndpointHandler
         }
 
         // BuiltIn mode only
-        if (_authConfigurator is not BuiltInAuthConfigurator)
+        if (_options.Mode is not AuthenticationMode.BuiltIn)
         {
             return TypedResults.Problem(
                 detail: "Password change is only available in BuiltIn authentication mode.",

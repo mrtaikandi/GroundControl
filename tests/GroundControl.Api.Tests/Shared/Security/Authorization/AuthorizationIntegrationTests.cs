@@ -257,7 +257,7 @@ public sealed class AuthorizationIntegrationTests : ApiHandlerTestBase
 
             builder.UseSetting("ConnectionStrings:Storage", _inner.Services.GetRequiredService<IConfiguration>()["ConnectionStrings:Storage"]);
             builder.UseSetting("Persistence:MongoDb:DatabaseName", _inner.Database.DatabaseNamespace.DatabaseName);
-            builder.UseSetting("GroundControl:Security:AuthenticationMode", "None");
+            builder.UseSetting("Authentication:AuthenticationMode", "None");
 
             builder.ConfigureServices(services =>
             {

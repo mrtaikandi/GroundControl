@@ -1,26 +1,39 @@
-namespace GroundControl.Api.Shared.Security;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 
-internal sealed class ExternalSecurityOptions
+namespace GroundControl.Api.Shared.Security.Authentication;
+
+internal sealed partial class ExternalAuthenticationOptions
 {
+    [Required(AllowEmptyStrings = false)]
     public string Authority { get; set; } = string.Empty;
 
+    [Required(AllowEmptyStrings = false)]
     public string ClientId { get; set; } = string.Empty;
 
     public string? ClientSecret { get; set; }
 
+    [Required(AllowEmptyStrings = false)]
     public string ResponseType { get; set; } = "code";
 
+    [Required(AllowEmptyStrings = false)]
     public string[] Scopes { get; set; } = ["openid", "profile", "email"];
 
+    [Required(AllowEmptyStrings = false)]
     public string CallbackPath { get; set; } = "/signin-oidc";
 
     public string? Audience { get; set; }
 
+    [Required(AllowEmptyStrings = false)]
     public string ProviderName { get; set; } = "oidc";
 
     public JitProvisioningOptions JitProvisioning { get; set; } = new();
 
+    [ValidateObjectMembers]
     public ExternalCookieOptions Cookie { get; set; } = new();
+
+    [OptionsValidator]
+    public sealed partial class Validator : IValidateOptions<ExternalAuthenticationOptions>;
 }
 
 internal sealed class JitProvisioningOptions
@@ -32,11 +45,15 @@ internal sealed class JitProvisioningOptions
     public bool AutoCreate { get; set; } = true;
 }
 
-internal sealed class ExternalCookieOptions
+internal sealed partial class ExternalCookieOptions
 {
+    [Required(AllowEmptyStrings = false)]
     public string Name { get; set; } = ".GroundControl.Auth";
 
     public TimeSpan ExpireTimeSpan { get; set; } = TimeSpan.FromDays(14);
 
     public bool SlidingExpiration { get; set; } = true;
+
+    [OptionsValidator]
+    public sealed partial class Validator : IValidateOptions<ExternalCookieOptions>;
 }

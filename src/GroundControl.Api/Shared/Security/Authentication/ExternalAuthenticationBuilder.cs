@@ -1,28 +1,25 @@
 using System.Security.Claims;
 using GroundControl.Api.Features.Auth;
-using GroundControl.Api.Shared.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
-namespace GroundControl.Api.Shared.Security.Auth;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
-internal sealed class ExternalAuthConfigurator : IAuthConfigurator
+internal sealed class ExternalAuthenticationBuilder : IAuthenticationBuilder
 {
     private const string AuthenticateScheme = "smart-external";
-    private readonly GroundControlOptions _options;
+    private readonly AuthenticationOptions _options;
 
-    public ExternalAuthConfigurator(GroundControlOptions options)
+    public ExternalAuthenticationBuilder(AuthenticationOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+    public AuthenticationBuilder Build(IServiceCollection services, IConfiguration configuration)
     {
-        var external = _options.Security.External;
-
-        ValidateConfiguration(external);
+        var external = _options.External;
 
         services.AddSingleton(external);
         services.AddSingleton<JitProvisioningService>();
@@ -98,18 +95,15 @@ internal sealed class ExternalAuthConfigurator : IAuthConfigurator
             });
 
         services.AddExternalAuthHandlers();
-        services.AddSingleton<IAuthConfigurator>(this);
+        return new AuthenticationBuilder(services);
     }
 
-    public void ConfigureMiddleware(IApplicationBuilder app)
+    public void Configure(WebApplication app)
     {
         app.UseAuthentication();
         app.UseAuthorization();
-    }
 
-    public void MapEndpoints(IEndpointRouteBuilder endpoints)
-    {
-        endpoints.MapExternalAuthEndpoints();
+        app.MapExternalAuthEndpoints();
     }
 
     private static async Task OnTicketReceivedAsync(TicketReceivedContext ctx)
@@ -130,18 +124,4 @@ internal sealed class ExternalAuthConfigurator : IAuthConfigurator
         ]));
     }
 
-    private static void ValidateConfiguration(ExternalSecurityOptions external)
-    {
-        if (string.IsNullOrWhiteSpace(external.Authority))
-        {
-            throw new InvalidOperationException(
-                "External OIDC Authority is not configured. Set 'GroundControl__Security__External__Authority'.");
-        }
-
-        if (string.IsNullOrWhiteSpace(external.ClientId))
-        {
-            throw new InvalidOperationException(
-                "External OIDC ClientId is not configured. Set 'GroundControl__Security__External__ClientId'.");
-        }
-    }
 }

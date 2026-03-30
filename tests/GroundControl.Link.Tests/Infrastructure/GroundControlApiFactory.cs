@@ -1,10 +1,9 @@
+using GroundControl.Api.Shared.Security.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Logging.Testing;
 using MongoDB.Driver;
-using ApiAuthenticationMode = GroundControl.Api.Shared.Security.AuthenticationMode;
-using ApiGroundControlOptions = GroundControl.Api.Shared.Configuration.GroundControlOptions;
-using BuiltInAuthConfigurator = GroundControl.Api.Shared.Security.Auth.BuiltInAuthConfigurator;
+using ApiAuthenticationMode = GroundControl.Api.Shared.Security.Authentication.AuthenticationMode;
 
 namespace GroundControl.Link.Tests.Infrastructure;
 
@@ -32,7 +31,7 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
             {
                 ["ConnectionStrings:Storage"] = _mongoFixture.ConnectionString,
                 ["Persistence:MongoDb:DatabaseName"] = _database.DatabaseNamespace.DatabaseName,
-                ["GroundControl:Security:AuthenticationMode"] = "None",
+                ["Authentication:AuthenticationMode"] = "None",
             };
 
             foreach (var kvp in _extraConfig)
@@ -44,15 +43,15 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
         });
 
         // WebApplicationFactory applies config overrides AFTER Program.cs eagerly reads
-        // GroundControlOptions, so auth mode selection in Program.cs always sees the default.
+        // AuthOptions, so auth mode selection in Program.cs always sees the default.
         // Re-apply auth services here when the test config specifies a non-default mode.
         builder.ConfigureServices((context, services) =>
         {
-            var authMode = context.Configuration.GetValue<ApiAuthenticationMode>("GroundControl:Security:AuthenticationMode");
+            var authMode = context.Configuration.GetValue<ApiAuthenticationMode>("Authentication:AuthenticationMode");
             if (authMode == ApiAuthenticationMode.BuiltIn)
             {
-                var gcOptions = context.Configuration.GetSection(ApiGroundControlOptions.SectionName).Get<ApiGroundControlOptions>()!;
-                new BuiltInAuthConfigurator(gcOptions).ConfigureServices(services, context.Configuration);
+                var authOptions = context.Configuration.GetSection(AuthenticationOptions.SectionName).Get<AuthenticationOptions>()!;
+                new BuiltInAuthenticationBuilder(authOptions).Build(services, context.Configuration);
             }
         });
 

@@ -1,4 +1,4 @@
-namespace GroundControl.Api.Shared.Security;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal sealed class SeedOptions
 {

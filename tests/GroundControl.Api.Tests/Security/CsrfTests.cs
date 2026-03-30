@@ -188,8 +188,8 @@ public sealed class CsrfTests : ApiHandlerTestBase
         var customHeaderName = "X-MY-CSRF";
         await using var factory = CreateBuiltInFactory(extraConfig: new Dictionary<string, string?>
         {
-            ["GroundControl:Security:Csrf:CookieName"] = customCookieName,
-            ["GroundControl:Security:Csrf:HeaderName"] = customHeaderName,
+            ["Authentication:Csrf:CookieName"] = customCookieName,
+            ["Authentication:Csrf:HeaderName"] = customHeaderName,
         });
         using var client = factory.CreateClient();
         await LoginViaCookieAsync(client);
@@ -219,14 +219,14 @@ public sealed class CsrfTests : ApiHandlerTestBase
     {
         var config = new Dictionary<string, string?>
         {
-            ["GroundControl:Security:AuthenticationMode"] = "BuiltIn",
-            ["GroundControl:Security:BuiltIn:Jwt:Secret"] = JwtSecret,
-            ["GroundControl:Security:BuiltIn:Jwt:Issuer"] = "GroundControl",
-            ["GroundControl:Security:BuiltIn:Jwt:Audience"] = "GroundControl",
-            ["GroundControl:Security:BuiltIn:Password:RequiredLength"] = "8",
-            ["GroundControl:Security:Seed:AdminUsername"] = SeedUsername,
-            ["GroundControl:Security:Seed:AdminEmail"] = SeedEmail,
-            ["GroundControl:Security:Seed:AdminPassword"] = SeedPassword,
+            ["Authentication:AuthenticationMode"] = "BuiltIn",
+            ["Authentication:BuiltIn:Jwt:Secret"] = JwtSecret,
+            ["Authentication:BuiltIn:Jwt:Issuer"] = "GroundControl",
+            ["Authentication:BuiltIn:Jwt:Audience"] = "GroundControl",
+            ["Authentication:BuiltIn:Password:RequiredLength"] = "8",
+            ["Authentication:Seed:AdminUsername"] = SeedUsername,
+            ["Authentication:Seed:AdminEmail"] = SeedEmail,
+            ["Authentication:Seed:AdminPassword"] = SeedPassword,
         };
 
         if (extraConfig is not null)

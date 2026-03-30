@@ -1,6 +1,6 @@
 using GroundControl.Api.Features.Auth.Contracts;
 using GroundControl.Api.Shared;
-using GroundControl.Api.Shared.Configuration;
+using GroundControl.Api.Shared.Security.Authentication;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -11,12 +11,12 @@ namespace GroundControl.Api.Features.Auth;
 internal sealed partial class TokenRefreshHandler : IEndpointHandler
 {
     private readonly IRefreshTokenStore _refreshTokenStore;
-    private readonly GroundControlOptions _options;
+    private readonly AuthenticationOptions _options;
     private readonly ILogger<TokenRefreshHandler> _logger;
 
     public TokenRefreshHandler(
         IRefreshTokenStore refreshTokenStore,
-        IOptions<GroundControlOptions> options,
+        IOptions<AuthenticationOptions> options,
         ILogger<TokenRefreshHandler> logger)
     {
         _refreshTokenStore = refreshTokenStore ?? throw new ArgumentNullException(nameof(refreshTokenStore));
@@ -66,7 +66,7 @@ internal sealed partial class TokenRefreshHandler : IEndpointHandler
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        var jwtOptions = _options.Security.BuiltIn.Jwt;
+        var jwtOptions = _options.BuiltIn.Jwt;
         var accessToken = TokenLoginHandler.GenerateJwt(existingToken.UserId, jwtOptions);
         var (rawRefreshToken, newTokenHash) = TokenLoginHandler.GenerateRefreshToken();
 

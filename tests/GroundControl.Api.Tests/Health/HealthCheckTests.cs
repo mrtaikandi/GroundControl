@@ -208,7 +208,7 @@ public sealed class HealthCheckTests : ApiHandlerTestBase
                     {
                         ["ConnectionStrings:Storage"] = "mongodb://localhost:1/?connectTimeoutMS=1000&serverSelectionTimeoutMS=1000",
                         ["Persistence:MongoDb:DatabaseName"] = "unreachable_db",
-                        ["GroundControl:Security:AuthenticationMode"] = "None"
+                        ["Authentication:AuthenticationMode"] = "None"
                     });
                 });
                 builder.ConfigureServices(services =>

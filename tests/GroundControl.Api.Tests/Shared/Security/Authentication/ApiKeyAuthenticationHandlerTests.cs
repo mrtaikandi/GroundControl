@@ -3,14 +3,14 @@ using System.Security.Claims;
 using GroundControl.Api.Features.Clients.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Features.Scopes.Contracts;
-using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
 
-namespace GroundControl.Api.Tests.Shared.Security.Auth;
+namespace GroundControl.Api.Tests.Shared.Security.Authentication;
 
 public sealed class ApiKeyAuthenticationHandlerTests : ApiHandlerTestBase
 {

@@ -1,6 +1,5 @@
 using Asp.Versioning;
 using GroundControl.Api.Shared.Audit;
-using GroundControl.Api.Shared.Configuration;
 using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Host.Api;
@@ -11,7 +10,7 @@ internal sealed class AppCommonModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)
     {
-        builder.Services.AddGroundControlOptions(builder.Configuration);
+        builder.Services.AddValidation();
         builder.Services.AddHttpContextAccessor();
 
         builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();

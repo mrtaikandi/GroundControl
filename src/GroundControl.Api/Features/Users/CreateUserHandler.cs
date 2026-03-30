@@ -3,28 +3,29 @@ using GroundControl.Api.Features.Users.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
-using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.Authentication;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Features.Users;
 
 internal sealed class CreateUserHandler : IEndpointHandler
 {
     private readonly IUserStore _userStore;
-    private readonly IAuthConfigurator _authConfigurator;
     private readonly IServiceProvider _serviceProvider;
     private readonly AuditRecorder _audit;
+    private readonly AuthenticationOptions _options;
 
-    public CreateUserHandler(IUserStore userStore, IAuthConfigurator authConfigurator, IServiceProvider serviceProvider, AuditRecorder audit)
+    public CreateUserHandler(IUserStore userStore, IServiceProvider serviceProvider, AuditRecorder audit, IOptions<AuthenticationOptions> options)
     {
         _userStore = userStore ?? throw new ArgumentNullException(nameof(userStore));
-        _authConfigurator = authConfigurator ?? throw new ArgumentNullException(nameof(authConfigurator));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _options = options.Value;
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -43,7 +44,7 @@ internal sealed class CreateUserHandler : IEndpointHandler
         var userId = Guid.CreateVersion7();
 
         // In BuiltIn mode, create the identity user first
-        if (_authConfigurator is BuiltInAuthConfigurator)
+        if (_options.Mode is AuthenticationMode.BuiltIn)
         {
             if (string.IsNullOrWhiteSpace(request.Password))
             {
