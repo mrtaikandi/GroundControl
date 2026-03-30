@@ -1,5 +1,6 @@
 using System.Security.Claims;
-using GroundControl.Api.Shared.Security.Authentication;
+using GroundControl.Api.Core.Authentication;
+using GroundControl.Api.Core.Authentication.External;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.Extensions.Logging;
@@ -7,8 +8,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Shouldly;
 using Xunit;
-using ExternalAuthenticationOptions = GroundControl.Api.Shared.Security.Authentication.ExternalAuthenticationOptions;
-using JitProvisioningService = GroundControl.Api.Shared.Security.Authentication.JitProvisioningService;
+using ExternalAuthenticationOptions = GroundControl.Api.Core.Authentication.External.ExternalAuthenticationOptions;
+using JitProvisioningService = GroundControl.Api.Core.Authentication.External.JitProvisioningService;
 
 namespace GroundControl.Api.Tests.Authentication;
 

@@ -1,6 +1,5 @@
 using System.Security.Claims;
-using GroundControl.Api.Shared.Security.Authentication;
-using GroundControl.Api.Shared.Security.Authorization;
+using GroundControl.Api.Core.Authentication;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.Extensions.Logging.Abstractions;

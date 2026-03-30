@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using GroundControl.Api.Shared.Security.Certificate;
+using GroundControl.Api.Core.DataProtection.Certificate;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;

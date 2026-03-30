@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
-using GroundControl.Api.Shared.Notification;
+using GroundControl.Api.Core.ChangeNotification;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;

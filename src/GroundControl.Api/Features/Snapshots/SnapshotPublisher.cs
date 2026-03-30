@@ -1,4 +1,4 @@
-using GroundControl.Api.Shared.Notification;
+using GroundControl.Api.Core.ChangeNotification;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;

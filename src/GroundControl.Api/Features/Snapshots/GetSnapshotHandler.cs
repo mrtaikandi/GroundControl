@@ -1,7 +1,6 @@
 using GroundControl.Api.Features.Snapshots.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
-using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;

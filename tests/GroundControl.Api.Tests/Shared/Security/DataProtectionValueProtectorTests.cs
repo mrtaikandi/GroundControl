@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using GroundControl.Api.Shared.Security.Protection;
+using GroundControl.Api.Core.DataProtection;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;

@@ -1,11 +1,11 @@
-using GroundControl.Api.Shared.Security.DataProtection;
-using GroundControl.Api.Shared.Security.KeyRing;
+using GroundControl.Api.Core.DataProtection;
+using GroundControl.Api.Core.DataProtection.KeyRing;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Shouldly;
 using Xunit;
-using DataProtectionOptions = GroundControl.Api.Shared.Security.DataProtection.DataProtectionOptions;
+using DataProtectionOptions = GroundControl.Api.Core.DataProtection.DataProtectionOptions;
 
 namespace GroundControl.Api.Tests.Shared.Security;
 

@@ -1,4 +1,4 @@
-using GroundControl.Api.Shared.Notification;
+using GroundControl.Api.Core.ChangeNotification;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.MongoDb;
 using Microsoft.Extensions.Logging.Abstractions;

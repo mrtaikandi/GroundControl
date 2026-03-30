@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using GroundControl.Api.Features.Authentication.Contracts;
+using GroundControl.Api.Core.Authentication.Contracts;
 using GroundControl.Persistence.Contracts;
 using MongoDB.Driver;
 using Shouldly;

@@ -1,4 +1,4 @@
-using GroundControl.Api.Shared.Security.Authorization;
+using GroundControl.Api.Core.Authentication;
 using GroundControl.Persistence.Contracts;
 using Shouldly;
 using Xunit;
