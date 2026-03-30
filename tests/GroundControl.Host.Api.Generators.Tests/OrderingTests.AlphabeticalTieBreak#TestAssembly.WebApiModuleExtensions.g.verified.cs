@@ -17,24 +17,24 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::AlphaModule? alphaModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? alphaModule = null;
         if (IsModuleEnabled(builder.Configuration, "Alpha"))
         {
             alphaModule = new global::AlphaModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)alphaModule).OnServiceConfiguration(builder);
+            alphaModule.OnServiceConfiguration(builder);
         }
         
-        global::ZebraModule? zebraModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? zebraModule = null;
         if (IsModuleEnabled(builder.Configuration, "Zebra"))
         {
             zebraModule = new global::ZebraModule();
-            ((global::GroundControl.Host.Api.IWebApiModule)zebraModule).OnServiceConfiguration(builder);
+            zebraModule.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (alphaModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (zebraModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        alphaModule?.OnApplicationConfiguration(app);
+        zebraModule?.OnApplicationConfiguration(app);
 
         return app;
     }

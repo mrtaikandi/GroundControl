@@ -1,5 +1,4 @@
 using Azure.Identity;
-using GroundControl.Api.Shared.Extensions.Options;
 using Microsoft.AspNetCore.DataProtection;
 
 namespace GroundControl.Api.Core.DataProtection.KeyRing;

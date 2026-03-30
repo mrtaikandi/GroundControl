@@ -5,7 +5,7 @@ using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.Roles;
 
-[RunsAfter<AppCommonModule>(Required = true)]
+[RunsAfter<ApplicationModule>(Required = true)]
 [RunsAfter<AuthenticationModule>(Required = true)]
 internal sealed class RolesModule : IWebApiModule
 {
@@ -20,8 +20,6 @@ internal sealed class RolesModule : IWebApiModule
         builder.Services.AddTransient<IAsyncValidator<CreateRoleRequest>, CreateRoleValidator>();
         builder.Services.AddTransient<IAsyncValidator<UpdateRoleRequest>, UpdateRoleValidator>();
         builder.Services.AddTransient<DeleteRoleValidator>();
-
-        builder.Services.AddHostedService<RoleSeedService>();
     }
 
     public void OnApplicationConfiguration(WebApplication app)

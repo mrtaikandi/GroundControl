@@ -17,7 +17,7 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::SecurityModule? securityModule = null;
+        global::GroundControl.Host.Api.IWebApiModule? securityModule = null;
         if (IsModuleEnabled(builder.Configuration, "Security"))
         {
             var securityModuleOptions = BindOptions<global::SecurityOptions>(
@@ -32,12 +32,12 @@ internal static class WebApiModuleExtensions
                     }
                 });
             securityModule = new global::SecurityModule(securityModuleOptions);
-            ((global::GroundControl.Host.Api.IWebApiModule)securityModule).OnServiceConfiguration(builder);
+            securityModule.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (securityModule as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        securityModule?.OnApplicationConfiguration(app);
 
         return app;
     }

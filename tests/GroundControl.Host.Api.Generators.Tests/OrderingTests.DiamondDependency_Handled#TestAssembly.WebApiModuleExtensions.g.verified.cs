@@ -17,40 +17,40 @@ internal static class WebApiModuleExtensions
     /// <returns>The configured web application.</returns>
     public static global::Microsoft.AspNetCore.Builder.WebApplication BuildWebApiModules(this global::Microsoft.AspNetCore.Builder.WebApplicationBuilder builder)
     {
-        global::ModuleD? moduleD = null;
+        global::GroundControl.Host.Api.IWebApiModule? moduleD = null;
         if (IsModuleEnabled(builder.Configuration, "ModuleD"))
         {
             moduleD = new global::ModuleD();
-            ((global::GroundControl.Host.Api.IWebApiModule)moduleD).OnServiceConfiguration(builder);
+            moduleD.OnServiceConfiguration(builder);
         }
         
-        global::ModuleB? moduleB = null;
+        global::GroundControl.Host.Api.IWebApiModule? moduleB = null;
         if (IsModuleEnabled(builder.Configuration, "ModuleB"))
         {
             moduleB = new global::ModuleB();
-            ((global::GroundControl.Host.Api.IWebApiModule)moduleB).OnServiceConfiguration(builder);
+            moduleB.OnServiceConfiguration(builder);
         }
         
-        global::ModuleC? moduleC = null;
+        global::GroundControl.Host.Api.IWebApiModule? moduleC = null;
         if (IsModuleEnabled(builder.Configuration, "ModuleC"))
         {
             moduleC = new global::ModuleC();
-            ((global::GroundControl.Host.Api.IWebApiModule)moduleC).OnServiceConfiguration(builder);
+            moduleC.OnServiceConfiguration(builder);
         }
         
-        global::ModuleA? moduleA = null;
+        global::GroundControl.Host.Api.IWebApiModule? moduleA = null;
         if (IsModuleEnabled(builder.Configuration, "ModuleA"))
         {
             moduleA = new global::ModuleA();
-            ((global::GroundControl.Host.Api.IWebApiModule)moduleA).OnServiceConfiguration(builder);
+            moduleA.OnServiceConfiguration(builder);
         }
 
         var app = builder.Build();
 
-        (moduleD as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (moduleB as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (moduleC as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
-        (moduleA as global::GroundControl.Host.Api.IWebApiModule)?.OnApplicationConfiguration(app);
+        moduleD?.OnApplicationConfiguration(app);
+        moduleB?.OnApplicationConfiguration(app);
+        moduleC?.OnApplicationConfiguration(app);
+        moduleA?.OnApplicationConfiguration(app);
 
         return app;
     }

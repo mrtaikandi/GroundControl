@@ -2,7 +2,6 @@ using System.Diagnostics;
 using GroundControl.Api.Core.Authentication.BuiltIn;
 using GroundControl.Api.Core.Authentication.External;
 using GroundControl.Api.Core.Authentication.NoAuth;
-using GroundControl.Api.Shared.Extensions.Options;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Host.Api;
 using Microsoft.AspNetCore.Authentication;
@@ -10,8 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace GroundControl.Api.Core.Authentication;
 
-
-[RunsAfter<AppCommonModule>]
+[RunsAfter<ApplicationModule>]
 internal sealed class AuthenticationModule(AuthenticationOptions options) : IWebApiModule<AuthenticationOptions>
 {
     private IAuthenticationBuilder? _authenticationBuilder;
@@ -20,13 +18,14 @@ internal sealed class AuthenticationModule(AuthenticationOptions options) : IWeb
     {
         _authenticationBuilder = AddAuthenticationServices(builder, options);
 
-        if (options.Mode != AuthenticationMode.External)
+        switch (options.Mode)
         {
-            AddAuthHandlers(builder.Services);
-        }
-        else
-        {
-            AddExternalAuthHandlers(builder.Services);
+            case AuthenticationMode.BuiltIn:
+                AddAuthHandlers(builder.Services);
+                break;
+            case AuthenticationMode.External:
+                AddExternalAuthHandlers(builder.Services);
+                break;
         }
     }
 
@@ -38,13 +37,14 @@ internal sealed class AuthenticationModule(AuthenticationOptions options) : IWeb
         var group = app.MapGroup("/auth")
             .WithTags("Auth");
 
-        if (options.Mode != AuthenticationMode.External)
+        switch (options.Mode)
         {
-            MapAuthEndpoints(group);
-        }
-        else
-        {
-            MapExternalAuthEndpoints(group);
+            case AuthenticationMode.BuiltIn:
+                MapAuthEndpoints(group);
+                break;
+            case AuthenticationMode.External:
+                MapExternalAuthEndpoints(group);
+                break;
         }
     }
 

@@ -2,7 +2,7 @@ using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Core.ChangeNotification;
 
-[RunsAfter<AppCommonModule>(Required = true)]
+[RunsAfter<ApplicationModule>(Required = true)]
 internal sealed class ChangeNotificationModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)

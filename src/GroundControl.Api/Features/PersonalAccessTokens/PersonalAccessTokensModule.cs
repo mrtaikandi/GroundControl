@@ -5,7 +5,7 @@ using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.PersonalAccessTokens;
 
-[RunsAfter<AppCommonModule>(Required = true)]
+[RunsAfter<ApplicationModule>(Required = true)]
 [RunsAfter<AuthenticationModule>(Required = true)]
 internal sealed class PersonalAccessTokensModule : IWebApiModule
 {
