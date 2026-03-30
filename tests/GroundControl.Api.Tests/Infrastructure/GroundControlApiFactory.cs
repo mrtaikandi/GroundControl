@@ -1,4 +1,4 @@
-using GroundControl.Api.Shared.Security.Authentication;
+using GroundControl.Api.Core.Authentication;
 using GroundControl.Persistence.MongoDb;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;

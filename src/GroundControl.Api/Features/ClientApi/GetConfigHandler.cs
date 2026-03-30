@@ -2,7 +2,7 @@ using System.Security.Claims;
 using GroundControl.Api.Features.ClientApi.Contracts;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Resolvers;
-using GroundControl.Api.Shared.Security.Authentication;
+using GroundControl.Api.Core.Authentication;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using Microsoft.AspNetCore.Authorization;

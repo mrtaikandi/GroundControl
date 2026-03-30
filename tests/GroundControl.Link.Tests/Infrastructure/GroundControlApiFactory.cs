@@ -1,9 +1,10 @@
-using GroundControl.Api.Shared.Security.Authentication;
+using GroundControl.Api.Core.Authentication;
+using GroundControl.Api.Core.Authentication.BuiltIn;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Logging.Testing;
 using MongoDB.Driver;
-using ApiAuthenticationMode = GroundControl.Api.Shared.Security.Authentication.AuthenticationMode;
+using ApiAuthenticationMode = GroundControl.Api.Core.Authentication.AuthenticationMode;
 
 namespace GroundControl.Link.Tests.Infrastructure;
 

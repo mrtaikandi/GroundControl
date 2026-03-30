@@ -3,7 +3,7 @@ using System.Security.Claims;
 using GroundControl.Api.Features.Clients.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Features.Scopes.Contracts;
-using GroundControl.Api.Shared.Security.Authentication;
+using GroundControl.Api.Core.Authentication;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,4 +1,5 @@
 using GroundControl.Api.Features.Audit;
+using GroundControl.Api.Core.Authentication;
 using GroundControl.Api.Features.ClientApi;
 using GroundControl.Api.Features.Clients;
 using GroundControl.Api.Features.ConfigEntries;

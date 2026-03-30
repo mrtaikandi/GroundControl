@@ -1,7 +1,7 @@
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Shared;
-using GroundControl.Api.Shared.Masking;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
 

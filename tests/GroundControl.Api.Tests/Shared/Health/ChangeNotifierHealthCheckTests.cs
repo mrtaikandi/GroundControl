@@ -1,5 +1,4 @@
-using GroundControl.Api.Shared.Health;
-using GroundControl.Api.Shared.Notification;
+using GroundControl.Api.Core.ChangeNotification;
 using GroundControl.Persistence.MongoDb;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging.Abstractions;

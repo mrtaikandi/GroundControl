@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using GroundControl.Api.Shared.Security.Authentication;
+using GroundControl.Api.Core.Authentication;
+using GroundControl.Api.Core.Authentication.BuiltIn;
+using GroundControl.Api.Core.Authentication.NoAuth;
 using GroundControl.Persistence.MongoDb;
 using MongoDB.Driver;
 using Shouldly;

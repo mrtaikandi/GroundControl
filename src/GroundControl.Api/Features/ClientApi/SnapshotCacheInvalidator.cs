@@ -1,4 +1,4 @@
-using GroundControl.Api.Shared.Notification;
+using GroundControl.Api.Core.ChangeNotification;
 
 namespace GroundControl.Api.Features.ClientApi;
 
