@@ -1,8 +1,6 @@
 using GroundControl.Api.Features.ClientApi;
 using GroundControl.Api.Features.Clients;
-using GroundControl.Api.Shared.Configuration;
-using GroundControl.Api.Shared.Security;
-using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -38,7 +36,7 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
             {
                 ["ConnectionStrings:Storage"] = _mongoFixture.ConnectionString,
                 ["Persistence:MongoDb:DatabaseName"] = _database.DatabaseNamespace.DatabaseName,
-                ["GroundControl:Security:AuthenticationMode"] = "None",
+                ["Authentication:AuthenticationMode"] = "None",
             };
 
             foreach (var kvp in _extraConfig)
@@ -50,15 +48,15 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
         });
 
         // WebApplicationFactory applies config overrides AFTER Program.cs eagerly reads
-        // GroundControlOptions, so auth mode selection in Program.cs always sees the default.
+        // AuthOptions, so auth mode selection in Program.cs always sees the default.
         // Re-apply auth services here when the test config specifies a non-default mode.
         builder.ConfigureServices((context, services) =>
         {
-            var authMode = context.Configuration.GetValue<AuthenticationMode>("GroundControl:Security:AuthenticationMode");
+            var authMode = context.Configuration.GetValue<AuthenticationMode>("Authentication:AuthenticationMode");
             if (authMode == AuthenticationMode.BuiltIn)
             {
-                var gcOptions = context.Configuration.GetSection(GroundControlOptions.SectionName).Get<GroundControlOptions>()!;
-                new BuiltInAuthConfigurator(gcOptions).ConfigureServices(services, context.Configuration);
+                var authOptions = context.Configuration.GetSection(AuthenticationOptions.SectionName).Get<AuthenticationOptions>()!;
+                new BuiltInAuthenticationBuilder(authOptions).Build(services, context.Configuration);
             }
 
             // Remove background services that never trigger during tests to reduce per-factory startup cost

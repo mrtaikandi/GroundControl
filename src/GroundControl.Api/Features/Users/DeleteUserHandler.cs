@@ -2,26 +2,27 @@ using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
-using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.Authentication;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Features.Users;
 
 internal sealed class DeleteUserHandler : IEndpointHandler
 {
     private readonly IUserStore _userStore;
-    private readonly IAuthConfigurator _authConfigurator;
     private readonly IServiceProvider _serviceProvider;
     private readonly AuditRecorder _audit;
+    private readonly AuthenticationOptions _options;
 
-    public DeleteUserHandler(IUserStore userStore, IAuthConfigurator authConfigurator, IServiceProvider serviceProvider, AuditRecorder audit)
+    public DeleteUserHandler(IUserStore userStore, IServiceProvider serviceProvider, AuditRecorder audit, IOptions<AuthenticationOptions> options)
     {
         _userStore = userStore ?? throw new ArgumentNullException(nameof(userStore));
-        _authConfigurator = authConfigurator ?? throw new ArgumentNullException(nameof(authConfigurator));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _options = options.Value;
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -62,7 +63,7 @@ internal sealed class DeleteUserHandler : IEndpointHandler
         }
 
         // In BuiltIn mode, also lock the identity user to prevent login
-        if (_authConfigurator is BuiltInAuthConfigurator)
+        if (_options.Mode is AuthenticationMode.BuiltIn)
         {
             var userManager = _serviceProvider.GetRequiredService<UserManager<MongoIdentityUser<Guid>>>();
             var identityUser = await userManager.FindByIdAsync(id.ToString()).ConfigureAwait(false);

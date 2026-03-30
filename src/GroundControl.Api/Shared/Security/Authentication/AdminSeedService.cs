@@ -1,19 +1,18 @@
 using AspNetCore.Identity.MongoDbCore.Models;
-using GroundControl.Api.Shared.Configuration;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
-namespace GroundControl.Api.Shared.Security.Auth;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal sealed partial class AdminSeedService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly GroundControlOptions _options;
+    private readonly AuthenticationOptions _options;
     private readonly ILogger<AdminSeedService> _logger;
 
-    public AdminSeedService(ILogger<AdminSeedService> logger, IServiceProvider serviceProvider, IOptions<GroundControlOptions> options)
+    public AdminSeedService(ILogger<AdminSeedService> logger, IServiceProvider serviceProvider, IOptions<AuthenticationOptions> options)
     {
         _serviceProvider = serviceProvider;
         _options = options.Value;
@@ -22,7 +21,7 @@ internal sealed partial class AdminSeedService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var seedOptions = _options.Security.Seed;
+        var seedOptions = _options.Seed;
         if (string.IsNullOrWhiteSpace(seedOptions.AdminPassword))
         {
             LogNoSeedPassword(_logger);
@@ -94,7 +93,7 @@ internal sealed partial class AdminSeedService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    [LoggerMessage(1, LogLevel.Warning, "Admin seed password not configured. Skipping admin seed. Set 'GroundControl__Security__Seed__AdminPassword' to enable.")]
+    [LoggerMessage(1, LogLevel.Warning, "Admin seed password not configured. Skipping admin seed. Set 'Authentication__Seed__AdminPassword' to enable.")]
     private static partial void LogNoSeedPassword(ILogger<AdminSeedService> logger);
 
     [LoggerMessage(2, LogLevel.Debug, "Admin user with email '{Email}' already exists. Skipping seed.")]

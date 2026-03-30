@@ -1,7 +1,7 @@
 using GroundControl.Api.Shared.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 
-namespace GroundControl.Api.Shared.Security.Auth;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal static class AuthorizationExtensions
 {

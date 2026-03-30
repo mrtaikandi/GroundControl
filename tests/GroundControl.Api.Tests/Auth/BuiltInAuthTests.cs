@@ -158,14 +158,14 @@ public sealed class BuiltInAuthTests : ApiHandlerTestBase
     {
         var config = new Dictionary<string, string?>
         {
-            ["GroundControl:Security:AuthenticationMode"] = "BuiltIn",
-            ["GroundControl:Security:BuiltIn:Jwt:Secret"] = JwtSecret,
-            ["GroundControl:Security:BuiltIn:Jwt:Issuer"] = "GroundControl",
-            ["GroundControl:Security:BuiltIn:Jwt:Audience"] = "GroundControl",
-            ["GroundControl:Security:BuiltIn:Password:RequiredLength"] = "8",
-            ["GroundControl:Security:Seed:AdminUsername"] = SeedUsername,
-            ["GroundControl:Security:Seed:AdminEmail"] = SeedEmail,
-            ["GroundControl:Security:Seed:AdminPassword"] = SeedPassword,
+            ["Authentication:AuthenticationMode"] = "BuiltIn",
+            ["Authentication:BuiltIn:Jwt:Secret"] = JwtSecret,
+            ["Authentication:BuiltIn:Jwt:Issuer"] = "GroundControl",
+            ["Authentication:BuiltIn:Jwt:Audience"] = "GroundControl",
+            ["Authentication:BuiltIn:Password:RequiredLength"] = "8",
+            ["Authentication:Seed:AdminUsername"] = SeedUsername,
+            ["Authentication:Seed:AdminEmail"] = SeedEmail,
+            ["Authentication:Seed:AdminPassword"] = SeedPassword,
         };
 
         if (existingDatabase is not null)

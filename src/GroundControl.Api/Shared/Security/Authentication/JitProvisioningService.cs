@@ -2,7 +2,7 @@ using System.Security.Claims;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 
-namespace GroundControl.Api.Shared.Security.Auth;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal sealed partial class JitProvisioningService
 {
@@ -13,7 +13,7 @@ internal sealed partial class JitProvisioningService
 
     public JitProvisioningService(
         IUserStore userStore,
-        ExternalSecurityOptions externalOptions,
+        ExternalAuthenticationOptions externalOptions,
         ILogger<JitProvisioningService> logger)
     {
         _userStore = userStore ?? throw new ArgumentNullException(nameof(userStore));

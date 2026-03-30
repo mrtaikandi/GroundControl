@@ -6,7 +6,7 @@ using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
-namespace GroundControl.Api.Shared.Security.Auth;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal sealed partial class PatBearerHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {

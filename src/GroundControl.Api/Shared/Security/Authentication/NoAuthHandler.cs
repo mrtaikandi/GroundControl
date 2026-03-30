@@ -3,7 +3,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
-namespace GroundControl.Api.Shared.Security.Auth;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal sealed class NoAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {

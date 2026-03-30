@@ -2,12 +2,13 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
+using GroundControl.Api.Shared.Extensions.Threading;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
-namespace GroundControl.Api.Shared.Security.Auth;
+namespace GroundControl.Api.Shared.Security.Authentication;
 
 internal sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -56,6 +57,7 @@ internal sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<Authen
         // Always perform decrypt + compare even when client is not found to prevent
         // timing oracle that could reveal whether a clientId exists.
         string decryptedSecret;
+
         try
         {
             decryptedSecret = client is not null ? _protector.Unprotect(client.Secret) : string.Empty;
@@ -85,7 +87,7 @@ internal sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<Authen
         }
 
         // Fire-and-forget: don't let LastUsedAt tracking block authentication
-        _ = Task.Run(() => _clientStore.UpdateLastUsedAsync(clientId, DateTimeOffset.UtcNow));
+        _clientStore.UpdateLastUsedAsync(clientId, DateTimeOffset.UtcNow).FireAndForget();
 
         var claims = new List<Claim>
         {

@@ -6,7 +6,7 @@ using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Notification;
 using GroundControl.Api.Shared.Observability;
 using GroundControl.Api.Shared.Resolvers;
-using GroundControl.Api.Shared.Security.Auth;
+using GroundControl.Api.Shared.Security.Authentication;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using Microsoft.AspNetCore.Authorization;
