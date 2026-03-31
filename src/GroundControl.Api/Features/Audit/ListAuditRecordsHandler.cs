@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using GroundControl.Api.Features.Audit.Contracts;
-using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;

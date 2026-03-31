@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using GroundControl.Api.Shared.Validation;
+using GroundControl.Api.Core.Validation;
 
-namespace GroundControl.Api.Shared;
+namespace GroundControl.Api.Core;
 
 internal static class EntityTagHeaders
 {

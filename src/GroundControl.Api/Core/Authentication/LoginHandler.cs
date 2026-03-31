@@ -1,6 +1,5 @@
 using AspNetCore.Identity.MongoDbCore.Models;
 using GroundControl.Api.Core.Authentication.Contracts;
-using GroundControl.Api.Shared;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

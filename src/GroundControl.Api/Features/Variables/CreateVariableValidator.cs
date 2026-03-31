@@ -1,5 +1,4 @@
 using GroundControl.Api.Features.Variables.Contracts;
-using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 

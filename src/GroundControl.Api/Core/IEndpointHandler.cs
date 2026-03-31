@@ -1,4 +1,4 @@
-namespace GroundControl.Api.Shared;
+namespace GroundControl.Api.Core;
 
 /// <summary>
 /// Defines a vertical slice endpoint handler that maps its routes to the application.

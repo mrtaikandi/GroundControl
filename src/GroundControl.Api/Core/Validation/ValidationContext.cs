@@ -1,4 +1,4 @@
-namespace GroundControl.Api.Shared.Validation;
+namespace GroundControl.Api.Core.Validation;
 
 /// <summary>
 /// Provides contextual information to validators beyond the request body.

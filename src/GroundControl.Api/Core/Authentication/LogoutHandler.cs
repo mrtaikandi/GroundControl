@@ -1,5 +1,4 @@
 using AspNetCore.Identity.MongoDbCore.Models;
-using GroundControl.Api.Shared;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 

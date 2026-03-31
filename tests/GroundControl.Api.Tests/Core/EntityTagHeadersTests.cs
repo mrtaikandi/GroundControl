@@ -1,9 +1,9 @@
-using GroundControl.Api.Shared;
+using GroundControl.Api.Core;
 using Microsoft.AspNetCore.Http;
 using Shouldly;
 using Xunit;
 
-namespace GroundControl.Api.Tests.Shared;
+namespace GroundControl.Api.Tests.Core;
 
 public sealed class EntityTagHeadersTests
 {

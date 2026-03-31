@@ -1,6 +1,5 @@
 using GroundControl.Api.Features.Roles.Contracts;
 using GroundControl.Api.Shared.Security;
-using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 
 namespace GroundControl.Api.Features.Roles;

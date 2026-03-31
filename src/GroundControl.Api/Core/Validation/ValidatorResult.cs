@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace GroundControl.Api.Shared.Validation;
+namespace GroundControl.Api.Core.Validation;
 
 /// <summary>
 /// Represents the result of an asynchronous validation operation.

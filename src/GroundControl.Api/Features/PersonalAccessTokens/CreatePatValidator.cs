@@ -1,6 +1,5 @@
 using GroundControl.Api.Features.PersonalAccessTokens.Contracts;
 using GroundControl.Api.Shared.Security;
-using GroundControl.Api.Shared.Validation;
 
 namespace GroundControl.Api.Features.PersonalAccessTokens;
 

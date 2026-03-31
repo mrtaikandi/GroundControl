@@ -1,5 +1,4 @@
 using GroundControl.Api.Features.Templates.Contracts;
-using GroundControl.Api.Shared.Validation;
 using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.Templates;

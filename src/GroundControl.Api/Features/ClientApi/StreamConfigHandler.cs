@@ -2,7 +2,6 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using GroundControl.Api.Features.ClientApi.Contracts;
-using GroundControl.Api.Shared;
 using GroundControl.Api.Core.ChangeNotification;
 using GroundControl.Api.Shared.Observability;
 using GroundControl.Api.Shared.Resolvers;
