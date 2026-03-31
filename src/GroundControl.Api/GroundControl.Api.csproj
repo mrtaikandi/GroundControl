@@ -40,4 +40,8 @@
         <ProjectReference Include="..\GroundControl.Host.Api.Generators\GroundControl.Host.Api.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Include="version.json" />
+    </ItemGroup>
+
 </Project>
