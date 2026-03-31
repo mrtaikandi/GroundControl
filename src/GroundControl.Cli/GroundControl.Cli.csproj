@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>groundcontrol</ToolCommandName>
+        <NoWarn>$(NoWarn);CA2007;CA1008;CA1031</NoWarn>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Package Metadata">
+        <PackageId>GroundControl.Cli</PackageId>
+        <Id>GroundControl.Cli</Id>
+        <Title>GroundControl CLI</Title>
+        <Description>Command-line tool for managing GroundControl configuration server.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\GroundControl.Host.Cli\GroundControl.Host.Cli.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="appsettings*.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>
