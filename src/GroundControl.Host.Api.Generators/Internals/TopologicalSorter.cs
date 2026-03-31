@@ -8,6 +8,7 @@ internal static class TopologicalSorter
     /// <summary>
     /// Sorts modules topologically using Kahn's algorithm with deterministic alphabetical tie-breaking.
     /// RunsBefore edges are converted to reverse RunsAfter edges before sorting.
+    /// Modules with no ordering relationships (no edges at all) are scheduled after all graph participants.
     /// </summary>
     public static TopologicalSortResult Sort(ImmutableArray<ModuleDescriptor> modules)
     {
@@ -48,13 +49,23 @@ internal static class TopologicalSorter
             }
         }
 
-        // Kahn's algorithm with alphabetical tie-breaking via SortedSet
+        // Classify zero-in-degree modules: participant roots (have outgoing edges) vs independent (no edges at all)
         var queue = new SortedSet<string>(StringComparer.Ordinal);
+        var independent = new SortedSet<string>(StringComparer.Ordinal);
+
         foreach (var kvp in inDegree.Where(kvp => kvp.Value == 0))
         {
-            queue.Add(kvp.Key);
+            if (adjacency[kvp.Key].Count > 0)
+            {
+                queue.Add(kvp.Key);
+            }
+            else
+            {
+                independent.Add(kvp.Key);
+            }
         }
 
+        // Kahn's algorithm on graph participants only
         var sorted = new List<ModuleDescriptor>();
 
         while (queue.Count > 0)
@@ -71,6 +82,12 @@ internal static class TopologicalSorter
                     queue.Add(neighbor);
                 }
             }
+        }
+
+        // Append independent modules after all graph participants
+        foreach (var fqn in independent)
+        {
+            sorted.Add(moduleMap[fqn]);
         }
 
         if (sorted.Count >= modules.Length)

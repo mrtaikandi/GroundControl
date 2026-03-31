@@ -1,10 +1,7 @@
-using GroundControl.Api.Core.Authentication;
 using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.Snapshots;
 
-[RunsAfter<ApplicationModule>(Required = true)]
-[RunsAfter<AuthenticationModule>(Required = true)]
 internal sealed class SnapshotsModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)
