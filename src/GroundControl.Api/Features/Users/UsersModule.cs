@@ -1,12 +1,9 @@
-using GroundControl.Api.Core.Authentication;
 using GroundControl.Api.Features.Users.Contracts;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.Users;
 
-[RunsAfter<ApplicationModule>(Required = true)]
-[RunsAfter<AuthenticationModule>(Required = true)]
 internal sealed class UsersModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)

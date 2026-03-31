@@ -1,0 +1,30 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (9,22)-(9,28),
+      Message: Module 'CycleA' has a circular dependency involving 'CycleA, CycleB',
+      Severity: Error,
+      Descriptor: {
+        Id: GCA001,
+        Title: Circular dependency detected,
+        MessageFormat: Module '{0}' has a circular dependency involving '{1}',
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: : (16,22)-(16,28),
+      Message: Module 'CycleB' has a circular dependency involving 'CycleA, CycleB',
+      Severity: Error,
+      Descriptor: {
+        Id: GCA001,
+        Title: Circular dependency detected,
+        MessageFormat: Module '{0}' has a circular dependency involving '{1}',
+        Category: GroundControl.ModuleBootstrap,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

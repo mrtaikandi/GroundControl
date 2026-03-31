@@ -1,12 +1,9 @@
-using GroundControl.Api.Core.Authentication;
 using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.Variables;
 
-[RunsAfter<ApplicationModule>(Required = true)]
-[RunsAfter<AuthenticationModule>(Required = true)]
 internal sealed class VariablesModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)

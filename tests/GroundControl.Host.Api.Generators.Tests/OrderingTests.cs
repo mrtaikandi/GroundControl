@@ -160,4 +160,119 @@ public sealed class OrderingTests
         return Verify(driver)
             .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public Task IndependentModules_RunAfterGraphParticipants()
+    {
+        // Arrange — AaaModule and BbbModule have no ordering attrs and are not referenced,
+        // so they should run after CoreModule and ServiceModule despite sorting alphabetically first
+        var source = """
+            using GroundControl.Host.Api;
+
+            internal sealed class AaaModule : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+
+            internal sealed class BbbModule : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+
+            internal sealed class CoreModule : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+
+            [RunsAfter<CoreModule>]
+            internal sealed class ServiceModule : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert — expected order: CoreModule, ServiceModule, AaaModule, BbbModule
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public Task IndependentModules_NotAffectedByAlphabeticalPosition()
+    {
+        // Arrange — AaaModule (independent) would sort first alphabetically,
+        // but should still run after ZzzModule (participant) and MiddleModule (participant)
+        var source = """
+            using GroundControl.Host.Api;
+
+            internal sealed class AaaModule : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+
+            internal sealed class MiddleModule : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+
+            [RunsAfter<MiddleModule>]
+            internal sealed class ZzzModule : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert — expected order: MiddleModule, ZzzModule, AaaModule
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public Task CycleDetection_WithIndependentModules()
+    {
+        // Arrange — CycleA and CycleB form a cycle, IndependentModule has no ordering attrs.
+        // The cycle should still be detected as GCA001.
+        var source = """
+            using GroundControl.Host.Api;
+
+            internal sealed class IndependentModule : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+
+            [RunsAfter<CycleB>]
+            internal sealed class CycleA : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+
+            [RunsAfter<CycleA>]
+            internal sealed class CycleB : IWebApiModule
+            {
+                public void OnServiceConfiguration(Microsoft.AspNetCore.Builder.WebApplicationBuilder builder) { }
+                public void OnApplicationConfiguration(Microsoft.AspNetCore.Builder.WebApplication app) { }
+            }
+            """;
+
+        // Act
+        var driver = GeneratorTestHelper.CreateDriver(GeneratorTestHelper.CreateCompilation(source));
+
+        // Assert — GCA001 cycle diagnostic for CycleA and CycleB
+        return Verify(driver)
+            .IgnoreGeneratedResult(r => r.HintName.StartsWith("GroundControl.Host.Api.", StringComparison.Ordinal));
+    }
 }

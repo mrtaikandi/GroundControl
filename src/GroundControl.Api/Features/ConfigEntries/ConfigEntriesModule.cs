@@ -1,12 +1,9 @@
-using GroundControl.Api.Core.Authentication;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Shared.Validation;
 using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.ConfigEntries;
 
-[RunsAfter<ApplicationModule>(Required = true)]
-[RunsAfter<AuthenticationModule>(Required = true)]
 internal sealed class ConfigEntriesModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)
