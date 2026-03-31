@@ -1,10 +1,9 @@
 using GroundControl.Api.Core.Authentication;
-using GroundControl.Api.Core.Authentication.BuiltIn;
+using GroundControl.Persistence.MongoDb;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Logging.Testing;
 using MongoDB.Driver;
-using ApiAuthenticationMode = GroundControl.Api.Core.Authentication.AuthenticationMode;
 
 namespace GroundControl.Link.Tests.Infrastructure;
 
@@ -26,35 +25,15 @@ public sealed class GroundControlApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+
+        builder.UseSetting("ConnectionStrings:Storage", _mongoFixture.ConnectionString);
+        builder.UseSetting($"{MongoDbOptions.SectionName}:{nameof(MongoDbOptions.DatabaseName)}", _database.DatabaseNamespace.DatabaseName);
+        builder.UseSetting($"{AuthenticationOptions.SectionName}:{nameof(AuthenticationOptions.Mode)}", nameof(AuthenticationMode.None));
+
+        foreach (var kvp in _extraConfig)
         {
-            var config = new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:Storage"] = _mongoFixture.ConnectionString,
-                ["Persistence:MongoDb:DatabaseName"] = _database.DatabaseNamespace.DatabaseName,
-                ["Authentication:AuthenticationMode"] = "None",
-            };
-
-            foreach (var kvp in _extraConfig)
-            {
-                config[kvp.Key] = kvp.Value;
-            }
-
-            configurationBuilder.AddInMemoryCollection(config);
-        });
-
-        // WebApplicationFactory applies config overrides AFTER Program.cs eagerly reads
-        // AuthOptions, so auth mode selection in Program.cs always sees the default.
-        // Re-apply auth services here when the test config specifies a non-default mode.
-        builder.ConfigureServices((context, services) =>
-        {
-            var authMode = context.Configuration.GetValue<ApiAuthenticationMode>("Authentication:AuthenticationMode");
-            if (authMode == ApiAuthenticationMode.BuiltIn)
-            {
-                var authOptions = context.Configuration.GetSection(AuthenticationOptions.SectionName).Get<AuthenticationOptions>()!;
-                new BuiltInAuthenticationBuilder(authOptions).Build(services, context.Configuration);
-            }
-        });
+            builder.UseSetting(kvp.Key, kvp.Value);
+        }
 
         builder.ConfigureLogging(logging =>
         {
