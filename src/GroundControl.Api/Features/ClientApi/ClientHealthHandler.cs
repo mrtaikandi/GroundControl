@@ -1,4 +1,3 @@
-using GroundControl.Api.Shared;
 
 namespace GroundControl.Api.Features.ClientApi;
 

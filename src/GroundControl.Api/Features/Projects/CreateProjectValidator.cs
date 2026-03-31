@@ -1,5 +1,4 @@
 using GroundControl.Api.Features.Projects.Contracts;
-using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Stores;
 
 namespace GroundControl.Api.Features.Projects;

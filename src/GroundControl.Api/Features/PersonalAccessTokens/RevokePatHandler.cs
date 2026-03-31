@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;

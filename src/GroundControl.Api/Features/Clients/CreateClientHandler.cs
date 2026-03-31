@@ -1,11 +1,9 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using GroundControl.Api.Features.Clients.Contracts;
-using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Protection;
-using GroundControl.Api.Shared.Validation;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;

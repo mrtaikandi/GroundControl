@@ -1,5 +1,4 @@
 using GroundControl.Api.Core.Authentication.Contracts;
-using GroundControl.Api.Shared;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;

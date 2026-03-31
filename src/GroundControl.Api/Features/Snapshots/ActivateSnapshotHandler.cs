@@ -1,5 +1,4 @@
 using GroundControl.Api.Features.Projects.Contracts;
-using GroundControl.Api.Shared;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Core.ChangeNotification;
 using GroundControl.Api.Shared.Observability;

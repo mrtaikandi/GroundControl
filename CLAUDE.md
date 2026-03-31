@@ -50,11 +50,33 @@ tests/
 
 **Dependency flow:** `Api -> Persistence.Abstractions <- Persistence.MongoDb`. Feature code depends only on abstractions. MongoDb is referenced by Api only for DI registration.
 
+### Api Internal Structure
+
+```
+src/GroundControl.Api/
+  Core/         — Building blocks of the API: modules, filters, conventions,
+                  helpers that extend ASP.NET and provide pipeline setup and
+                  convenient methods to run the application and build endpoints.
+  Shared/       — Cross-cutting business logic consumed by multiple features.
+  Extensions/   — Extension methods on third-party/framework types.
+  Features/     — Vertical slices, one per business domain.
+```
+
+**Placement rules:**
+- **Core/** — extends ASP.NET, provides pipeline infrastructure, or defines contracts that handlers implement (*how* the API runs). Contains both module-based subsystems (Authentication, DataProtection, ChangeNotification) and standalone types (IEndpointHandler, EntityTagHeaders, validation framework).
+- **Shared/** — reusable business logic consumed across features (*what* the API does): security constants, pagination, resolvers, audit, metrics.
+- **Extensions/** — extension methods on types the project does not own (Task, IServiceCollection, RouteValueDictionary).
+- **Features/** — one folder per business domain, fully self-contained. Features never depend on each other; they share data through store interfaces in `Persistence.Abstractions`.
+
+### Module System
+
+Each feature and core concern is an `IWebApiModule` with `OnServiceConfiguration` and `OnApplicationConfiguration`. Modules declare ordering via `[RunsAfter<T>]` attributes. `Program.cs` delegates to `BuildWebApiModules()`.
+
 ### Feature Slice Pattern
 
 Each feature folder under `Api/Features/{FeatureName}/` has:
-- **Handler classes** — sealed internal, implementing `IEndpointHandler` with `static abstract void Endpoint(IEndpointRouteBuilder)` for route mapping and private `HandleAsync(...)` for logic
-- **`XxxEndpoints.cs`** with `MapXxxEndpoints()` (routes via `MapGroup("/api/xxx").WithTags("Xxx")`) and `AddXxxHandlers()` (DI) extension methods
+- **`XxxModule.cs`** — implements `IWebApiModule`, registers handlers/validators in DI and maps routes via `MapGroup("/api/xxx").WithTags("Xxx")`
+- **Handler classes** — sealed internal, one per endpoint, implementing `IEndpointHandler` with `static abstract void Endpoint(IEndpointRouteBuilder)` for route mapping and private `HandleAsync(...)` for logic
 - **`Contracts/`** subfolder with request/response DTOs
 - Handlers registered as `Transient`, resolved via `[FromServices]`
 
@@ -64,7 +86,7 @@ Each feature folder under `Api/Features/{FeatureName}/` has:
 
 **Response DTOs:** Sealed internal records with `required init` properties and a static `From(Entity)` factory method for mapping.
 
-**Adding a new feature:** Register handlers in `AddXxxHandlers()`, map routes in `MapXxxEndpoints()`, then wire both into `Program.cs`.
+**Adding a new feature:** Create a `XxxModule : IWebApiModule`, register handlers and validators in `OnServiceConfiguration`, map routes in `OnApplicationConfiguration`.
 
 ### Data Access — Store Pattern
 

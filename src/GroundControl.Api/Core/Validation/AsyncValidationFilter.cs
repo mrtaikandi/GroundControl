@@ -1,4 +1,4 @@
-namespace GroundControl.Api.Shared.Validation;
+namespace GroundControl.Api.Core.Validation;
 
 internal static class AsyncValidationFilter
 {

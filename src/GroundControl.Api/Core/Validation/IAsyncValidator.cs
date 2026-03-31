@@ -1,4 +1,4 @@
-namespace GroundControl.Api.Shared.Validation;
+namespace GroundControl.Api.Core.Validation;
 
 /// <summary>
 /// Defines an asynchronous validator for a specific request type.
