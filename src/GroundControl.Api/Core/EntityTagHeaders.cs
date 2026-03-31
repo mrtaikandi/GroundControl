@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using GroundControl.Api.Core.Validation;
 
 namespace GroundControl.Api.Core;
 
