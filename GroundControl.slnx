@@ -4,6 +4,7 @@
     <Project Path="src/GroundControl.Persistence.MongoDb/GroundControl.Persistence.MongoDb.csproj" />
     <Project Path="src/GroundControl.Host.Api.Generators/GroundControl.Host.Api.Generators.csproj" />
     <Project Path="src/GroundControl.Api/GroundControl.Api.csproj" />
+    <Project Path="src/GroundControl.Api.Client/GroundControl.Api.Client.csproj" />
     <Project Path="src/GroundControl.Host.Cli/GroundControl.Host.Cli.csproj" />
     <Project Path="src/GroundControl.Cli/GroundControl.Cli.csproj" />
     <Project Path="src/GroundControl.Link/GroundControl.Link.csproj" />

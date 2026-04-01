@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Data protection keys generated during build-time OpenAPI spec extraction
+src/GroundControl.Api/keys/
+
 # User-specific files
 *.rsuser
 *.suo

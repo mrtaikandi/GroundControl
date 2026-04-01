@@ -1,1 +1,4 @@
 * text eol=lf
+
+# Kiota-generated API client
+src/GroundControl.Api.Client/Generated/** linguist-generated=true

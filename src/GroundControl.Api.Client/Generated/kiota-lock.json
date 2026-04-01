@@ -1,0 +1,29 @@
+{
+  "descriptionHash": "55C8322C53E0E9DAD4EE7E29BD7E7BB13829F7753A012741BC476CABED8B8B4CFEA95371149E2E54ED5B7407E70BBBE59B161A5D0010AA02B35B8C618AF65938",
+  "descriptionLocation": "../../GroundControl.Api/OpenApi.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.30.0",
+  "clientClassName": "GroundControlApiClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "GroundControl.Api.Client",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": true,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}
