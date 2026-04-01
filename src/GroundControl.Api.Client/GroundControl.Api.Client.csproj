@@ -21,9 +21,14 @@
         </Compile>
     </ItemGroup>
 
+    <PropertyGroup Label="Kiota generation">
+        <OpenApiSpec>$(MSBuildProjectDirectory)\..\GroundControl.Api\OpenApi.json</OpenApiSpec>
+        <KiotaOutputDir>$(MSBuildProjectDirectory)\Generated</KiotaOutputDir>
+    </PropertyGroup>
+
     <Target Name="GenerateApiClient" BeforeTargets="CoreCompile"
             Condition="'$(RegenerateApiClient)' == 'true'">
-        <Exec Command="dotnet kiota generate --openapi ../GroundControl.Api/OpenApi.json --language csharp --namespace-name GroundControl.Api.Client --class-name GroundControlApiClient --output ./Generated --exclude-backward-compatible --serializer Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory --deserializer Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory --clean-output" />
+        <Exec Command="dotnet kiota generate --openapi $(OpenApiSpec) --language csharp --namespace-name GroundControl.Api.Client --class-name GroundControlApiClient --output $(KiotaOutputDir) --exclude-backward-compatible --serializer Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory --deserializer Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory --clean-output" WorkingDirectory="$(MSBuildProjectDirectory)" />
     </Target>
 
 </Project>
