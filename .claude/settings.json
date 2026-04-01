@@ -13,57 +13,6 @@
       }
     ]
   },
-  "permissions": {
-    "allow": [
-      "Bash(dotnet :*)",
-      "Bash(dir :*)",
-      "Bash(git status:*)",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git branch:*)",
-      "Bash(git show:*)",
-      "Bash(git tag:*)",
-      "Bash(git worktree:*)",
-      "Bash(git rebase:*)",
-      "Bash(git checkout:*)",
-      "Bash(git switch:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git pull:*)",
-      "Bash(git mv:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh pr:*)",
-      "Bash(gh api:*)",
-      "Bash(findstr :*)",
-      "Bash(tail :*)",
-      "Bash(ls:*)",
-      "Bash(pwd :*)",
-      "Bash(where :*)",
-      "Bash(which :*)",
-      "Edit(/.claude/worktrees/**)",
-      "Read(/.claude/**)",
-      "Read(~/.claude/skills/**)",
-      "Write(/.claude/worktrees/**)",
-      "Bash(Select-String :*)"
-    ],
-    "deny": [
-      "Bash(cd //c/:*:*)",
-      "Bash(awk :*)",
-      "Bash(cat :*)",
-      "Bash(echo :*)",
-      "Bash(find :*)",
-      "Bash(grep :*)",
-      "Bash(head :*)",
-      "Bash(python :*)",
-      "Bash(python3 :*)",
-      "Bash(rg :*)",
-      "Bash(sed :*)",
-      "Bash(tail :*)",
-      "Bash(xargs basename :*)",
-      "Bash(xargs grep :*)"
-    ]
-  },
   "additionalDirectories": [
     ".claude/worktrees/",
     ".claude/worktrees/**"
