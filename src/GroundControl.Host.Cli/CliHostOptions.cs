@@ -13,6 +13,20 @@ public class CliHostOptions
     /// </summary>
     public static readonly Option<string?> DebugOption = CreateDebugOption();
 
+    /// <summary>
+    /// Gets the option that controls output format (table or json).
+    /// </summary>
+    public static readonly Option<OutputFormat> OutputOption = CreateOutputOption();
+
+    /// <summary>
+    /// Gets the option that disables interactive prompts.
+    /// </summary>
+    public static readonly Option<bool> NoInteractiveOption = new("--no-interactive")
+    {
+        Description = "Disable interactive prompts and use defaults.",
+        Recursive = true
+    };
+
     private static Option<string?> CreateDebugOption()
     {
         var option = new Option<string?>("--debug")
@@ -27,8 +41,24 @@ public class CliHostOptions
         return option;
     }
 
+    private static Option<OutputFormat> CreateOutputOption() => new("--output")
+    {
+        Description = "Output format: table or json.",
+        Recursive = true
+    };
+
     /// <summary>
     /// Gets or sets the package server URL used to resolve NuGet packages.
     /// </summary>
     public string PackageServer { get; set; } = "https://packages.capitalontap.com/v3/package";
+
+    /// <summary>
+    /// Gets or sets the output format for command results.
+    /// </summary>
+    public OutputFormat OutputFormat { get; set; } = OutputFormat.Table;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether interactive prompts are disabled.
+    /// </summary>
+    public bool NoInteractive { get; set; }
 }
