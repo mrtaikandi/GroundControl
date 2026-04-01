@@ -92,7 +92,7 @@ public sealed class CliHostBuilder
             return CliHost.CreateError(result.Error);
         }
 
-        RegisterCommonServices(handlerType, rootModule, subCommandModule);
+        RegisterCommonServices(parseResult, handlerType, rootModule, subCommandModule);
 
         var app = _innerBuilder.Build();
         return new CliHost(parseResult, app, commandType);
@@ -112,7 +112,9 @@ public sealed class CliHostBuilder
     {
         var rootCommand = new RootCommand(_description)
         {
-            CliHostOptions.DebugOption
+            CliHostOptions.DebugOption,
+            CliHostOptions.OutputOption,
+            CliHostOptions.NoInteractiveOption
         };
 
         foreach (var command in DiscoverRootCommands(_commandAssembly))
@@ -193,6 +195,7 @@ public sealed class CliHostBuilder
     }
 
     private void RegisterCommonServices(
+        ParseResult parseResult,
         Type handlerType,
         IDependencyModule? rootModule,
         IDependencyModule? subCommandModule)
@@ -204,9 +207,23 @@ public sealed class CliHostBuilder
         _innerBuilder.Services.AddSingleton<IPackageService, PackageService>();
         _innerBuilder.Services.AddHttpClient();
 
+        ConfigureCliHostOptions(parseResult);
+
         var dependencyContext = new DependencyModuleContext(_innerBuilder.Environment, _innerBuilder.Configuration);
         rootModule?.ConfigureServices(dependencyContext, _innerBuilder.Services);
         subCommandModule?.ConfigureServices(dependencyContext, _innerBuilder.Services);
+    }
+
+    private void ConfigureCliHostOptions(ParseResult parseResult)
+    {
+        var outputFormat = parseResult.GetValue(CliHostOptions.OutputOption);
+        var noInteractive = parseResult.GetValue(CliHostOptions.NoInteractiveOption);
+
+        _innerBuilder.Services.Configure<CliHostOptions>(options =>
+        {
+            options.OutputFormat = outputFormat;
+            options.NoInteractive = noInteractive;
+        });
     }
 
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
