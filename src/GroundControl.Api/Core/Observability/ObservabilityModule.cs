@@ -29,9 +29,10 @@ internal sealed class ObservabilityModule : IWebApiModule
             {
                 tracing.AddSource("ground-control.api")
                     .AddAspNetCoreInstrumentation(options =>
+                    {
                         // Exclude health check requests from tracing
-                        options.Filter = context => !context.Request.Path.StartsWithSegments(HealthChecksModule.HealthEndpointPrefix, StringComparison.OrdinalIgnoreCase)
-                    )
+                        options.Filter = context => !context.Request.Path.StartsWithSegments(HealthChecksModule.HealthEndpointPrefix, StringComparison.OrdinalIgnoreCase);
+                    })
                     .AddHttpClientInstrumentation();
             });
 
