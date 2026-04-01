@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CA2007</NoWarn>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Code analysis">
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Kiota.Abstractions" />
+        <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" />
+        <PackageReference Include="Microsoft.Kiota.Serialization.Json" />
+    </ItemGroup>
+
+    <!-- Suppress code analysis on Kiota-generated files -->
+    <ItemGroup>
+        <Compile Update="Generated\**\*.cs">
+            <ExcludeFromCodeAnalysis>true</ExcludeFromCodeAnalysis>
+        </Compile>
+    </ItemGroup>
+
+    <Target Name="GenerateApiClient" BeforeTargets="CoreCompile"
+            Condition="'$(RegenerateApiClient)' == 'true'">
+        <Exec Command="dotnet kiota generate --openapi ../GroundControl.Api/OpenApi.json --language csharp --namespace-name GroundControl.Api.Client --class-name GroundControlApiClient --output ./Generated --exclude-backward-compatible --serializer Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory --deserializer Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory --clean-output" />
+    </Target>
+
+</Project>

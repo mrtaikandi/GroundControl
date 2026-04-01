@@ -8,6 +8,11 @@
         <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.Http.Generated</InterceptorsNamespaces>
     </PropertyGroup>
 
+    <PropertyGroup Label="OpenAPI spec generation">
+        <OpenApiDocumentsDirectory>.</OpenApiDocumentsDirectory>
+        <OpenApiGenerateDocumentsOptions>--file-name OpenApi</OpenApiGenerateDocumentsOptions>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Asp.Versioning.Http" />
         <PackageReference Include="AspNetCore.HealthChecks.MongoDb" />
@@ -21,6 +26,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" />
         <PackageReference Include="Microsoft.Extensions.Telemetry" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />

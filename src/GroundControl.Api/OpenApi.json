@@ -1,0 +1,2947 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "GroundControl.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/client/config": {
+      "get": {
+        "tags": [
+          "ClientApi"
+        ],
+        "operationId": "GetConfigHandler",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/client/config/stream": {
+      "get": {
+        "tags": [
+          "ClientApi"
+        ],
+        "operationId": "StreamConfigHandler",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/client/health": {
+      "get": {
+        "tags": [
+          "ClientApi"
+        ],
+        "operationId": "ClientHealthHandler",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/audit-records": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "operationId": "ListAuditRecordsHandler",
+        "parameters": [
+          {
+            "name": "entityType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "performedBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/audit-records/{id}": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "operationId": "GetAuditRecordHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/clients": {
+      "post": {
+        "tags": [
+          "Clients"
+        ],
+        "operationId": "CreateClientHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "operationId": "ListClientsHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/clients/{id}": {
+      "get": {
+        "tags": [
+          "Clients"
+        ],
+        "operationId": "GetClientHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Clients"
+        ],
+        "operationId": "UpdateClientHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "operationId": "DeleteClientHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/config-entries": {
+      "post": {
+        "tags": [
+          "ConfigEntries"
+        ],
+        "operationId": "CreateConfigEntryHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigEntryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "ConfigEntries"
+        ],
+        "operationId": "ListConfigEntriesHandler",
+        "parameters": [
+          {
+            "name": "OwnerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "OwnerType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ConfigEntryOwnerType"
+            }
+          },
+          {
+            "name": "KeyPrefix",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decrypt",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/config-entries/{id}": {
+      "get": {
+        "tags": [
+          "ConfigEntries"
+        ],
+        "operationId": "GetConfigEntryHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "decrypt",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ConfigEntries"
+        ],
+        "operationId": "UpdateConfigEntryHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConfigEntryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ConfigEntries"
+        ],
+        "operationId": "DeleteConfigEntryHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/groups": {
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "operationId": "CreateGroupHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "operationId": "ListGroupsHandler",
+        "parameters": [
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/groups/{id}": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "operationId": "GetGroupHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Groups"
+        ],
+        "operationId": "UpdateGroupHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Groups"
+        ],
+        "operationId": "DeleteGroupHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/members": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "operationId": "ListGroupMembersHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/groups/{id}/members/{userId}": {
+      "put": {
+        "tags": [
+          "Groups"
+        ],
+        "operationId": "SetGroupMemberHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetGroupMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Groups"
+        ],
+        "operationId": "RemoveGroupMemberHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/personal-access-tokens": {
+      "post": {
+        "tags": [
+          "PersonalAccessTokens"
+        ],
+        "operationId": "CreatePatHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "PersonalAccessTokens"
+        ],
+        "operationId": "ListPatsHandler",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/personal-access-tokens/{id}": {
+      "get": {
+        "tags": [
+          "PersonalAccessTokens"
+        ],
+        "operationId": "GetPatHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PersonalAccessTokens"
+        ],
+        "operationId": "RevokePatHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "CreateProjectHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "ListProjectsHandler",
+        "parameters": [
+          {
+            "name": "GroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{id}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "GetProjectHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "UpdateProjectHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "DeleteProjectHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/templates/{templateId}": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "AddProjectTemplateHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "RemoveProjectTemplateHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/roles": {
+      "post": {
+        "tags": [
+          "Roles"
+        ],
+        "operationId": "CreateRoleHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "operationId": "ListRolesHandler",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/roles/{id}": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "operationId": "GetRoleHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Roles"
+        ],
+        "operationId": "UpdateRoleHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Roles"
+        ],
+        "operationId": "DeleteRoleHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/scopes": {
+      "post": {
+        "tags": [
+          "Scopes"
+        ],
+        "operationId": "CreateScopeHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScopeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Scopes"
+        ],
+        "operationId": "ListScopesHandler",
+        "parameters": [
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/scopes/{id}": {
+      "get": {
+        "tags": [
+          "Scopes"
+        ],
+        "operationId": "GetScopeHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Scopes"
+        ],
+        "operationId": "UpdateScopeHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScopeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Scopes"
+        ],
+        "operationId": "DeleteScopeHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/snapshots": {
+      "post": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "PublishSnapshotHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishSnapshotRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "ListSnapshotsHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/snapshots/{id}/activate": {
+      "post": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "ActivateSnapshotHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/snapshots/{id}": {
+      "get": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "GetSnapshotHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "decrypt",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/templates": {
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "operationId": "CreateTemplateHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "operationId": "ListTemplatesHandler",
+        "parameters": [
+          {
+            "name": "GroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "GlobalOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/templates/{id}": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "operationId": "GetTemplateHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Templates"
+        ],
+        "operationId": "UpdateTemplateHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Templates"
+        ],
+        "operationId": "DeleteTemplateHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "CreateUserHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "ListUsersHandler",
+        "parameters": [
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "GetUserHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "UpdateUserHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "DeleteUserHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/users/{id}/password": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "ChangePasswordHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/variables": {
+      "post": {
+        "tags": [
+          "Variables"
+        ],
+        "operationId": "CreateVariableHandler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVariableRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Variables"
+        ],
+        "operationId": "ListVariablesHandler",
+        "parameters": [
+          {
+            "name": "Scope",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/VariableScope"
+            }
+          },
+          {
+            "name": "GroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ProjectId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "After",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Before",
+            "in": "query",
+            "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortField",
+            "in": "query",
+            "description": "Gets the name of the field to sort results by.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortOrder",
+            "in": "query",
+            "description": "Gets the sort direction (e.g., `asc` or `desc`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decrypt",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/variables/{id}": {
+      "get": {
+        "tags": [
+          "Variables"
+        ],
+        "operationId": "GetVariableHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "decrypt",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Variables"
+        ],
+        "operationId": "UpdateVariableHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVariableRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Variables"
+        ],
+        "operationId": "DeleteVariableHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "maxLength": 128,
+            "type": "string",
+            "description": "Gets the current password."
+          },
+          "newPassword": {
+            "maxLength": 128,
+            "type": "string",
+            "description": "Gets the new password."
+          }
+        },
+        "description": "Represents the request body for changing a user's password."
+      },
+      "ConfigEntryOwnerType": {
+        "type": "integer",
+        "description": "Defines the owner type for a configuration entry."
+      },
+      "CreateClientRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "type": "string",
+            "description": "Gets the client name."
+          },
+          "scopes": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets the fixed scope assignments for the client."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional expiration timestamp.",
+            "format": "date-time"
+          }
+        },
+        "description": "Represents the request body for creating a client."
+      },
+      "CreateConfigEntryRequest": {
+        "required": [
+          "key",
+          "ownerId",
+          "ownerType",
+          "valueType",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "maxLength": 500,
+            "type": "string",
+            "description": "Gets the configuration key."
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Gets the owning template or project identifier.",
+            "format": "uuid"
+          },
+          "ownerType": {
+            "description": "Gets the owner type.",
+            "$ref": "#/components/schemas/ConfigEntryOwnerType"
+          },
+          "valueType": {
+            "maxLength": 50,
+            "type": "string",
+            "description": "Gets the value type name."
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopedValueRequest"
+            },
+            "description": "Gets the scope-specific values."
+          },
+          "isSensitive": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the entry contains sensitive data."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional entry description."
+          }
+        },
+        "description": "Represents the request body for creating a configuration entry."
+      },
+      "CreateGroupRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the display name for the group."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the group."
+          }
+        },
+        "description": "Represents the request body for creating a group."
+      },
+      "CreatePatRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the human-readable name for the token."
+          },
+          "expiresInDays": {
+            "maximum": 365,
+            "minimum": 1,
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "Gets the number of days until the token expires.",
+            "format": "int32"
+          },
+          "permissions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the optional permission whitelist for the token."
+          }
+        }
+      },
+      "CreateProjectRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "type": "string",
+            "description": "Gets the project name."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional project description."
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional owning group identifier.",
+            "format": "uuid"
+          },
+          "templateIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Gets the optional ordered template identifiers to apply to the project."
+          }
+        },
+        "description": "Represents the request body for creating a project."
+      },
+      "CreateRoleRequest": {
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the display name for the role."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the role."
+          },
+          "permissions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the permission strings granted by the role."
+          }
+        },
+        "description": "Represents the request body for creating a role."
+      },
+      "CreateScopeRequest": {
+        "required": [
+          "dimension",
+          "allowedValues"
+        ],
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the unique scope dimension name."
+          },
+          "allowedValues": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the allowed values for the scope dimension."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the scope."
+          }
+        },
+        "description": "Represents the request body for creating a scope definition."
+      },
+      "CreateTemplateRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "type": "string",
+            "description": "Gets the template name."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional template description."
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional owning group identifier.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the request body for creating a template."
+      },
+      "CreateUserRequest": {
+        "required": [
+          "username",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the username."
+          },
+          "email": {
+            "maxLength": 254,
+            "type": "string",
+            "description": "Gets the email address."
+          },
+          "password": {
+            "maxLength": 128,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the initial password (required in BuiltIn authentication mode)."
+          },
+          "grants": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/GrantDto"
+            },
+            "description": "Gets the role grants to assign to the new user."
+          }
+        },
+        "description": "Represents the request body for creating a user."
+      },
+      "CreateVariableRequest": {
+        "required": [
+          "name",
+          "scope",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/VariableScope"
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopedValueRequest"
+            }
+          },
+          "isSensitive": {
+            "type": "boolean"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "GrantDto": {
+        "required": [
+          "roleId"
+        ],
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional group resource targeted by the grant.",
+            "format": "uuid"
+          },
+          "roleId": {
+            "type": "string",
+            "description": "Gets the identifier of the granted role.",
+            "format": "uuid"
+          },
+          "conditions": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Gets optional scope value conditions that further restrict access."
+          }
+        },
+        "description": "Represents a role grant in request and response contracts."
+      },
+      "PublishSnapshotRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional publication description."
+          }
+        },
+        "description": "Represents the request body for publishing a new snapshot."
+      },
+      "ScopedValueRequest": {
+        "required": [
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "scopes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets the scope dimension-value pairs that qualify this value."
+          },
+          "value": {
+            "type": "string",
+            "description": "Gets the serialized value for the scope combination."
+          }
+        },
+        "description": "Represents a scope-specific value in a configuration entry request."
+      },
+      "SetGroupMemberRequest": {
+        "required": [
+          "roleId"
+        ],
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "string",
+            "description": "Gets the identifier of the role to grant for this group membership.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the request body for adding a user as a group member with a specific role."
+      },
+      "UpdateClientRequest": {
+        "required": [
+          "name",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "type": "string",
+            "description": "Gets the client name."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Gets whether the client is active."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional expiration timestamp.",
+            "format": "date-time"
+          }
+        },
+        "description": "Represents the request body for updating a client."
+      },
+      "UpdateConfigEntryRequest": {
+        "required": [
+          "valueType",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "valueType": {
+            "maxLength": 50,
+            "type": "string",
+            "description": "Gets the value type name."
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopedValueRequest"
+            },
+            "description": "Gets the scope-specific values."
+          },
+          "isSensitive": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the entry contains sensitive data."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional entry description."
+          }
+        },
+        "description": "Represents the request body for updating a configuration entry."
+      },
+      "UpdateGroupRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the display name for the group."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the group."
+          }
+        },
+        "description": "Represents the request body for updating a group."
+      },
+      "UpdateProjectRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "type": "string",
+            "description": "Gets the project name."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional project description."
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional owning group identifier.",
+            "format": "uuid"
+          },
+          "templateIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Gets the optional ordered template identifiers to apply to the project."
+          }
+        },
+        "description": "Represents the request body for updating a project."
+      },
+      "UpdateRoleRequest": {
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the display name for the role."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the role."
+          },
+          "permissions": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the permission strings granted by the role."
+          }
+        },
+        "description": "Represents the request body for updating a role."
+      },
+      "UpdateScopeRequest": {
+        "required": [
+          "dimension",
+          "allowedValues"
+        ],
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the unique scope dimension name."
+          },
+          "allowedValues": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the allowed values for the scope dimension."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the scope."
+          }
+        },
+        "description": "Represents the request body for updating a scope definition."
+      },
+      "UpdateTemplateRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "type": "string",
+            "description": "Gets the template name."
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional template description."
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional owning group identifier.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the request body for updating a template."
+      },
+      "UpdateUserRequest": {
+        "required": [
+          "username",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "username": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Gets the username."
+          },
+          "email": {
+            "maxLength": 254,
+            "type": "string",
+            "description": "Gets the email address."
+          },
+          "grants": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/GrantDto"
+            },
+            "description": "Gets the role grants to assign. Requires `users:write` permission."
+          },
+          "isActive": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Gets a value indicating whether the user should be active. Requires `users:write` permission."
+          }
+        },
+        "description": "Represents the request body for updating a user."
+      },
+      "UpdateVariableRequest": {
+        "required": [
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopedValueRequest"
+            }
+          },
+          "isSensitive": {
+            "type": "boolean"
+          },
+          "description": {
+            "maxLength": 500,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "VariableScope": {
+        "type": "integer",
+        "description": "Defines the ownership scope for a variable."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "ClientApi"
+    },
+    {
+      "name": "Audit"
+    },
+    {
+      "name": "Clients"
+    },
+    {
+      "name": "ConfigEntries"
+    },
+    {
+      "name": "Groups"
+    },
+    {
+      "name": "PersonalAccessTokens"
+    },
+    {
+      "name": "Projects"
+    },
+    {
+      "name": "Roles"
+    },
+    {
+      "name": "Scopes"
+    },
+    {
+      "name": "Snapshots"
+    },
+    {
+      "name": "Templates"
+    },
+    {
+      "name": "Users"
+    },
+    {
+      "name": "Variables"
+    }
+  ]
+}
