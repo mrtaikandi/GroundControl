@@ -13,6 +13,7 @@
         <Project Path="tests/GroundControl.Persistence.MongoDb.Tests/GroundControl.Persistence.MongoDb.Tests.csproj" />
         <Project Path="tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj" />
         <Project Path="tests/GroundControl.Host.Api.Generators.Tests/GroundControl.Host.Api.Generators.Tests.csproj" />
+        <Project Path="tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj" />
     </Folder>
 
 </Solution>
