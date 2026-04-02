@@ -52,17 +52,16 @@ public sealed class PaginatedResponseTests
         // Assert
         json.ShouldBe(
             """
-              {
-                "data": [
-                  "alpha",
-                  "beta"
-                ],
-                "nextCursor": "next-cursor",
-                "previousCursor": "previous-cursor",
-                "totalCount": 2
-              }
-              """
-            );
+            {
+              "data": [
+                "alpha",
+                "beta"
+              ],
+              "nextCursor": "next-cursor",
+              "previousCursor": "previous-cursor",
+              "totalCount": 2
+            }
+            """);
     }
 
     [Fact]

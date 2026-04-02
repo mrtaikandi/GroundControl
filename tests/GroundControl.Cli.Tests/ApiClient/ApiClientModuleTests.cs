@@ -28,7 +28,7 @@ public sealed class ApiClientModuleTests
         var provider = services.BuildServiceProvider();
 
         // Assert
-        var client = provider.GetService<IGroundControlApiClient>();
+        var client = provider.GetService<IGroundControlClient>();
         client.ShouldNotBeNull();
     }
 
@@ -48,8 +48,7 @@ public sealed class ApiClientModuleTests
         module.ConfigureServices(context, services);
         var provider = services.BuildServiceProvider();
         var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
-        var httpClient = httpClientFactory.CreateClient(
-            typeof(IGroundControlApiClient).Name);
+        var httpClient = httpClientFactory.CreateClient(nameof(IGroundControlClient));
 
         // Assert
         httpClient.BaseAddress.ShouldNotBeNull();
@@ -70,8 +69,7 @@ public sealed class ApiClientModuleTests
         var provider = services.BuildServiceProvider();
 
         // Assert
-        var exception = Should.Throw<InvalidOperationException>(
-            () => provider.GetRequiredService<IGroundControlApiClient>());
+        var exception = Should.Throw<InvalidOperationException>(() => provider.GetRequiredService<IGroundControlClient>());
 
         exception.Message.ShouldContain("GroundControl server URL is not configured");
         exception.Message.ShouldContain("GroundControl__ServerUrl");
@@ -95,7 +93,7 @@ public sealed class ApiClientModuleTests
 
         // Assert
         var exception = Should.Throw<InvalidOperationException>(
-            () => provider.GetRequiredService<IGroundControlApiClient>());
+            () => provider.GetRequiredService<IGroundControlClient>());
 
         exception.Message.ShouldContain("GroundControl server URL is not configured");
     }
@@ -145,7 +143,7 @@ public sealed class ApiClientModuleTests
         var provider = services.BuildServiceProvider();
         var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
         var httpClient = httpClientFactory.CreateClient(
-            typeof(IGroundControlApiClient).Name);
+            nameof(IGroundControlClient));
 
         // Assert
         httpClient.BaseAddress.ShouldNotBeNull();
@@ -169,9 +167,8 @@ public sealed class ApiClientModuleTests
         // Act
         module.ConfigureServices(context, services);
 
-        var clientName = typeof(IGroundControlApiClient).Name;
-        services.AddHttpClient(clientName)
-            .AddHttpMessageHandler(() => handler);
+        var clientName = nameof(IGroundControlClient);
+        services.AddHttpClient(clientName).AddHttpMessageHandler(() => handler);
 
         var provider = services.BuildServiceProvider();
         var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
