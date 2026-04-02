@@ -30,7 +30,7 @@ internal static class ConflictRetryHelper
                 return false;
             }
 
-            var confirmed = await shell.Console.ConfirmAsync(
+            var confirmed = await shell.ConfirmAsync(
                     "Apply your changes using the current version?", defaultValue: false, cancellationToken)
                 .ConfigureAwait(false);
 

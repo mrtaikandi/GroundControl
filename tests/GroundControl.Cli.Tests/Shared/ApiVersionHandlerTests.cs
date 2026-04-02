@@ -49,6 +49,8 @@ public sealed class ApiVersionHandlerTests
         // Assert
         capturedRequest.ShouldNotBeNull();
         capturedRequest.Headers.TryGetValues("api-version", out var values).ShouldBeTrue();
-        values!.ShouldContain("2.0");
+        var headerValues = values!.ToList();
+        headerValues.ShouldHaveSingleItem();
+        headerValues[0].ShouldBe("2.0");
     }
 }

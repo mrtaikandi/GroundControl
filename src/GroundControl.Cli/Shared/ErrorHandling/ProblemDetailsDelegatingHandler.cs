@@ -17,20 +17,23 @@ internal sealed partial class ProblemDetailsDelegatingHandler : DelegatingHandle
             return response;
         }
 
-        var problemDetails = await TryParseProblemDetailsAsync(response, cancellationToken).ConfigureAwait(false);
-        if (problemDetails is not null)
+        using (response)
         {
+            var problemDetails = await TryParseProblemDetailsAsync(response, cancellationToken).ConfigureAwait(false);
+            if (problemDetails is not null)
+            {
+                throw new ProblemDetailsApiException(
+                    (int)response.StatusCode,
+                    problemDetails.Title,
+                    problemDetails.Detail,
+                    problemDetails.Errors);
+            }
+
             throw new ProblemDetailsApiException(
                 (int)response.StatusCode,
-                problemDetails.Title,
-                problemDetails.Detail,
-                problemDetails.Errors);
+                response.ReasonPhrase,
+                null);
         }
-
-        throw new ProblemDetailsApiException(
-            (int)response.StatusCode,
-            response.ReasonPhrase,
-            null);
     }
 
     private static async Task<ProblemDetailsResponse?> TryParseProblemDetailsAsync(

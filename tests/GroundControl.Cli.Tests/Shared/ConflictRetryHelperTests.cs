@@ -4,6 +4,10 @@ using static GroundControl.Cli.Shared.ErrorHandling.ConflictRetryHelper;
 
 namespace GroundControl.Cli.Tests.Shared;
 
+// Interactive confirmation path (noInteractive: false) cannot be tested with MockShellBuilder
+// because Spectre.Console's ConfirmAsync requires real console input. The non-interactive path
+// covers diff rendering, version display, and error messaging. The interactive confirm+retry
+// path will be covered by integration tests when a testable IShell abstraction is available.
 public sealed class ConflictRetryHelperTests
 {
     [Fact]

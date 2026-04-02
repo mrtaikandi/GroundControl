@@ -1,5 +1,4 @@
 #pragma warning disable CA1708
-using System.Text.Json;
 using Spectre.Console;
 
 namespace GroundControl.Cli.Shared.Pagination;
@@ -24,11 +23,13 @@ internal static class PaginatedRenderer
                 return;
             }
 
-            await StreamPagesAsTableAsync(shell, fetchPage, headers, valueExtractors, cancellationToken).ConfigureAwait(false);
+            await FetchAllPagesAsTableAsync(shell, fetchPage, headers, valueExtractors, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static async Task StreamPagesAsTableAsync<T>(
+    // Spectre.Console's Table widget requires all rows before rendering, so pages are
+    // collected into a single table rather than streamed incrementally to the console.
+    private static async Task FetchAllPagesAsTableAsync<T>(
         IShell shell,
         Func<string?, CancellationToken, Task<Page<T>>> fetchPage,
         IReadOnlyList<string> headers,

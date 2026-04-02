@@ -9,7 +9,11 @@ internal sealed class ApiVersionHandler : DelegatingHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        request.Headers.TryAddWithoutValidation(HeaderName, HeaderValue);
+        if (!request.Headers.Contains(HeaderName))
+        {
+            request.Headers.TryAddWithoutValidation(HeaderName, HeaderValue);
+        }
+
         return base.SendAsync(request, cancellationToken);
     }
 }
