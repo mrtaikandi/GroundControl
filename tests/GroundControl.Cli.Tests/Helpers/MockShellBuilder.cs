@@ -7,6 +7,13 @@ namespace GroundControl.Cli.Tests.Helpers;
 internal sealed class MockShellBuilder
 {
     private readonly StringBuilder _outputBuffer = new();
+    private string? _inputText;
+
+    public MockShellBuilder WithInput(string input)
+    {
+        _inputText = input;
+        return this;
+    }
 
     public IShell Build()
     {
@@ -19,7 +26,8 @@ internal sealed class MockShellBuilder
             Ansi = AnsiSupport.No
         });
 
-        return new Shell(console);
+        var input = _inputText is not null ? new StringReader(_inputText) : null;
+        return new Shell(console, input);
     }
 
     public string GetOutput() => _outputBuffer.ToString();

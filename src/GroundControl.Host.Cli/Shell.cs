@@ -8,15 +8,18 @@ namespace GroundControl.Host.Cli;
 /// </summary>
 internal sealed class Shell : IShell
 {
-    public Shell(IAnsiConsole ansiConsole)
+    public Shell(IAnsiConsole ansiConsole, TextReader? input = null)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
 
         Console = ansiConsole;
+        Input = input ?? System.Console.In;
         Theme = new Theme(ansiConsole);
     }
 
     public IAnsiConsole Console { get; }
+
+    public TextReader Input { get; }
 
     public Theme Theme { get; }
 }

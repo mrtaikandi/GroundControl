@@ -12,5 +12,7 @@ public interface IShell
     /// </summary>
     IAnsiConsole Console { get; }
 
+    internal TextReader Input { get; }
+
     internal Theme Theme { get; }
 }
