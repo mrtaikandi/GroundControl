@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsTestProject>false</IsTestProject>
+        <OutputType>Library</OutputType>
+        <TestingPlatformDotnetTestSupport>false</TestingPlatformDotnetTestSupport>
+        <UseMicrosoftTestingPlatformRunner>false</UseMicrosoftTestingPlatformRunner>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+        <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+        <PackageReference Include="Shouldly" />
+        <PackageReference Include="Testcontainers.MongoDb" />
+        <PackageReference Include="xunit.v3.extensibility.core" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="GroundControl.Api.Tests" />
+        <InternalsVisibleTo Include="GroundControl.Api.Client.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\GroundControl.Api\GroundControl.Api.csproj" />
+    </ItemGroup>
+
+</Project>

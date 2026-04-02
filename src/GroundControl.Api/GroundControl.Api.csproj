@@ -38,6 +38,8 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+        <InternalsVisibleTo Include="$(AssemblyName).Tests.Infrastructure" />
+        <InternalsVisibleTo Include="GroundControl.Api.Client.Tests" />
         <InternalsVisibleTo Include="GroundControl.Link.Tests" />
     </ItemGroup>
 

@@ -10,6 +10,7 @@
     <Project Path="src/GroundControl.Link/GroundControl.Link.csproj" />
     <Folder Name="/Tests/">
         <Project Path="tests/GroundControl.Api.Tests/GroundControl.Api.Tests.csproj" />
+        <Project Path="tests/GroundControl.Api.Tests.Infrastructure/GroundControl.Api.Tests.Infrastructure.csproj" />
         <Project Path="tests/GroundControl.Persistence.MongoDb.Tests/GroundControl.Persistence.MongoDb.Tests.csproj" />
         <Project Path="tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj" />
         <Project Path="tests/GroundControl.Host.Api.Generators.Tests/GroundControl.Host.Api.Generators.Tests.csproj" />
