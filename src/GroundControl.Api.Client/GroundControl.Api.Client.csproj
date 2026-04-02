@@ -1,15 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <NoWarn>$(NoWarn);CA2007;CS1591</NoWarn>
+        <NoWarn>$(NoWarn);CA2007;CS1591;CA1822</NoWarn>
+        <NSwagConfigFile>$(MSBuildProjectDirectory)\nswag.json</NSwagConfigFile>
+        <GenerateApiClient>true</GenerateApiClient>
     </PropertyGroup>
-
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Http" />
-        <PackageReference Include="Microsoft.Kiota.Abstractions" />
-        <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" />
-        <PackageReference Include="Microsoft.Kiota.Serialization.Json" />
+        <PackageReference Include="NSwag.MSBuild" PrivateAssets="all" />
     </ItemGroup>
 
     <!-- Suppress code analysis on Kiota-generated files -->
@@ -18,18 +17,10 @@
             <ExcludeFromCodeAnalysis>true</ExcludeFromCodeAnalysis>
         </Compile>
     </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Authentication\" />
-    </ItemGroup>
-
-    <PropertyGroup Label="Kiota generation">
-        <OpenApiSpec>$(MSBuildProjectDirectory)\..\GroundControl.Api\OpenApi.json</OpenApiSpec>
-        <KiotaOutputDir>$(MSBuildProjectDirectory)\Generated</KiotaOutputDir>
-    </PropertyGroup>
 
     <Target Name="GenerateApiClient" BeforeTargets="CoreCompile"
-            Condition="'$(RegenerateApiClient)' == 'true'">
-        <Exec Command="dotnet kiota generate --openapi $(OpenApiSpec) --language csharp --namespace-name GroundControl.Api.Client --class-name GroundControlApiClient --output $(KiotaOutputDir) --exclude-backward-compatible --serializer Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory --deserializer Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory --clean-output" WorkingDirectory="$(MSBuildProjectDirectory)" />
+            Condition="'$(GenerateApiClient)' == 'true'">
+        <Exec Command="$(NSwagExe_Net100) run $(NSwagConfigFile)" WorkingDirectory="$(MSBuildProjectDirectory)" />
     </Target>
 
 </Project>

@@ -1,10 +1,11 @@
 using System.Net;
+using System.Net.Http.Json;
+using GroundControl.Api.Client.Contracts;
 using GroundControl.Api.Client.Tests.Infrastructure;
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared.Pagination;
-using Microsoft.Kiota.Abstractions;
-using CreateScopeRequest = GroundControl.Api.Client.Models.CreateScopeRequest;
-using UpdateScopeRequest = GroundControl.Api.Client.Models.UpdateScopeRequest;
+using CreateScopeRequest = GroundControl.Api.Client.Contracts.CreateScopeRequest;
+using UpdateScopeRequest = GroundControl.Api.Client.Contracts.UpdateScopeRequest;
 
 namespace GroundControl.Api.Client.Tests.Scopes;
 
@@ -20,7 +21,7 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, handler) = KiotaClientFactory.Create(factory);
+        var (client, handler) = ApiClientFactory.Create(factory);
         var request = new CreateScopeRequest
         {
             Dimension = "environment",
@@ -29,14 +30,14 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         };
 
         // Act
-        using var stream = await client.Api.Scopes.PostAsync(request, cancellationToken: TestCancellationToken);
+        await client.CreateScopeHandlerAsync(request, TestCancellationToken);
 
         // Assert
         handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        handler.LastStatusCode.ShouldBe(HttpStatusCode.Created);
         handler.LastResponse.Headers.Location.ShouldNotBeNull();
 
-        var scope = await ReadRequiredStreamAsync<ScopeResponse>(stream, TestCancellationToken);
+        var scope = handler.DeserializeCapturedResponse<ScopeResponse>();
         scope.Dimension.ShouldBe("environment");
         scope.AllowedValues.ShouldBe(["dev", "staging", "prod"]);
         scope.Description.ShouldBe("Deployment environment");
@@ -48,18 +49,18 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, handler) = KiotaClientFactory.Create(factory);
+        var (client, handler) = ApiClientFactory.Create(factory);
         var request = new CreateScopeRequest
         {
             AllowedValues = ["dev"]
         };
 
         // Act
-        var exception = await Should.ThrowAsync<ApiException>(
-            () => client.Api.Scopes.PostAsync(request, cancellationToken: TestCancellationToken));
+        var exception = await Should.ThrowAsync<GroundControlApiClientException>(
+            () => client.CreateScopeHandlerAsync(request, TestCancellationToken));
 
         // Assert
-        exception.ResponseStatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
+        exception.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -67,8 +68,8 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, _) = KiotaClientFactory.Create(factory);
-        await CreateScopeAsync(client, "region", ["us-east", "eu-west"]);
+        var (client, handler) = ApiClientFactory.Create(factory);
+        await CreateScopeAsync(client, handler, "region", ["us-east", "eu-west"]);
 
         var duplicateRequest = new CreateScopeRequest
         {
@@ -77,11 +78,11 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         };
 
         // Act
-        var exception = await Should.ThrowAsync<ApiException>(
-            () => client.Api.Scopes.PostAsync(duplicateRequest, cancellationToken: TestCancellationToken));
+        var exception = await Should.ThrowAsync<GroundControlApiClientException>(
+            () => client.CreateScopeHandlerAsync(duplicateRequest, TestCancellationToken));
 
         // Assert
-        exception.ResponseStatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
+        exception.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -89,18 +90,18 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, handler) = KiotaClientFactory.Create(factory);
-        var created = await CreateScopeAsync(client, "environment", ["dev", "prod"]);
+        var (client, handler) = ApiClientFactory.Create(factory);
+        var created = await CreateScopeAsync(client, handler, "environment", ["dev", "prod"]);
 
         // Act
-        using var stream = await client.Api.Scopes[created.Id].GetAsync(cancellationToken: TestCancellationToken);
+        await client.GetScopeHandlerAsync(created.Id, TestCancellationToken);
 
         // Assert
         handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        handler.LastStatusCode.ShouldBe(HttpStatusCode.OK);
         handler.LastResponse.Headers.ETag.ShouldNotBeNull();
 
-        var scope = await ReadRequiredStreamAsync<ScopeResponse>(stream, TestCancellationToken);
+        var scope = handler.DeserializeCapturedResponse<ScopeResponse>();
         scope.Id.ShouldBe(created.Id);
         scope.Dimension.ShouldBe("environment");
     }
@@ -110,14 +111,14 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, _) = KiotaClientFactory.Create(factory);
+        var (client, _) = ApiClientFactory.Create(factory);
 
         // Act
-        var exception = await Should.ThrowAsync<ApiException>(
-            () => client.Api.Scopes[Guid.CreateVersion7()].GetAsync(cancellationToken: TestCancellationToken));
+        var exception = await Should.ThrowAsync<GroundControlApiClientException>(
+            () => client.GetScopeHandlerAsync(Guid.CreateVersion7(), TestCancellationToken));
 
         // Assert
-        exception.ResponseStatusCode.ShouldBe((int)HttpStatusCode.NotFound);
+        exception.StatusCode.ShouldBe((int)HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -125,18 +126,18 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, handler) = KiotaClientFactory.Create(factory);
-        await CreateScopeAsync(client, "environment", ["dev", "prod"]);
-        await CreateScopeAsync(client, "region", ["us", "eu"]);
+        var (client, handler) = ApiClientFactory.Create(factory);
+        await CreateScopeAsync(client, handler, "environment", ["dev", "prod"]);
+        await CreateScopeAsync(client, handler, "region", ["us", "eu"]);
 
         // Act
-        using var stream = await client.Api.Scopes.GetAsync(cancellationToken: TestCancellationToken);
+        await client.ListScopesHandlerAsync(cancellationToken: TestCancellationToken);
 
         // Assert
         handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        handler.LastStatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var page = await ReadRequiredStreamAsync<PaginatedResponse<ScopeResponse>>(stream, TestCancellationToken);
+        var page = handler.DeserializeCapturedResponse<PaginatedResponse<ScopeResponse>>();
         page.Data.Count.ShouldBe(2);
         page.TotalCount.ShouldBe(2);
     }
@@ -146,21 +147,20 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, handler) = KiotaClientFactory.Create(factory);
-        await CreateScopeAsync(client, "alpha", ["a"]);
-        await CreateScopeAsync(client, "bravo", ["b"]);
-        await CreateScopeAsync(client, "charlie", ["c"]);
+        var (client, handler) = ApiClientFactory.Create(factory);
+        await CreateScopeAsync(client, handler, "alpha", ["a"]);
+        await CreateScopeAsync(client, handler, "bravo", ["b"]);
+        await CreateScopeAsync(client, handler, "charlie", ["c"]);
 
         // Act
-        using var stream = await client.Api.Scopes.GetAsync(config =>
-        {
-            config.QueryParameters.Limit = "2";
-            config.QueryParameters.SortField = "dimension";
-            config.QueryParameters.SortOrder = "asc";
-        }, cancellationToken: TestCancellationToken);
+        await client.ListScopesHandlerAsync(
+            limit: 2,
+            sortField: "dimension",
+            sortOrder: "asc",
+            cancellationToken: TestCancellationToken);
 
         // Assert
-        var page = await ReadRequiredStreamAsync<PaginatedResponse<ScopeResponse>>(stream, TestCancellationToken);
+        var page = handler.DeserializeCapturedResponse<PaginatedResponse<ScopeResponse>>();
         page.Data.Count.ShouldBe(2);
         page.TotalCount.ShouldBe(3);
         page.NextCursor.ShouldNotBeNull();
@@ -173,10 +173,10 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, handler) = KiotaClientFactory.Create(factory);
-        var created = await CreateScopeAsync(client, "environment", ["dev", "prod"]);
-        var etag = $"\"{created.Version}\"";
+        var (client, handler) = ApiClientFactory.Create(factory);
+        var created = await CreateScopeAsync(client, handler, "environment", ["dev", "prod"]);
 
+        using var httpClient = factory.CreateClient();
         var updateRequest = new UpdateScopeRequest
         {
             Dimension = "environment",
@@ -185,16 +185,14 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         };
 
         // Act
-        using var stream = await client.Api.Scopes[created.Id].PutAsync(updateRequest, config =>
-        {
-            config.Headers.Add("If-Match", etag);
-        }, cancellationToken: TestCancellationToken);
+        httpClient.DefaultRequestHeaders.Add("If-Match", $"\"{created.Version}\"");
+        var response = await httpClient.PutAsJsonAsync(
+            $"/api/scopes/{created.Id}", updateRequest, WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
-        handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var updated = await ReadRequiredStreamAsync<ScopeResponse>(stream, TestCancellationToken);
+        var updated = await ReadRequiredJsonAsync<ScopeResponse>(response, TestCancellationToken);
         updated.AllowedValues.ShouldBe(["dev", "staging", "prod"]);
         updated.Description.ShouldBe("Updated");
         updated.Version.ShouldBe(2);
@@ -205,10 +203,10 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, _) = KiotaClientFactory.Create(factory);
-        var created = await CreateScopeAsync(client, "environment", ["dev", "prod"]);
-        var staleEtag = "\"999\"";
+        var (client, handler) = ApiClientFactory.Create(factory);
+        var created = await CreateScopeAsync(client, handler, "environment", ["dev", "prod"]);
 
+        using var httpClient = factory.CreateClient();
         var updateRequest = new UpdateScopeRequest
         {
             Dimension = "environment",
@@ -216,14 +214,12 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         };
 
         // Act
-        var exception = await Should.ThrowAsync<ApiException>(
-            () => client.Api.Scopes[created.Id].PutAsync(updateRequest, config =>
-            {
-                config.Headers.Add("If-Match", staleEtag);
-            }, cancellationToken: TestCancellationToken));
+        httpClient.DefaultRequestHeaders.Add("If-Match", "\"999\"");
+        var response = await httpClient.PutAsJsonAsync(
+            $"/api/scopes/{created.Id}", updateRequest, WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
-        exception.ResponseStatusCode.ShouldBe((int)HttpStatusCode.Conflict);
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 
     [Fact]
@@ -231,9 +227,10 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, _) = KiotaClientFactory.Create(factory);
-        var created = await CreateScopeAsync(client, "environment", ["dev", "prod"]);
+        var (client, handler) = ApiClientFactory.Create(factory);
+        var created = await CreateScopeAsync(client, handler, "environment", ["dev", "prod"]);
 
+        using var httpClient = factory.CreateClient();
         var updateRequest = new UpdateScopeRequest
         {
             Dimension = "environment",
@@ -241,11 +238,11 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         };
 
         // Act
-        var exception = await Should.ThrowAsync<ApiException>(
-            () => client.Api.Scopes[created.Id].PutAsync(updateRequest, cancellationToken: TestCancellationToken));
+        var response = await httpClient.PutAsJsonAsync(
+            $"/api/scopes/{created.Id}", updateRequest, WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
-        exception.ResponseStatusCode.ShouldBe(428);
+        ((int)response.StatusCode).ShouldBe(428);
     }
 
     [Fact]
@@ -253,19 +250,18 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, handler) = KiotaClientFactory.Create(factory);
-        var created = await CreateScopeAsync(client, "environment", ["dev", "prod"]);
-        var etag = $"\"{created.Version}\"";
+        var (client, handler) = ApiClientFactory.Create(factory);
+        var created = await CreateScopeAsync(client, handler, "environment", ["dev", "prod"]);
+
+        using var httpClient = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/scopes/{created.Id}");
+        request.Headers.Add("If-Match", $"\"{created.Version}\"");
 
         // Act
-        using var stream = await client.Api.Scopes[created.Id].DeleteAsync(config =>
-        {
-            config.Headers.Add("If-Match", etag);
-        }, cancellationToken: TestCancellationToken);
+        var response = await httpClient.SendAsync(request, TestCancellationToken);
 
         // Assert
-        handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
     [Fact]
@@ -273,22 +269,25 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
     {
         // Arrange
         await using var factory = CreateFactory();
-        var (client, _) = KiotaClientFactory.Create(factory);
-        var created = await CreateScopeAsync(client, "environment", ["dev", "prod"]);
-        var staleEtag = "\"999\"";
+        var (client, handler) = ApiClientFactory.Create(factory);
+        var created = await CreateScopeAsync(client, handler, "environment", ["dev", "prod"]);
+
+        using var httpClient = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/scopes/{created.Id}");
+        request.Headers.Add("If-Match", "\"999\"");
 
         // Act
-        var exception = await Should.ThrowAsync<ApiException>(
-            () => client.Api.Scopes[created.Id].DeleteAsync(config =>
-            {
-                config.Headers.Add("If-Match", staleEtag);
-            }, cancellationToken: TestCancellationToken));
+        var response = await httpClient.SendAsync(request, TestCancellationToken);
 
         // Assert
-        exception.ResponseStatusCode.ShouldBe((int)HttpStatusCode.Conflict);
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 
-    private static async Task<ScopeResponse> CreateScopeAsync(GroundControlApiClient client, string dimension, List<string> allowedValues)
+    private static async Task<ScopeResponse> CreateScopeAsync(
+        GroundControlClient client,
+        ResponseCapturingHandler handler,
+        string dimension,
+        List<string> allowedValues)
     {
         var request = new CreateScopeRequest
         {
@@ -296,7 +295,7 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
             AllowedValues = allowedValues
         };
 
-        using var stream = await client.Api.Scopes.PostAsync(request, cancellationToken: TestCancellationToken);
-        return await ReadRequiredStreamAsync<ScopeResponse>(stream, TestCancellationToken);
+        await client.CreateScopeHandlerAsync(request, TestCancellationToken);
+        return handler.DeserializeCapturedResponse<ScopeResponse>();
     }
 }
