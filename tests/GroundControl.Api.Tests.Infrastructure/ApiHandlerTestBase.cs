@@ -49,6 +49,16 @@ public abstract class ApiHandlerTestBase
         return payload;
     }
 
+    protected static async Task<TResponse> ReadRequiredStreamAsync<TResponse>(Stream? stream, CancellationToken cancellationToken)
+        where TResponse : class
+    {
+        stream.ShouldNotBeNull();
+        var payload = await JsonSerializer.DeserializeAsync<TResponse>(stream, WebJsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+        payload.ShouldNotBeNull();
+
+        return payload;
+    }
+
     protected GroundControlApiFactory CreateApiFactoryWithBuiltInAuthentication(Dictionary<string, string?>? extraConfig = null, IMongoDatabase? existingDatabase = null)
     {
         var config = new Dictionary<string, string?>
