@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using GroundControl.Api.Client.Tests.Infrastructure;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Templates.Contracts;
@@ -15,8 +14,6 @@ namespace GroundControl.Api.Client.Tests.ConfigEntries;
 
 public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public ConfigEntriesClientTests(MongoFixture mongoFixture)
         : base(mongoFixture)
     {
@@ -52,7 +49,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        var entry = await DeserializeAsync<ConfigEntryResponse>(stream);
+        var entry = await ReadRequiredStreamAsync<ConfigEntryResponse>(stream, TestCancellationToken);
         entry.Key.ShouldBe("Logging:LogLevel:Default");
         entry.OwnerId.ShouldBe(template.Id);
         entry.OwnerType.ShouldBe(ConfigEntryOwnerType.Template);
@@ -79,7 +76,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var entry = await DeserializeAsync<ConfigEntryResponse>(stream);
+        var entry = await ReadRequiredStreamAsync<ConfigEntryResponse>(stream, TestCancellationToken);
         entry.Id.ShouldBe(created.Id);
         entry.Key.ShouldBe("AppSettings:Feature");
         entry.Values.ShouldNotBeEmpty();
@@ -109,7 +106,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var page = await DeserializeAsync<PaginatedResponse<ConfigEntryResponse>>(stream);
+        var page = await ReadRequiredStreamAsync<PaginatedResponse<ConfigEntryResponse>>(stream, TestCancellationToken);
         page.Data.Count.ShouldBe(2);
         page.Data[0].Key.ShouldBe("Alpha:Key");
         page.Data[1].Key.ShouldBe("Zeta:Key");
@@ -144,7 +141,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var updated = await DeserializeAsync<ConfigEntryResponse>(stream);
+        var updated = await ReadRequiredStreamAsync<ConfigEntryResponse>(stream, TestCancellationToken);
         updated.ValueType.ShouldBe("Integer");
         updated.IsSensitive.ShouldBeTrue();
         updated.Description.ShouldBe("Connection timeout");
@@ -213,7 +210,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         };
 
         using var stream = await client.Api.ConfigEntries.PostAsync(request, cancellationToken: TestCancellationToken);
-        return await DeserializeAsync<ConfigEntryResponse>(stream);
+        return await ReadRequiredStreamAsync<ConfigEntryResponse>(stream, TestCancellationToken);
     }
 
     private static async Task<TemplateResponse> CreateTemplateViaHttpAsync(HttpClient httpClient, string name)
@@ -224,21 +221,12 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
             Description = $"{name} template"
         };
 
-        var response = await httpClient.PostAsJsonAsync("/api/templates", request, JsonOptions, TestCancellationToken).ConfigureAwait(false);
+        var response = await httpClient.PostAsJsonAsync("/api/templates", request, WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(JsonOptions, TestCancellationToken).ConfigureAwait(false);
+        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         template.ShouldNotBeNull();
 
         return template;
-    }
-
-    private static async Task<T> DeserializeAsync<T>(Stream? stream) where T : class
-    {
-        stream.ShouldNotBeNull();
-        var result = await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions).ConfigureAwait(false);
-        result.ShouldNotBeNull();
-
-        return result;
     }
 }

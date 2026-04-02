@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.Json;
 using GroundControl.Api.Client.Tests.Infrastructure;
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared.Pagination;
@@ -11,8 +10,6 @@ namespace GroundControl.Api.Client.Tests.Scopes;
 
 public sealed class ScopesClientTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public ScopesClientTests(MongoFixture mongoFixture)
         : base(mongoFixture)
     {
@@ -39,7 +36,7 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
         handler.LastResponse.Headers.Location.ShouldNotBeNull();
 
-        var scope = await DeserializeAsync<ScopeResponse>(stream);
+        var scope = await ReadRequiredStreamAsync<ScopeResponse>(stream, TestCancellationToken);
         scope.Dimension.ShouldBe("environment");
         scope.AllowedValues.ShouldBe(["dev", "staging", "prod"]);
         scope.Description.ShouldBe("Deployment environment");
@@ -103,7 +100,7 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         handler.LastResponse.Headers.ETag.ShouldNotBeNull();
 
-        var scope = await DeserializeAsync<ScopeResponse>(stream);
+        var scope = await ReadRequiredStreamAsync<ScopeResponse>(stream, TestCancellationToken);
         scope.Id.ShouldBe(created.Id);
         scope.Dimension.ShouldBe("environment");
     }
@@ -139,7 +136,7 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var page = await DeserializeAsync<PaginatedResponse<ScopeResponse>>(stream);
+        var page = await ReadRequiredStreamAsync<PaginatedResponse<ScopeResponse>>(stream, TestCancellationToken);
         page.Data.Count.ShouldBe(2);
         page.TotalCount.ShouldBe(2);
     }
@@ -163,7 +160,7 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         }, cancellationToken: TestCancellationToken);
 
         // Assert
-        var page = await DeserializeAsync<PaginatedResponse<ScopeResponse>>(stream);
+        var page = await ReadRequiredStreamAsync<PaginatedResponse<ScopeResponse>>(stream, TestCancellationToken);
         page.Data.Count.ShouldBe(2);
         page.TotalCount.ShouldBe(3);
         page.NextCursor.ShouldNotBeNull();
@@ -197,7 +194,7 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var updated = await DeserializeAsync<ScopeResponse>(stream);
+        var updated = await ReadRequiredStreamAsync<ScopeResponse>(stream, TestCancellationToken);
         updated.AllowedValues.ShouldBe(["dev", "staging", "prod"]);
         updated.Description.ShouldBe("Updated");
         updated.Version.ShouldBe(2);
@@ -300,15 +297,6 @@ public sealed class ScopesClientTests : ApiHandlerTestBase
         };
 
         using var stream = await client.Api.Scopes.PostAsync(request, cancellationToken: TestCancellationToken);
-        return await DeserializeAsync<ScopeResponse>(stream);
-    }
-
-    private static async Task<T> DeserializeAsync<T>(Stream? stream) where T : class
-    {
-        stream.ShouldNotBeNull();
-        var result = await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions).ConfigureAwait(false);
-        result.ShouldNotBeNull();
-
-        return result;
+        return await ReadRequiredStreamAsync<ScopeResponse>(stream, TestCancellationToken);
     }
 }

@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using GroundControl.Api.Client.Tests.Infrastructure;
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Features.Users.Contracts;
@@ -14,8 +13,6 @@ namespace GroundControl.Api.Client.Tests.Groups;
 
 public sealed class GroupsClientTests : ApiHandlerTestBase
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public GroupsClientTests(MongoFixture mongoFixture)
         : base(mongoFixture)
     {
@@ -40,7 +37,7 @@ public sealed class GroupsClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        var group = await DeserializeAsync<GroupResponse>(stream);
+        var group = await ReadRequiredStreamAsync<GroupResponse>(stream, TestCancellationToken);
         group.Name.ShouldBe("Engineering");
         group.Description.ShouldBe("Engineering team");
         group.Version.ShouldBe(1);
@@ -61,7 +58,7 @@ public sealed class GroupsClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var group = await DeserializeAsync<GroupResponse>(stream);
+        var group = await ReadRequiredStreamAsync<GroupResponse>(stream, TestCancellationToken);
         group.Id.ShouldBe(created.Id);
         group.Name.ShouldBe("Platform");
     }
@@ -91,7 +88,7 @@ public sealed class GroupsClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var updated = await DeserializeAsync<GroupResponse>(stream);
+        var updated = await ReadRequiredStreamAsync<GroupResponse>(stream, TestCancellationToken);
         updated.Name.ShouldBe("DevOps Updated");
         updated.Description.ShouldBe("Updated description");
         updated.Version.ShouldBe(2);
@@ -142,7 +139,7 @@ public sealed class GroupsClientTests : ApiHandlerTestBase
         handler.LastResponse.ShouldNotBeNull();
         handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var members = await DeserializeAsync<List<UserResponse>>(stream);
+        var members = await ReadRequiredStreamAsync<List<UserResponse>>(stream, TestCancellationToken);
         members.ShouldHaveSingleItem();
         members[0].Id.ShouldBe(user.Id);
     }
@@ -180,7 +177,7 @@ public sealed class GroupsClientTests : ApiHandlerTestBase
         };
 
         using var stream = await client.Api.Groups.PostAsync(request, cancellationToken: TestCancellationToken);
-        return await DeserializeAsync<GroupResponse>(stream);
+        return await ReadRequiredStreamAsync<GroupResponse>(stream, TestCancellationToken);
     }
 
     private static async Task<UserResponse> CreateUserViaHttpAsync(HttpClient httpClient, string username, string email)
@@ -188,23 +185,14 @@ public sealed class GroupsClientTests : ApiHandlerTestBase
         var response = await httpClient.PostAsJsonAsync(
             "/api/users",
             new CreateUserRequest { Username = username, Email = email },
-            JsonOptions,
+            WebJsonSerializerOptions,
             TestCancellationToken).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        var user = await response.Content.ReadFromJsonAsync<UserResponse>(JsonOptions, TestCancellationToken).ConfigureAwait(false);
+        var user = await response.Content.ReadFromJsonAsync<UserResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
         user.ShouldNotBeNull();
 
         return user;
-    }
-
-    private static async Task<T> DeserializeAsync<T>(Stream? stream) where T : class
-    {
-        stream.ShouldNotBeNull();
-        var result = await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions).ConfigureAwait(false);
-        result.ShouldNotBeNull();
-
-        return result;
     }
 }
