@@ -1,14 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
+using GroundControl.Api.Client.Contracts;
 using GroundControl.Api.Client.Tests.Infrastructure;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared.Pagination;
 using GroundControl.Persistence.Contracts;
-using Microsoft.Kiota.Abstractions;
-using CreateConfigEntryRequest = GroundControl.Api.Client.Models.CreateConfigEntryRequest;
-using ScopedValueRequest = GroundControl.Api.Client.Models.ScopedValueRequest;
-using UpdateConfigEntryRequest = GroundControl.Api.Client.Models.UpdateConfigEntryRequest;
+using CreateConfigEntryRequest = GroundControl.Api.Client.Contracts.CreateConfigEntryRequest;
+using CreateTemplateRequest = GroundControl.Api.Features.Templates.Contracts.CreateTemplateRequest;
+using ScopedValueRequest = GroundControl.Api.Client.Contracts.ScopedValueRequest;
 
 namespace GroundControl.Api.Client.Tests.ConfigEntries;
 
@@ -25,7 +25,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         // Arrange
         await using var factory = CreateFactory();
         using var httpClient = factory.CreateClient();
-        var (client, handler) = KiotaClientFactory.Create(factory);
+        var (client, handler) = ApiClientFactory.Create(factory);
         var template = await CreateTemplateViaHttpAsync(httpClient, "Test Template");
 
         var request = new CreateConfigEntryRequest
@@ -43,13 +43,13 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         };
 
         // Act
-        using var stream = await client.Api.ConfigEntries.PostAsync(request, cancellationToken: TestCancellationToken);
+        await client.CreateConfigEntryHandlerAsync(request, TestCancellationToken);
 
         // Assert
         handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        handler.LastStatusCode.ShouldBe(HttpStatusCode.Created);
 
-        var entry = await ReadRequiredStreamAsync<ConfigEntryResponse>(stream, TestCancellationToken);
+        var entry = handler.DeserializeCapturedResponse<ConfigEntryResponse>();
         entry.Key.ShouldBe("Logging:LogLevel:Default");
         entry.OwnerId.ShouldBe(template.Id);
         entry.OwnerType.ShouldBe(ConfigEntryOwnerType.Template);
@@ -65,18 +65,18 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         // Arrange
         await using var factory = CreateFactory();
         using var httpClient = factory.CreateClient();
-        var (client, handler) = KiotaClientFactory.Create(factory);
+        var (client, handler) = ApiClientFactory.Create(factory);
         var template = await CreateTemplateViaHttpAsync(httpClient, "Test Template");
-        var created = await CreateConfigEntryAsync(client, "AppSettings:Feature", template.Id);
+        var created = await CreateConfigEntryAsync(client, handler, "AppSettings:Feature", template.Id);
 
         // Act
-        using var stream = await client.Api.ConfigEntries[created.Id].GetAsync(cancellationToken: TestCancellationToken);
+        await client.GetConfigEntryHandlerAsync(created.Id, cancellationToken: TestCancellationToken);
 
         // Assert
         handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        handler.LastStatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var entry = await ReadRequiredStreamAsync<ConfigEntryResponse>(stream, TestCancellationToken);
+        var entry = handler.DeserializeCapturedResponse<ConfigEntryResponse>();
         entry.Id.ShouldBe(created.Id);
         entry.Key.ShouldBe("AppSettings:Feature");
         entry.Values.ShouldNotBeEmpty();
@@ -88,25 +88,24 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         // Arrange
         await using var factory = CreateFactory();
         using var httpClient = factory.CreateClient();
-        var (client, handler) = KiotaClientFactory.Create(factory);
+        var (client, handler) = ApiClientFactory.Create(factory);
         var template = await CreateTemplateViaHttpAsync(httpClient, "Test Template");
-        await CreateConfigEntryAsync(client, "Zeta:Key", template.Id);
-        await CreateConfigEntryAsync(client, "Alpha:Key", template.Id);
+        await CreateConfigEntryAsync(client, handler, "Zeta:Key", template.Id);
+        await CreateConfigEntryAsync(client, handler, "Alpha:Key", template.Id);
 
         // Act
-        using var stream = await client.Api.ConfigEntries.GetAsync(config =>
-        {
-            config.QueryParameters.OwnerId = template.Id;
-            config.QueryParameters.OwnerType = (int)ConfigEntryOwnerType.Template;
-            config.QueryParameters.SortField = "key";
-            config.QueryParameters.SortOrder = "asc";
-        }, cancellationToken: TestCancellationToken);
+        await client.ListConfigEntriesHandlerAsync(
+            ownerId: template.Id,
+            ownerType: (int)ConfigEntryOwnerType.Template,
+            sortField: "key",
+            sortOrder: "asc",
+            cancellationToken: TestCancellationToken);
 
         // Assert
         handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        handler.LastStatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var page = await ReadRequiredStreamAsync<PaginatedResponse<ConfigEntryResponse>>(stream, TestCancellationToken);
+        var page = handler.DeserializeCapturedResponse<PaginatedResponse<ConfigEntryResponse>>();
         page.Data.Count.ShouldBe(2);
         page.Data[0].Key.ShouldBe("Alpha:Key");
         page.Data[1].Key.ShouldBe("Zeta:Key");
@@ -118,30 +117,27 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         // Arrange
         await using var factory = CreateFactory();
         using var httpClient = factory.CreateClient();
-        var (client, handler) = KiotaClientFactory.Create(factory);
+        var (client, handler) = ApiClientFactory.Create(factory);
         var template = await CreateTemplateViaHttpAsync(httpClient, "Test Template");
-        var created = await CreateConfigEntryAsync(client, "Database:Timeout", template.Id);
-        var etag = $"\"{created.Version}\"";
+        var created = await CreateConfigEntryAsync(client, handler, "Database:Timeout", template.Id);
 
-        var updateRequest = new UpdateConfigEntryRequest
+        var updateRequest = new GroundControl.Api.Features.ConfigEntries.Contracts.UpdateConfigEntryRequest
         {
             ValueType = "Integer",
-            Values = [new ScopedValueRequest { Value = "30" }],
+            Values = [new GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest { Value = "30" }],
             IsSensitive = true,
             Description = "Connection timeout"
         };
 
         // Act
-        using var stream = await client.Api.ConfigEntries[created.Id].PutAsync(updateRequest, config =>
-        {
-            config.Headers.Add("If-Match", etag);
-        }, cancellationToken: TestCancellationToken);
+        httpClient.DefaultRequestHeaders.Add("If-Match", $"\"{created.Version}\"");
+        var response = await httpClient.PutAsJsonAsync(
+            $"/api/config-entries/{created.Id}", updateRequest, WebJsonSerializerOptions, TestCancellationToken);
 
         // Assert
-        handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var updated = await ReadRequiredStreamAsync<ConfigEntryResponse>(stream, TestCancellationToken);
+        var updated = await ReadRequiredJsonAsync<ConfigEntryResponse>(response, TestCancellationToken);
         updated.ValueType.ShouldBe("Integer");
         updated.IsSensitive.ShouldBeTrue();
         updated.Description.ShouldBe("Connection timeout");
@@ -154,7 +150,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         // Arrange
         await using var factory = CreateFactory();
         using var httpClient = factory.CreateClient();
-        var (client, _) = KiotaClientFactory.Create(factory);
+        var (client, _) = ApiClientFactory.Create(factory);
         var template = await CreateTemplateViaHttpAsync(httpClient, "Test Template");
 
         var request = new CreateConfigEntryRequest
@@ -166,11 +162,11 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         };
 
         // Act
-        var exception = await Should.ThrowAsync<ApiException>(
-            () => client.Api.ConfigEntries.PostAsync(request, cancellationToken: TestCancellationToken));
+        var exception = await Should.ThrowAsync<GroundControlApiClientException>(
+            () => client.CreateConfigEntryHandlerAsync(request, TestCancellationToken));
 
         // Assert
-        exception.ResponseStatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
+        exception.StatusCode.ShouldBe((int)HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -179,24 +175,23 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         // Arrange
         await using var factory = CreateFactory();
         using var httpClient = factory.CreateClient();
-        var (client, handler) = KiotaClientFactory.Create(factory);
+        var (client, handler) = ApiClientFactory.Create(factory);
         var template = await CreateTemplateViaHttpAsync(httpClient, "Test Template");
-        var created = await CreateConfigEntryAsync(client, "ToDelete:Key", template.Id);
-        var etag = $"\"{created.Version}\"";
+        var created = await CreateConfigEntryAsync(client, handler, "ToDelete:Key", template.Id);
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/config-entries/{created.Id}");
+        request.Headers.Add("If-Match", $"\"{created.Version}\"");
 
         // Act
-        using var stream = await client.Api.ConfigEntries[created.Id].DeleteAsync(config =>
-        {
-            config.Headers.Add("If-Match", etag);
-        }, cancellationToken: TestCancellationToken);
+        var response = await httpClient.SendAsync(request, TestCancellationToken);
 
         // Assert
-        handler.LastResponse.ShouldNotBeNull();
-        handler.LastResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
     private static async Task<ConfigEntryResponse> CreateConfigEntryAsync(
-        GroundControlApiClient client,
+        GroundControlClient client,
+        ResponseCapturingHandler handler,
         string key,
         Guid ownerId)
     {
@@ -209,8 +204,8 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
             Values = [new ScopedValueRequest { Value = "default" }]
         };
 
-        using var stream = await client.Api.ConfigEntries.PostAsync(request, cancellationToken: TestCancellationToken);
-        return await ReadRequiredStreamAsync<ConfigEntryResponse>(stream, TestCancellationToken);
+        await client.CreateConfigEntryHandlerAsync(request, TestCancellationToken);
+        return handler.DeserializeCapturedResponse<ConfigEntryResponse>();
     }
 
     private static async Task<TemplateResponse> CreateTemplateViaHttpAsync(HttpClient httpClient, string name)

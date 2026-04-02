@@ -1,4 +1,5 @@
 using GroundControl.Api.Client;
+using GroundControl.Api.Client.Handlers;
 using GroundControl.Cli.Shared.ErrorHandling;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GroundControl.Cli.Shared.ApiClient;
 
 /// <summary>
-/// Registers the Kiota-generated <see cref="GroundControlApiClient" /> with the DI container
+/// Registers the NSwag-generated <see cref="GroundControlClient" /> with the DI container
 /// via <see cref="IHttpClientFactory" />.
 /// </summary>
 internal sealed class ApiClientModule : IDependencyModule
@@ -25,7 +26,7 @@ internal sealed class ApiClientModule : IDependencyModule
 
         var serverUrl = section.GetValue<string>(nameof(GroundControlClientOptions.ServerUrl));
 
-        services.AddGroundControlApiClient(httpClient =>
+        services.AddGroundControlClient(httpClient =>
         {
             if (string.IsNullOrWhiteSpace(serverUrl))
             {

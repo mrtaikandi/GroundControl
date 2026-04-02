@@ -1,5 +1,5 @@
+using GroundControl.Api.Client.Contracts;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Kiota.Abstractions.Authentication;
 
 namespace GroundControl.Api.Client.Tests;
 
@@ -52,8 +52,8 @@ public sealed class ServiceCollectionExtensionsTests
         using var provider = services.BuildServiceProvider();
 
         // Act
-        var instance1 = provider.GetRequiredService<GroundControlApiClient>();
-        var instance2 = provider.GetRequiredService<GroundControlApiClient>();
+        var instance1 = provider.GetRequiredService<IGroundControlApiClient>();
+        var instance2 = provider.GetRequiredService<IGroundControlApiClient>();
 
         // Assert
         instance1.ShouldNotBeSameAs(instance2);
@@ -71,32 +71,14 @@ public sealed class ServiceCollectionExtensionsTests
         var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
 
         // Act
-        var httpClient = httpClientFactory.CreateClient(nameof(GroundControlApiClient));
+        var httpClient = httpClientFactory.CreateClient(typeof(IGroundControlApiClient).Name);
 
         // Assert
         httpClient.BaseAddress.ShouldBe(expectedBaseAddress);
     }
 
     [Fact]
-    public void AddGroundControlApiClient_WithCustomAuth_ResolvesSuccessfully()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddGroundControlApiClient(
-            client => client.BaseAddress = new Uri("https://localhost"),
-            _ => new ApiKeyAuthenticationProvider(Guid.NewGuid(), "test-secret"));
-
-        using var provider = services.BuildServiceProvider();
-
-        // Act
-        var client = provider.GetRequiredService<GroundControlApiClient>();
-
-        // Assert
-        client.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void AddGroundControlApiClient_WithoutAuth_UsesAnonymousFallback()
+    public void AddGroundControlApiClient_ResolvesSuccessfully()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -106,29 +88,11 @@ public sealed class ServiceCollectionExtensionsTests
         using var provider = services.BuildServiceProvider();
 
         // Act
-        var client = provider.GetRequiredService<GroundControlApiClient>();
+        var client = provider.GetRequiredService<IGroundControlApiClient>();
 
         // Assert
         client.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void AddGroundControlApiClient_WithDIRegisteredAuth_ResolvesSuccessfully()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddSingleton<IAuthenticationProvider>(
-            new ApiKeyAuthenticationProvider(Guid.NewGuid(), "test-secret"));
-        services.AddGroundControlApiClient(
-            client => client.BaseAddress = new Uri("https://localhost"));
-
-        using var provider = services.BuildServiceProvider();
-
-        // Act
-        var client = provider.GetRequiredService<GroundControlApiClient>();
-
-        // Assert
-        client.ShouldNotBeNull();
+        client.ShouldBeOfType<GroundControlClient>();
     }
 
     [Fact]
@@ -143,6 +107,5 @@ public sealed class ServiceCollectionExtensionsTests
 
         // Assert
         builder.ShouldNotBeNull();
-        builder.Name.ShouldBe(nameof(GroundControlApiClient));
     }
 }
