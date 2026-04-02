@@ -43,6 +43,11 @@ This keeps the main context clean for implementation.
 1. State which task and milestone you selected. By writing exactly "Selected task T###: Task Title from Milestone M##: Milestone Title" you confirm that you read the relevant planning documents and are grounding your implementation in them. If the user named a specific target, confirm that you found it and will use it.
 2. Update the conversation title to `T### — Task Title` so the session is easily identifiable.
 3. Read the task's goal, scope, implementation checklist, acceptance criteria, verification steps, and traceability links before proceeding.
+4. **Mark the task as in-progress** — update the planning files on the current (main) branch before entering a worktree:
+   - **Task file:** set frontmatter `status: in-progress`
+   - **Milestone file:** if the milestone status is `planned`, set it to `in-progress`. Update the task row status to `in-progress`.
+   - **Planning index (`planning/README.md`):** update if the milestone status changed.
+   - These files are git-ignored, so no commit is needed.
 
 ### Phase 2: Worktree Setup
 
