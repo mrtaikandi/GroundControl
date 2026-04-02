@@ -1,4 +1,4 @@
-#pragma warning disable CA1708
+using GroundControl.Api.Client.Contracts;
 using Spectre.Console;
 
 namespace GroundControl.Cli.Shared.ErrorHandling;
@@ -7,58 +7,65 @@ internal static class ProblemDetailsErrorRenderer
 {
     extension(IShell shell)
     {
-        internal void RenderProblemDetails(ProblemDetailsApiException ex)
+        internal void RenderProblemDetails(ProblemDetails ex)
         {
-            switch (ex.StatusCode)
+            if (ex is HttpValidationProblemDetails validationProblemDetails)
             {
-                case 400:
-                    RenderValidationErrors(shell, ex);
-                    break;
+                shell.RenderValidationErrors(validationProblemDetails);
+                return;
+            }
+
+            switch (ex.Status)
+            {
                 case 404:
                     shell.DisplayError(ex.Detail ?? "The requested resource was not found.");
                     break;
+
                 case 409:
                     shell.DisplayError(ex.Detail ?? "A conflict occurred. The resource may have been modified by another user.");
                     break;
+
                 case 422:
                     shell.DisplayError(ex.Detail ?? "The request could not be processed.");
                     break;
+
                 case 428:
                     shell.DisplayError("Version required — use the --version flag to specify the expected version.");
                     break;
+
                 default:
-                    if (ex.StatusCode >= 500)
+                    if (ex.Status >= 500)
                     {
                         shell.DisplayError("A server error occurred. Use --debug for details.");
                     }
                     else
                     {
-                        shell.DisplayError(ex.Detail ?? ex.Title ?? $"Request failed with status {ex.StatusCode}.");
+                        shell.DisplayError(ex.Detail ?? ex.Title ?? $"Request failed with status {ex.Status}.");
                     }
 
                     break;
             }
         }
-    }
 
-    private static void RenderValidationErrors(IShell shell, ProblemDetailsApiException ex)
-    {
-        shell.DisplayError(ex.Detail ?? "Validation failed.");
-
-        if (ex.ValidationErrors.Count == 0)
+        private void RenderValidationErrors(HttpValidationProblemDetails problem)
         {
-            return;
-        }
+            shell.DisplayError(problem.Detail ?? "Validation failed.");
 
-        foreach (var (field, errors) in ex.ValidationErrors)
-        {
-            foreach (var error in errors)
+            if (problem.Errors?.Count is null or 0)
             {
-                var message = string.IsNullOrEmpty(field)
-                    ? error
-                    : $"{field}: {error}";
+                return;
+            }
 
-                shell.Console.MarkupLine($"  [red]{Markup.Escape(message)}[/]");
+            foreach (var (field, errors) in problem.Errors)
+            {
+                foreach (var error in errors)
+                {
+                    var message = string.IsNullOrEmpty(field)
+                        ? error
+                        : $"{field}: {error}";
+
+                    shell.Console.MarkupLine($"  [red]{Markup.Escape(message)}[/]");
+                }
             }
         }
     }

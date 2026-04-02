@@ -1,3 +1,5 @@
+using System.Net;
+using GroundControl.Api.Client.Contracts;
 using GroundControl.Cli.Shared.ErrorHandling;
 
 namespace GroundControl.Cli.Tests.Shared;
@@ -10,15 +12,20 @@ public sealed class ProblemDetailsErrorRendererTests
         // Arrange
         var shellBuilder = new MockShellBuilder();
         var shell = shellBuilder.Build();
-        var errors = new Dictionary<string, string[]>
+
+        var problem = new HttpValidationProblemDetails
         {
-            ["Name"] = ["Name is required."]
+            Title = "Validation failed",
+            Status = (int)HttpStatusCode.BadRequest,
+            Detail = "Validation failed.",
+            Errors = new Dictionary<string, ICollection<string>>
+            {
+                ["Name"] = ["Name is required."]
+            }
         };
 
-        var ex = new ProblemDetailsApiException(400, "Validation failed", "Validation failed.", errors);
-
         // Act
-        shell.RenderProblemDetails(ex);
+        shell.RenderProblemDetails(problem);
 
         // Assert
         var output = shellBuilder.GetOutput();
@@ -32,10 +39,15 @@ public sealed class ProblemDetailsErrorRendererTests
         // Arrange
         var shellBuilder = new MockShellBuilder();
         var shell = shellBuilder.Build();
-        var ex = new ProblemDetailsApiException(404, "Not Found", "Scope 'abc' was not found.");
+        var problem = new ProblemDetails
+        {
+            Title = "Not Found",
+            Status = 404,
+            Detail = "Scope 'abc' was not found."
+        };
 
         // Act
-        shell.RenderProblemDetails(ex);
+        shell.RenderProblemDetails(problem);
 
         // Assert
         var output = shellBuilder.GetOutput();
@@ -43,15 +55,20 @@ public sealed class ProblemDetailsErrorRendererTests
     }
 
     [Fact]
-    public void RenderProblemDetails_404_WithoutDetail_ShowsDefaultMessage()
+    public void ProblemDetailsApiException()
     {
         // Arrange
         var shellBuilder = new MockShellBuilder();
         var shell = shellBuilder.Build();
-        var ex = new ProblemDetailsApiException(404, "Not Found", null);
+        var problem = new ProblemDetails
+        {
+            Title = "Not Found",
+            Status = 404,
+            Detail = null
+        };
 
         // Act
-        shell.RenderProblemDetails(ex);
+        shell.RenderProblemDetails(problem);
 
         // Assert
         var output = shellBuilder.GetOutput();
@@ -64,10 +81,15 @@ public sealed class ProblemDetailsErrorRendererTests
         // Arrange
         var shellBuilder = new MockShellBuilder();
         var shell = shellBuilder.Build();
-        var ex = new ProblemDetailsApiException(409, "Conflict", "Version conflict.");
+        var problem = new ProblemDetails
+        {
+            Title = "Conflict",
+            Status = 409,
+            Detail = "Version conflict."
+        };
 
         // Act
-        shell.RenderProblemDetails(ex);
+        shell.RenderProblemDetails(problem);
 
         // Assert
         var output = shellBuilder.GetOutput();
@@ -80,10 +102,15 @@ public sealed class ProblemDetailsErrorRendererTests
         // Arrange
         var shellBuilder = new MockShellBuilder();
         var shell = shellBuilder.Build();
-        var ex = new ProblemDetailsApiException(422, "Unprocessable Entity", "Variable references could not be resolved.");
+        var problem = new ProblemDetails
+        {
+            Title = "Unprocessable Entity",
+            Status = 422,
+            Detail = "Variable references could not be resolved."
+        };
 
         // Act
-        shell.RenderProblemDetails(ex);
+        shell.RenderProblemDetails(problem);
 
         // Assert
         var output = shellBuilder.GetOutput();
@@ -96,10 +123,15 @@ public sealed class ProblemDetailsErrorRendererTests
         // Arrange
         var shellBuilder = new MockShellBuilder();
         var shell = shellBuilder.Build();
-        var ex = new ProblemDetailsApiException(428, "Precondition Required", "The If-Match header is required.");
+        var problem = new ProblemDetails
+        {
+            Title = "Precondition Required",
+            Status = 428,
+            Detail = "The If-Match header is required."
+        };
 
         // Act
-        shell.RenderProblemDetails(ex);
+        shell.RenderProblemDetails(problem);
 
         // Assert
         var output = shellBuilder.GetOutput();
@@ -113,10 +145,15 @@ public sealed class ProblemDetailsErrorRendererTests
         // Arrange
         var shellBuilder = new MockShellBuilder();
         var shell = shellBuilder.Build();
-        var ex = new ProblemDetailsApiException(500, "Internal Server Error", "Something went wrong.");
+        var problem = new ProblemDetails
+        {
+            Title = "Internal Server Error",
+            Status = 500,
+            Detail = "Something went wrong."
+        };
 
         // Act
-        shell.RenderProblemDetails(ex);
+        shell.RenderProblemDetails(problem);
 
         // Assert
         var output = shellBuilder.GetOutput();
@@ -130,16 +167,21 @@ public sealed class ProblemDetailsErrorRendererTests
         // Arrange
         var shellBuilder = new MockShellBuilder();
         var shell = shellBuilder.Build();
-        var errors = new Dictionary<string, string[]>
+
+        var problem = new HttpValidationProblemDetails
         {
-            ["Name"] = ["Name is required.", "Name must be at most 100 characters."],
-            [""] = ["At least one value is required."]
+            Title = "Validation failed",
+            Status = (int)HttpStatusCode.BadRequest,
+            Detail = "Validation failed.",
+            Errors = new Dictionary<string, ICollection<string>>
+            {
+                ["Name"] = ["Name is required.", "Name must be at most 100 characters."],
+                [""] = ["At least one value is required."]
+            }
         };
 
-        var ex = new ProblemDetailsApiException(400, "Validation failed", "Validation failed.", errors);
-
         // Act
-        shell.RenderProblemDetails(ex);
+        shell.RenderProblemDetails(problem);
 
         // Assert
         var output = shellBuilder.GetOutput();

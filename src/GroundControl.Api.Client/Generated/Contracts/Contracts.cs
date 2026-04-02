@@ -804,7 +804,7 @@ namespace GroundControl.Api.Client.Contracts
         public System.Guid PerformedBy { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("changes")]
-        public System.Collections.Generic.IEnumerable<FieldChangeResponse> Changes { get; set; } = new System.Collections.ObjectModel.Collection<FieldChangeResponse>();
+        public System.Collections.Generic.ICollection<FieldChangeResponse> Changes { get; set; } = new System.Collections.ObjectModel.Collection<FieldChangeResponse>();
 
         [System.Text.Json.Serialization.JsonPropertyName("metadata")]
         public System.Collections.Generic.IDictionary<string, string>? Metadata { get; set; } = default!;
@@ -1021,7 +1021,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the scope-specific values.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
-        public System.Collections.Generic.IEnumerable<ScopedValue> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValue>();
+        public System.Collections.Generic.ICollection<ScopedValue> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValue>();
 
         /// <summary>
         /// Gets a value indicating whether the entry contains sensitive data.
@@ -1225,7 +1225,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the scope-specific values.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
-        public System.Collections.Generic.IEnumerable<ScopedValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueRequest>();
+        public System.Collections.Generic.ICollection<ScopedValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueRequest>();
 
         /// <summary>
         /// Gets a value indicating whether the entry contains sensitive data.
@@ -1300,7 +1300,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the optional permission whitelist for the token.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("permissions")]
-        public System.Collections.Generic.IEnumerable<string>? Permissions { get; set; } = default!;
+        public System.Collections.Generic.ICollection<string>? Permissions { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1330,7 +1330,7 @@ namespace GroundControl.Api.Client.Contracts
         public string TokenPrefix { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("permissions")]
-        public System.Collections.Generic.IEnumerable<string>? Permissions { get; set; } = default!;
+        public System.Collections.Generic.ICollection<string>? Permissions { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("expiresAt")]
         public System.DateTimeOffset? ExpiresAt { get; set; } = default!;
@@ -1378,7 +1378,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the optional ordered template identifiers to apply to the project.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("templateIds")]
-        public System.Collections.Generic.IEnumerable<System.Guid>? TemplateIds { get; set; } = default!;
+        public System.Collections.Generic.ICollection<System.Guid>? TemplateIds { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1414,7 +1414,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the permission strings granted by the role.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("permissions")]
-        public System.Collections.Generic.IEnumerable<string> Permissions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<string> Permissions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1444,7 +1444,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the allowed values for the scope dimension.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowedValues")]
-        public System.Collections.Generic.IEnumerable<string> AllowedValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<string> AllowedValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
         /// Gets the optional human-readable description for the scope.
@@ -1528,7 +1528,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the role grants to assign to the new user.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("grants")]
-        public System.Collections.Generic.IEnumerable<GrantDto>? Grants { get; set; } = default!;
+        public System.Collections.Generic.ICollection<GrantDto>? Grants { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1558,7 +1558,7 @@ namespace GroundControl.Api.Client.Contracts
         public System.Guid? ProjectId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("values")]
-        public System.Collections.Generic.IEnumerable<ScopedValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueRequest>();
+        public System.Collections.Generic.ICollection<ScopedValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueRequest>();
 
         [System.Text.Json.Serialization.JsonPropertyName("isSensitive")]
         public bool? IsSensitive { get; set; } = default!;
@@ -1624,7 +1624,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets optional scope value conditions that further restrict access.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("conditions")]
-        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.IEnumerable<string>>? Conditions { get; set; } = default!;
+        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>>? Conditions { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1704,35 +1704,11 @@ namespace GroundControl.Api.Client.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial record HttpValidationProblemDetails
+    public partial record HttpValidationProblemDetails : ProblemDetails
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string? Type { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
-        public string? Title { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("status")]
-        public int? Status { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("detail")]
-        public string? Detail { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("instance")]
-        public string? Instance { get; set; } = default!;
-
         [System.Text.Json.Serialization.JsonPropertyName("errors")]
-        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.IEnumerable<string>>? Errors { get; set; } = default!;
-
-        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
+        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>>? Errors { get; set; } = default!;
 
     }
 
@@ -1747,7 +1723,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<AuditRecordResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<AuditRecordResponse>();
+        public System.Collections.Generic.ICollection<AuditRecordResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<AuditRecordResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -1789,7 +1765,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<ClientResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<ClientResponse>();
+        public System.Collections.Generic.ICollection<ClientResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<ClientResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -1831,7 +1807,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<ConfigEntryResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<ConfigEntryResponse>();
+        public System.Collections.Generic.ICollection<ConfigEntryResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<ConfigEntryResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -1873,7 +1849,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<GroupResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<GroupResponse>();
+        public System.Collections.Generic.ICollection<GroupResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<GroupResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -1915,7 +1891,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<ProjectResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<ProjectResponse>();
+        public System.Collections.Generic.ICollection<ProjectResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<ProjectResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -1957,7 +1933,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<ScopeResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<ScopeResponse>();
+        public System.Collections.Generic.ICollection<ScopeResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<ScopeResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -1999,7 +1975,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<SnapshotSummaryResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<SnapshotSummaryResponse>();
+        public System.Collections.Generic.ICollection<SnapshotSummaryResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<SnapshotSummaryResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -2041,7 +2017,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<TemplateResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<TemplateResponse>();
+        public System.Collections.Generic.ICollection<TemplateResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<TemplateResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -2083,7 +2059,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<UserResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<UserResponse>();
+        public System.Collections.Generic.ICollection<UserResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<UserResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -2125,7 +2101,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the items in the current page.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public System.Collections.Generic.IEnumerable<VariableResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<VariableResponse>();
+        public System.Collections.Generic.ICollection<VariableResponse> Data { get; set; } = new System.Collections.ObjectModel.Collection<VariableResponse>();
 
         /// <summary>
         /// Gets the cursor for the next page.
@@ -2170,7 +2146,7 @@ namespace GroundControl.Api.Client.Contracts
         public string TokenPrefix { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("permissions")]
-        public System.Collections.Generic.IEnumerable<string>? Permissions { get; set; } = default!;
+        public System.Collections.Generic.ICollection<string>? Permissions { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("isRevoked")]
         public bool? IsRevoked { get; set; } = default!;
@@ -2260,7 +2236,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the ordered template identifiers applied to the project.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("templateIds")]
-        public System.Collections.Generic.IEnumerable<System.Guid> TemplateIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+        public System.Collections.Generic.ICollection<System.Guid> TemplateIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
         /// Gets the active snapshot identifier.
@@ -2362,7 +2338,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the resolved values for each applicable scope combination.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
-        public System.Collections.Generic.IEnumerable<ScopedValueResponse> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueResponse>();
+        public System.Collections.Generic.ICollection<ScopedValueResponse> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueResponse>();
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2404,7 +2380,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the permission strings granted by the role.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("permissions")]
-        public System.Collections.Generic.IEnumerable<string> Permissions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<string> Permissions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
         /// Gets the optimistic concurrency version.
@@ -2560,7 +2536,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the allowed values for the scope dimension.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowedValues")]
-        public System.Collections.Generic.IEnumerable<string> AllowedValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<string> AllowedValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
         /// Gets the optional human-readable description for the scope.
@@ -2662,7 +2638,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the resolved entries captured in the snapshot.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("entries")]
-        public System.Collections.Generic.IEnumerable<ResolvedEntryResponse> Entries { get; set; } = new System.Collections.ObjectModel.Collection<ResolvedEntryResponse>();
+        public System.Collections.Generic.ICollection<ResolvedEntryResponse> Entries { get; set; } = new System.Collections.ObjectModel.Collection<ResolvedEntryResponse>();
 
         /// <summary>
         /// Gets the publication timestamp.
@@ -2878,7 +2854,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the scope-specific values.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("values")]
-        public System.Collections.Generic.IEnumerable<ScopedValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueRequest>();
+        public System.Collections.Generic.ICollection<ScopedValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueRequest>();
 
         /// <summary>
         /// Gets a value indicating whether the entry contains sensitive data.
@@ -2962,7 +2938,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the optional ordered template identifiers to apply to the project.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("templateIds")]
-        public System.Collections.Generic.IEnumerable<System.Guid>? TemplateIds { get; set; } = default!;
+        public System.Collections.Generic.ICollection<System.Guid>? TemplateIds { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2998,7 +2974,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the permission strings granted by the role.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("permissions")]
-        public System.Collections.Generic.IEnumerable<string> Permissions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<string> Permissions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -3028,7 +3004,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the allowed values for the scope dimension.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowedValues")]
-        public System.Collections.Generic.IEnumerable<string> AllowedValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<string> AllowedValues { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
         /// Gets the optional human-readable description for the scope.
@@ -3106,7 +3082,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the role grants to assign. Requires `users:write` permission.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("grants")]
-        public System.Collections.Generic.IEnumerable<GrantDto>? Grants { get; set; } = default!;
+        public System.Collections.Generic.ICollection<GrantDto>? Grants { get; set; } = default!;
 
         /// <summary>
         /// Gets a value indicating whether the user should be active. Requires `users:write` permission.
@@ -3130,7 +3106,7 @@ namespace GroundControl.Api.Client.Contracts
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("values")]
-        public System.Collections.Generic.IEnumerable<ScopedValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueRequest>();
+        public System.Collections.Generic.ICollection<ScopedValueRequest> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValueRequest>();
 
         [System.Text.Json.Serialization.JsonPropertyName("isSensitive")]
         public bool? IsSensitive { get; set; } = default!;
@@ -3178,7 +3154,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the role grants assigned to the user.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("grants")]
-        public System.Collections.Generic.IEnumerable<GrantDto> Grants { get; set; } = new System.Collections.ObjectModel.Collection<GrantDto>();
+        public System.Collections.Generic.ICollection<GrantDto> Grants { get; set; } = new System.Collections.ObjectModel.Collection<GrantDto>();
 
         /// <summary>
         /// Gets a value indicating whether the user is active.
@@ -3256,7 +3232,7 @@ namespace GroundControl.Api.Client.Contracts
         public System.Guid? ProjectId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("values")]
-        public System.Collections.Generic.IEnumerable<ScopedValue> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValue>();
+        public System.Collections.Generic.ICollection<ScopedValue> Values { get; set; } = new System.Collections.ObjectModel.Collection<ScopedValue>();
 
         [System.Text.Json.Serialization.JsonPropertyName("isSensitive")]
         public bool IsSensitive { get; set; } = default!;
