@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Nodes;
 using GroundControl.Cli.Shared.Config;
 using Microsoft.Extensions.Options;
 
@@ -97,7 +98,7 @@ internal sealed class ImportConfigHandler : ICommandHandler
         return input;
     }
 
-    private void DisplayPreview(System.Text.Json.Nodes.JsonObject section)
+    private void DisplayPreview(JsonObject section)
     {
         _shell.DisplayEmptyLine();
         _shell.RenderDetail(CredentialStore.BuildDisplayPairs(section), _hostOptions.OutputFormat);
