@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using GroundControl.Api.Client.Tests.Infrastructure;
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Features.Users.Contracts;
-using Microsoft.Kiota.Abstractions;
 using CreateGroupRequest = GroundControl.Api.Client.Models.CreateGroupRequest;
 using CreateUserRequest = GroundControl.Api.Features.Users.Contracts.CreateUserRequest;
 using SetGroupMemberRequest = GroundControl.Api.Client.Models.SetGroupMemberRequest;

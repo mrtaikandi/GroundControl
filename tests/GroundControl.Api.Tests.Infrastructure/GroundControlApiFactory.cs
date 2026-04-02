@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using MongoDB.Driver;
-using Xunit;
 
 namespace GroundControl.Api.Tests.Infrastructure;
 

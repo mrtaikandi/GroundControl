@@ -5,8 +5,6 @@ using GroundControl.Api.Core.Authentication.BuiltIn;
 using GroundControl.Api.Core.Authentication.NoAuth;
 using GroundControl.Persistence.MongoDb;
 using MongoDB.Driver;
-using Shouldly;
-using Xunit;
 
 namespace GroundControl.Api.Tests.Infrastructure;
 

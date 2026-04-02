@@ -1,5 +1,4 @@
 using GroundControl.Cli.Shared.ErrorHandling;
-using GroundControl.Host.Cli;
 using static GroundControl.Cli.Shared.ErrorHandling.ConflictRetryHelper;
 
 namespace GroundControl.Cli.Tests.Shared;

@@ -1,7 +1,6 @@
 using GroundControl.Persistence.MongoDb.Conventions;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
-using Xunit;
 
 namespace GroundControl.Api.Tests.Infrastructure;
 
