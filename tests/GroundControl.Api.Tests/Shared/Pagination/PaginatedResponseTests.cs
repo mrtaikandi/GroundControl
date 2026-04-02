@@ -48,20 +48,20 @@ public sealed class PaginatedResponseTests
 
         // Act
         var json = JsonSerializer.Serialize(response, WebJsonSerializerOptions);
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        var data = root.GetProperty("data");
 
         // Assert
-        json.ShouldBe(
-            """
-            {
-              "data": [
-                "alpha",
-                "beta"
-              ],
-              "nextCursor": "next-cursor",
-              "previousCursor": "previous-cursor",
-              "totalCount": 2
-            }
-            """);
+        data.GetArrayLength().ShouldBe(2);
+        data[0].GetString().ShouldBe("alpha");
+        data[1].GetString().ShouldBe("beta");
+        root.GetProperty("nextCursor").GetString().ShouldBe("next-cursor");
+        root.GetProperty("previousCursor").GetString().ShouldBe("previous-cursor");
+        root.GetProperty("totalCount").GetInt64().ShouldBe(2);
+        root.TryGetProperty("pagination", out _).ShouldBeFalse();
+        root.TryGetProperty("hasNext", out _).ShouldBeFalse();
+        root.TryGetProperty("hasPrevious", out _).ShouldBeFalse();
     }
 
     [Fact]
