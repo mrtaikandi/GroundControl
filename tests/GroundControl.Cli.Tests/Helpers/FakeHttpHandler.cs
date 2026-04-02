@@ -6,6 +6,8 @@ internal sealed class FakeHttpHandler : HttpMessageHandler
 {
     private readonly List<(HttpMethod Method, string PathAndQuery, HttpResponseMessage Response)> _responses = [];
 
+    public Action<HttpRequestMessage>? OnSend { get; set; }
+
     public FakeHttpHandler RespondTo(HttpMethod method, string pathAndQuery, HttpResponseMessage response)
     {
         _responses.Add((method, pathAndQuery, response));
@@ -25,6 +27,8 @@ internal sealed class FakeHttpHandler : HttpMessageHandler
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        OnSend?.Invoke(request);
+
         var match = _responses.Find(r =>
             r.Method == request.Method &&
             string.Equals(r.PathAndQuery, request.RequestUri?.PathAndQuery, StringComparison.OrdinalIgnoreCase));

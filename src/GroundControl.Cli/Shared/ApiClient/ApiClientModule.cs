@@ -1,4 +1,5 @@
 using GroundControl.Api.Client;
+using GroundControl.Cli.Shared.ErrorHandling;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -36,6 +37,11 @@ internal sealed class ApiClientModule : IDependencyModule
             }
 
             httpClient.BaseAddress = new Uri(serverUrl);
-        });
+        })
+        .AddHttpMessageHandler<ApiVersionHandler>()
+        .AddHttpMessageHandler<ProblemDetailsDelegatingHandler>();
+
+        services.AddTransient<ApiVersionHandler>();
+        services.AddTransient<ProblemDetailsDelegatingHandler>();
     }
 }
