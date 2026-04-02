@@ -32,6 +32,14 @@ internal sealed class UpdateUserHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization()
             .WithContractValidation<UpdateUserRequest>()
+            .WithSummary("Update a user")
+            .WithDescription("Updates a user's profile. Admin fields require write permission. Requires an If-Match header.")
+            .Produces<UserResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateUserHandler));
     }
 

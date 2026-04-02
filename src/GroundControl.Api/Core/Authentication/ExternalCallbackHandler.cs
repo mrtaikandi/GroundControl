@@ -9,6 +9,10 @@ internal sealed class ExternalCallbackHandler : IEndpointHandler
                 HttpContext httpContext,
                 string? returnUrl = null) => HandleAsync(httpContext, returnUrl))
             .RequireAuthorization()
+            .WithSummary("External login callback")
+            .WithDescription("Handles the callback from the external authentication provider and redirects to the application.")
+            .Produces(StatusCodes.Status302Found)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithName(nameof(ExternalCallbackHandler));
     }
 

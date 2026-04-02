@@ -27,6 +27,11 @@ internal sealed class CreateProjectHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .WithContractValidation<CreateProjectRequest>()
             .RequireAuthorization(Permissions.ProjectsWrite)
+            .WithSummary("Create a project")
+            .WithDescription("Creates a new project for organizing configuration entries and snapshots.")
+            .Produces<ProjectResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName(nameof(CreateProjectHandler));
     }
 

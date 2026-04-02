@@ -28,6 +28,13 @@ internal sealed class UpdateTemplateHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .WithContractValidation<UpdateTemplateRequest>()
             .RequireAuthorization(Permissions.TemplatesWrite)
+            .WithSummary("Update a template")
+            .WithDescription("Updates an existing template. Requires an If-Match header with the current ETag value.")
+            .Produces<TemplateResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateTemplateHandler));
     }
 

@@ -30,6 +30,12 @@ internal sealed class GetConfigHandler : IEndpointHandler
                 [FromServices] GetConfigHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(httpContext, cancellationToken))
             .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = AuthenticationSchemes.ApiKey })
+            .WithSummary("Get client configuration")
+            .WithDescription("Returns the resolved configuration for the authenticated client's project. Supports ETag-based caching with If-None-Match.")
+            .Produces<ClientConfigResponse>()
+            .Produces(StatusCodes.Status304NotModified)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetConfigHandler));
     }
 

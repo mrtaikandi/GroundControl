@@ -25,6 +25,12 @@ internal sealed class DeleteVariableHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .WithEndpointValidation<DeleteVariableValidator>()
             .RequireAuthorization(Permissions.VariablesWrite)
+            .WithSummary("Delete a variable")
+            .WithDescription("Deletes a variable if it is not referenced by any templates. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteVariableHandler));
     }
 

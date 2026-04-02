@@ -21,6 +21,11 @@ internal sealed class GetCurrentUserHandler : IEndpointHandler
                 HttpContext httpContext,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(httpContext, cancellationToken))
             .RequireAuthorization()
+            .WithSummary("Get current user")
+            .WithDescription("Returns the profile of the currently authenticated user.")
+            .Produces<UserResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetCurrentUserHandler));
     }
 

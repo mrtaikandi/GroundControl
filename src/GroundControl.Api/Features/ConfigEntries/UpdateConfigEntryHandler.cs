@@ -28,6 +28,13 @@ internal sealed class UpdateConfigEntryHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .WithContractValidation<UpdateConfigEntryRequest>()
             .RequireAuthorization(Permissions.ConfigEntriesWrite)
+            .WithSummary("Update a configuration entry")
+            .WithDescription("Updates an existing configuration entry. Requires an If-Match header with the current ETag value.")
+            .Produces<ConfigEntryResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateConfigEntryHandler));
     }
 

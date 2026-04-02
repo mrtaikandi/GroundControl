@@ -7,6 +7,9 @@ internal sealed class ClientHealthHandler : IEndpointHandler
     {
         endpoints.MapGet("/health", () => TypedResults.Ok())
             .AllowAnonymous()
+            .WithSummary("Client health check")
+            .WithDescription("Returns OK to indicate the client API is reachable.")
+            .Produces(StatusCodes.Status200OK)
             .WithName(nameof(ClientHealthHandler));
     }
 }

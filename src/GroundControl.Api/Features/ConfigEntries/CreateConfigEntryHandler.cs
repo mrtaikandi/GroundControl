@@ -27,6 +27,11 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .WithContractValidation<CreateConfigEntryRequest>()
             .RequireAuthorization(Permissions.ConfigEntriesWrite)
+            .WithSummary("Create a configuration entry")
+            .WithDescription("Creates a new configuration entry with a key, scoped values, and optional sensitivity flag.")
+            .Produces<ConfigEntryResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName(nameof(CreateConfigEntryHandler));
     }
 

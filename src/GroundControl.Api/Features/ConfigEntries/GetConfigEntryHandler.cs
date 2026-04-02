@@ -26,6 +26,10 @@ internal sealed class GetConfigEntryHandler : IEndpointHandler
                 [FromServices] GetConfigEntryHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, decrypt == true, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ConfigEntriesRead)
+            .WithSummary("Get a configuration entry")
+            .WithDescription("Returns a configuration entry by its unique identifier. Optionally decrypts sensitive values. Includes an ETag header.")
+            .Produces<ConfigEntryResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetConfigEntryHandler));
     }
 

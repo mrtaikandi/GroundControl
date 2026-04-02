@@ -29,6 +29,11 @@ internal sealed class SetGroupMemberHandler : IEndpointHandler
                 [FromServices] SetGroupMemberHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, userId, request, cancellationToken))
             .RequireAuthorization(Permissions.GroupsWrite)
+            .WithSummary("Add or update a group member")
+            .WithDescription("Adds a user to the group or updates their membership role.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName(nameof(SetGroupMemberHandler));
     }
 

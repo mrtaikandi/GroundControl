@@ -23,6 +23,10 @@ internal sealed class ListScopesHandler : IEndpointHandler
                 [FromServices] ListScopesHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, cancellationToken))
             .RequireAuthorization(Permissions.ScopesRead)
+            .WithSummary("List scopes")
+            .WithDescription("Returns a paginated list of scope definitions.")
+            .Produces<PaginatedResponse<ScopeResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListScopesHandler));
     }
 

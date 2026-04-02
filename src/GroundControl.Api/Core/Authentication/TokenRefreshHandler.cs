@@ -30,6 +30,10 @@ internal sealed partial class TokenRefreshHandler : IEndpointHandler
                 [FromServices] TokenRefreshHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .AllowAnonymous()
+            .WithSummary("Refresh access token")
+            .WithDescription("Exchanges a valid refresh token for a new access token and refresh token pair.")
+            .Produces<TokenResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithName(nameof(TokenRefreshHandler));
     }
 

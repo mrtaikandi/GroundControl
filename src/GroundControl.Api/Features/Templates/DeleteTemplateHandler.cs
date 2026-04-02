@@ -28,6 +28,12 @@ internal sealed class DeleteTemplateHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .WithEndpointValidation<DeleteTemplateValidator>()
             .RequireAuthorization(Permissions.TemplatesWrite)
+            .WithSummary("Delete a template")
+            .WithDescription("Deletes a template if it is not referenced by any projects. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteTemplateHandler));
     }
 

@@ -24,6 +24,10 @@ internal sealed class ListSnapshotsHandler : IEndpointHandler
                 [FromServices] ListSnapshotsHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, query, cancellationToken))
             .RequireAuthorization(Permissions.SnapshotsRead)
+            .WithSummary("List snapshots")
+            .WithDescription("Returns a paginated list of snapshots for the specified project.")
+            .Produces<PaginatedResponse<SnapshotSummaryResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListSnapshotsHandler));
     }
 

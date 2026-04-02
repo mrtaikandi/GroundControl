@@ -12,6 +12,9 @@ internal sealed class ExternalLoginHandler : IEndpointHandler
                 string? returnUrl = null,
                 CancellationToken cancellationToken = default) => await HandleAsync(httpContext, returnUrl))
             .AllowAnonymous()
+            .WithSummary("Initiate external login")
+            .WithDescription("Redirects to the configured OpenID Connect provider for authentication.")
+            .Produces(StatusCodes.Status302Found)
             .WithName(nameof(ExternalLoginHandler));
     }
 

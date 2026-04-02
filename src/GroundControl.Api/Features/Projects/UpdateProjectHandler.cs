@@ -28,6 +28,13 @@ internal sealed class UpdateProjectHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .WithContractValidation<UpdateProjectRequest>()
             .RequireAuthorization(Permissions.ProjectsWrite)
+            .WithSummary("Update a project")
+            .WithDescription("Updates an existing project. Requires an If-Match header with the current ETag value.")
+            .Produces<ProjectResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateProjectHandler));
     }
 

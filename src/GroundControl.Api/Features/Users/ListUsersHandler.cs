@@ -23,6 +23,10 @@ internal sealed class ListUsersHandler : IEndpointHandler
                 [FromServices] ListUsersHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, cancellationToken))
             .RequireAuthorization(Permissions.UsersRead)
+            .WithSummary("List users")
+            .WithDescription("Returns a paginated list of users.")
+            .Produces<PaginatedResponse<UserResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListUsersHandler));
     }
 

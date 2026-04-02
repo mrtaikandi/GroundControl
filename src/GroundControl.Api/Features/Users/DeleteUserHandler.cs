@@ -32,6 +32,12 @@ internal sealed class DeleteUserHandler : IEndpointHandler
                 [FromServices] DeleteUserHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.UsersWrite)
+            .WithSummary("Delete a user")
+            .WithDescription("Deletes a user account. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteUserHandler));
     }
 

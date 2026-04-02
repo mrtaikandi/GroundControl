@@ -19,6 +19,9 @@ internal sealed class LogoutHandler : IEndpointHandler
                 [FromServices] LogoutHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync())
             .RequireAuthorization()
+            .WithSummary("Log out")
+            .WithDescription("Signs the current user out and clears the session cookie.")
+            .Produces(StatusCodes.Status204NoContent)
             .WithName(nameof(LogoutHandler));
     }
 

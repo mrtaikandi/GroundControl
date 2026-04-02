@@ -26,6 +26,10 @@ internal sealed class GetVariableHandler : IEndpointHandler
                 [FromServices] GetVariableHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, decrypt == true, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.VariablesRead)
+            .WithSummary("Get a variable")
+            .WithDescription("Returns a variable by its unique identifier. Optionally decrypts sensitive values. Includes an ETag header.")
+            .Produces<VariableResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetVariableHandler));
     }
 

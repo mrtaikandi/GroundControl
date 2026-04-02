@@ -26,6 +26,10 @@ internal sealed class CreateScopeHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .WithContractValidation<CreateScopeRequest>()
             .RequireAuthorization(Permissions.ScopesWrite)
+            .WithSummary("Create a scope")
+            .WithDescription("Creates a new scope definition with a dimension name, allowed values, and optional description.")
+            .Produces<ScopeResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
             .WithName(nameof(CreateScopeHandler));
     }
 

@@ -20,6 +20,9 @@ internal sealed class ListRolesHandler : IEndpointHandler
                 [FromServices] ListRolesHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(cancellationToken))
             .RequireAuthorization(Permissions.RolesRead)
+            .WithSummary("List roles")
+            .WithDescription("Returns all available roles.")
+            .Produces<List<RoleResponse>>()
             .WithName(nameof(ListRolesHandler));
     }
 

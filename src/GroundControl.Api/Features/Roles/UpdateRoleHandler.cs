@@ -28,6 +28,13 @@ internal sealed class UpdateRoleHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.RolesWrite)
             .WithContractValidation<UpdateRoleRequest>()
+            .WithSummary("Update a role")
+            .WithDescription("Updates an existing role. Requires an If-Match header with the current ETag value.")
+            .Produces<RoleResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateRoleHandler));
     }
 

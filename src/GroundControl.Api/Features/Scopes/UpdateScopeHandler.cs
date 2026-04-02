@@ -28,6 +28,13 @@ internal sealed class UpdateScopeHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ScopesWrite)
             .WithContractValidation<UpdateScopeRequest>()
+            .WithSummary("Update a scope")
+            .WithDescription("Updates an existing scope. Requires an If-Match header with the current ETag value.")
+            .Produces<ScopeResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateScopeHandler));
     }
 

@@ -22,6 +22,10 @@ internal sealed class GetGroupHandler : IEndpointHandler
                 [FromServices] GetGroupHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.GroupsRead)
+            .WithSummary("Get a group")
+            .WithDescription("Returns a group by its unique identifier. Includes an ETag header for optimistic concurrency.")
+            .Produces<GroupResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetGroupHandler));
     }
 

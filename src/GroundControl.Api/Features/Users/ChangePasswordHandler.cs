@@ -31,6 +31,12 @@ internal sealed class ChangePasswordHandler : IEndpointHandler
                 [FromServices] ChangePasswordHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization()
+            .WithSummary("Change password")
+            .WithDescription("Changes the password for the specified user. Only available to the user themselves in BuiltIn authentication mode.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName(nameof(ChangePasswordHandler));
     }
 

@@ -21,6 +21,10 @@ internal sealed class ListPatsHandler : IEndpointHandler
                 HttpContext httpContext,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(httpContext, cancellationToken))
             .RequireAuthorization()
+            .WithSummary("List personal access tokens")
+            .WithDescription("Returns all personal access tokens owned by the current user.")
+            .Produces<List<PatResponse>>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithName(nameof(ListPatsHandler));
     }
 

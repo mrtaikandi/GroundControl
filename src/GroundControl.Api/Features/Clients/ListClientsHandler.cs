@@ -24,6 +24,10 @@ internal sealed class ListClientsHandler : IEndpointHandler
                 [FromServices] ListClientsHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, query, cancellationToken))
             .RequireAuthorization(Permissions.ClientsRead)
+            .WithSummary("List clients")
+            .WithDescription("Returns a paginated list of clients for the specified project.")
+            .Produces<PaginatedResponse<ClientResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListClientsHandler));
     }
 

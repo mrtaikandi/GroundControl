@@ -32,6 +32,10 @@ internal sealed class CreateClientHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, request, cancellationToken))
             .WithContractValidation<CreateClientRequest>()
             .RequireAuthorization(Permissions.ClientsWrite)
+            .WithSummary("Create a client")
+            .WithDescription("Creates a new API client with credentials for accessing project configurations.")
+            .Produces<CreateClientResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
             .WithName(nameof(CreateClientHandler));
     }
 

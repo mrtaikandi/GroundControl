@@ -25,6 +25,12 @@ internal sealed class DeleteGroupHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .WithEndpointValidation<DeleteGroupValidator>()
             .RequireAuthorization(Permissions.GroupsWrite)
+            .WithSummary("Delete a group")
+            .WithDescription("Deletes a group if it has no dependents. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteGroupHandler));
     }
 

@@ -23,6 +23,10 @@ internal sealed class ListProjectsHandler : IEndpointHandler
                 [FromServices] ListProjectsHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, cancellationToken))
             .RequireAuthorization(Permissions.ProjectsRead)
+            .WithSummary("List projects")
+            .WithDescription("Returns a paginated list of projects.")
+            .Produces<PaginatedResponse<ProjectResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListProjectsHandler));
     }
 

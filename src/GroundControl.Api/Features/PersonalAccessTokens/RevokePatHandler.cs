@@ -24,6 +24,11 @@ internal sealed class RevokePatHandler : IEndpointHandler
                 HttpContext httpContext,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization()
+            .WithSummary("Revoke a personal access token")
+            .WithDescription("Permanently revokes a personal access token owned by the current user.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(RevokePatHandler));
     }
 

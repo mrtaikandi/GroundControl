@@ -28,6 +28,10 @@ internal sealed class ListConfigEntriesHandler : IEndpointHandler
                 [FromServices] ListConfigEntriesHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, decrypt == true, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ConfigEntriesRead)
+            .WithSummary("List configuration entries")
+            .WithDescription("Returns a paginated list of configuration entries. Optionally decrypts sensitive values.")
+            .Produces<PaginatedResponse<ConfigEntryResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListConfigEntriesHandler));
     }
 

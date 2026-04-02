@@ -30,6 +30,12 @@ internal sealed class DeleteProjectHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .WithEndpointValidation<DeleteProjectValidator>()
             .RequireAuthorization(Permissions.ProjectsWrite)
+            .WithSummary("Delete a project")
+            .WithDescription("Deletes a project if it has no dependents. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteProjectHandler));
     }
 

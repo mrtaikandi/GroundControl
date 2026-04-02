@@ -40,6 +40,11 @@ internal sealed class TokenLoginHandler : IEndpointHandler
                 [FromServices] TokenLoginHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .AllowAnonymous()
+            .WithSummary("Obtain access token")
+            .WithDescription("Authenticates with username and password, and returns a JWT access token and refresh token.")
+            .Produces<TokenResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status423Locked)
             .WithName(nameof(TokenLoginHandler));
     }
 

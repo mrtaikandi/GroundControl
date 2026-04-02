@@ -25,6 +25,12 @@ internal sealed class DeleteRoleHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .WithEndpointValidation<DeleteRoleValidator>()
             .RequireAuthorization(Permissions.RolesWrite)
+            .WithSummary("Delete a role")
+            .WithDescription("Deletes a role if it is not assigned to any users. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteRoleHandler));
     }
 
