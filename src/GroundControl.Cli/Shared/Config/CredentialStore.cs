@@ -105,7 +105,8 @@ internal sealed class CredentialStore
             obj = inner;
         }
 
-        if (obj["ServerUrl"] is null || string.IsNullOrWhiteSpace(obj["ServerUrl"]?.GetValue<string>()))
+        var serverUrl = obj["ServerUrl"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(serverUrl))
         {
             error = "Missing required property 'ServerUrl'.";
             return false;
@@ -113,6 +114,34 @@ internal sealed class CredentialStore
 
         section = obj.DeepClone().AsObject();
         return true;
+    }
+
+    /// <summary>
+    /// Builds a list of display-friendly key-value pairs from a <c>GroundControl</c> config section,
+    /// masking sensitive values like auth tokens.
+    /// </summary>
+    /// <param name="section">The <c>GroundControl</c> configuration section.</param>
+    /// <returns>A list of key-value pairs suitable for rendering.</returns>
+    public static List<(string Key, string Value)> BuildDisplayPairs(JsonObject section)
+    {
+        List<(string Key, string Value)> pairs = [("ServerUrl", section["ServerUrl"]?.GetValue<string>() ?? "(not set)")];
+
+        if (section["Auth"] is JsonObject auth)
+        {
+            var method = auth["Method"]?.GetValue<string>();
+            if (method is not null)
+            {
+                pairs.Add(("Auth.Method", method));
+            }
+
+            pairs.Add(("Auth.Token", MaskValue(auth["Token"]?.GetValue<string>())));
+        }
+        else
+        {
+            pairs.Add(("Auth", "(none)"));
+        }
+
+        return pairs;
     }
 
     /// <summary>

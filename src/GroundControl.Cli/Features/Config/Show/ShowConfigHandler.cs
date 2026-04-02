@@ -29,28 +29,7 @@ internal sealed class ShowConfigHandler : ICommandHandler
             return 0;
         }
 
-        List<(string Key, string Value)> pairs =
-        [
-            ("ServerUrl", section["ServerUrl"]?.GetValue<string>() ?? "(not set)")
-        ];
-
-        if (section["Auth"] is System.Text.Json.Nodes.JsonObject auth)
-        {
-            var method = auth["Method"]?.GetValue<string>();
-            if (method is not null)
-            {
-                pairs.Add(("Auth.Method", method));
-            }
-
-            var token = auth["Token"]?.GetValue<string>();
-            pairs.Add(("Auth.Token", CredentialStore.MaskValue(token)));
-        }
-        else
-        {
-            pairs.Add(("Auth", "(none)"));
-        }
-
-        _shell.RenderDetail(pairs, _hostOptions.OutputFormat);
+        _shell.RenderDetail(CredentialStore.BuildDisplayPairs(section), _hostOptions.OutputFormat);
 
         return 0;
     }

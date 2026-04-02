@@ -7,5 +7,3 @@ internal sealed class ShowConfigCommand : Command<ShowConfigHandler, ShowConfigO
     {
     }
 }
-
-internal sealed class ShowConfigOptions;

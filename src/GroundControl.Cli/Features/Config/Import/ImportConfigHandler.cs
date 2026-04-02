@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json.Nodes;
 using GroundControl.Cli.Shared.Config;
 using Microsoft.Extensions.Options;
 
@@ -72,7 +71,7 @@ internal sealed class ImportConfigHandler : ICommandHandler
 
     private async Task<string?> ReadFromPasteAsync(CancellationToken cancellationToken)
     {
-        _shell.DisplayMessage("Paste your JSON configuration below. Enter an empty line to finish:");
+        _shell.DisplayMessage("Paste your JSON configuration as a single compact block. Enter an empty line to finish:");
         _shell.DisplayEmptyLine();
 
         var sb = new StringBuilder();
@@ -98,27 +97,9 @@ internal sealed class ImportConfigHandler : ICommandHandler
         return input;
     }
 
-    private void DisplayPreview(JsonObject section)
+    private void DisplayPreview(System.Text.Json.Nodes.JsonObject section)
     {
         _shell.DisplayEmptyLine();
-
-        List<(string Key, string Value)> pairs = [("ServerUrl", section["ServerUrl"]?.GetValue<string>() ?? "(not set)")];
-
-        if (section["Auth"] is JsonObject auth)
-        {
-            var method = auth["Method"]?.GetValue<string>();
-            if (method is not null)
-            {
-                pairs.Add(("Auth.Method", method));
-            }
-
-            var token = auth["Token"]?.GetValue<string>();
-            if (token is not null)
-            {
-                pairs.Add(("Auth.Token", CredentialStore.MaskValue(token)));
-            }
-        }
-
-        _shell.RenderDetail(pairs, _hostOptions.OutputFormat);
+        _shell.RenderDetail(CredentialStore.BuildDisplayPairs(section), _hostOptions.OutputFormat);
     }
 }
