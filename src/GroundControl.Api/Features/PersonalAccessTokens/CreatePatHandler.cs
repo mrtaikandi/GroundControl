@@ -29,6 +29,11 @@ internal sealed class CreatePatHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, httpContext, cancellationToken))
             .RequireAuthorization()
             .WithContractValidation<CreatePatRequest>()
+            .WithSummary("Create a personal access token")
+            .WithDescription("Generates a new personal access token for API authentication. The raw token is only returned once.")
+            .Produces<CreatePatResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithName(nameof(CreatePatHandler));
     }
 

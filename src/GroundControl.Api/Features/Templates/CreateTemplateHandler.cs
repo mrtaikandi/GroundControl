@@ -26,6 +26,10 @@ internal sealed class CreateTemplateHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .WithContractValidation<CreateTemplateRequest>()
             .RequireAuthorization(Permissions.TemplatesWrite)
+            .WithSummary("Create a template")
+            .WithDescription("Creates a new configuration template.")
+            .Produces<TemplateResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
             .WithName(nameof(CreateTemplateHandler));
     }
 

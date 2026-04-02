@@ -28,6 +28,13 @@ internal sealed class UpdateGroupHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.GroupsWrite)
             .WithContractValidation<UpdateGroupRequest>()
+            .WithSummary("Update a group")
+            .WithDescription("Updates an existing group. Requires an If-Match header with the current ETag value.")
+            .Produces<GroupResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateGroupHandler));
     }
 

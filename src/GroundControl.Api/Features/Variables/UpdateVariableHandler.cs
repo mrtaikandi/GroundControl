@@ -28,6 +28,13 @@ internal sealed class UpdateVariableHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, request, httpContext, cancellationToken))
             .WithContractValidation<UpdateVariableRequest>()
             .RequireAuthorization(Permissions.VariablesWrite)
+            .WithSummary("Update a variable")
+            .WithDescription("Updates an existing variable. Requires an If-Match header with the current ETag value.")
+            .Produces<VariableResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateVariableHandler));
     }
 

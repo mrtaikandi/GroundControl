@@ -27,6 +27,12 @@ internal sealed class AddProjectTemplateHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, templateId, httpContext, cancellationToken))
             .WithEndpointValidation<AddProjectTemplateValidator>()
             .RequireAuthorization(Permissions.ProjectsWrite)
+            .WithSummary("Add a template to a project")
+            .WithDescription("Associates a template with the specified project. Requires an If-Match header.")
+            .Produces<ProjectResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(AddProjectTemplateHandler));
     }
 

@@ -23,6 +23,10 @@ internal sealed class ListTemplatesHandler : IEndpointHandler
                 [FromServices] ListTemplatesHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, cancellationToken))
             .RequireAuthorization(Permissions.TemplatesRead)
+            .WithSummary("List templates")
+            .WithDescription("Returns a paginated list of configuration templates.")
+            .Produces<PaginatedResponse<TemplateResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListTemplatesHandler));
     }
 

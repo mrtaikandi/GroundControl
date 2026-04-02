@@ -32,6 +32,11 @@ internal sealed class ActivateSnapshotHandler : IEndpointHandler
                 [FromServices] ActivateSnapshotHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, id, cancellationToken))
             .RequireAuthorization(Permissions.SnapshotsPublish)
+            .WithSummary("Activate a snapshot")
+            .WithDescription("Sets the specified snapshot as the active configuration for its project, notifying connected clients.")
+            .Produces<ProjectResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName(nameof(ActivateSnapshotHandler));
     }
 

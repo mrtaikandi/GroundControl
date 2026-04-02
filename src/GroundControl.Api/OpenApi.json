@@ -10,10 +10,42 @@
         "tags": [
           "ClientApi"
         ],
+        "summary": "Get client configuration",
+        "description": "Returns the resolved configuration for the authenticated client's project. Supports ETag-based caching with If-None-Match.",
         "operationId": "GetConfigHandler",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientConfigResponse"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -23,10 +55,22 @@
         "tags": [
           "ClientApi"
         ],
+        "summary": "Stream configuration changes",
+        "description": "Opens a Server-Sent Events stream that delivers real-time configuration updates for the authenticated client's project.",
         "operationId": "StreamConfigHandler",
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -36,6 +80,8 @@
         "tags": [
           "ClientApi"
         ],
+        "summary": "Client health check",
+        "description": "Returns OK to indicate the client API is reachable.",
         "operationId": "ClientHealthHandler",
         "responses": {
           "200": {
@@ -49,6 +95,8 @@
         "tags": [
           "Audit"
         ],
+        "summary": "List audit records",
+        "description": "Returns a paginated list of audit records with optional filters for entity type, entity ID, performer, and date range.",
         "operationId": "ListAuditRecordsHandler",
         "parameters": [
           {
@@ -120,8 +168,18 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized",
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfAuditRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -138,6 +196,8 @@
         "tags": [
           "Audit"
         ],
+        "summary": "Get an audit record",
+        "description": "Returns an audit record by its unique identifier.",
         "operationId": "GetAuditRecordHandler",
         "parameters": [
           {
@@ -151,8 +211,18 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized",
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditRecordResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -169,6 +239,8 @@
         "tags": [
           "Clients"
         ],
+        "summary": "Create a client",
+        "description": "Creates a new API client with credentials for accessing project configurations.",
         "operationId": "CreateClientHandler",
         "parameters": [
           {
@@ -192,8 +264,25 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -201,6 +290,8 @@
         "tags": [
           "Clients"
         ],
+        "summary": "List clients",
+        "description": "Returns a paginated list of clients for the specified project.",
         "operationId": "ListClientsHandler",
         "parameters": [
           {
@@ -262,7 +353,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfClientResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -272,6 +380,8 @@
         "tags": [
           "Clients"
         ],
+        "summary": "Get a client",
+        "description": "Returns a client by its unique identifier. Includes an ETag header for optimistic concurrency.",
         "operationId": "GetClientHandler",
         "parameters": [
           {
@@ -295,7 +405,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -303,6 +430,8 @@
         "tags": [
           "Clients"
         ],
+        "summary": "Update a client",
+        "description": "Updates an existing client. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateClientHandler",
         "parameters": [
           {
@@ -336,7 +465,44 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -344,6 +510,8 @@
         "tags": [
           "Clients"
         ],
+        "summary": "Delete a client",
+        "description": "Deletes a client. Requires an If-Match header.",
         "operationId": "DeleteClientHandler",
         "parameters": [
           {
@@ -366,8 +534,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -377,6 +575,8 @@
         "tags": [
           "ConfigEntries"
         ],
+        "summary": "Create a configuration entry",
+        "description": "Creates a new configuration entry with a key, scoped values, and optional sensitivity flag.",
         "operationId": "CreateConfigEntryHandler",
         "requestBody": {
           "content": {
@@ -389,8 +589,35 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -398,6 +625,8 @@
         "tags": [
           "ConfigEntries"
         ],
+        "summary": "List configuration entries",
+        "description": "Returns a paginated list of configuration entries. Optionally decrypts sensitive values.",
         "operationId": "ListConfigEntriesHandler",
         "parameters": [
           {
@@ -479,7 +708,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfConfigEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -489,6 +735,8 @@
         "tags": [
           "ConfigEntries"
         ],
+        "summary": "Get a configuration entry",
+        "description": "Returns a configuration entry by its unique identifier. Optionally decrypts sensitive values. Includes an ETag header.",
         "operationId": "GetConfigEntryHandler",
         "parameters": [
           {
@@ -510,7 +758,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigEntryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -518,6 +783,8 @@
         "tags": [
           "ConfigEntries"
         ],
+        "summary": "Update a configuration entry",
+        "description": "Updates an existing configuration entry. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateConfigEntryHandler",
         "parameters": [
           {
@@ -542,7 +809,54 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigEntryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -550,6 +864,8 @@
         "tags": [
           "ConfigEntries"
         ],
+        "summary": "Delete a configuration entry",
+        "description": "Deletes a configuration entry. Requires an If-Match header.",
         "operationId": "DeleteConfigEntryHandler",
         "parameters": [
           {
@@ -563,8 +879,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -574,6 +920,8 @@
         "tags": [
           "Groups"
         ],
+        "summary": "Create a group",
+        "description": "Creates a new user group.",
         "operationId": "CreateGroupHandler",
         "requestBody": {
           "content": {
@@ -586,8 +934,25 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -595,6 +960,8 @@
         "tags": [
           "Groups"
         ],
+        "summary": "List groups",
+        "description": "Returns a paginated list of user groups.",
         "operationId": "ListGroupsHandler",
         "parameters": [
           {
@@ -647,7 +1014,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfGroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -657,6 +1041,8 @@
         "tags": [
           "Groups"
         ],
+        "summary": "Get a group",
+        "description": "Returns a group by its unique identifier. Includes an ETag header for optimistic concurrency.",
         "operationId": "GetGroupHandler",
         "parameters": [
           {
@@ -671,7 +1057,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -679,6 +1082,8 @@
         "tags": [
           "Groups"
         ],
+        "summary": "Update a group",
+        "description": "Updates an existing group. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateGroupHandler",
         "parameters": [
           {
@@ -703,7 +1108,54 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -711,6 +1163,8 @@
         "tags": [
           "Groups"
         ],
+        "summary": "Delete a group",
+        "description": "Deletes a group if it has no dependents. Requires an If-Match header.",
         "operationId": "DeleteGroupHandler",
         "parameters": [
           {
@@ -724,8 +1178,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -735,6 +1219,8 @@
         "tags": [
           "Groups"
         ],
+        "summary": "List group members",
+        "description": "Returns all users that are members of the specified group.",
         "operationId": "ListGroupMembersHandler",
         "parameters": [
           {
@@ -749,7 +1235,27 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -759,6 +1265,8 @@
         "tags": [
           "Groups"
         ],
+        "summary": "Add or update a group member",
+        "description": "Adds a user to the group or updates their membership role.",
         "operationId": "SetGroupMemberHandler",
         "parameters": [
           {
@@ -791,8 +1299,28 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -800,6 +1328,8 @@
         "tags": [
           "Groups"
         ],
+        "summary": "Remove a group member",
+        "description": "Removes a user from the specified group.",
         "operationId": "RemoveGroupMemberHandler",
         "parameters": [
           {
@@ -822,8 +1352,28 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -833,6 +1383,8 @@
         "tags": [
           "PersonalAccessTokens"
         ],
+        "summary": "Create a personal access token",
+        "description": "Generates a new personal access token for API authentication. The raw token is only returned once.",
         "operationId": "CreatePatHandler",
         "requestBody": {
           "content": {
@@ -845,8 +1397,35 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePatResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -854,10 +1433,32 @@
         "tags": [
           "PersonalAccessTokens"
         ],
+        "summary": "List personal access tokens",
+        "description": "Returns all personal access tokens owned by the current user.",
         "operationId": "ListPatsHandler",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PatResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -867,6 +1468,8 @@
         "tags": [
           "PersonalAccessTokens"
         ],
+        "summary": "Get a personal access token",
+        "description": "Returns metadata for a personal access token owned by the current user.",
         "operationId": "GetPatHandler",
         "parameters": [
           {
@@ -881,7 +1484,34 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -889,6 +1519,8 @@
         "tags": [
           "PersonalAccessTokens"
         ],
+        "summary": "Revoke a personal access token",
+        "description": "Permanently revokes a personal access token owned by the current user.",
         "operationId": "RevokePatHandler",
         "parameters": [
           {
@@ -902,8 +1534,28 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -913,6 +1565,8 @@
         "tags": [
           "Projects"
         ],
+        "summary": "Create a project",
+        "description": "Creates a new project for organizing configuration entries and snapshots.",
         "operationId": "CreateProjectHandler",
         "requestBody": {
           "content": {
@@ -925,8 +1579,35 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -934,6 +1615,8 @@
         "tags": [
           "Projects"
         ],
+        "summary": "List projects",
+        "description": "Returns a paginated list of projects.",
         "operationId": "ListProjectsHandler",
         "parameters": [
           {
@@ -1001,7 +1684,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfProjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1011,6 +1711,8 @@
         "tags": [
           "Projects"
         ],
+        "summary": "Get a project",
+        "description": "Returns a project by its unique identifier. Includes an ETag header for optimistic concurrency.",
         "operationId": "GetProjectHandler",
         "parameters": [
           {
@@ -1025,7 +1727,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1033,6 +1752,8 @@
         "tags": [
           "Projects"
         ],
+        "summary": "Update a project",
+        "description": "Updates an existing project. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateProjectHandler",
         "parameters": [
           {
@@ -1057,7 +1778,54 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1065,6 +1833,8 @@
         "tags": [
           "Projects"
         ],
+        "summary": "Delete a project",
+        "description": "Deletes a project if it has no dependents. Requires an If-Match header.",
         "operationId": "DeleteProjectHandler",
         "parameters": [
           {
@@ -1078,8 +1848,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1089,6 +1889,8 @@
         "tags": [
           "Projects"
         ],
+        "summary": "Add a template to a project",
+        "description": "Associates a template with the specified project. Requires an If-Match header.",
         "operationId": "AddProjectTemplateHandler",
         "parameters": [
           {
@@ -1112,7 +1914,44 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1120,6 +1959,8 @@
         "tags": [
           "Projects"
         ],
+        "summary": "Remove a template from a project",
+        "description": "Removes a template association from the specified project. Requires an If-Match header.",
         "operationId": "RemoveProjectTemplateHandler",
         "parameters": [
           {
@@ -1143,7 +1984,44 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1153,6 +2031,8 @@
         "tags": [
           "Roles"
         ],
+        "summary": "Create a role",
+        "description": "Creates a new role with a set of permissions.",
         "operationId": "CreateRoleHandler",
         "requestBody": {
           "content": {
@@ -1165,8 +2045,25 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1174,10 +2071,22 @@
         "tags": [
           "Roles"
         ],
+        "summary": "List roles",
+        "description": "Returns all available roles.",
         "operationId": "ListRolesHandler",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoleResponse"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1187,6 +2096,8 @@
         "tags": [
           "Roles"
         ],
+        "summary": "Get a role",
+        "description": "Returns a role by its unique identifier. Includes an ETag header for optimistic concurrency.",
         "operationId": "GetRoleHandler",
         "parameters": [
           {
@@ -1201,7 +2112,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1209,6 +2137,8 @@
         "tags": [
           "Roles"
         ],
+        "summary": "Update a role",
+        "description": "Updates an existing role. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateRoleHandler",
         "parameters": [
           {
@@ -1233,7 +2163,54 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1241,6 +2218,8 @@
         "tags": [
           "Roles"
         ],
+        "summary": "Delete a role",
+        "description": "Deletes a role if it is not assigned to any users. Requires an If-Match header.",
         "operationId": "DeleteRoleHandler",
         "parameters": [
           {
@@ -1254,8 +2233,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1265,6 +2274,8 @@
         "tags": [
           "Scopes"
         ],
+        "summary": "Create a scope",
+        "description": "Creates a new scope definition with a dimension name, allowed values, and optional description.",
         "operationId": "CreateScopeHandler",
         "requestBody": {
           "content": {
@@ -1277,8 +2288,25 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1286,6 +2314,8 @@
         "tags": [
           "Scopes"
         ],
+        "summary": "List scopes",
+        "description": "Returns a paginated list of scope definitions.",
         "operationId": "ListScopesHandler",
         "parameters": [
           {
@@ -1338,7 +2368,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfScopeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1348,6 +2395,8 @@
         "tags": [
           "Scopes"
         ],
+        "summary": "Get a scope",
+        "description": "Returns a scope by its unique identifier. Includes an ETag header for optimistic concurrency.",
         "operationId": "GetScopeHandler",
         "parameters": [
           {
@@ -1362,7 +2411,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1370,6 +2436,8 @@
         "tags": [
           "Scopes"
         ],
+        "summary": "Update a scope",
+        "description": "Updates an existing scope. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateScopeHandler",
         "parameters": [
           {
@@ -1394,7 +2462,54 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1402,6 +2517,8 @@
         "tags": [
           "Scopes"
         ],
+        "summary": "Delete a scope",
+        "description": "Deletes a scope if it is not referenced by any configuration entries. Requires an If-Match header.",
         "operationId": "DeleteScopeHandler",
         "parameters": [
           {
@@ -1415,8 +2532,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1426,6 +2573,8 @@
         "tags": [
           "Snapshots"
         ],
+        "summary": "Publish a snapshot",
+        "description": "Resolves the project's current configuration entries and templates into a point-in-time snapshot.",
         "operationId": "PublishSnapshotHandler",
         "parameters": [
           {
@@ -1449,8 +2598,35 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotSummaryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1458,6 +2634,8 @@
         "tags": [
           "Snapshots"
         ],
+        "summary": "List snapshots",
+        "description": "Returns a paginated list of snapshots for the specified project.",
         "operationId": "ListSnapshotsHandler",
         "parameters": [
           {
@@ -1519,7 +2697,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfSnapshotSummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1529,6 +2724,8 @@
         "tags": [
           "Snapshots"
         ],
+        "summary": "Activate a snapshot",
+        "description": "Sets the specified snapshot as the active configuration for its project, notifying connected clients.",
         "operationId": "ActivateSnapshotHandler",
         "parameters": [
           {
@@ -1552,7 +2749,34 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1562,6 +2786,8 @@
         "tags": [
           "Snapshots"
         ],
+        "summary": "Get a snapshot",
+        "description": "Returns a snapshot by its unique identifier. Optionally decrypts sensitive values.",
         "operationId": "GetSnapshotHandler",
         "parameters": [
           {
@@ -1592,7 +2818,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1602,6 +2845,8 @@
         "tags": [
           "Templates"
         ],
+        "summary": "Create a template",
+        "description": "Creates a new configuration template.",
         "operationId": "CreateTemplateHandler",
         "requestBody": {
           "content": {
@@ -1614,8 +2859,25 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1623,6 +2885,8 @@
         "tags": [
           "Templates"
         ],
+        "summary": "List templates",
+        "description": "Returns a paginated list of configuration templates.",
         "operationId": "ListTemplatesHandler",
         "parameters": [
           {
@@ -1690,7 +2954,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1700,6 +2981,8 @@
         "tags": [
           "Templates"
         ],
+        "summary": "Get a template",
+        "description": "Returns a template by its unique identifier. Includes an ETag header for optimistic concurrency.",
         "operationId": "GetTemplateHandler",
         "parameters": [
           {
@@ -1714,7 +2997,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1722,6 +3022,8 @@
         "tags": [
           "Templates"
         ],
+        "summary": "Update a template",
+        "description": "Updates an existing template. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateTemplateHandler",
         "parameters": [
           {
@@ -1746,7 +3048,54 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1754,6 +3103,8 @@
         "tags": [
           "Templates"
         ],
+        "summary": "Delete a template",
+        "description": "Deletes a template if it is not referenced by any projects. Requires an If-Match header.",
         "operationId": "DeleteTemplateHandler",
         "parameters": [
           {
@@ -1767,8 +3118,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1778,6 +3159,8 @@
         "tags": [
           "Users"
         ],
+        "summary": "Create a user",
+        "description": "Creates a new user account. In BuiltIn authentication mode, also creates the identity with a password.",
         "operationId": "CreateUserHandler",
         "requestBody": {
           "content": {
@@ -1790,8 +3173,35 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1799,6 +3209,8 @@
         "tags": [
           "Users"
         ],
+        "summary": "List users",
+        "description": "Returns a paginated list of users.",
         "operationId": "ListUsersHandler",
         "parameters": [
           {
@@ -1851,7 +3263,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1861,6 +3290,8 @@
         "tags": [
           "Users"
         ],
+        "summary": "Get a user",
+        "description": "Returns a user by their unique identifier. Accessible to the user themselves or users with read permission.",
         "operationId": "GetUserHandler",
         "parameters": [
           {
@@ -1875,7 +3306,34 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1883,6 +3341,8 @@
         "tags": [
           "Users"
         ],
+        "summary": "Update a user",
+        "description": "Updates a user's profile. Admin fields require write permission. Requires an If-Match header.",
         "operationId": "UpdateUserHandler",
         "parameters": [
           {
@@ -1907,7 +3367,64 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1915,6 +3432,8 @@
         "tags": [
           "Users"
         ],
+        "summary": "Delete a user",
+        "description": "Deletes a user account. Requires an If-Match header.",
         "operationId": "DeleteUserHandler",
         "parameters": [
           {
@@ -1928,8 +3447,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1939,6 +3488,8 @@
         "tags": [
           "Users"
         ],
+        "summary": "Change password",
+        "description": "Changes the password for the specified user. Only available to the user themselves in BuiltIn authentication mode.",
         "operationId": "ChangePasswordHandler",
         "parameters": [
           {
@@ -1962,8 +3513,38 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1973,6 +3554,8 @@
         "tags": [
           "Variables"
         ],
+        "summary": "Create a variable",
+        "description": "Creates a new variable for use in template interpolation.",
         "operationId": "CreateVariableHandler",
         "requestBody": {
           "content": {
@@ -1985,8 +3568,35 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -1994,6 +3604,8 @@
         "tags": [
           "Variables"
         ],
+        "summary": "List variables",
+        "description": "Returns a paginated list of variables. Optionally decrypts sensitive values.",
         "operationId": "ListVariablesHandler",
         "parameters": [
           {
@@ -2076,7 +3688,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponseOfVariableResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -2086,6 +3715,8 @@
         "tags": [
           "Variables"
         ],
+        "summary": "Get a variable",
+        "description": "Returns a variable by its unique identifier. Optionally decrypts sensitive values. Includes an ETag header.",
         "operationId": "GetVariableHandler",
         "parameters": [
           {
@@ -2107,7 +3738,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -2115,6 +3763,8 @@
         "tags": [
           "Variables"
         ],
+        "summary": "Update a variable",
+        "description": "Updates an existing variable. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateVariableHandler",
         "parameters": [
           {
@@ -2139,7 +3789,54 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       },
@@ -2147,6 +3844,8 @@
         "tags": [
           "Variables"
         ],
+        "summary": "Delete a variable",
+        "description": "Deletes a variable if it is not referenced by any templates. Requires an If-Match header.",
         "operationId": "DeleteVariableHandler",
         "parameters": [
           {
@@ -2160,8 +3859,38 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -2169,6 +3898,64 @@
   },
   "components": {
     "schemas": {
+      "AuditRecordResponse": {
+        "required": [
+          "id",
+          "entityType",
+          "entityId",
+          "action",
+          "performedBy",
+          "changes",
+          "performedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "performedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldChangeResponse"
+            }
+          },
+          "metadata": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "performedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ChangePasswordRequest": {
         "required": [
           "currentPassword",
@@ -2189,9 +3976,218 @@
         },
         "description": "Represents the request body for changing a user's password."
       },
+      "ClientConfigResponse": {
+        "required": [
+          "data",
+          "snapshotId",
+          "snapshotVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets the flat key-value configuration data resolved for the client's scopes."
+          },
+          "snapshotId": {
+            "type": "string",
+            "description": "Gets the unique identifier of the active snapshot.",
+            "format": "uuid"
+          },
+          "snapshotVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the version of the active snapshot, used as the ETag value.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents the resolved configuration payload returned to an authenticated client."
+      },
+      "ClientResponse": {
+        "required": [
+          "id",
+          "projectId",
+          "name",
+          "scopes",
+          "isActive",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the client.",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Gets the project identifier the client belongs to.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the client name."
+          },
+          "scopes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets the fixed scope assignments for the client."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Gets whether the client is active."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional expiration timestamp.",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the timestamp when the client was last used.",
+            "format": "date-time"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the client was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created the client.",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the client was last updated.",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that last updated the client.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a client."
+      },
       "ConfigEntryOwnerType": {
         "type": "integer",
         "description": "Defines the owner type for a configuration entry."
+      },
+      "ConfigEntryResponse": {
+        "required": [
+          "id",
+          "key",
+          "ownerId",
+          "ownerType",
+          "valueType",
+          "values",
+          "isSensitive",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the configuration entry.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "Gets the configuration key. A key can use a colon-separated hierarchical format\r\n(e.g., `Logging:LogLevel:Default`, `Database:ConnectionString`)"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Gets the owning template or project identifier.",
+            "format": "uuid"
+          },
+          "ownerType": {
+            "description": "Gets the owner type.",
+            "$ref": "#/components/schemas/ConfigEntryOwnerType"
+          },
+          "valueType": {
+            "type": "string",
+            "description": "Gets the value type name."
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopedValue"
+            },
+            "description": "Gets the scope-specific values."
+          },
+          "isSensitive": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the entry contains sensitive data."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional entry description."
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the entry was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created the entry.",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the entry was last updated.",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that last updated the entry.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a configuration entry."
       },
       "CreateClientRequest": {
         "required": [
@@ -2224,6 +4220,79 @@
           }
         },
         "description": "Represents the request body for creating a client."
+      },
+      "CreateClientResponse": {
+        "required": [
+          "id",
+          "projectId",
+          "name",
+          "scopes",
+          "isActive",
+          "clientSecret",
+          "version",
+          "createdAt",
+          "createdBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the client.",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Gets the project identifier the client belongs to.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the client name."
+          },
+          "scopes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets the fixed scope assignments for the client."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Gets whether the client is active."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional expiration timestamp.",
+            "format": "date-time"
+          },
+          "clientSecret": {
+            "type": "string",
+            "description": "Gets the raw client secret. This is only returned at creation time."
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the client was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created the client.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a newly created client, including the raw secret."
       },
       "CreateConfigEntryRequest": {
         "required": [
@@ -2330,6 +4399,51 @@
               "type": "string"
             },
             "description": "Gets the optional permission whitelist for the token."
+          }
+        }
+      },
+      "CreatePatResponse": {
+        "required": [
+          "id",
+          "name",
+          "token",
+          "tokenPrefix",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "tokenPrefix": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -2551,6 +4665,29 @@
           }
         }
       },
+      "FieldChangeResponse": {
+        "required": [
+          "field"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "oldValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newValue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "GrantDto": {
         "required": [
           "roleId"
@@ -2585,6 +4722,564 @@
           }
         },
         "description": "Represents a role grant in request and response contracts."
+      },
+      "GroupResponse": {
+        "required": [
+          "id",
+          "name",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the group.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the display name for the group."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the group."
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the group was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created the group.",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the group was last updated.",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that last updated the group.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a group."
+      },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "PaginatedResponseOfAuditRecordResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditRecordResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfClientResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfConfigEntryResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigEntryResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfGroupResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfProjectResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfScopeResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopeResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfSnapshotSummaryResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnapshotSummaryResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfTemplateResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfUserResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PaginatedResponseOfVariableResponse": {
+        "required": [
+          "data",
+          "totalCount"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VariableResponse"
+            },
+            "description": "Gets the items in the current page."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the next page."
+          },
+          "previousCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor for the previous page."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of matching items.",
+            "format": "int64"
+          }
+        },
+        "description": "Represents a paginated response envelope for list endpoints."
+      },
+      "PatResponse": {
+        "required": [
+          "id",
+          "name",
+          "tokenPrefix",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tokenPrefix": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "isRevoked": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "ProblemDetails": {
         "type": "object",
@@ -2624,6 +5319,91 @@
           }
         }
       },
+      "ProjectResponse": {
+        "required": [
+          "id",
+          "name",
+          "templateIds",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the project.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the project name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional project description."
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the owning group identifier.",
+            "format": "uuid"
+          },
+          "templateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Gets the ordered template identifiers applied to the project."
+          },
+          "activeSnapshotId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the active snapshot identifier.",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the project was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created the project.",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the project was last updated.",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that last updated the project.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a project."
+      },
       "PublishSnapshotRequest": {
         "type": "object",
         "properties": {
@@ -2637,6 +5417,125 @@
           }
         },
         "description": "Represents the request body for publishing a new snapshot."
+      },
+      "ResolvedEntryResponse": {
+        "required": [
+          "key",
+          "valueType",
+          "isSensitive",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Gets the configuration key."
+          },
+          "valueType": {
+            "type": "string",
+            "description": "Gets the serialized value type name."
+          },
+          "isSensitive": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the entry contains sensitive data."
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopedValueResponse"
+            },
+            "description": "Gets the resolved values for each applicable scope combination."
+          }
+        },
+        "description": "Represents a resolved configuration entry in a snapshot response."
+      },
+      "RoleResponse": {
+        "required": [
+          "id",
+          "name",
+          "permissions",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the role.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the display name for the role."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the role."
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the permission strings granted by the role."
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the role was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created the role.",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the role was last updated.",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that last updated the role.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a role."
+      },
+      "ScopedValue": {
+        "required": [
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "scopes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets or sets the scope dimension-value pairs that qualify this value."
+          },
+          "value": {
+            "type": "string",
+            "description": "Gets or sets the serialized value for the scope combination."
+          }
+        },
+        "description": "Represents a value variant for a specific scope combination."
       },
       "ScopedValueRequest": {
         "required": [
@@ -2658,6 +5557,95 @@
         },
         "description": "Represents a scope-specific value in a configuration entry request."
       },
+      "ScopedValueResponse": {
+        "required": [
+          "scopes",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "scopes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets the scope dimension-value pairs that qualify this value."
+          },
+          "value": {
+            "type": "string",
+            "description": "Gets the serialized value for the scope combination."
+          }
+        },
+        "description": "Represents a scope-specific value in a snapshot response."
+      },
+      "ScopeResponse": {
+        "required": [
+          "id",
+          "dimension",
+          "allowedValues",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the scope.",
+            "format": "uuid"
+          },
+          "dimension": {
+            "type": "string",
+            "description": "Gets the unique scope dimension name."
+          },
+          "allowedValues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the allowed values for the scope dimension."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional human-readable description for the scope."
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the scope was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created the scope.",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the scope was last updated.",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that last updated the scope.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a scope definition."
+      },
       "SetGroupMemberRequest": {
         "required": [
           "roleId"
@@ -2671,6 +5659,190 @@
           }
         },
         "description": "Represents the request body for adding a user as a group member with a specific role."
+      },
+      "SnapshotResponse": {
+        "required": [
+          "id",
+          "projectId",
+          "snapshotVersion",
+          "entries",
+          "publishedAt",
+          "publishedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the snapshot.",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Gets the project identifier that owns the snapshot.",
+            "format": "uuid"
+          },
+          "snapshotVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the monotonically increasing snapshot version within the project.",
+            "format": "int64"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedEntryResponse"
+            },
+            "description": "Gets the resolved entries captured in the snapshot."
+          },
+          "publishedAt": {
+            "type": "string",
+            "description": "Gets the publication timestamp.",
+            "format": "date-time"
+          },
+          "publishedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the publishing user.",
+            "format": "uuid"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional publication description."
+          }
+        },
+        "description": "Represents the full API response body for a snapshot, including resolved entries."
+      },
+      "SnapshotSummaryResponse": {
+        "required": [
+          "id",
+          "projectId",
+          "snapshotVersion",
+          "entryCount",
+          "publishedAt",
+          "publishedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the snapshot.",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Gets the project identifier that owns the snapshot.",
+            "format": "uuid"
+          },
+          "snapshotVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the monotonically increasing snapshot version within the project.",
+            "format": "int64"
+          },
+          "entryCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the number of resolved entries in the snapshot.",
+            "format": "int32"
+          },
+          "publishedAt": {
+            "type": "string",
+            "description": "Gets the publication timestamp.",
+            "format": "date-time"
+          },
+          "publishedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the publishing user.",
+            "format": "uuid"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional publication description."
+          }
+        },
+        "description": "Represents a summary API response body for a snapshot, without resolved entries."
+      },
+      "TemplateResponse": {
+        "required": [
+          "id",
+          "name",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the template.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the template name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional template description."
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the owning group identifier.",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the template was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created the template.",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the template was last updated.",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that last updated the template.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a template."
       },
       "UpdateClientRequest": {
         "required": [
@@ -2946,6 +6118,164 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "UserResponse": {
+        "required": [
+          "id",
+          "username",
+          "email",
+          "grants",
+          "isActive",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the unique identifier for the user.",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string",
+            "description": "Gets the username."
+          },
+          "email": {
+            "type": "string",
+            "description": "Gets the email address."
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GrantDto"
+            },
+            "description": "Gets the role grants assigned to the user."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the user is active."
+          },
+          "externalProvider": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the external identity provider name."
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the optimistic concurrency version.",
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the user was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that created this user.",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Gets the timestamp when the user was last updated.",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Gets the identifier of the user that last updated this user.",
+            "format": "uuid"
+          }
+        },
+        "description": "Represents the API response body for a user."
+      },
+      "VariableResponse": {
+        "required": [
+          "id",
+          "name",
+          "scope",
+          "values",
+          "isSensitive",
+          "version",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scope": {
+            "$ref": "#/components/schemas/VariableScope"
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScopedValue"
+            }
+          },
+          "isSensitive": {
+            "type": "boolean"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },

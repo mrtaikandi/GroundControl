@@ -22,6 +22,10 @@ internal sealed class GetProjectHandler : IEndpointHandler
                 [FromServices] GetProjectHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ProjectsRead)
+            .WithSummary("Get a project")
+            .WithDescription("Returns a project by its unique identifier. Includes an ETag header for optimistic concurrency.")
+            .Produces<ProjectResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetProjectHandler));
     }
 

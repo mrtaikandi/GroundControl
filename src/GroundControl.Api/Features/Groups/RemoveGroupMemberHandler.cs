@@ -26,6 +26,11 @@ internal sealed class RemoveGroupMemberHandler : IEndpointHandler
                 [FromServices] RemoveGroupMemberHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, userId, cancellationToken))
             .RequireAuthorization(Permissions.GroupsWrite)
+            .WithSummary("Remove a group member")
+            .WithDescription("Removes a user from the specified group.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName(nameof(RemoveGroupMemberHandler));
     }
 

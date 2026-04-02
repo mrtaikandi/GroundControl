@@ -27,6 +27,12 @@ internal sealed class RemoveProjectTemplateHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, templateId, httpContext, cancellationToken))
             .WithEndpointValidation<RemoveProjectTemplateValidator>()
             .RequireAuthorization(Permissions.ProjectsWrite)
+            .WithSummary("Remove a template from a project")
+            .WithDescription("Removes a template association from the specified project. Requires an If-Match header.")
+            .Produces<ProjectResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(RemoveProjectTemplateHandler));
     }
 

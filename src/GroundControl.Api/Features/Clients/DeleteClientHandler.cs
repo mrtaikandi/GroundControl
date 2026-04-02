@@ -26,6 +26,12 @@ internal sealed class DeleteClientHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, id, httpContext, cancellationToken))
             .WithEndpointValidation<DeleteClientValidator>()
             .RequireAuthorization(Permissions.ClientsWrite)
+            .WithSummary("Delete a client")
+            .WithDescription("Deletes a client. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteClientHandler));
     }
 

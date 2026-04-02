@@ -25,6 +25,11 @@ internal sealed class LoginHandler : IEndpointHandler
                 HttpContext httpContext,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, httpContext, cancellationToken))
             .AllowAnonymous()
+            .WithSummary("Log in")
+            .WithDescription("Authenticates with username and password, and sets a session cookie.")
+            .Produces<UserResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status423Locked)
             .WithName(nameof(LoginHandler));
     }
 

@@ -41,6 +41,10 @@ internal sealed class GetSnapshotHandler : IEndpointHandler
                 [FromServices] GetSnapshotHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, id, decrypt == true, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.SnapshotsRead)
+            .WithSummary("Get a snapshot")
+            .WithDescription("Returns a snapshot by its unique identifier. Optionally decrypts sensitive values.")
+            .Produces<SnapshotResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetSnapshotHandler));
     }
 

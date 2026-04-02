@@ -35,6 +35,10 @@ internal sealed class ListAuditRecordsHandler : IEndpointHandler
                 [FromServices] ListAuditRecordsHandler handler,
                 CancellationToken cancellationToken = default) =>
                 await handler.HandleAsync(entityType, entityId, performedBy, from, to, after, before, limit, httpContext, cancellationToken))
+            .WithSummary("List audit records")
+            .WithDescription("Returns a paginated list of audit records with optional filters for entity type, entity ID, performer, and date range.")
+            .Produces<PaginatedResponse<AuditRecordResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListAuditRecordsHandler));
     }
 

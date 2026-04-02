@@ -23,6 +23,10 @@ internal sealed class GetAuditRecordHandler : IEndpointHandler
                 [FromServices] GetAuditRecordHandler handler,
                 CancellationToken cancellationToken = default) =>
                 await handler.HandleAsync(id, httpContext, cancellationToken))
+            .WithSummary("Get an audit record")
+            .WithDescription("Returns an audit record by its unique identifier.")
+            .Produces<AuditRecordResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetAuditRecordHandler));
     }
 

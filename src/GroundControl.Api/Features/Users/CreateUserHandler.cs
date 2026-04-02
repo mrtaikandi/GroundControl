@@ -34,6 +34,11 @@ internal sealed class CreateUserHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .WithContractValidation<CreateUserRequest>()
             .RequireAuthorization(Permissions.UsersWrite)
+            .WithSummary("Create a user")
+            .WithDescription("Creates a new user account. In BuiltIn authentication mode, also creates the identity with a password.")
+            .Produces<UserResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName(nameof(CreateUserHandler));
     }
 

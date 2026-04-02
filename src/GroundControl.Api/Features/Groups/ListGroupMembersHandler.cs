@@ -23,6 +23,10 @@ internal sealed class ListGroupMembersHandler : IEndpointHandler
                 [FromServices] ListGroupMembersHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, cancellationToken))
             .RequireAuthorization(Permissions.GroupsRead)
+            .WithSummary("List group members")
+            .WithDescription("Returns all users that are members of the specified group.")
+            .Produces<List<UserResponse>>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(ListGroupMembersHandler));
     }
 

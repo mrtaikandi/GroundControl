@@ -30,6 +30,11 @@ internal sealed class PublishSnapshotHandler : IEndpointHandler
                 [FromServices] PublishSnapshotHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, request, cancellationToken))
             .RequireAuthorization(Permissions.SnapshotsPublish)
+            .WithSummary("Publish a snapshot")
+            .WithDescription("Resolves the project's current configuration entries and templates into a point-in-time snapshot.")
+            .Produces<SnapshotSummaryResponse>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName(nameof(PublishSnapshotHandler));
     }
 

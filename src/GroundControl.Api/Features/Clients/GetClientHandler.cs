@@ -23,6 +23,10 @@ internal sealed class GetClientHandler : IEndpointHandler
                 [FromServices] GetClientHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, id, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ClientsRead)
+            .WithSummary("Get a client")
+            .WithDescription("Returns a client by its unique identifier. Includes an ETag header for optimistic concurrency.")
+            .Produces<ClientResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetClientHandler));
     }
 

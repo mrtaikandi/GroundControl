@@ -22,6 +22,10 @@ internal sealed class GetTemplateHandler : IEndpointHandler
                 [FromServices] GetTemplateHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.TemplatesRead)
+            .WithSummary("Get a template")
+            .WithDescription("Returns a template by its unique identifier. Includes an ETag header for optimistic concurrency.")
+            .Produces<TemplateResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetTemplateHandler));
     }
 

@@ -28,6 +28,12 @@ internal sealed class UpdateClientHandler : IEndpointHandler
                 [FromServices] UpdateClientHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, id, request, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ClientsWrite)
+            .WithSummary("Update a client")
+            .WithDescription("Updates an existing client. Requires an If-Match header with the current ETag value.")
+            .Produces<ClientResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(UpdateClientHandler));
     }
 

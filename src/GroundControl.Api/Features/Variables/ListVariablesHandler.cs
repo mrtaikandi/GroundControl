@@ -28,6 +28,10 @@ internal sealed class ListVariablesHandler : IEndpointHandler
                 [FromServices] ListVariablesHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, decrypt == true, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.VariablesRead)
+            .WithSummary("List variables")
+            .WithDescription("Returns a paginated list of variables. Optionally decrypts sensitive values.")
+            .Produces<PaginatedResponse<VariableResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListVariablesHandler));
     }
 

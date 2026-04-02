@@ -27,6 +27,11 @@ internal sealed class CreateVariableHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .WithContractValidation<CreateVariableRequest>()
             .RequireAuthorization(Permissions.VariablesWrite)
+            .WithSummary("Create a variable")
+            .WithDescription("Creates a new variable for use in template interpolation.")
+            .Produces<VariableResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName(nameof(CreateVariableHandler));
     }
 

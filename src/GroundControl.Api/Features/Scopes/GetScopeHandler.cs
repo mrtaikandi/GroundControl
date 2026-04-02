@@ -22,6 +22,10 @@ internal sealed class GetScopeHandler : IEndpointHandler
                 [FromServices] GetScopeHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.ScopesRead)
+            .WithSummary("Get a scope")
+            .WithDescription("Returns a scope by its unique identifier. Includes an ETag header for optimistic concurrency.")
+            .Produces<ScopeResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetScopeHandler));
     }
 

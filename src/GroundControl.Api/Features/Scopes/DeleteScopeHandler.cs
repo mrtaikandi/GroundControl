@@ -25,6 +25,12 @@ internal sealed class DeleteScopeHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .WithEndpointValidation<DeleteScopeValidator>()
             .RequireAuthorization(Permissions.ScopesWrite)
+            .WithSummary("Delete a scope")
+            .WithDescription("Deletes a scope if it is not referenced by any configuration entries. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteScopeHandler));
     }
 

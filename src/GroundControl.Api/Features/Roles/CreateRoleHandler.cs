@@ -26,6 +26,10 @@ internal sealed class CreateRoleHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(request, cancellationToken))
             .RequireAuthorization(Permissions.RolesWrite)
             .WithContractValidation<CreateRoleRequest>()
+            .WithSummary("Create a role")
+            .WithDescription("Creates a new role with a set of permissions.")
+            .Produces<RoleResponse>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
             .WithName(nameof(CreateRoleHandler));
     }
 

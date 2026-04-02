@@ -22,6 +22,10 @@ internal sealed class GetRoleHandler : IEndpointHandler
                 [FromServices] GetRoleHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization(Permissions.RolesRead)
+            .WithSummary("Get a role")
+            .WithDescription("Returns a role by its unique identifier. Includes an ETag header for optimistic concurrency.")
+            .Produces<RoleResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetRoleHandler));
     }
 

@@ -25,6 +25,12 @@ internal sealed class DeleteConfigEntryHandler : IEndpointHandler
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .WithEndpointValidation<DeleteConfigEntryValidator>()
             .RequireAuthorization(Permissions.ConfigEntriesWrite)
+            .WithSummary("Delete a configuration entry")
+            .WithDescription("Deletes a configuration entry. Requires an If-Match header.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status428PreconditionRequired)
             .WithName(nameof(DeleteConfigEntryHandler));
     }
 

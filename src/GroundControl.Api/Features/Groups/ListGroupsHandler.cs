@@ -23,6 +23,10 @@ internal sealed class ListGroupsHandler : IEndpointHandler
                 [FromServices] ListGroupsHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(query, cancellationToken))
             .RequireAuthorization(Permissions.GroupsRead)
+            .WithSummary("List groups")
+            .WithDescription("Returns a paginated list of user groups.")
+            .Produces<PaginatedResponse<GroupResponse>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName(nameof(ListGroupsHandler));
     }
 

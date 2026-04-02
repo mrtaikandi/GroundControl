@@ -44,6 +44,10 @@ internal sealed class StreamConfigHandler : IEndpointHandler
                 [FromServices] StreamConfigHandler handler,
                 CancellationToken cancellationToken = default) => handler.HandleAsync(httpContext, cancellationToken))
             .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = AuthenticationSchemes.ApiKey })
+            .WithSummary("Stream configuration changes")
+            .WithDescription("Opens a Server-Sent Events stream that delivers real-time configuration updates for the authenticated client's project.")
+            .Produces(StatusCodes.Status200OK, contentType: "text/event-stream")
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithName(nameof(StreamConfigHandler));
     }
 

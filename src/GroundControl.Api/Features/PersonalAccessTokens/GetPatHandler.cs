@@ -22,6 +22,11 @@ internal sealed class GetPatHandler : IEndpointHandler
                 HttpContext httpContext,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization()
+            .WithSummary("Get a personal access token")
+            .WithDescription("Returns metadata for a personal access token owned by the current user.")
+            .Produces<PatResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetPatHandler));
     }
 

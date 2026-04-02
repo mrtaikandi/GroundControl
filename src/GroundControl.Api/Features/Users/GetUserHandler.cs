@@ -26,6 +26,11 @@ internal sealed class GetUserHandler : IEndpointHandler
                 [FromServices] GetUserHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(id, httpContext, cancellationToken))
             .RequireAuthorization()
+            .WithSummary("Get a user")
+            .WithDescription("Returns a user by their unique identifier. Accessible to the user themselves or users with read permission.")
+            .Produces<UserResponse>()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName(nameof(GetUserHandler));
     }
 
