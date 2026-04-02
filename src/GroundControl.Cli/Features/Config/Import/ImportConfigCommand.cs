@@ -4,30 +4,28 @@ namespace GroundControl.Cli.Features.Config.Import;
 
 internal sealed class ImportConfigCommand : Command<ImportConfigHandler, ImportConfigOptions>
 {
-    private static readonly Option<string?> FileOption = new("--file", "Path to a JSON configuration file");
-
-    private static readonly Option<bool> PasteOption = new("--paste", "Paste JSON configuration interactively");
-
-    private static readonly Option<bool> YesOption = new("--yes", "Skip confirmation prompt");
-
     public ImportConfigCommand()
         : base("import", "Import server configuration from a JSON file or paste")
     {
-        Options.Add(FileOption);
-        Options.Add(PasteOption);
-        Options.Add(YesOption);
+        var fileOption = new Option<string?>("--file", "Path to a JSON configuration file");
+        var pasteOption = new Option<bool>("--paste", "Paste JSON configuration interactively");
+        var yesOption = new Option<bool>("--yes", "Skip confirmation prompt");
+
+        Options.Add(fileOption);
+        Options.Add(pasteOption);
+        Options.Add(yesOption);
 
         ConfigureOptions((parseResult, options) =>
         {
-            options.FilePath = parseResult.GetValue(FileOption);
-            options.Paste = parseResult.GetValue(PasteOption);
-            options.Yes = parseResult.GetValue(YesOption);
+            options.FilePath = parseResult.GetValue(fileOption);
+            options.Paste = parseResult.GetValue(pasteOption);
+            options.Yes = parseResult.GetValue(yesOption);
         });
 
         Validators.Add(result =>
         {
-            var hasFile = result.GetValue(FileOption) is not null;
-            var hasPaste = result.GetValue(PasteOption);
+            var hasFile = result.GetValue(fileOption) is not null;
+            var hasPaste = result.GetValue(pasteOption);
 
             if (!hasFile && !hasPaste)
             {
