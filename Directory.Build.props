@@ -40,6 +40,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
         <None Include="$(MSBuildProjectDirectory)\$(MSBuildProjectFile).DotSettings" Visible="false" />
     </ItemGroup>
 
