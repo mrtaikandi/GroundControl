@@ -360,6 +360,30 @@ public static partial class ShellExtensions
             return shell.Console.Prompt(prompt);
         }
 
+        /// <summary>
+        /// Reads lines from the shell input until an empty line or end-of-stream is encountered.
+        /// </summary>
+        /// <param name="cancellationToken">A token to cancel the operation.</param>
+        /// <returns>The concatenated text of all lines read, or <see langword="null"/> if no non-empty input was received.</returns>
+        public async Task<string?> ReadLinesAsync(CancellationToken cancellationToken = default)
+        {
+            var sb = new System.Text.StringBuilder();
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var line = await shell.Input.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(line))
+                {
+                    break;
+                }
+
+                sb.AppendLine(line);
+            }
+
+            var result = sb.ToString().Trim();
+            return result.Length == 0 ? null : result;
+        }
+
         private void EchoSelectedPrompt(string promptText, string selection)
         {
             var paragraph = new NoWrapText()

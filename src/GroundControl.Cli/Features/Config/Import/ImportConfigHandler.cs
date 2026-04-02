@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json.Nodes;
 using GroundControl.Cli.Shared.Config;
 using Microsoft.Extensions.Options;
@@ -72,27 +71,13 @@ internal sealed class ImportConfigHandler : ICommandHandler
 
     private async Task<string?> ReadFromPasteAsync(CancellationToken cancellationToken)
     {
-        _shell.DisplayMessage("Paste your JSON configuration as a single compact block. Enter an empty line to finish:");
+        _shell.DisplayMessage("Paste your JSON configuration below. Enter an empty line to finish:");
         _shell.DisplayEmptyLine();
 
-        var sb = new StringBuilder();
-
-        while (true)
-        {
-            var line = await Task.Run(() => System.Console.ReadLine(), cancellationToken);
-            if (string.IsNullOrEmpty(line))
-            {
-                break;
-            }
-
-            sb.AppendLine(line);
-        }
-
-        var input = sb.ToString().Trim();
-        if (input.Length == 0)
+        var input = await _shell.ReadLinesAsync(cancellationToken);
+        if (input is null)
         {
             _shell.DisplayError("No input received.");
-            return null;
         }
 
         return input;

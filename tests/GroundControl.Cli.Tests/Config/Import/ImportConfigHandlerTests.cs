@@ -149,6 +149,43 @@ public sealed class ImportConfigHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleAsync_PasteMode_ParsesAndWritesConfig()
+    {
+        // Arrange
+        var pastedJson = """{"ServerUrl": "https://pasted.example.com"}""" + "\n\n";
+        var shellBuilder = new MockShellBuilder().WithInput(pastedJson);
+        var handler = CreateHandler(
+            new ImportConfigOptions { Paste = true, Yes = true },
+            shellBuilder);
+
+        // Act
+        var exitCode = await handler.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        exitCode.ShouldBe(0);
+        File.Exists(_settingsPath).ShouldBeTrue();
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(_settingsPath, TestContext.Current.CancellationToken))!.AsObject();
+        root["GroundControl"]!["ServerUrl"]!.GetValue<string>().ShouldBe("https://pasted.example.com");
+    }
+
+    [Fact]
+    public async Task HandleAsync_PasteMode_EmptyInput_ReturnsError()
+    {
+        // Arrange
+        var shellBuilder = new MockShellBuilder().WithInput("\n");
+        var handler = CreateHandler(
+            new ImportConfigOptions { Paste = true, Yes = true },
+            shellBuilder);
+
+        // Act
+        var exitCode = await handler.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        exitCode.ShouldBe(1);
+        shellBuilder.GetOutput().ShouldContain("No input received");
+    }
+
+    [Fact]
     public async Task HandleAsync_MergePreservesExistingSections()
     {
         // Arrange
