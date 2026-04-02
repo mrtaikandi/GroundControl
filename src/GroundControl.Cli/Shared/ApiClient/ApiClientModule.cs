@@ -1,6 +1,5 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Handlers;
-using GroundControl.Cli.Shared.ErrorHandling;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,23 +25,21 @@ internal sealed class ApiClientModule : IDependencyModule
 
         var serverUrl = section.GetValue<string>(nameof(GroundControlClientOptions.ServerUrl));
 
-        services.AddGroundControlClient(httpClient =>
-        {
-            if (string.IsNullOrWhiteSpace(serverUrl))
-            {
-                throw new InvalidOperationException(
-                    "GroundControl server URL is not configured. " +
-                    "Set 'GroundControl:ServerUrl' in appsettings.json, " +
-                    "use the 'GroundControl__ServerUrl' environment variable, " +
-                    "or run 'groundcontrol config import'.");
-            }
-
-            httpClient.BaseAddress = new Uri(serverUrl);
-        })
-        .AddHttpMessageHandler<ApiVersionHandler>()
-        .AddHttpMessageHandler<ProblemDetailsDelegatingHandler>();
-
         services.AddTransient<ApiVersionHandler>();
-        services.AddTransient<ProblemDetailsDelegatingHandler>();
+        services.AddGroundControlClient(httpClient =>
+            {
+                if (string.IsNullOrWhiteSpace(serverUrl))
+                {
+                    throw new InvalidOperationException(
+                        "GroundControl server URL is not configured. " +
+                        "Set 'GroundControl:ServerUrl' in appsettings.json, " +
+                        "use the 'GroundControl__ServerUrl' environment variable, " +
+                        "or run 'groundcontrol config import'.");
+                }
+
+                httpClient.BaseAddress = new Uri(serverUrl);
+            })
+            .AddHttpMessageHandler<ApiVersionHandler>();
+
     }
 }

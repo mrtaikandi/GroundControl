@@ -1,5 +1,5 @@
 using System.Net;
-using GroundControl.Cli.Shared.ApiClient;
+using GroundControl.Api.Client.Handlers;
 
 namespace GroundControl.Cli.Tests.Shared;
 
@@ -12,8 +12,12 @@ public sealed class ApiVersionHandlerTests
         var innerHandler = new FakeHttpHandler()
             .RespondTo(HttpMethod.Get, "/api/test", HttpStatusCode.OK);
 
-        using var handler = new ApiVersionHandler { InnerHandler = innerHandler };
-        using var client = new HttpClient(handler) { BaseAddress = new Uri("https://localhost") };
+        using var handler = new ApiVersionHandler();
+        handler.InnerHandler = innerHandler;
+
+        // ReSharper disable once ShortLivedHttpClient
+        using var client = new HttpClient(handler);
+        client.BaseAddress = new Uri("https://localhost");
 
         HttpRequestMessage? capturedRequest = null;
         innerHandler.OnSend = req => capturedRequest = req;
@@ -24,7 +28,7 @@ public sealed class ApiVersionHandlerTests
         // Assert
         capturedRequest.ShouldNotBeNull();
         capturedRequest.Headers.TryGetValues("api-version", out var values).ShouldBeTrue();
-        values!.Single().ShouldBe("1.0");
+        values.Single().ShouldBe("1.0");
     }
 
     [Fact]
@@ -34,8 +38,12 @@ public sealed class ApiVersionHandlerTests
         var innerHandler = new FakeHttpHandler()
             .RespondTo(HttpMethod.Get, "/api/test", HttpStatusCode.OK);
 
-        using var handler = new ApiVersionHandler { InnerHandler = innerHandler };
-        using var client = new HttpClient(handler) { BaseAddress = new Uri("https://localhost") };
+        using var handler = new ApiVersionHandler();
+        handler.InnerHandler = innerHandler;
+
+        // ReSharper disable once ShortLivedHttpClient
+        using var client = new HttpClient(handler);
+        client.BaseAddress = new Uri("https://localhost");
 
         HttpRequestMessage? capturedRequest = null;
         innerHandler.OnSend = req => capturedRequest = req;
@@ -49,7 +57,7 @@ public sealed class ApiVersionHandlerTests
         // Assert
         capturedRequest.ShouldNotBeNull();
         capturedRequest.Headers.TryGetValues("api-version", out var values).ShouldBeTrue();
-        var headerValues = values!.ToList();
+        var headerValues = values.ToList();
         headerValues.ShouldHaveSingleItem();
         headerValues[0].ShouldBe("2.0");
     }
