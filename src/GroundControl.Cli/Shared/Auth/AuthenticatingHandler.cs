@@ -19,12 +19,12 @@ internal sealed class AuthenticatingHandler : DelegatingHandler
     /// <inheritdoc />
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        switch (_options.Method)
+        switch (_options.Method?.ToUpperInvariant())
         {
-            case null or "":
+            case null or "" or "NONE":
                 break;
 
-            case "Bearer":
+            case "BEARER":
                 if (string.IsNullOrWhiteSpace(_options.Token))
                 {
                     throw new InvalidOperationException(
@@ -35,7 +35,7 @@ internal sealed class AuthenticatingHandler : DelegatingHandler
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.Token);
                 break;
 
-            case "ApiKey":
+            case "APIKEY":
                 if (string.IsNullOrWhiteSpace(_options.ClientId) || string.IsNullOrWhiteSpace(_options.ClientSecret))
                 {
                     throw new InvalidOperationException(
@@ -48,7 +48,7 @@ internal sealed class AuthenticatingHandler : DelegatingHandler
                 request.Headers.TryAddWithoutValidation("Authorization", $"ApiKey {_options.ClientId}:{_options.ClientSecret}");
                 break;
 
-            case "Credentials":
+            case "CREDENTIALS":
                 throw new NotSupportedException(
                     "Credentials authentication is not yet supported. " +
                     "Run 'groundcontrol auth login' and choose 'Pat' or 'ApiKey' instead.");

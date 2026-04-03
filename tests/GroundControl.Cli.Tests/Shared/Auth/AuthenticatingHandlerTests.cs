@@ -79,6 +79,56 @@ public sealed class AuthenticatingHandlerTests
     }
 
     [Fact]
+    public async Task SendAsync_NoneMethod_ExplicitString_DoesNotAddAuthHeader()
+    {
+        // Arrange
+        var innerHandler = new FakeHttpHandler()
+            .RespondTo(HttpMethod.Get, "/api/test", HttpStatusCode.OK);
+
+        using var handler = CreateHandler(new AuthOptions { Method = "None" });
+        handler.InnerHandler = innerHandler;
+
+        using var client = new HttpClient(handler);
+        client.BaseAddress = new Uri("https://localhost");
+
+        HttpRequestMessage? capturedRequest = null;
+        innerHandler.OnSend = req => capturedRequest = req;
+
+        // Act
+        await client.GetAsync("/api/test", TestContext.Current.CancellationToken);
+
+        // Assert
+        capturedRequest.ShouldNotBeNull();
+        capturedRequest.Headers.Authorization.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SendAsync_MethodIsCaseInsensitive()
+    {
+        // Arrange
+        var options = new AuthOptions { Method = "bearer", Token = "gc_pat_test123" };
+        var innerHandler = new FakeHttpHandler()
+            .RespondTo(HttpMethod.Get, "/api/test", HttpStatusCode.OK);
+
+        using var handler = CreateHandler(options);
+        handler.InnerHandler = innerHandler;
+
+        using var client = new HttpClient(handler);
+        client.BaseAddress = new Uri("https://localhost");
+
+        HttpRequestMessage? capturedRequest = null;
+        innerHandler.OnSend = req => capturedRequest = req;
+
+        // Act
+        await client.GetAsync("/api/test", TestContext.Current.CancellationToken);
+
+        // Assert
+        capturedRequest.ShouldNotBeNull();
+        capturedRequest.Headers.Authorization.ShouldNotBeNull();
+        capturedRequest.Headers.Authorization.Scheme.ShouldBe("Bearer");
+    }
+
+    [Fact]
     public async Task SendAsync_BearerMethod_AddsBearerAuthHeader()
     {
         // Arrange
