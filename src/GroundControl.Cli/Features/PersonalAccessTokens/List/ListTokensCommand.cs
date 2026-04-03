@@ -1,5 +1,3 @@
-using System.CommandLine;
-
 namespace GroundControl.Cli.Features.PersonalAccessTokens.List;
 
 internal sealed class ListTokensCommand : Command<ListTokensHandler, ListTokensOptions>

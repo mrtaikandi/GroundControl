@@ -44,7 +44,7 @@ internal sealed class GetRoleHandler : ICommandHandler
         ("Name", role.Name),
         ("Description", role.Description ?? string.Empty),
         ("Permissions", role.Permissions.Count > 0 ? string.Join(", ", role.Permissions) : string.Empty),
-        ("Version", role.Version.ToString()),
+        ("Version", role.Version.ToString(CultureInfo.InvariantCulture)),
         ("Created At", role.CreatedAt.ToString("O")),
         ("Updated At", role.UpdatedAt.ToString("O"))
     ];

@@ -14,7 +14,7 @@ internal sealed class ListClientsHandler : ICommandHandler
         c => c.Id.ToString(),
         c => c.Name,
         c => c.IsActive.ToString(),
-        c => c.Scopes.Count.ToString(),
+        c => c.Scopes.Count.ToString(CultureInfo.InvariantCulture),
         c => c.CreatedAt.ToString("O")
     ];
 

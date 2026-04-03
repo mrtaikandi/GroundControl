@@ -44,7 +44,7 @@ internal sealed class GetScopeHandler : ICommandHandler
         ("Dimension", scope.Dimension),
         ("Allowed Values", string.Join(", ", scope.AllowedValues)),
         ("Description", scope.Description ?? string.Empty),
-        ("Version", scope.Version.ToString()),
+        ("Version", scope.Version.ToString(CultureInfo.InvariantCulture)),
         ("Created At", scope.CreatedAt.ToString("O")),
         ("Updated At", scope.UpdatedAt.ToString("O"))
     ];

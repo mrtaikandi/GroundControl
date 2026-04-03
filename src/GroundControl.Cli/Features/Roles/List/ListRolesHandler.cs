@@ -12,7 +12,7 @@ internal sealed class ListRolesHandler : ICommandHandler
     [
         r => r.Id.ToString(),
         r => r.Name,
-        r => r.Permissions.Count.ToString()
+        r => r.Permissions.Count.ToString(CultureInfo.InvariantCulture)
     ];
 
     private readonly IShell _shell;

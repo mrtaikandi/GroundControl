@@ -46,7 +46,7 @@ internal sealed class GetProjectHandler : ICommandHandler
         ("Group Id", project.GroupId?.ToString() ?? string.Empty),
         ("Template Ids", project.TemplateIds.Count > 0 ? string.Join(", ", project.TemplateIds) : string.Empty),
         ("Active Snapshot Id", project.ActiveSnapshotId?.ToString() ?? string.Empty),
-        ("Version", project.Version.ToString()),
+        ("Version", project.Version.ToString(CultureInfo.InvariantCulture)),
         ("Created At", project.CreatedAt.ToString("O")),
         ("Updated At", project.UpdatedAt.ToString("O"))
     ];

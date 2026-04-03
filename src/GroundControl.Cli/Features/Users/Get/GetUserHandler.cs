@@ -46,7 +46,7 @@ internal sealed class GetUserHandler : ICommandHandler
         ("Active", user.IsActive.ToString()),
         ("External Provider", user.ExternalProvider ?? string.Empty),
         ("Grants", user.Grants.Count > 0 ? string.Join(", ", user.Grants.Select(g => g.RoleId.ToString())) : string.Empty),
-        ("Version", user.Version.ToString()),
+        ("Version", user.Version.ToString(CultureInfo.InvariantCulture)),
         ("Created At", user.CreatedAt.ToString("O")),
         ("Updated At", user.UpdatedAt.ToString("O"))
     ];

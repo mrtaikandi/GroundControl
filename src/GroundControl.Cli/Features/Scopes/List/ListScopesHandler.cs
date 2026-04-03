@@ -13,7 +13,7 @@ internal sealed class ListScopesHandler : ICommandHandler
     [
         s => s.Id.ToString(),
         s => s.Dimension,
-        s => s.AllowedValues.Count.ToString()
+        s => s.AllowedValues.Count.ToString(CultureInfo.InvariantCulture)
     ];
 
     private readonly IShell _shell;

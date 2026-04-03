@@ -14,7 +14,7 @@ internal sealed class ListProjectsHandler : ICommandHandler
         p => p.Id.ToString(),
         p => p.Name,
         p => p.GroupId?.ToString() ?? string.Empty,
-        p => p.TemplateIds.Count.ToString()
+        p => p.TemplateIds.Count.ToString(CultureInfo.InvariantCulture)
     ];
 
     private readonly IShell _shell;

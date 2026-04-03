@@ -12,8 +12,8 @@ internal sealed class ListSnapshotsHandler : ICommandHandler
     private static readonly Func<SnapshotSummaryResponse, string>[] ValueExtractors =
     [
         s => s.Id.ToString(),
-        s => s.SnapshotVersion.ToString(),
-        s => s.EntryCount.ToString(),
+        s => s.SnapshotVersion.ToString(CultureInfo.InvariantCulture),
+        s => s.EntryCount.ToString(CultureInfo.InvariantCulture),
         s => s.PublishedAt.ToString("O"),
         s => s.Description ?? string.Empty
     ];

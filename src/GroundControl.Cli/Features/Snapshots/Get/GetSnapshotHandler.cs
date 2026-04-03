@@ -56,8 +56,8 @@ internal sealed class GetSnapshotHandler : ICommandHandler
     [
         ("Id", snapshot.Id.ToString()),
         ("Project Id", snapshot.ProjectId.ToString()),
-        ("Version", snapshot.SnapshotVersion.ToString()),
-        ("Entry Count", snapshot.Entries.Count.ToString()),
+        ("Version", snapshot.SnapshotVersion.ToString(CultureInfo.InvariantCulture)),
+        ("Entry Count", snapshot.Entries.Count.ToString(CultureInfo.InvariantCulture)),
         ("Published At", snapshot.PublishedAt.ToString("O")),
         ("Published By", snapshot.PublishedBy.ToString()),
         ("Description", snapshot.Description ?? string.Empty)

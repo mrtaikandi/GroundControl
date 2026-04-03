@@ -44,7 +44,7 @@ internal sealed class GetTemplateHandler : ICommandHandler
         ("Name", template.Name),
         ("Description", template.Description ?? string.Empty),
         ("GroupId", template.GroupId?.ToString() ?? string.Empty),
-        ("Version", template.Version.ToString()),
+        ("Version", template.Version.ToString(CultureInfo.InvariantCulture)),
         ("Created At", template.CreatedAt.ToString("O")),
         ("Updated At", template.UpdatedAt.ToString("O"))
     ];

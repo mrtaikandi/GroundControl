@@ -47,7 +47,7 @@ internal sealed class GetClientHandler : ICommandHandler
         ("Scopes", client.Scopes.Count > 0 ? string.Join(", ", client.Scopes.Select(s => $"{s.Key}={s.Value}")) : string.Empty),
         ("Expires At", client.ExpiresAt?.ToString("O") ?? string.Empty),
         ("Last Used At", client.LastUsedAt?.ToString("O") ?? string.Empty),
-        ("Version", client.Version.ToString()),
+        ("Version", client.Version.ToString(CultureInfo.InvariantCulture)),
         ("Created At", client.CreatedAt.ToString("O")),
         ("Updated At", client.UpdatedAt.ToString("O"))
     ];

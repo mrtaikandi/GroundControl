@@ -43,7 +43,7 @@ internal sealed class GetGroupHandler : ICommandHandler
         ("Id", group.Id.ToString()),
         ("Name", group.Name),
         ("Description", group.Description ?? string.Empty),
-        ("Version", group.Version.ToString()),
+        ("Version", group.Version.ToString(CultureInfo.InvariantCulture)),
         ("Created At", group.CreatedAt.ToString("O")),
         ("Updated At", group.UpdatedAt.ToString("O"))
     ];

@@ -59,7 +59,7 @@ internal sealed class GetConfigEntryHandler : ICommandHandler
         }
 
         details.Add(("Description", entry.Description ?? string.Empty));
-        details.Add(("Version", entry.Version.ToString()));
+        details.Add(("Version", entry.Version.ToString(CultureInfo.InvariantCulture)));
         details.Add(("Created At", entry.CreatedAt.ToString("O")));
         details.Add(("Updated At", entry.UpdatedAt.ToString("O")));
 

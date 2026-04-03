@@ -2,7 +2,6 @@ using GroundControl.Api.Client.Contracts;
 using GroundControl.Cli.Features.Variables.Update;
 using GroundControl.Host.Cli;
 using Microsoft.Extensions.Options;
-using NSubstitute.ExceptionExtensions;
 
 namespace GroundControl.Cli.Tests.Variables.Update;
 

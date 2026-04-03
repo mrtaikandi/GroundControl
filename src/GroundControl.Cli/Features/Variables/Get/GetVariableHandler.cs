@@ -64,7 +64,7 @@ internal sealed class GetVariableHandler : ICommandHandler
         }
 
         details.Add(("Description", variable.Description ?? string.Empty));
-        details.Add(("Version", variable.Version.ToString()));
+        details.Add(("Version", variable.Version.ToString(CultureInfo.InvariantCulture)));
         details.Add(("Created At", variable.CreatedAt.ToString("O")));
         details.Add(("Updated At", variable.UpdatedAt.ToString("O")));
 
