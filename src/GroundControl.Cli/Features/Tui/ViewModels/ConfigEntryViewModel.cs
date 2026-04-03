@@ -39,7 +39,7 @@ internal sealed class ConfigEntryViewModel : ResourceViewModel<ConfigEntryRespon
         new("Owner Id", item.OwnerId.ToString()),
         new("Owner Type", item.OwnerType.ToString()),
         new("Value Type", item.ValueType),
-        new("Values", FormatScopedValues(item.Values)),
+        new("Values", ScopedValueFormatter.Format(item.Values)),
         new("Is Sensitive", item.IsSensitive.ToString()),
         new("Description", item.Description ?? "-"),
         new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
@@ -52,20 +52,4 @@ internal sealed class ConfigEntryViewModel : ResourceViewModel<ConfigEntryRespon
     protected override bool MatchesFilter(ConfigEntryResponse item, string filter) =>
         item.Key.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
         (item.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
-
-    private static string FormatScopedValues(ICollection<ScopedValue> values)
-    {
-        if (values.Count == 0)
-        {
-            return "-";
-        }
-
-        return string.Join("; ", values.Select(v =>
-        {
-            var scope = v.Scopes is { Count: > 0 }
-                ? string.Join(", ", v.Scopes.Select(s => $"{s.Key}={s.Value}"))
-                : "default";
-            return $"[{scope}] {v.Value}";
-        }));
-    }
 }

@@ -5,24 +5,19 @@ namespace GroundControl.Cli.Features.Tui.ViewModels;
 internal sealed class SnapshotViewModel : ResourceViewModel<SnapshotSummaryResponse>
 {
     private readonly IGroundControlClient _client;
-    private Guid? _projectId;
 
     public SnapshotViewModel(IGroundControlClient client)
     {
         _client = client;
     }
 
-    public Guid? ProjectId
-    {
-        get => _projectId;
-        set => _projectId = value;
-    }
+    public Guid? ProjectId { get; set; }
 
     protected override async Task<(IReadOnlyList<SnapshotSummaryResponse> Items, string? NextCursor)> FetchPageAsync(
         string? cursor,
         CancellationToken cancellationToken)
     {
-        if (_projectId is not { } projectId)
+        if (ProjectId is not { } projectId)
         {
             return ([], null);
         }

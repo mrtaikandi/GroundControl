@@ -15,7 +15,6 @@ internal sealed class RoleViewModel : ResourceViewModel<RoleResponse>
         string? cursor,
         CancellationToken cancellationToken)
     {
-        // Roles API returns a non-paginated collection
         var result = await _client.ListRolesHandlerAsync(
             cancellationToken: cancellationToken).ConfigureAwait(false);
 

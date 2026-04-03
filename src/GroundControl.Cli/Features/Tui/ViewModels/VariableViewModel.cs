@@ -40,7 +40,7 @@ internal sealed class VariableViewModel : ResourceViewModel<VariableResponse>
         new("Scope", item.Scope.ToString()),
         new("Group Id", item.GroupId?.ToString() ?? "-"),
         new("Project Id", item.ProjectId?.ToString() ?? "-"),
-        new("Values", FormatScopedValues(item.Values)),
+        new("Values", ScopedValueFormatter.Format(item.Values)),
         new("Is Sensitive", item.IsSensitive.ToString()),
         new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
         new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
@@ -52,20 +52,4 @@ internal sealed class VariableViewModel : ResourceViewModel<VariableResponse>
     protected override bool MatchesFilter(VariableResponse item, string filter) =>
         item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
         (item.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
-
-    private static string FormatScopedValues(ICollection<ScopedValue> values)
-    {
-        if (values.Count == 0)
-        {
-            return "-";
-        }
-
-        return string.Join("; ", values.Select(v =>
-        {
-            var scope = v.Scopes is { Count: > 0 }
-                ? string.Join(", ", v.Scopes.Select(s => $"{s.Key}={s.Value}"))
-                : "default";
-            return $"[{scope}] {v.Value}";
-        }));
-    }
 }

@@ -15,7 +15,6 @@ internal sealed class PatViewModel : ResourceViewModel<PatResponse>
         string? cursor,
         CancellationToken cancellationToken)
     {
-        // PATs API returns a non-paginated collection
         var result = await _client.ListPatsHandlerAsync(
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
