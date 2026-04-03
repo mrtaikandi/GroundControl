@@ -18,6 +18,7 @@ internal sealed class ApiClientModule : IDependencyModule
     internal const string SectionName = "GroundControl";
 
     private const string AuthSectionName = "Auth";
+    private const string TokenClientName = "GroundControl.TokenClient";
 
     /// <inheritdoc />
     public void ConfigureServices(DependencyModuleContext context, IServiceCollection services)
@@ -30,6 +31,22 @@ internal sealed class ApiClientModule : IDependencyModule
             .Bind(section.GetSection(AuthSectionName));
 
         var serverUrl = section.GetValue<string>(nameof(GroundControlClientOptions.ServerUrl));
+
+        // Token cache and client for JWT credential flow.
+        // The token client uses a separate named HttpClient to avoid infinite recursion
+        // (the main pipeline's AuthenticatingHandler would try to authenticate token refresh requests).
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<TokenCache>();
+        services.AddHttpClient(TokenClientName, httpClient =>
+        {
+            if (!string.IsNullOrWhiteSpace(serverUrl))
+            {
+                httpClient.BaseAddress = new Uri(serverUrl);
+            }
+        });
+
+        services.AddSingleton<ITokenClient>(sp =>
+            new TokenClient(sp.GetRequiredService<IHttpClientFactory>(), TokenClientName));
 
         services.AddTransient<ApiVersionHandler>();
         services.AddTransient<AuthenticatingHandler>();
