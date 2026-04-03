@@ -94,7 +94,7 @@ internal sealed class MainWindow : Window
         };
 
         var listView = new ResourceListView<T>(viewModel, _app);
-        var detailView = new ResourceDetailView<T>(viewModel);
+        var detailView = new ResourceDetailView<T>(viewModel, _app);
 
         listView.SelectionChanged += viewModel.SelectItem;
 
