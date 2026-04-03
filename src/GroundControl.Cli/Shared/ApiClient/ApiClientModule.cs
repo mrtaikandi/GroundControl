@@ -1,5 +1,6 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Handlers;
+using GroundControl.Cli.Shared.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +17,8 @@ internal sealed class ApiClientModule : IDependencyModule
     /// </summary>
     internal const string SectionName = "GroundControl";
 
+    private const string AuthSectionName = "Auth";
+
     /// <inheritdoc />
     public void ConfigureServices(DependencyModuleContext context, IServiceCollection services)
     {
@@ -23,9 +26,13 @@ internal sealed class ApiClientModule : IDependencyModule
         services.AddOptions<GroundControlClientOptions>()
             .Bind(section);
 
+        services.AddOptions<AuthOptions>()
+            .Bind(section.GetSection(AuthSectionName));
+
         var serverUrl = section.GetValue<string>(nameof(GroundControlClientOptions.ServerUrl));
 
         services.AddTransient<ApiVersionHandler>();
+        services.AddTransient<AuthenticatingHandler>();
         services.AddGroundControlClient(httpClient =>
             {
                 if (string.IsNullOrWhiteSpace(serverUrl))
@@ -39,7 +46,7 @@ internal sealed class ApiClientModule : IDependencyModule
 
                 httpClient.BaseAddress = new Uri(serverUrl);
             })
-            .AddHttpMessageHandler<ApiVersionHandler>();
-
+            .AddHttpMessageHandler<ApiVersionHandler>()
+            .AddHttpMessageHandler<AuthenticatingHandler>();
     }
 }
