@@ -60,6 +60,10 @@ internal sealed class CreateProjectHandler : ICommandHandler
         if (templateIdsCsv is not null)
         {
             templateIds = ParseTemplateIds(templateIdsCsv);
+            if (templateIds is null)
+            {
+                return 1;
+            }
         }
         else if (!_hostOptions.NoInteractive)
         {
@@ -92,14 +96,20 @@ internal sealed class CreateProjectHandler : ICommandHandler
         }
     }
 
-    private static List<Guid> ParseTemplateIds(string csv)
+    private List<Guid>? ParseTemplateIds(string csv)
     {
         var parts = csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var ids = new List<Guid>(parts.Length);
 
         foreach (var part in parts)
         {
-            ids.Add(Guid.Parse(part));
+            if (!Guid.TryParse(part, out var id))
+            {
+                _shell.DisplayError($"Invalid template ID: '{part}'. Expected a valid GUID.");
+                return null;
+            }
+
+            ids.Add(id);
         }
 
         return ids;

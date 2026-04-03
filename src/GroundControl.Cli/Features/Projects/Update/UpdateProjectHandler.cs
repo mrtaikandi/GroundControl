@@ -43,11 +43,24 @@ internal sealed class UpdateProjectHandler : ICommandHandler
             }
         }
 
-        var templateIds = _options.TemplateIds?
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(Guid.Parse)
-            .ToList();
+        List<Guid>? templateIds = null;
+        if (_options.TemplateIds is not null)
+        {
+            templateIds = [];
+            foreach (var part in _options.TemplateIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (!Guid.TryParse(part, out var id))
+                {
+                    _shell.DisplayError($"Invalid template ID: '{part}'. Expected a valid GUID.");
+                    return 1;
+                }
 
+                templateIds.Add(id);
+            }
+        }
+
+        // WhenWritingNull serializer policy omits null fields from the JSON body,
+        // so only fields the user explicitly provided are sent to the API.
         var request = new UpdateProjectRequest
         {
             Name = _options.Name!,
