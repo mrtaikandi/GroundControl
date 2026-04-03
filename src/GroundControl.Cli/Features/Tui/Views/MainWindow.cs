@@ -1,3 +1,5 @@
+using GroundControl.Api.Client.Contracts;
+using GroundControl.Cli.Features.Tui.ViewModels;
 using Terminal.Gui.App;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
@@ -5,15 +7,12 @@ using Terminal.Gui.Views;
 
 namespace GroundControl.Cli.Features.Tui.Views;
 
-#pragma warning disable CA2000 // Terminal.Gui containers dispose their children
+#pragma warning disable CA2000, CA2213 // Terminal.Gui containers dispose their children
 
 internal sealed class MainWindow : Window
 {
-    private static readonly string[] ResourceTabs =
+    private static readonly string[] PlaceholderTabs =
     [
-        "Scopes",
-        "Groups",
-        "Templates",
         "Config Entries",
         "Variables",
         "Projects",
@@ -21,13 +20,15 @@ internal sealed class MainWindow : Window
     ];
 
     private readonly IApplication _app;
+    private readonly TabView _tabView;
+    private readonly Dictionary<Tab, IRefreshable> _refreshables = [];
 
-    public MainWindow(IApplication app, string serverUrl, string authMethod)
+    public MainWindow(IApplication app, string serverUrl, string authMethod, IGroundControlClient client)
     {
         _app = app;
         Title = "GroundControl";
 
-        var tabView = new TabView
+        _tabView = new TabView
         {
             X = 0,
             Y = 0,
@@ -35,23 +36,27 @@ internal sealed class MainWindow : Window
             Height = Dim.Fill()
         };
 
-        foreach (var name in ResourceTabs)
+        AddResourceTab<ScopeResponse>("Scopes", new ScopeViewModel(client));
+        AddResourceTab<GroupResponse>("Groups", new GroupViewModel(client));
+        AddResourceTab<TemplateResponse>("Templates", new TemplateViewModel(client));
+
+        foreach (var name in PlaceholderTabs)
         {
             var tab = new Tab
             {
                 DisplayText = name,
-                View = CreateSplitPanel(name)
+                View = CreatePlaceholderPanel(name)
             };
 
-            tabView.AddTab(tab, false);
+            _tabView.AddTab(tab, false);
         }
 
-        if (tabView.Tabs.Count > 0)
+        if (_tabView.Tabs.Count > 0)
         {
-            tabView.SelectedTab = tabView.Tabs.First();
+            _tabView.SelectedTab = _tabView.Tabs.First();
         }
 
-        Add(tabView);
+        Add(_tabView);
 
         var statusBar = new StatusBarView(serverUrl, authMethod);
         Add(statusBar);
@@ -71,9 +76,51 @@ internal sealed class MainWindow : Window
             args.Handled = true;
             ShowHelpDialog();
         }
+        else if (args == Key.R)
+        {
+            args.Handled = true;
+            RefreshActiveTab();
+        }
     }
 
-    private static View CreateSplitPanel(string resourceName)
+    private void AddResourceTab<T>(string name, ResourceViewModel<T> viewModel)
+    {
+        var container = new View
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = Dim.Fill()
+        };
+
+        var listView = new ResourceListView<T>(viewModel, _app);
+        var detailView = new ResourceDetailView<T>(viewModel, _app);
+
+        listView.SelectionChanged += viewModel.SelectItem;
+
+        container.Add(listView, detailView);
+
+        var tab = new Tab
+        {
+            DisplayText = name,
+            View = container
+        };
+
+        _tabView.AddTab(tab, false);
+        _refreshables[tab] = listView;
+
+        listView.RefreshList();
+    }
+
+    private void RefreshActiveTab()
+    {
+        if (_tabView.SelectedTab is { } selectedTab && _refreshables.TryGetValue(selectedTab, out var refreshable))
+        {
+            refreshable.Refresh();
+        }
+    }
+
+    private static View CreatePlaceholderPanel(string resourceName)
     {
         var container = new View
         {
@@ -138,7 +185,7 @@ internal sealed class MainWindow : Window
                    N         New item (planned)
                    E         Edit item (planned)
                    D         Delete item (planned)
-                   R         Refresh (planned)
+                   R         Refresh current list
                    """,
             X = 2,
             Y = 1

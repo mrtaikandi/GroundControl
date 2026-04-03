@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using GroundControl.Api.Client.Contracts;
 using GroundControl.Cli.Features.Tui.Views;
 using GroundControl.Cli.Shared.Config;
 using Microsoft.Extensions.Configuration;
@@ -10,11 +11,16 @@ internal sealed class TuiCommandHandler : ICommandHandler
 {
     private readonly IConfiguration _configuration;
     private readonly CredentialStore _credentialStore;
+    private readonly IGroundControlClient _client;
 
-    public TuiCommandHandler(IConfiguration configuration, CredentialStore credentialStore)
+    public TuiCommandHandler(
+        IConfiguration configuration,
+        CredentialStore credentialStore,
+        IGroundControlClient client)
     {
         _configuration = configuration;
         _credentialStore = credentialStore;
+        _client = client;
     }
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
@@ -26,7 +32,7 @@ internal sealed class TuiCommandHandler : ICommandHandler
 
         using var app = Application.Create();
         app.Init();
-        using var mainWindow = new MainWindow(app, serverUrl, authMethod);
+        using var mainWindow = new MainWindow(app, serverUrl, authMethod, _client);
         app.Run(mainWindow);
 
         return 0;
