@@ -126,9 +126,9 @@ internal sealed class MainWindow : Window
                    F1        Show this help
                    Tab       Next tab
                    Shift+Tab Previous tab
-                   N         New item (planned)
-                   E         Edit item (planned)
-                   D         Delete item (planned)
+                   N         New item
+                   E         Edit selected item
+                   D         Delete selected item
                    R         Refresh current list
                    """,
             X = 2,

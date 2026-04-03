@@ -109,7 +109,29 @@ internal abstract class ResourceViewModel<T>
 
     internal abstract IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(T item);
 
+    internal abstract string ResourceTypeName { get; }
+
+    internal abstract IReadOnlyList<FieldDefinition> GetFormFields();
+
+    internal abstract IReadOnlyList<FieldDefinition> GetEditFormFields(T item);
+
+    internal abstract string GetResourceName(T item);
+
+    internal abstract Task CreateAsync(
+        Dictionary<string, string> fieldValues,
+        CancellationToken cancellationToken = default);
+
+    internal abstract Task UpdateAsync(
+        T item,
+        Dictionary<string, string> fieldValues,
+        CancellationToken cancellationToken = default);
+
+    internal abstract Task DeleteAsync(T item, CancellationToken cancellationToken = default);
+
     protected abstract bool MatchesFilter(T item, string filter);
+
+    protected static string? NullIfEmpty(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
 
     private void ApplyFilter()
     {

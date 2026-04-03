@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using GroundControl.Cli.Features.Tui.ViewModels;
 using Terminal.Gui.App;
+using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -15,12 +16,16 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
     private readonly ListView _listView;
     private readonly TextField _searchField;
     private readonly Label _statusLabel;
+    private readonly ResourceFormDialog _formDialog;
+    private readonly DeleteConfirmationDialog _deleteDialog;
     private int _lastSelectedIndex = -1;
 
     public ResourceListView(ResourceViewModel<T> viewModel, IApplication app)
     {
         _viewModel = viewModel;
         _app = app;
+        _formDialog = new ResourceFormDialog(app);
+        _deleteDialog = new DeleteConfirmationDialog(app);
         Title = "List";
         X = 0;
         Y = 0;
@@ -98,8 +103,29 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
         UpdateListView();
     }
 
-    private void OnListViewKeyDown(object? sender, Terminal.Gui.Input.Key args)
+    private void OnListViewKeyDown(object? sender, Key args)
     {
+        if (args == Key.N)
+        {
+            args.Handled = true;
+            HandleCreate();
+            return;
+        }
+
+        if (args == Key.E)
+        {
+            args.Handled = true;
+            HandleEdit();
+            return;
+        }
+
+        if (args == Key.D)
+        {
+            args.Handled = true;
+            HandleDelete();
+            return;
+        }
+
         // Defer selection check to after the key is processed
         _app.Invoke(() => HandleSelectionChangeIfNeeded());
     }
@@ -107,6 +133,88 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
     private void OnListViewAccepting(object? sender, EventArgs args)
     {
         HandleSelectionChangeIfNeeded();
+    }
+
+    private void HandleCreate()
+    {
+        var fields = _viewModel.GetFormFields();
+        var result = _formDialog.Show($"New {_viewModel.ResourceTypeName}", fields);
+        if (result is null)
+        {
+            return;
+        }
+
+        ExecuteCrudOperation(async () =>
+        {
+            await _viewModel.CreateAsync(result).ConfigureAwait(false);
+            await _viewModel.LoadAsync().ConfigureAwait(false);
+        });
+    }
+
+    private void HandleEdit()
+    {
+        if (_viewModel.SelectedItem is not { } selectedItem)
+        {
+            return;
+        }
+
+        var fields = _viewModel.GetEditFormFields(selectedItem);
+        var result = _formDialog.Show($"Edit {_viewModel.ResourceTypeName}", fields);
+        if (result is null)
+        {
+            return;
+        }
+
+        ExecuteCrudOperation(async () =>
+        {
+            await _viewModel.UpdateAsync(selectedItem, result).ConfigureAwait(false);
+            await _viewModel.LoadAsync().ConfigureAwait(false);
+        });
+    }
+
+    private void HandleDelete()
+    {
+        if (_viewModel.SelectedItem is not { } selectedItem)
+        {
+            return;
+        }
+
+        var resourceName = _viewModel.GetResourceName(selectedItem);
+        if (!_deleteDialog.Show(_viewModel.ResourceTypeName, resourceName))
+        {
+            return;
+        }
+
+        ExecuteCrudOperation(async () =>
+        {
+            await _viewModel.DeleteAsync(selectedItem).ConfigureAwait(false);
+            await _viewModel.LoadAsync().ConfigureAwait(false);
+        });
+    }
+
+    private void ExecuteCrudOperation(Func<Task> operation)
+    {
+        _statusLabel.Text = "Working...";
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await operation().ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _app.Invoke(() =>
+                {
+                    UpdateListView();
+                    ShowErrorDialog(ex.Message);
+                });
+            }
+        });
+    }
+
+    private void ShowErrorDialog(string message)
+    {
+        MessageBox.ErrorQuery(_app, "Error", message, "OK");
     }
 
     private void HandleSelectionChangeIfNeeded()
