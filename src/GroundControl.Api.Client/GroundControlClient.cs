@@ -6,13 +6,13 @@ namespace GroundControl.Api.Client;
 
 public partial class GroundControlClient
 {
-    private static readonly AsyncLocal<string?> _pendingIfMatch = new();
+    private static readonly AsyncLocal<string?> PendingIfMatch = new();
 
     /// <summary>
     /// Sets the If-Match header for the next API request. The value is automatically cleared after use.
     /// </summary>
     /// <param name="version">The entity version to use as the ETag value.</param>
-    public static void SetIfMatch(long version) => _pendingIfMatch.Value = $"\"{version}\"";
+    public static void SetIfMatch(long version) => PendingIfMatch.Value = $"\"{version}\"";
 
     static partial void UpdateJsonSerializerSettings(JsonSerializerOptions settings)
     {
@@ -22,10 +22,10 @@ public partial class GroundControlClient
 
     partial void PrepareRequest(System.Net.Http.HttpClient client, System.Net.Http.HttpRequestMessage request, string url)
     {
-        if (_pendingIfMatch.Value is { } ifMatch)
+        if (PendingIfMatch.Value is { } ifMatch)
         {
             request.Headers.IfMatch.Add(new EntityTagHeaderValue(ifMatch));
-            _pendingIfMatch.Value = null;
+            PendingIfMatch.Value = null;
         }
     }
 }

@@ -98,6 +98,11 @@ internal sealed class DeleteGroupHandler : ICommandHandler
 
             return retried ? 0 : 1;
         }
+        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        {
+            _shell.RenderProblemDetails(ex.Result);
+            return 1;
+        }
         catch (GroundControlApiClientException<ProblemDetails> ex)
         {
             _shell.RenderProblemDetails(ex.Result);

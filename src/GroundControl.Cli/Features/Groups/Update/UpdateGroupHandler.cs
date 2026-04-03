@@ -43,6 +43,8 @@ internal sealed class UpdateGroupHandler : ICommandHandler
             }
         }
 
+        // WhenWritingNull serializer policy omits null fields from the JSON body,
+        // so only fields the user explicitly provided are sent to the API.
         var request = new UpdateGroupRequest
         {
             Name = _options.Name!,
@@ -86,6 +88,11 @@ internal sealed class UpdateGroupHandler : ICommandHandler
                 cancellationToken);
 
             return retried ? 0 : 1;
+        }
+        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        {
+            _shell.RenderProblemDetails(ex.Result);
+            return 1;
         }
         catch (GroundControlApiClientException<ProblemDetails> ex)
         {
