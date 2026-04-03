@@ -15,6 +15,7 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
     private readonly ListView _listView;
     private readonly TextField _searchField;
     private readonly Label _statusLabel;
+    private int _lastSelectedIndex = -1;
 
     public ResourceListView(ResourceViewModel<T> viewModel, IApplication app)
     {
@@ -52,7 +53,6 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
             Height = Dim.Fill(1)
         };
 
-        // Track selection via keyboard navigation
         _listView.KeyDown += OnListViewKeyDown;
         _listView.Accepting += OnListViewAccepting;
 
@@ -79,10 +79,16 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
     public void RefreshList()
     {
         _statusLabel.Text = "Loading...";
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
-            await _viewModel.LoadAsync().ConfigureAwait(false);
-            _app.Invoke(() => UpdateListView());
+            try
+            {
+                await _viewModel.LoadAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _app.Invoke(() => _statusLabel.Text = $"Error: {ex.Message}");
+            }
         });
     }
 
@@ -94,27 +100,39 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
 
     private void OnListViewKeyDown(object? sender, Terminal.Gui.Input.Key args)
     {
-        // After key processing, the SelectedItem may have changed
-        _app.Invoke(() => HandleSelectionChange());
+        // Defer selection check to after the key is processed
+        _app.Invoke(() => HandleSelectionChangeIfNeeded());
     }
 
     private void OnListViewAccepting(object? sender, EventArgs args)
     {
-        HandleSelectionChange();
+        HandleSelectionChangeIfNeeded();
     }
 
-    private void HandleSelectionChange()
+    private void HandleSelectionChangeIfNeeded()
     {
         var selectedIndex = _listView.SelectedItem ?? -1;
+        if (selectedIndex == _lastSelectedIndex)
+        {
+            return;
+        }
+
+        _lastSelectedIndex = selectedIndex;
         SelectionChanged?.Invoke(selectedIndex);
 
         // Trigger load-more when near the end of the list
         if (_viewModel.HasMore && !_viewModel.IsLoading && selectedIndex >= _viewModel.Items.Count - 2)
         {
-            Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
-                await _viewModel.LoadMoreAsync().ConfigureAwait(false);
-                _app.Invoke(() => UpdateListView());
+                try
+                {
+                    await _viewModel.LoadMoreAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _app.Invoke(() => _statusLabel.Text = $"Error: {ex.Message}");
+                }
             });
         }
     }

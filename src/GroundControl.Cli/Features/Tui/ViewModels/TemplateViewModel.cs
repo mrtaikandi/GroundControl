@@ -25,7 +25,7 @@ internal sealed class TemplateViewModel : ResourceViewModel<TemplateResponse>
             sortOrder: null,
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        return ((IReadOnlyList<TemplateResponse>)result.Data, result.NextCursor);
+        return (result.Data.ToList(), result.NextCursor);
     }
 
     internal override string GetDisplayText(TemplateResponse item) => item.Name;

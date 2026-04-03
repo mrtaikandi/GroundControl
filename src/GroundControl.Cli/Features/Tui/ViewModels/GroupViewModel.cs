@@ -23,7 +23,7 @@ internal sealed class GroupViewModel : ResourceViewModel<GroupResponse>
             sortOrder: null,
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        return ((IReadOnlyList<GroupResponse>)result.Data, result.NextCursor);
+        return (result.Data.ToList(), result.NextCursor);
     }
 
     internal override string GetDisplayText(GroupResponse item) => item.Name;

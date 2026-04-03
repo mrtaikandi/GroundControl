@@ -21,7 +21,7 @@ internal sealed class MainWindow : Window
 
     private readonly IApplication _app;
     private readonly TabView _tabView;
-    private readonly List<IRefreshable> _refreshables = [];
+    private readonly Dictionary<Tab, IRefreshable> _refreshables = [];
 
     public MainWindow(IApplication app, string serverUrl, string authMethod, IGroundControlClient client)
     {
@@ -107,23 +107,16 @@ internal sealed class MainWindow : Window
         };
 
         _tabView.AddTab(tab, false);
-        _refreshables.Add(listView);
+        _refreshables[tab] = listView;
 
         listView.RefreshList();
     }
 
     private void RefreshActiveTab()
     {
-        var selectedTab = _tabView.SelectedTab;
-        if (selectedTab is null)
+        if (_tabView.SelectedTab is { } selectedTab && _refreshables.TryGetValue(selectedTab, out var refreshable))
         {
-            return;
-        }
-
-        var tabIndex = _tabView.Tabs.ToList().IndexOf(selectedTab);
-        if (tabIndex >= 0 && tabIndex < _refreshables.Count)
-        {
-            _refreshables[tabIndex].Refresh();
+            refreshable.Refresh();
         }
     }
 

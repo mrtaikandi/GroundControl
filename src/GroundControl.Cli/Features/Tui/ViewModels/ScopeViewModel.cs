@@ -23,7 +23,7 @@ internal sealed class ScopeViewModel : ResourceViewModel<ScopeResponse>
             sortOrder: null,
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        return ((IReadOnlyList<ScopeResponse>)result.Data, result.NextCursor);
+        return (result.Data.ToList(), result.NextCursor);
     }
 
     internal override string GetDisplayText(ScopeResponse item) => item.Dimension;
