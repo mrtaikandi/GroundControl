@@ -28,25 +28,25 @@ internal sealed class UpdateClientHandler : ICommandHandler
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
         var version = _options.Version;
+        ClientResponse? current = null;
 
-        if (version is null)
+        // Always fetch current state to fill in defaults for non-provided fields,
+        // since UpdateClientRequest.IsActive is non-nullable and cannot be omitted.
+        try
         {
-            try
-            {
-                var current = await _client.GetClientHandlerAsync(_options.ProjectId, _options.Id, cancellationToken);
-                version = current.Version;
-            }
-            catch (GroundControlApiClientException<ProblemDetails> ex)
-            {
-                _shell.RenderProblemDetails(ex.Result);
-                return 1;
-            }
+            current = await _client.GetClientHandlerAsync(_options.ProjectId, _options.Id, cancellationToken);
+            version ??= current.Version;
+        }
+        catch (GroundControlApiClientException<ProblemDetails> ex)
+        {
+            _shell.RenderProblemDetails(ex.Result);
+            return 1;
         }
 
         var request = new UpdateClientRequest
         {
-            Name = _options.Name!,
-            IsActive = _options.IsActive ?? true,
+            Name = _options.Name ?? current.Name,
+            IsActive = _options.IsActive ?? current.IsActive,
             ExpiresAt = _options.ExpiresAt
         };
 

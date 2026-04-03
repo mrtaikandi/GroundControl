@@ -16,6 +16,18 @@ public sealed class UpdateClientHandlerTests
         var clientId = Guid.CreateVersion7();
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
+        client.GetClientHandlerAsync(projectId, clientId, Arg.Any<CancellationToken>())
+            .Returns(new ClientResponse
+            {
+                Id = clientId,
+                ProjectId = projectId,
+                Name = "OriginalClient",
+                IsActive = true,
+                Version = 3,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
         client.UpdateClientHandlerAsync(projectId, clientId, Arg.Any<UpdateClientRequest>(), Arg.Any<CancellationToken>())
             .Returns(new ClientResponse
             {
@@ -48,6 +60,59 @@ public sealed class UpdateClientHandlerTests
         await client.Received(1).UpdateClientHandlerAsync(
             projectId, clientId,
             Arg.Is<UpdateClientRequest>(r => r.Name == "UpdatedClient"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_PartialUpdate_PreservesCurrentValues()
+    {
+        // Arrange
+        var projectId = Guid.CreateVersion7();
+        var clientId = Guid.CreateVersion7();
+        var shellBuilder = new MockShellBuilder();
+        var client = Substitute.For<IGroundControlClient>();
+        client.GetClientHandlerAsync(projectId, clientId, Arg.Any<CancellationToken>())
+            .Returns(new ClientResponse
+            {
+                Id = clientId,
+                ProjectId = projectId,
+                Name = "ExistingClient",
+                IsActive = false,
+                Version = 5,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+        client.UpdateClientHandlerAsync(projectId, clientId, Arg.Any<UpdateClientRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new ClientResponse
+            {
+                Id = clientId,
+                ProjectId = projectId,
+                Name = "RenamedClient",
+                IsActive = false,
+                Version = 6,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+        var handler = CreateHandler(shellBuilder, client,
+            new UpdateClientOptions
+            {
+                ProjectId = projectId,
+                Id = clientId,
+                Name = "RenamedClient"
+            });
+
+        // Act
+        var exitCode = await handler.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        exitCode.ShouldBe(0);
+        await client.Received(1).UpdateClientHandlerAsync(
+            projectId, clientId,
+            Arg.Is<UpdateClientRequest>(r =>
+                r.Name == "RenamedClient" &&
+                r.IsActive == false),
             Arg.Any<CancellationToken>());
     }
 
@@ -133,6 +198,18 @@ public sealed class UpdateClientHandlerTests
         var clientId = Guid.CreateVersion7();
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
+        client.GetClientHandlerAsync(projectId, clientId, Arg.Any<CancellationToken>())
+            .Returns(new ClientResponse
+            {
+                Id = clientId,
+                ProjectId = projectId,
+                Name = "ExistingClient",
+                IsActive = true,
+                Version = 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
         client.UpdateClientHandlerAsync(projectId, clientId, Arg.Any<UpdateClientRequest>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new GroundControlApiClientException<HttpValidationProblemDetails>(
                 "Bad Request", 400, null, new Dictionary<string, IEnumerable<string>>(),
