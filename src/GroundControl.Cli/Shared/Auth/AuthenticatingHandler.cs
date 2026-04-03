@@ -10,15 +10,10 @@ namespace GroundControl.Cli.Shared.Auth;
 internal sealed class AuthenticatingHandler : DelegatingHandler
 {
     private readonly AuthOptions _options;
-    private readonly TokenCache? _tokenCache;
-    private readonly ITokenClient? _tokenClient;
+    private readonly TokenCache _tokenCache;
+    private readonly ITokenClient _tokenClient;
 
-    public AuthenticatingHandler(IOptions<AuthOptions> options)
-        : this(options, null, null)
-    {
-    }
-
-    public AuthenticatingHandler(IOptions<AuthOptions> options, TokenCache? tokenCache, ITokenClient? tokenClient)
+    public AuthenticatingHandler(IOptions<AuthOptions> options, TokenCache tokenCache, ITokenClient tokenClient)
     {
         _options = options.Value;
         _tokenCache = tokenCache;
@@ -81,13 +76,9 @@ internal sealed class AuthenticatingHandler : DelegatingHandler
                 "Run 'groundcontrol auth login' to configure your credentials.");
         }
 
-        if (_tokenCache is null || _tokenClient is null)
-        {
-            throw new InvalidOperationException(
-                "Credentials authentication requires token cache and token client to be configured.");
-        }
-
-        // Fast path: valid cached access token
+        // Fast path: valid cached access token (lock-free read is safe here because the
+        // CLI is single-threaded per command, and the worst case on a racy read is an
+        // unnecessary lock acquisition — the double-check inside the lock is authoritative).
         if (_tokenCache.HasValidAccessToken)
         {
             return _tokenCache.AccessToken!;

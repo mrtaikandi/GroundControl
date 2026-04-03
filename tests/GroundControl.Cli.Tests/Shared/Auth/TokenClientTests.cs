@@ -7,6 +7,7 @@ namespace GroundControl.Cli.Tests.Shared.Auth;
 public sealed class TokenClientTests
 {
     private const string TokenEndpoint = "/auth/token";
+    private const string ClientName = "TestTokenClient";
 
     [Fact]
     public async Task LoginAsync_SendsCredentialsAndReturnsTokens()
@@ -31,8 +32,7 @@ public sealed class TokenClientTests
             capturedBody = req.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
         };
 
-        using var httpClient = new HttpClient(innerHandler, disposeHandler: false) { BaseAddress = new Uri("https://localhost") };
-        var tokenClient = new TokenClient(httpClient);
+        var tokenClient = CreateTokenClient(innerHandler);
 
         // Act
         var result = await tokenClient.LoginAsync("admin", "secret", TestContext.Current.CancellationToken);
@@ -75,8 +75,7 @@ public sealed class TokenClientTests
             capturedBody = req.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
         };
 
-        using var httpClient = new HttpClient(innerHandler, disposeHandler: false) { BaseAddress = new Uri("https://localhost") };
-        var tokenClient = new TokenClient(httpClient);
+        var tokenClient = CreateTokenClient(innerHandler);
 
         // Act
         var result = await tokenClient.RefreshAsync("old-refresh-token", TestContext.Current.CancellationToken);
@@ -100,8 +99,7 @@ public sealed class TokenClientTests
         using var innerHandler = new FakeHttpHandler()
             .RespondTo(HttpMethod.Post, TokenEndpoint, HttpStatusCode.Unauthorized);
 
-        using var httpClient = new HttpClient(innerHandler, disposeHandler: false) { BaseAddress = new Uri("https://localhost") };
-        var tokenClient = new TokenClient(httpClient);
+        var tokenClient = CreateTokenClient(innerHandler);
 
         // Act & Assert
         await Should.ThrowAsync<HttpRequestException>(
@@ -115,11 +113,21 @@ public sealed class TokenClientTests
         using var innerHandler = new FakeHttpHandler()
             .RespondTo(HttpMethod.Post, TokenEndpoint, HttpStatusCode.Unauthorized);
 
-        using var httpClient = new HttpClient(innerHandler, disposeHandler: false) { BaseAddress = new Uri("https://localhost") };
-        var tokenClient = new TokenClient(httpClient);
+        var tokenClient = CreateTokenClient(innerHandler);
 
         // Act & Assert
         await Should.ThrowAsync<HttpRequestException>(
             tokenClient.RefreshAsync("expired-refresh-token", TestContext.Current.CancellationToken));
+    }
+
+    private static TokenClient CreateTokenClient(HttpMessageHandler innerHandler)
+    {
+        var factory = Substitute.For<IHttpClientFactory>();
+        factory.CreateClient(ClientName).Returns(_ => new HttpClient(innerHandler, disposeHandler: false)
+        {
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        return new TokenClient(factory, ClientName);
     }
 }

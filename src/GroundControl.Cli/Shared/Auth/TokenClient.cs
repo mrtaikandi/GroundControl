@@ -12,11 +12,13 @@ internal sealed class TokenClient : ITokenClient
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly string _clientName;
 
-    public TokenClient(HttpClient httpClient)
+    public TokenClient(IHttpClientFactory httpClientFactory, string clientName)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
+        _clientName = clientName;
     }
 
     public async Task<TokenResponse> LoginAsync(string username, string password, CancellationToken cancellationToken = default)
@@ -44,31 +46,11 @@ internal sealed class TokenClient : ITokenClient
 
     private async Task<TokenResponse> PostTokenRequestAsync(HttpContent content, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.PostAsync(TokenEndpoint, content, cancellationToken).ConfigureAwait(false);
+        using var httpClient = _httpClientFactory.CreateClient(_clientName);
+        using var response = await httpClient.PostAsync(TokenEndpoint, content, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        var tokenResponse = await response.Content.ReadFromJsonAsync<TokenEndpointResponse>(JsonOptions, cancellationToken)
-            .ConfigureAwait(false);
-
-        return tokenResponse is null
-            ? throw new InvalidOperationException("Token endpoint returned an empty response.")
-            : new TokenResponse
-            {
-                AccessToken = tokenResponse.AccessToken,
-                RefreshToken = tokenResponse.RefreshToken,
-                ExpiresIn = tokenResponse.ExpiresIn,
-                RefreshExpiresIn = tokenResponse.RefreshExpiresIn
-            };
-    }
-
-    private sealed class TokenEndpointResponse
-    {
-        public string AccessToken { get; set; } = string.Empty;
-
-        public string RefreshToken { get; set; } = string.Empty;
-
-        public int ExpiresIn { get; set; }
-
-        public int RefreshExpiresIn { get; set; }
+        return await response.Content.ReadFromJsonAsync<TokenResponse>(JsonOptions, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Token endpoint returned an empty response.");
     }
 }

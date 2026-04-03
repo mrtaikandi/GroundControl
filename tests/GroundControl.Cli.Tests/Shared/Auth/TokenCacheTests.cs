@@ -255,27 +255,39 @@ public sealed class TokenCacheTests : IDisposable
     public async Task WithRefreshLockAsync_PropagatesCancellation()
     {
         // Arrange
-        using var cts = new CancellationTokenSource();
+        using var holdCts = new CancellationTokenSource();
+        using var waitCts = new CancellationTokenSource();
         var entered = new TaskCompletionSource();
 
-        // Hold the lock
-        _ = _cache.WithRefreshLockAsync(async () =>
+        // Hold the lock with a task we can cancel to release it
+        var holdTask = _cache.WithRefreshLockAsync(async () =>
         {
             entered.SetResult();
-            await Task.Delay(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            await Task.Delay(TimeSpan.FromSeconds(30), holdCts.Token);
             return 0;
-        }, TestContext.Current.CancellationToken);
+        }, holdCts.Token);
 
         await entered.Task;
 
         // Act & Assert — cancelling while waiting for lock
-        await cts.CancelAsync();
+        await waitCts.CancelAsync();
         await Should.ThrowAsync<OperationCanceledException>(
             _cache.WithRefreshLockAsync(async () =>
             {
                 await Task.CompletedTask;
                 return 0;
-            }, cts.Token));
+            }, waitCts.Token));
+
+        // Cleanup — cancel the lock-holding task so the semaphore is released before Dispose
+        await holdCts.CancelAsync();
+        try
+        {
+            await holdTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected
+        }
     }
 
     public void Dispose() => _cache.Dispose();

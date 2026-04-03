@@ -46,10 +46,7 @@ internal sealed class ApiClientModule : IDependencyModule
         });
 
         services.AddSingleton<ITokenClient>(sp =>
-        {
-            var factory = sp.GetRequiredService<IHttpClientFactory>();
-            return new TokenClient(factory.CreateClient(TokenClientName));
-        });
+            new TokenClient(sp.GetRequiredService<IHttpClientFactory>(), TokenClientName));
 
         services.AddTransient<ApiVersionHandler>();
         services.AddTransient<AuthenticatingHandler>();

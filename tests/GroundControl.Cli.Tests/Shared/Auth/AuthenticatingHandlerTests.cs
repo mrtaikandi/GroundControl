@@ -4,8 +4,11 @@ using Microsoft.Extensions.Options;
 
 namespace GroundControl.Cli.Tests.Shared.Auth;
 
-public sealed class AuthenticatingHandlerTests
+public sealed class AuthenticatingHandlerTests : IDisposable
 {
+    private readonly TokenCache _tokenCache = new(TimeProvider.System);
+    private readonly ITokenClient _tokenClient = Substitute.For<ITokenClient>();
+
     [Fact]
     public async Task SendAsync_NoneMethod_DoesNotAddAuthHeader()
     {
@@ -289,10 +292,10 @@ public sealed class AuthenticatingHandlerTests
     }
 
     [Fact]
-    public async Task SendAsync_CredentialsMethod_WithoutTokenCache_ThrowsInvalidOperationException()
+    public async Task SendAsync_CredentialsMethod_MissingCredentials_ThrowsInvalidOperationException()
     {
         // Arrange
-        var options = new AuthOptions { Method = "Credentials", Username = "user", Password = "pass" };
+        var options = new AuthOptions { Method = "Credentials", Username = null, Password = null };
         var innerHandler = new FakeHttpHandler()
             .RespondTo(HttpMethod.Get, "/api/test", HttpStatusCode.OK);
 
@@ -306,7 +309,7 @@ public sealed class AuthenticatingHandlerTests
         var exception = await Should.ThrowAsync<InvalidOperationException>(
             client.GetAsync("/api/test", TestContext.Current.CancellationToken));
 
-        exception.Message.ShouldContain("token cache");
+        exception.Message.ShouldContain("Credentials");
     }
 
     [Fact]
@@ -330,6 +333,8 @@ public sealed class AuthenticatingHandlerTests
         exception.Message.ShouldContain("Unknown");
     }
 
-    private static AuthenticatingHandler CreateHandler(AuthOptions options) =>
-        new(Options.Create(options));
+    private AuthenticatingHandler CreateHandler(AuthOptions options) =>
+        new(Options.Create(options), _tokenCache, _tokenClient);
+
+    public void Dispose() => _tokenCache.Dispose();
 }

@@ -1,6 +1,6 @@
 namespace GroundControl.Cli.Shared.Auth;
 
-internal sealed class TokenResponse
+internal sealed record TokenResponse
 {
     public required string AccessToken { get; init; }
 
