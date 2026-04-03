@@ -1,0 +1,25 @@
+using System.CommandLine;
+
+namespace GroundControl.Cli.Features.Templates.Create;
+
+internal sealed class CreateTemplateCommand : Command<CreateTemplateHandler, CreateTemplateOptions>
+{
+    public CreateTemplateCommand()
+        : base("create", "Create a new template")
+    {
+        var nameOption = new Option<string?>("--name", "The template name");
+        var descriptionOption = new Option<string?>("--description", "The template description");
+        var groupIdOption = new Option<Guid?>("--group-id", "The owning group ID");
+
+        Options.Add(nameOption);
+        Options.Add(descriptionOption);
+        Options.Add(groupIdOption);
+
+        ConfigureOptions((parseResult, options) =>
+        {
+            options.Name = parseResult.GetValue(nameOption);
+            options.Description = parseResult.GetValue(descriptionOption);
+            options.GroupId = parseResult.GetValue(groupIdOption);
+        });
+    }
+}
