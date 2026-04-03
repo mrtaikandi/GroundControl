@@ -197,6 +197,31 @@ public static partial class ShellExtensions
         }
 
         /// <summary>
+        /// Prompts the user to enter a secret value with masked input.
+        /// </summary>
+        /// <param name="promptText">The prompt text to display.</param>
+        /// <param name="mask">The character used to mask input. Use <see langword="null"/> to hide input entirely.</param>
+        /// <param name="validator">An optional validation function that returns a <see cref="ValidationResult"/>.</param>
+        /// <param name="cancellationToken">A token to cancel the operation.</param>
+        /// <returns>The entered secret value.</returns>
+        public async Task<string> PromptForSecretAsync(
+            string promptText,
+            char? mask = '*',
+            Func<string, ValidationResult>? validator = null,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(promptText);
+            var prompt = new TextPrompt<string>(promptText).Secret(mask);
+
+            if (validator is not null)
+            {
+                prompt.Validate(validator);
+            }
+
+            return await shell.Console.PromptAsync(prompt, cancellationToken);
+        }
+
+        /// <summary>
         /// Synchronously prompts the user to select a single item from a list of strings.
         /// </summary>
         /// <param name="promptText">The prompt title.</param>
