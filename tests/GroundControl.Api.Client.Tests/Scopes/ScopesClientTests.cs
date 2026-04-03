@@ -2,9 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using GroundControl.Api.Client.Contracts;
 using GroundControl.Api.Client.Tests.Infrastructure;
-using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Shared.Pagination;
 using CreateScopeRequest = GroundControl.Api.Client.Contracts.CreateScopeRequest;
+using ScopeResponse = GroundControl.Api.Client.Contracts.ScopeResponse;
 using UpdateScopeRequest = GroundControl.Api.Client.Contracts.UpdateScopeRequest;
 
 namespace GroundControl.Api.Client.Tests.Scopes;

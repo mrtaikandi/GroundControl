@@ -170,7 +170,7 @@ namespace GroundControl.Api.Client.Contracts
         /// <param name="sortOrder">Gets the sort direction (e.g., `asc` or `desc`).</param>
         /// <returns>OK</returns>
         /// <exception cref="GroundControlApiClientException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResponseOfConfigEntryResponse> ListConfigEntriesHandlerAsync(System.Guid? ownerId = null, int? ownerType = null, string? keyPrefix = null, int? limit = null, string? after = null, string? before = null, string? sortField = null, string? sortOrder = null, bool? decrypt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PaginatedResponseOfConfigEntryResponse> ListConfigEntriesHandlerAsync(System.Guid? ownerId = null, ConfigEntryOwnerType? ownerType = null, string? keyPrefix = null, int? limit = null, string? after = null, string? before = null, string? sortField = null, string? sortOrder = null, bool? decrypt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -744,7 +744,7 @@ namespace GroundControl.Api.Client.Contracts
         /// <param name="sortOrder">Gets the sort direction (e.g., `asc` or `desc`).</param>
         /// <returns>OK</returns>
         /// <exception cref="GroundControlApiClientException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PaginatedResponseOfVariableResponse> ListVariablesHandlerAsync(int? scope = null, System.Guid? groupId = null, System.Guid? projectId = null, int? limit = null, string? after = null, string? before = null, string? sortField = null, string? sortOrder = null, bool? decrypt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PaginatedResponseOfVariableResponse> ListVariablesHandlerAsync(VariableScope? scope = null, System.Guid? groupId = null, System.Guid? projectId = null, int? limit = null, string? after = null, string? before = null, string? sortField = null, string? sortOrder = null, bool? decrypt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -980,6 +980,19 @@ namespace GroundControl.Api.Client.Contracts
     }
 
     /// <summary>
+    /// Defines the owner type for a configuration entry.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ConfigEntryOwnerType
+    {
+
+        Template = 0,
+
+        Project = 1,
+
+    }
+
+    /// <summary>
     /// Represents the API response body for a configuration entry.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -1009,7 +1022,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the owner type.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ownerType")]
-        public int OwnerType { get; set; } = default!;
+        public ConfigEntryOwnerType OwnerType { get; set; } = default!;
 
         /// <summary>
         /// Gets the value type name.
@@ -1213,7 +1226,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Gets the owner type.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ownerType")]
-        public int OwnerType { get; set; } = default!;
+        public ConfigEntryOwnerType OwnerType { get; set; } = default!;
 
         /// <summary>
         /// Gets the value type name.
@@ -1549,7 +1562,7 @@ namespace GroundControl.Api.Client.Contracts
         public string Name { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("scope")]
-        public int Scope { get; set; } = default!;
+        public VariableScope Scope { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("groupId")]
         public System.Guid? GroupId { get; set; } = default!;
@@ -3223,7 +3236,7 @@ namespace GroundControl.Api.Client.Contracts
         public string? Description { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("scope")]
-        public int Scope { get; set; } = default!;
+        public VariableScope Scope { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("groupId")]
         public System.Guid? GroupId { get; set; } = default!;
@@ -3260,6 +3273,19 @@ namespace GroundControl.Api.Client.Contracts
             get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
             set { _additionalProperties = value; }
         }
+
+    }
+
+    /// <summary>
+    /// Defines the ownership scope for a variable.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum VariableScope
+    {
+
+        Global = 0,
+
+        Project = 1,
 
     }
 

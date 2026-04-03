@@ -2,13 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using GroundControl.Api.Client.Contracts;
 using GroundControl.Api.Client.Tests.Infrastructure;
-using GroundControl.Api.Features.ConfigEntries.Contracts;
-using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared.Pagination;
-using GroundControl.Persistence.Contracts;
+using ConfigEntryOwnerType = GroundControl.Api.Client.Contracts.ConfigEntryOwnerType;
+using ConfigEntryResponse = GroundControl.Api.Client.Contracts.ConfigEntryResponse;
 using CreateConfigEntryRequest = GroundControl.Api.Client.Contracts.CreateConfigEntryRequest;
 using CreateTemplateRequest = GroundControl.Api.Features.Templates.Contracts.CreateTemplateRequest;
 using ScopedValueRequest = GroundControl.Api.Client.Contracts.ScopedValueRequest;
+using TemplateResponse = GroundControl.Api.Client.Contracts.TemplateResponse;
 
 namespace GroundControl.Api.Client.Tests.ConfigEntries;
 
@@ -32,7 +32,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         {
             Key = "Logging:LogLevel:Default",
             OwnerId = template.Id,
-            OwnerType = (int)ConfigEntryOwnerType.Template,
+            OwnerType = ConfigEntryOwnerType.Template,
             ValueType = "String",
             Values =
             [
@@ -96,7 +96,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         // Act
         await client.ListConfigEntriesHandlerAsync(
             ownerId: template.Id,
-            ownerType: (int)ConfigEntryOwnerType.Template,
+            ownerType: ConfigEntryOwnerType.Template,
             sortField: "key",
             sortOrder: "asc",
             cancellationToken: TestCancellationToken);
@@ -156,7 +156,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         var request = new CreateConfigEntryRequest
         {
             OwnerId = template.Id,
-            OwnerType = (int)ConfigEntryOwnerType.Template,
+            OwnerType = ConfigEntryOwnerType.Template,
             ValueType = "String",
             Values = [new ScopedValueRequest { Value = "default" }]
         };
@@ -199,7 +199,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         {
             Key = key,
             OwnerId = ownerId,
-            OwnerType = (int)ConfigEntryOwnerType.Template,
+            OwnerType = ConfigEntryOwnerType.Template,
             ValueType = "String",
             Values = [new ScopedValueRequest { Value = "default" }]
         };

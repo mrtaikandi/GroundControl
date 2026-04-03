@@ -7,8 +7,7 @@ internal sealed class ResponseCapturingHandler : DelegatingHandler
     public HttpResponseMessage? LastResponse { get; private set; }
 
     /// <summary>
-    /// Gets the original HTTP status code before the NSwag client's <c>ProcessResponse</c>
-    /// normalizes 2xx responses to 200.
+    /// Gets the HTTP status code of the last response.
     /// </summary>
     public HttpStatusCode? LastStatusCode { get; private set; }
 

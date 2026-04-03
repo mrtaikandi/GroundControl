@@ -1192,7 +1192,7 @@ namespace GroundControl.Api.Client
         /// <param name="sortOrder">Gets the sort direction (e.g., `asc` or `desc`).</param>
         /// <returns>OK</returns>
         /// <exception cref="GroundControlApiClientException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PaginatedResponseOfConfigEntryResponse> ListConfigEntriesHandlerAsync(System.Guid? ownerId = null, int? ownerType = null, string? keyPrefix = null, int? limit = null, string? after = null, string? before = null, string? sortField = null, string? sortOrder = null, bool? decrypt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PaginatedResponseOfConfigEntryResponse> ListConfigEntriesHandlerAsync(System.Guid? ownerId = null, ConfigEntryOwnerType? ownerType = null, string? keyPrefix = null, int? limit = null, string? after = null, string? before = null, string? sortField = null, string? sortOrder = null, bool? decrypt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -6437,7 +6437,7 @@ namespace GroundControl.Api.Client
         /// <param name="sortOrder">Gets the sort direction (e.g., `asc` or `desc`).</param>
         /// <returns>OK</returns>
         /// <exception cref="GroundControlApiClientException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PaginatedResponseOfVariableResponse> ListVariablesHandlerAsync(int? scope = null, System.Guid? groupId = null, System.Guid? projectId = null, int? limit = null, string? after = null, string? before = null, string? sortField = null, string? sortOrder = null, bool? decrypt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PaginatedResponseOfVariableResponse> ListVariablesHandlerAsync(VariableScope? scope = null, System.Guid? groupId = null, System.Guid? projectId = null, int? limit = null, string? after = null, string? before = null, string? sortField = null, string? sortOrder = null, bool? decrypt = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;

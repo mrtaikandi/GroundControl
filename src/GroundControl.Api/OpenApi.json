@@ -4097,8 +4097,16 @@
         "description": "Represents the API response body for a client."
       },
       "ConfigEntryOwnerType": {
+        "enum": [
+          0,
+          1
+        ],
         "type": "integer",
-        "description": "Defines the owner type for a configuration entry."
+        "description": "Defines the owner type for a configuration entry.",
+        "x-enumNames": [
+          "Template",
+          "Project"
+        ]
       },
       "ConfigEntryResponse": {
         "required": [
@@ -6254,8 +6262,16 @@
         }
       },
       "VariableScope": {
+        "enum": [
+          0,
+          1
+        ],
         "type": "integer",
-        "description": "Defines the ownership scope for a variable."
+        "description": "Defines the ownership scope for a variable.",
+        "x-enumNames": [
+          "Global",
+          "Project"
+        ]
       }
     }
   },
