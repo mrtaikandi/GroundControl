@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using GroundControl.Cli.Features.Tui.Views;
 using GroundControl.Cli.Shared.Config;
 using Microsoft.Extensions.Configuration;
@@ -21,6 +22,8 @@ internal sealed class TuiCommandHandler : ICommandHandler
         var serverUrl = _configuration["GroundControl:ServerUrl"] ?? "https://localhost:5001";
         var authMethod = await GetAuthMethodAsync(cancellationToken);
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         using var app = Application.Create();
         app.Init();
         using var mainWindow = new MainWindow(app, serverUrl, authMethod);
@@ -32,13 +35,7 @@ internal sealed class TuiCommandHandler : ICommandHandler
     private async Task<string> GetAuthMethodAsync(CancellationToken cancellationToken)
     {
         var section = await _credentialStore.ReadAsync(cancellationToken);
-        if (section is null)
-        {
-            return "None";
-        }
-
-        var auth = section["Auth"];
-        if (auth is null)
+        if (section?["Auth"] is not JsonObject auth)
         {
             return "None";
         }
