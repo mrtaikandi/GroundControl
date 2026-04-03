@@ -134,7 +134,22 @@ internal sealed class CredentialStore
                 pairs.Add(("Auth.Method", method));
             }
 
-            pairs.Add(("Auth.Token", MaskValue(auth["Token"]?.GetValue<string>())));
+            switch (method)
+            {
+                case "ApiKey":
+                    pairs.Add(("Auth.ClientId", auth["ClientId"]?.GetValue<string>() ?? "(not set)"));
+                    pairs.Add(("Auth.ClientSecret", MaskValue(auth["ClientSecret"]?.GetValue<string>())));
+                    break;
+
+                case "Credentials":
+                    pairs.Add(("Auth.Username", auth["Username"]?.GetValue<string>() ?? "(not set)"));
+                    pairs.Add(("Auth.Password", MaskValue(auth["Password"]?.GetValue<string>())));
+                    break;
+
+                default:
+                    pairs.Add(("Auth.Token", MaskValue(auth["Token"]?.GetValue<string>())));
+                    break;
+            }
         }
         else
         {
