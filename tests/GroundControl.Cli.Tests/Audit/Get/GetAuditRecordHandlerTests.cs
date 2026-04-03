@@ -103,7 +103,7 @@ public sealed class GetAuditRecordHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_JsonOutput_DoesNotRenderChangesTable()
+    public async Task HandleAsync_JsonOutput_RendersFullRecordWithChanges()
     {
         // Arrange
         var recordId = Guid.CreateVersion7();
@@ -133,8 +133,8 @@ public sealed class GetAuditRecordHandlerTests
         exitCode.ShouldBe(0);
         var output = shellBuilder.GetOutput();
         output.ShouldContain("\"Scope\"");
-        output.ShouldNotContain("Old Value");
-        output.ShouldNotContain("New Value");
+        output.ShouldContain("\"Name\"");
+        output.ShouldContain("\"New\"");
     }
 
     private static GetAuditRecordHandler CreateHandler(

@@ -29,9 +29,16 @@ internal sealed class GetAuditRecordHandler : ICommandHandler
         try
         {
             var record = await _client.GetAuditRecordHandlerAsync(_options.Id, cancellationToken);
+
+            if (_hostOptions.OutputFormat == OutputFormat.Json)
+            {
+                _shell.RenderJson(record);
+                return 0;
+            }
+
             _shell.RenderDetail(BuildDetail(record), _hostOptions.OutputFormat);
 
-            if (record.Changes.Count > 0 && _hostOptions.OutputFormat != OutputFormat.Json)
+            if (record.Changes.Count > 0)
             {
                 _shell.DisplayEmptyLine();
                 RenderFieldChanges(record.Changes);
