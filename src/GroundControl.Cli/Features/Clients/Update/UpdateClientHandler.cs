@@ -47,7 +47,7 @@ internal sealed class UpdateClientHandler : ICommandHandler
         {
             Name = _options.Name ?? current.Name,
             IsActive = _options.IsActive ?? current.IsActive,
-            ExpiresAt = _options.ExpiresAt
+            ExpiresAt = _options.ExpiresAt ?? current.ExpiresAt
         };
 
         try
