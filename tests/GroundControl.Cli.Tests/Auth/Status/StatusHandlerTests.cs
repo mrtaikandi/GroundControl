@@ -80,6 +80,54 @@ public sealed class StatusHandlerTests : IDisposable
         output.ShouldContain("(none)");
     }
 
+    [Fact]
+    public async Task HandleAsync_WithApiKeyAuth_DisplaysClientIdAndMaskedSecret()
+    {
+        // Arrange
+        await File.WriteAllTextAsync(
+            _settingsPath,
+            """{"GroundControl": {"ServerUrl": "https://gc.example.com", "Auth": {"Method": "ApiKey", "ClientId": "my-client", "ClientSecret": "super-secret-value"}}}""",
+            TestContext.Current.CancellationToken);
+
+        var shellBuilder = new MockShellBuilder();
+        var handler = CreateHandler(shellBuilder);
+
+        // Act
+        var exitCode = await handler.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        exitCode.ShouldBe(0);
+        var output = shellBuilder.GetOutput();
+        output.ShouldContain("ApiKey");
+        output.ShouldContain("my-client");
+        output.ShouldNotContain("super-secret-value");
+        output.ShouldContain("alue");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WithCredentialsAuth_DisplaysUsernameAndMaskedPassword()
+    {
+        // Arrange
+        await File.WriteAllTextAsync(
+            _settingsPath,
+            """{"GroundControl": {"ServerUrl": "https://gc.example.com", "Auth": {"Method": "Credentials", "Username": "admin", "Password": "my-password"}}}""",
+            TestContext.Current.CancellationToken);
+
+        var shellBuilder = new MockShellBuilder();
+        var handler = CreateHandler(shellBuilder);
+
+        // Act
+        var exitCode = await handler.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        exitCode.ShouldBe(0);
+        var output = shellBuilder.GetOutput();
+        output.ShouldContain("Credentials");
+        output.ShouldContain("admin");
+        output.ShouldNotContain("my-password");
+        output.ShouldContain("word");
+    }
+
     private StatusHandler CreateHandler(MockShellBuilder shellBuilder) =>
         new(
             shellBuilder.Build(),

@@ -18,7 +18,7 @@ internal sealed class LogoutHandler : ICommandHandler
     {
         var section = await _store.ReadAsync(cancellationToken);
 
-        if (section is null)
+        if (section is null || section["Auth"] is null)
         {
             _shell.DisplaySubtleMessage("No credentials found. Already logged out.");
             return 0;

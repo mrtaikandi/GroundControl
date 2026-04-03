@@ -60,7 +60,7 @@ public sealed class LogoutHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandleAsync_WithoutAuthSection_DisplaysAlreadyLoggedOut()
+    public async Task HandleAsync_WithoutAuthSection_DisplaysAlreadyLoggedOutAndDoesNotWrite()
     {
         // Arrange
         await File.WriteAllTextAsync(
@@ -68,6 +68,7 @@ public sealed class LogoutHandlerTests : IDisposable
             """{"GroundControl": {"ServerUrl": "https://test.com"}}""",
             TestContext.Current.CancellationToken);
 
+        var lastWriteTime = File.GetLastWriteTimeUtc(_settingsPath);
         var shellBuilder = new MockShellBuilder();
         var handler = CreateHandler(shellBuilder);
 
@@ -76,12 +77,8 @@ public sealed class LogoutHandlerTests : IDisposable
 
         // Assert
         exitCode.ShouldBe(0);
-
-        // ServerUrl should still be preserved
-        var store = new CredentialStore(_settingsPath);
-        var section = await store.ReadAsync(TestContext.Current.CancellationToken);
-        section.ShouldNotBeNull();
-        section["ServerUrl"]!.GetValue<string>().ShouldBe("https://test.com");
+        shellBuilder.GetOutput().ShouldContain("Already logged out");
+        File.GetLastWriteTimeUtc(_settingsPath).ShouldBe(lastWriteTime);
     }
 
     private LogoutHandler CreateHandler(MockShellBuilder shellBuilder) =>
