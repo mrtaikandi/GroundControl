@@ -46,6 +46,8 @@ internal sealed class UpdateRoleHandler : ICommandHandler
         var permissions = _options.Permissions?
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+        // WhenWritingNull serializer policy omits null fields from the JSON body,
+        // so only fields the user explicitly provided are sent to the API.
         var request = new UpdateRoleRequest
         {
             Name = _options.Name!,

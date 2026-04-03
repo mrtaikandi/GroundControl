@@ -1,4 +1,5 @@
 using GroundControl.Api.Client.Contracts;
+using GroundControl.Cli.Shared.ErrorHandling;
 using Microsoft.Extensions.Options;
 
 namespace GroundControl.Cli.Features.Roles.List;
@@ -30,8 +31,16 @@ internal sealed class ListRolesHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        var roles = await _client.ListRolesHandlerAsync(cancellationToken);
-        _shell.RenderTable((IReadOnlyList<RoleResponse>)roles, Headers, ValueExtractors, _hostOptions.OutputFormat);
-        return 0;
+        try
+        {
+            var roles = await _client.ListRolesHandlerAsync(cancellationToken);
+            _shell.RenderTable(roles.ToList(), Headers, ValueExtractors, _hostOptions.OutputFormat);
+            return 0;
+        }
+        catch (GroundControlApiClientException<ProblemDetails> ex)
+        {
+            _shell.RenderProblemDetails(ex.Result);
+            return 1;
+        }
     }
 }
