@@ -10,14 +10,23 @@ namespace GroundControl.Cli.Shared.Auth;
 internal sealed class AuthenticatingHandler : DelegatingHandler
 {
     private readonly AuthOptions _options;
+    private readonly TokenCache? _tokenCache;
+    private readonly ITokenClient? _tokenClient;
 
     public AuthenticatingHandler(IOptions<AuthOptions> options)
+        : this(options, null, null)
+    {
+    }
+
+    public AuthenticatingHandler(IOptions<AuthOptions> options, TokenCache? tokenCache, ITokenClient? tokenClient)
     {
         _options = options.Value;
+        _tokenCache = tokenCache;
+        _tokenClient = tokenClient;
     }
 
     /// <inheritdoc />
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         switch (_options.Method?.ToUpperInvariant())
         {
@@ -49,17 +58,83 @@ internal sealed class AuthenticatingHandler : DelegatingHandler
                 break;
 
             case "CREDENTIALS":
-                throw new NotSupportedException(
-                    "Credentials authentication is not yet supported. " +
-                    "Run 'groundcontrol auth login' and choose 'Pat' or 'ApiKey' instead.");
+                var accessToken = await GetCredentialAccessTokenAsync(cancellationToken).ConfigureAwait(false);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                break;
 
             default:
                 throw new InvalidOperationException(
                     $"Unknown authentication method '{_options.Method}'. " +
-                    "Supported methods are: Bearer, ApiKey. " +
+                    "Supported methods are: Bearer, ApiKey, Credentials. " +
                     "Run 'groundcontrol auth login' to reconfigure your credentials.");
         }
 
-        return base.SendAsync(request, cancellationToken);
+        return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<string> GetCredentialAccessTokenAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_options.Username) || string.IsNullOrWhiteSpace(_options.Password))
+        {
+            throw new InvalidOperationException(
+                "Authentication method is set to 'Credentials' but username or password is missing. " +
+                "Run 'groundcontrol auth login' to configure your credentials.");
+        }
+
+        if (_tokenCache is null || _tokenClient is null)
+        {
+            throw new InvalidOperationException(
+                "Credentials authentication requires token cache and token client to be configured.");
+        }
+
+        // Fast path: valid cached access token
+        if (_tokenCache.HasValidAccessToken)
+        {
+            return _tokenCache.AccessToken!;
+        }
+
+        // Slow path: acquire lock to refresh/login (prevents concurrent refresh race)
+        return await _tokenCache.WithRefreshLockAsync(async () =>
+        {
+            // Double-check after acquiring lock — another thread may have refreshed
+            if (_tokenCache.HasValidAccessToken)
+            {
+                return _tokenCache.AccessToken!;
+            }
+
+            // Try refresh if we have a valid refresh token
+            if (_tokenCache.HasValidRefreshToken)
+            {
+                var refreshResponse = await _tokenClient.RefreshAsync(
+                    _tokenCache.RefreshToken!, cancellationToken).ConfigureAwait(false);
+
+                _tokenCache.SetTokens(
+                    refreshResponse.AccessToken,
+                    refreshResponse.RefreshToken,
+                    refreshResponse.ExpiresIn,
+                    refreshResponse.RefreshExpiresIn);
+
+                return refreshResponse.AccessToken;
+            }
+
+            // If tokens were previously set but both are now expired, require re-authentication
+            if (_tokenCache.WasPopulated)
+            {
+                throw new InvalidOperationException(
+                    "Your session has expired. Run 'groundcontrol auth login' to re-authenticate.");
+            }
+
+            // First request — no tokens yet, login with stored credentials
+            var loginResponse = await _tokenClient.LoginAsync(
+                _options.Username!, _options.Password!, cancellationToken).ConfigureAwait(false);
+
+            _tokenCache.SetTokens(
+                loginResponse.AccessToken,
+                loginResponse.RefreshToken,
+                loginResponse.ExpiresIn,
+                loginResponse.RefreshExpiresIn);
+
+            return loginResponse.AccessToken;
+        }, cancellationToken).ConfigureAwait(false);
     }
 }

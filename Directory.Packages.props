@@ -34,6 +34,7 @@
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="10.4.0" />
     <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.4.0" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.4.0" />
     <PackageVersion Include="NSwag.MSBuild" Version="14.6.3" />
     <PackageVersion Include="MongoDB.Driver" Version="3.7.1" />
     <PackageVersion Include="MongoDB.Driver.Core" Version="2.30.0" />

@@ -289,7 +289,7 @@ public sealed class AuthenticatingHandlerTests
     }
 
     [Fact]
-    public async Task SendAsync_CredentialsMethod_ThrowsNotSupportedException()
+    public async Task SendAsync_CredentialsMethod_WithoutTokenCache_ThrowsInvalidOperationException()
     {
         // Arrange
         var options = new AuthOptions { Method = "Credentials", Username = "user", Password = "pass" };
@@ -303,10 +303,10 @@ public sealed class AuthenticatingHandlerTests
         client.BaseAddress = new Uri("https://localhost");
 
         // Act & Assert
-        var exception = await Should.ThrowAsync<NotSupportedException>(
+        var exception = await Should.ThrowAsync<InvalidOperationException>(
             client.GetAsync("/api/test", TestContext.Current.CancellationToken));
 
-        exception.Message.ShouldContain("Credentials");
+        exception.Message.ShouldContain("token cache");
     }
 
     [Fact]
