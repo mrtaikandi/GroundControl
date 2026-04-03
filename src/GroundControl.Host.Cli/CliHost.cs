@@ -68,8 +68,18 @@ public sealed partial class CliHost
         }
         catch (Exception ex)
         {
-            var logger = _applicationHost.Services.GetRequiredService<ILogger<CliHost>>();
-            LogUnhandledError(logger, ex);
+            var environment = _applicationHost.Services.GetRequiredService<IHostEnvironment>();
+            var shell = _applicationHost.Services.GetRequiredService<IShell>();
+
+            shell.DisplayEmptyLine();
+            shell.DisplayError("Oops! something went wrong while executing the command.");
+            shell.DisplayEmptyLine();
+
+            if (environment.IsDevelopment())
+            {
+                var logger = _applicationHost.Services.GetRequiredService<ILogger<CliHost>>();
+                LogUnhandledError(logger, ex);
+            }
 
             return 1;
         }

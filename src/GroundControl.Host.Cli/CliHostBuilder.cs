@@ -255,14 +255,15 @@ public sealed class CliHostBuilder
     {
         builder.ClearProviders();
 
-        if (parseResult.GetResult(CliHostOptions.DebugOption) is null)
+        var debugResult = parseResult.GetResult(CliHostOptions.DebugOption);
+        if (debugResult is null)
         {
             return;
         }
 
-        builder.ClearProviders().AddSpectreConsole();
+        builder.AddSpectreConsole();
 
-        var debugValue = parseResult.GetValue(CliHostOptions.DebugOption);
+        var debugValue = debugResult.GetValueOrDefault<string?>();
         if (string.Equals(debugValue, "verbose", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(debugValue, "v", StringComparison.OrdinalIgnoreCase))
         {

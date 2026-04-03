@@ -20,7 +20,7 @@ public static partial class ShellExtensions
         /// </summary>
         /// <param name="errorMessage">The error text to display.</param>
         public void DisplayError(string errorMessage) =>
-            shell.DisplayMessage("thumbs_down", $"[red bold]{errorMessage}[/]");
+            shell.DisplayMessage("cross_mark", $"[red bold]{errorMessage}[/]");
 
         /// <summary>
         /// Renders an exception to the console.
