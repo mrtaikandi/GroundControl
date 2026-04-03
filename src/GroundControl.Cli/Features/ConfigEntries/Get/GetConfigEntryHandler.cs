@@ -50,9 +50,8 @@ internal sealed class GetConfigEntryHandler : ICommandHandler
             ("Sensitive", entry.IsSensitive.ToString())
         };
 
-        for (var i = 0; i < entry.Values.Count; i++)
+        foreach (var sv in entry.Values)
         {
-            var sv = entry.Values.ElementAt(i);
             var scopeLabel = sv.Scopes is { Count: > 0 }
                 ? string.Join(", ", sv.Scopes.Select(s => $"{s.Key}:{s.Value}"))
                 : "default";
