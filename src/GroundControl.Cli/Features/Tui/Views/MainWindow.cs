@@ -11,14 +11,6 @@ namespace GroundControl.Cli.Features.Tui.Views;
 
 internal sealed class MainWindow : Window
 {
-    private static readonly string[] PlaceholderTabs =
-    [
-        "Config Entries",
-        "Variables",
-        "Projects",
-        "Snapshots"
-    ];
-
     private readonly IApplication _app;
     private readonly TabView _tabView;
     private readonly Dictionary<Tab, IRefreshable> _refreshables = [];
@@ -39,17 +31,15 @@ internal sealed class MainWindow : Window
         AddResourceTab<ScopeResponse>("Scopes", new ScopeViewModel(client));
         AddResourceTab<GroupResponse>("Groups", new GroupViewModel(client));
         AddResourceTab<TemplateResponse>("Templates", new TemplateViewModel(client));
-
-        foreach (var name in PlaceholderTabs)
-        {
-            var tab = new Tab
-            {
-                DisplayText = name,
-                View = CreatePlaceholderPanel(name)
-            };
-
-            _tabView.AddTab(tab, false);
-        }
+        AddResourceTab<ConfigEntryResponse>("Config Entries", new ConfigEntryViewModel(client));
+        AddResourceTab<VariableResponse>("Variables", new VariableViewModel(client));
+        AddResourceTab<ProjectResponse>("Projects", new ProjectViewModel(client));
+        AddResourceTab<SnapshotSummaryResponse>("Snapshots", new SnapshotViewModel(client));
+        AddResourceTab<UserResponse>("Users", new UserViewModel(client));
+        AddResourceTab<RoleResponse>("Roles", new RoleViewModel(client));
+        AddResourceTab<ClientResponse>("Clients", new ClientViewModel(client));
+        AddResourceTab<PatResponse>("PATs", new PatViewModel(client));
+        AddResourceTab<AuditRecordResponse>("Audit", new AuditViewModel(client));
 
         if (_tabView.Tabs.Count > 0)
         {
@@ -118,52 +108,6 @@ internal sealed class MainWindow : Window
         {
             refreshable.Refresh();
         }
-    }
-
-    private static View CreatePlaceholderPanel(string resourceName)
-    {
-        var container = new View
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-
-        var listFrame = new FrameView
-        {
-            Title = "List",
-            X = 0,
-            Y = 0,
-            Width = Dim.Percent(40),
-            Height = Dim.Fill()
-        };
-
-        var detailFrame = new FrameView
-        {
-            Title = "Details",
-            X = Pos.Right(listFrame),
-            Y = 0,
-            Width = Dim.Fill(),
-            Height = Dim.Fill()
-        };
-
-        listFrame.Add(new Label
-        {
-            Text = $"No {resourceName.ToLower(CultureInfo.CurrentCulture)} loaded.",
-            X = 1,
-            Y = 1
-        });
-
-        detailFrame.Add(new Label
-        {
-            Text = "Select an item to view details.",
-            X = 1,
-            Y = 1
-        });
-
-        container.Add(listFrame, detailFrame);
-        return container;
     }
 
     private void ShowHelpDialog()
