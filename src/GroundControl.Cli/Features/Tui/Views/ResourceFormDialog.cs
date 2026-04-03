@@ -1,5 +1,5 @@
+using GroundControl.Cli.Features.Tui.ViewModels;
 using Terminal.Gui.App;
-using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -25,7 +25,7 @@ internal sealed class ResourceFormDialog
             Height = fields.Count * 3 + 6
         };
 
-        var fieldWidgets = new List<(FieldDefinition Definition, View Widget)>();
+        var fieldWidgets = new List<(FieldDefinition Definition, TextField Widget)>();
         var y = 0;
 
         foreach (var field in fields)
@@ -41,52 +41,16 @@ internal sealed class ResourceFormDialog
             dialog.Add(label);
             y++;
 
-            View widget;
-            switch (field.Type)
+            var textField = new TextField
             {
-                case FieldType.Boolean:
-                    var checkBox = new CheckBox
-                    {
-                        X = 1,
-                        Y = y,
-                        Text = field.Label,
-                        Value = string.Equals(field.DefaultValue, "true", StringComparison.OrdinalIgnoreCase)
-                            ? CheckState.Checked
-                            : CheckState.UnChecked
-                    };
+                X = 1,
+                Y = y,
+                Width = Dim.Fill(2),
+                Text = field.DefaultValue
+            };
 
-                    widget = checkBox;
-                    break;
-
-                case FieldType.MultiLineText:
-                    var textView = new TextView
-                    {
-                        X = 1,
-                        Y = y,
-                        Width = Dim.Fill(2),
-                        Height = 3,
-                        Text = field.DefaultValue
-                    };
-
-                    widget = textView;
-                    y += 2;
-                    break;
-
-                default:
-                    var textField = new TextField
-                    {
-                        X = 1,
-                        Y = y,
-                        Width = Dim.Fill(2),
-                        Text = field.DefaultValue
-                    };
-
-                    widget = textField;
-                    break;
-            }
-
-            dialog.Add(widget);
-            fieldWidgets.Add((field, widget));
+            dialog.Add(textField);
+            fieldWidgets.Add((field, textField));
             y += 2;
         }
 
@@ -100,6 +64,16 @@ internal sealed class ResourceFormDialog
 
         okButton.Accepting += (_, _) =>
         {
+            foreach (var (definition, widget) in fieldWidgets)
+            {
+                if (definition.IsRequired && string.IsNullOrWhiteSpace(widget.Text))
+                {
+                    MessageBox.ErrorQuery(_app, "Validation", $"{definition.Label} is required.", "OK");
+                    widget.SetFocus();
+                    return;
+                }
+            }
+
             confirmed = true;
             _app.RequestStop(dialog);
         };
@@ -123,15 +97,7 @@ internal sealed class ResourceFormDialog
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (definition, widget) in fieldWidgets)
         {
-            var value = widget switch
-            {
-                TextField tf => tf.Text,
-                TextView tv => tv.Text,
-                CheckBox cb => cb.Value == CheckState.Checked ? "true" : "false",
-                _ => string.Empty
-            };
-
-            result[definition.Label] = value;
+            result[definition.Label] = widget.Text;
         }
 
         return result;

@@ -1,6 +1,5 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
-using GroundControl.Cli.Features.Tui.Views;
 
 namespace GroundControl.Cli.Features.Tui.ViewModels;
 
@@ -103,7 +102,4 @@ internal sealed class ScopeViewModel : ResourceViewModel<ScopeResponse>
 
     private static List<string> ParseCommaSeparated(string value) =>
         value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-
-    private static string? NullIfEmpty(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value;
 }

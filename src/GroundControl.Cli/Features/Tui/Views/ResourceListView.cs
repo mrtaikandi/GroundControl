@@ -203,7 +203,11 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _app.Invoke(() => ShowErrorDialog(ex.Message));
+                _app.Invoke(() =>
+                {
+                    UpdateListView();
+                    ShowErrorDialog(ex.Message);
+                });
             }
         });
     }

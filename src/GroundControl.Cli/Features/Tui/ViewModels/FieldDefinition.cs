@@ -1,4 +1,4 @@
-namespace GroundControl.Cli.Features.Tui.Views;
+namespace GroundControl.Cli.Features.Tui.ViewModels;
 
 internal sealed class FieldDefinition
 {
@@ -13,7 +13,5 @@ internal sealed class FieldDefinition
 
 internal enum FieldType
 {
-    Text,
-    MultiLineText,
-    Boolean
+    Text
 }

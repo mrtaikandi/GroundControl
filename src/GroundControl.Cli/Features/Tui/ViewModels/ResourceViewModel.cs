@@ -1,5 +1,3 @@
-using GroundControl.Cli.Features.Tui.Views;
-
 namespace GroundControl.Cli.Features.Tui.ViewModels;
 
 internal abstract class ResourceViewModel<T>
@@ -131,6 +129,9 @@ internal abstract class ResourceViewModel<T>
     internal abstract Task DeleteAsync(T item, CancellationToken cancellationToken = default);
 
     protected abstract bool MatchesFilter(T item, string filter);
+
+    protected static string? NullIfEmpty(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
 
     private void ApplyFilter()
     {

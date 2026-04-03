@@ -1,6 +1,5 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
-using GroundControl.Cli.Features.Tui.Views;
 
 namespace GroundControl.Cli.Features.Tui.ViewModels;
 
@@ -102,9 +101,6 @@ internal sealed class TemplateViewModel : ResourceViewModel<TemplateResponse>
     protected override bool MatchesFilter(TemplateResponse item, string filter) =>
         item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
         (item.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
-
-    private static string? NullIfEmpty(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value;
 
     private static Guid? ParseGuid(string? value) =>
         Guid.TryParse(value, out var guid) ? guid : null;
