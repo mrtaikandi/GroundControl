@@ -8,7 +8,7 @@ internal sealed class GetVariableCommand : Command<GetVariableHandler, GetVariab
         : base("get", "Get a variable by ID")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The variable ID" };
-        var decryptOption = new Option<bool?>("--decrypt", "Decrypt sensitive values");
+        var decryptOption = new Option<bool?>("--decrypt") { Description = "Decrypt sensitive values" };
 
         Arguments.Add(idArgument);
         Options.Add(decryptOption);

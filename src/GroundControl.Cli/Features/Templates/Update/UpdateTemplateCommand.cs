@@ -8,10 +8,10 @@ internal sealed class UpdateTemplateCommand : Command<UpdateTemplateHandler, Upd
         : base("update", "Update a template")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The template ID" };
-        var nameOption = new Option<string?>("--name", "The new template name");
-        var descriptionOption = new Option<string?>("--description", "The new template description");
-        var groupIdOption = new Option<Guid?>("--group-id", "The new owning group ID");
-        var versionOption = new Option<long?>("--version", "The expected version for optimistic concurrency");
+        var nameOption = new Option<string?>("--name") { Description = "The new template name" };
+        var descriptionOption = new Option<string?>("--description") { Description = "The new template description" };
+        var groupIdOption = new Option<Guid?>("--group-id") { Description = "The new owning group ID" };
+        var versionOption = new Option<long?>("--version") { Description = "The expected version for optimistic concurrency" };
 
         Arguments.Add(idArgument);
         Options.Add(nameOption);

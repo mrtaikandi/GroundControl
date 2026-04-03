@@ -8,17 +8,18 @@ internal sealed class CreateConfigEntryCommand : Command<CreateConfigEntryHandle
     public CreateConfigEntryCommand()
         : base("create", "Create a new configuration entry")
     {
-        var keyOption = new Option<string?>("--key", "The configuration key (e.g., Database:ConnectionString)");
-        var ownerIdOption = new Option<Guid?>("--owner-id", "The owning template or project ID");
-        var ownerTypeOption = new Option<ConfigEntryOwnerType?>("--owner-type", "The owner type (Template or Project)");
-        var valueTypeOption = new Option<string?>("--value-type", "The value type name (e.g., String, Int32, Boolean)");
-        var sensitiveOption = new Option<bool?>("--sensitive", "Whether the entry contains sensitive data");
-        var descriptionOption = new Option<string?>("--description", "The entry description");
-        var valueOption = new Option<string[]?>("--value", "Scoped value (e.g., \"default=myval\" or \"env:prod=prodval\"). Repeatable.")
+        var keyOption = new Option<string?>("--key") { Description = "The configuration key (e.g., Database:ConnectionString)" };
+        var ownerIdOption = new Option<Guid?>("--owner-id") { Description = "The owning template or project ID" };
+        var ownerTypeOption = new Option<ConfigEntryOwnerType?>("--owner-type") { Description = "The owner type (Template or Project)" };
+        var valueTypeOption = new Option<string?>("--value-type") { Description = "The value type name (e.g., String, Int32, Boolean)" };
+        var sensitiveOption = new Option<bool?>("--sensitive") { Description = "Whether the entry contains sensitive data" };
+        var descriptionOption = new Option<string?>("--description") { Description = "The entry description" };
+        var valueOption = new Option<string[]?>("--value")
         {
+            Description = "Scoped value (e.g., \"default=myval\" or \"env:prod=prodval\"). Repeatable.",
             AllowMultipleArgumentsPerToken = false
         };
-        var valuesJsonOption = new Option<string?>("--values-json", "Scoped values as JSON array (e.g., [{\"scopes\":{\"env\":\"prod\"},\"value\":\"prodval\"}])");
+        var valuesJsonOption = new Option<string?>("--values-json") { Description = "Scoped values as JSON array (e.g., [{\"scopes\":{\"env\":\"prod\"},\"value\":\"prodval\"}])" };
 
         Options.Add(keyOption);
         Options.Add(ownerIdOption);

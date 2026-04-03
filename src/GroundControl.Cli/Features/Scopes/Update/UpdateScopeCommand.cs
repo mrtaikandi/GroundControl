@@ -8,10 +8,10 @@ internal sealed class UpdateScopeCommand : Command<UpdateScopeHandler, UpdateSco
         : base("update", "Update a scope")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The scope ID" };
-        var dimensionOption = new Option<string?>("--dimension", "The new dimension name");
-        var valuesOption = new Option<string?>("--values", "Comma-separated allowed values");
-        var descriptionOption = new Option<string?>("--description", "The new description");
-        var versionOption = new Option<long?>("--version", "The expected version for optimistic concurrency");
+        var dimensionOption = new Option<string?>("--dimension") { Description = "The new dimension name" };
+        var valuesOption = new Option<string?>("--values") { Description = "Comma-separated allowed values" };
+        var descriptionOption = new Option<string?>("--description") { Description = "The new description" };
+        var versionOption = new Option<long?>("--version") { Description = "The expected version for optimistic concurrency" };
 
         Arguments.Add(idArgument);
         Options.Add(dimensionOption);

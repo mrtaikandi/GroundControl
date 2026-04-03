@@ -8,10 +8,10 @@ internal sealed class ListConfigEntriesCommand : Command<ListConfigEntriesHandle
     public ListConfigEntriesCommand()
         : base("list", "List configuration entries")
     {
-        var ownerIdOption = new Option<Guid?>("--owner-id", "Filter by owner ID");
-        var ownerTypeOption = new Option<ConfigEntryOwnerType?>("--owner-type", "Filter by owner type (Template or Project)");
-        var keyPrefixOption = new Option<string?>("--key-prefix", "Filter by key prefix");
-        var decryptOption = new Option<bool?>("--decrypt", "Decrypt sensitive values");
+        var ownerIdOption = new Option<Guid?>("--owner-id") { Description = "Filter by owner ID" };
+        var ownerTypeOption = new Option<ConfigEntryOwnerType?>("--owner-type") { Description = "Filter by owner type (Template or Project)" };
+        var keyPrefixOption = new Option<string?>("--key-prefix") { Description = "Filter by key prefix" };
+        var decryptOption = new Option<bool?>("--decrypt") { Description = "Decrypt sensitive values" };
 
         Options.Add(ownerIdOption);
         Options.Add(ownerTypeOption);

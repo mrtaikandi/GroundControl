@@ -8,7 +8,7 @@ internal sealed class GetClientCommand : Command<GetClientHandler, GetClientOpti
         : base("get", "Get a client by ID")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The client ID" };
-        var projectIdOption = new Option<Guid>("--project-id", "The project ID");
+        var projectIdOption = new Option<Guid>("--project-id") { Description = "The project ID" };
 
         Arguments.Add(idArgument);
         Options.Add(projectIdOption);

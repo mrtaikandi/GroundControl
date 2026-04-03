@@ -1,3 +1,2 @@
 
-var effectiveArgs = args.Length == 0 ? ["tui"] : args;
-return await new CliHostBuilder(effectiveArgs, "GroundControl management tool").RunAsync();
+await new CliHostBuilder(args, "GroundControl management tool").RunAsync();

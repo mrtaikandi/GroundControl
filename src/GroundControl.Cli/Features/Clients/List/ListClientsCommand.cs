@@ -7,7 +7,7 @@ internal sealed class ListClientsCommand : Command<ListClientsHandler, ListClien
     public ListClientsCommand()
         : base("list", "List all clients for a project")
     {
-        var projectIdOption = new Option<Guid>("--project-id", "The project ID");
+        var projectIdOption = new Option<Guid>("--project-id") { Description = "The project ID" };
 
         Options.Add(projectIdOption);
 

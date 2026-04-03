@@ -8,10 +8,10 @@ internal sealed class UpdateRoleCommand : Command<UpdateRoleHandler, UpdateRoleO
         : base("update", "Update a role")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The role ID" };
-        var nameOption = new Option<string?>("--name", "The new role name");
-        var permissionsOption = new Option<string?>("--permissions", "Comma-separated permission strings");
-        var descriptionOption = new Option<string?>("--description", "The new description");
-        var versionOption = new Option<long?>("--version", "The expected version for optimistic concurrency");
+        var nameOption = new Option<string?>("--name") { Description = "The new role name" };
+        var permissionsOption = new Option<string?>("--permissions") { Description = "Comma-separated permission strings" };
+        var descriptionOption = new Option<string?>("--description") { Description = "The new description" };
+        var versionOption = new Option<long?>("--version") { Description = "The expected version for optimistic concurrency" };
 
         Arguments.Add(idArgument);
         Options.Add(nameOption);

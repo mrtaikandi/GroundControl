@@ -7,9 +7,9 @@ internal sealed class ImportConfigCommand : Command<ImportConfigHandler, ImportC
     public ImportConfigCommand()
         : base("import", "Import server configuration from a JSON file or paste")
     {
-        var fileOption = new Option<string?>("--file", "Path to a JSON configuration file");
-        var pasteOption = new Option<bool>("--paste", "Paste JSON configuration interactively");
-        var yesOption = new Option<bool>("--yes", "Skip confirmation prompt");
+        var fileOption = new Option<string?>("--file") { Description = "Path to a JSON configuration file" };
+        var pasteOption = new Option<bool>("--paste") { Description = "Paste JSON configuration interactively" };
+        var yesOption = new Option<bool>("--yes") { Description = "Skip confirmation prompt" };
 
         Options.Add(fileOption);
         Options.Add(pasteOption);

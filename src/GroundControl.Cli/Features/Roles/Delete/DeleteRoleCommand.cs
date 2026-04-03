@@ -8,8 +8,8 @@ internal sealed class DeleteRoleCommand : Command<DeleteRoleHandler, DeleteRoleO
         : base("delete", "Delete a role")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The role ID" };
-        var versionOption = new Option<long?>("--version", "The expected version for optimistic concurrency");
-        var yesOption = new Option<bool>("--yes", "Skip confirmation prompt");
+        var versionOption = new Option<long?>("--version") { Description = "The expected version for optimistic concurrency" };
+        var yesOption = new Option<bool>("--yes") { Description = "Skip confirmation prompt" };
 
         Arguments.Add(idArgument);
         Options.Add(versionOption);

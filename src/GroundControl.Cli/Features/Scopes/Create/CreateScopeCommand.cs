@@ -7,9 +7,9 @@ internal sealed class CreateScopeCommand : Command<CreateScopeHandler, CreateSco
     public CreateScopeCommand()
         : base("create", "Create a new scope")
     {
-        var dimensionOption = new Option<string?>("--dimension", "The scope dimension name (e.g., Environment, Region)");
-        var valuesOption = new Option<string?>("--values", "Comma-separated allowed values (e.g., dev,staging,prod)");
-        var descriptionOption = new Option<string?>("--description", "The scope description");
+        var dimensionOption = new Option<string?>("--dimension") { Description = "The scope dimension name (e.g., Environment, Region)" };
+        var valuesOption = new Option<string?>("--values") { Description = "Comma-separated allowed values (e.g., dev,staging,prod)" };
+        var descriptionOption = new Option<string?>("--description") { Description = "The scope description" };
 
         Options.Add(dimensionOption);
         Options.Add(valuesOption);

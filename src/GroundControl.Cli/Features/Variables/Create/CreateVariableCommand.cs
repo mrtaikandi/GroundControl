@@ -8,17 +8,18 @@ internal sealed class CreateVariableCommand : Command<CreateVariableHandler, Cre
     public CreateVariableCommand()
         : base("create", "Create a new variable")
     {
-        var nameOption = new Option<string?>("--name", "The variable name");
-        var scopeOption = new Option<VariableScope?>("--scope", "The variable scope (Global or Project)");
-        var groupIdOption = new Option<Guid?>("--group-id", "The group ID (for Global scope)");
-        var projectIdOption = new Option<Guid?>("--project-id", "The project ID (for Project scope)");
-        var sensitiveOption = new Option<bool?>("--sensitive", "Whether the variable contains sensitive data");
-        var descriptionOption = new Option<string?>("--description", "The variable description");
-        var valueOption = new Option<string[]?>("--value", "Scoped value (e.g., \"default=myval\" or \"env:prod=prodval\"). Repeatable.")
+        var nameOption = new Option<string?>("--name") { Description = "The variable name" };
+        var scopeOption = new Option<VariableScope?>("--scope") { Description = "The variable scope (Global or Project)" };
+        var groupIdOption = new Option<Guid?>("--group-id") { Description = "The group ID (for Global scope)" };
+        var projectIdOption = new Option<Guid?>("--project-id") { Description = "The project ID (for Project scope)" };
+        var sensitiveOption = new Option<bool?>("--sensitive") { Description = "Whether the variable contains sensitive data" };
+        var descriptionOption = new Option<string?>("--description") { Description = "The variable description" };
+        var valueOption = new Option<string[]?>("--value")
         {
+            Description = "Scoped value (e.g., \"default=myval\" or \"env:prod=prodval\"). Repeatable.",
             AllowMultipleArgumentsPerToken = false
         };
-        var valuesJsonOption = new Option<string?>("--values-json", "Scoped values as JSON array");
+        var valuesJsonOption = new Option<string?>("--values-json") { Description = "Scoped values as JSON array" };
 
         Options.Add(nameOption);
         Options.Add(scopeOption);

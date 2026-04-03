@@ -7,10 +7,10 @@ internal sealed class CreateClientCommand : Command<CreateClientHandler, CreateC
     public CreateClientCommand()
         : base("create", "Create a new client")
     {
-        var projectIdOption = new Option<Guid>("--project-id", "The project ID");
-        var nameOption = new Option<string?>("--name", "The client name");
-        var scopesOption = new Option<string?>("--scopes", "Comma-separated scope assignments (dimension=value,dimension=value)");
-        var expiresAtOption = new Option<DateTimeOffset?>("--expires-at", "The expiration timestamp (ISO 8601)");
+        var projectIdOption = new Option<Guid>("--project-id") { Description = "The project ID" };
+        var nameOption = new Option<string?>("--name") { Description = "The client name" };
+        var scopesOption = new Option<string?>("--scopes") { Description = "Comma-separated scope assignments (dimension=value,dimension=value)" };
+        var expiresAtOption = new Option<DateTimeOffset?>("--expires-at") { Description = "The expiration timestamp (ISO 8601)" };
 
         Options.Add(projectIdOption);
         Options.Add(nameOption);

@@ -7,10 +7,10 @@ internal sealed class CreateProjectCommand : Command<CreateProjectHandler, Creat
     public CreateProjectCommand()
         : base("create", "Create a new project")
     {
-        var nameOption = new Option<string?>("--name", "The project name");
-        var descriptionOption = new Option<string?>("--description", "The project description");
-        var groupIdOption = new Option<Guid?>("--group-id", "The owning group ID");
-        var templateIdsOption = new Option<string?>("--template-ids", "Comma-separated template IDs");
+        var nameOption = new Option<string?>("--name") { Description = "The project name" };
+        var descriptionOption = new Option<string?>("--description") { Description = "The project description" };
+        var groupIdOption = new Option<Guid?>("--group-id") { Description = "The owning group ID" };
+        var templateIdsOption = new Option<string?>("--template-ids") { Description = "Comma-separated template IDs" };
 
         Options.Add(nameOption);
         Options.Add(descriptionOption);

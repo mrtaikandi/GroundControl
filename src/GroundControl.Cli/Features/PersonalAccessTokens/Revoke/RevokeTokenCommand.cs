@@ -8,7 +8,7 @@ internal sealed class RevokeTokenCommand : Command<RevokeTokenHandler, RevokeTok
         : base("revoke", "Revoke a personal access token")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The token ID" };
-        var yesOption = new Option<bool>("--yes", "Skip confirmation prompt");
+        var yesOption = new Option<bool>("--yes") { Description = "Skip confirmation prompt" };
 
         Arguments.Add(idArgument);
         Options.Add(yesOption);

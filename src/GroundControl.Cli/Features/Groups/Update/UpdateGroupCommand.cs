@@ -8,9 +8,9 @@ internal sealed class UpdateGroupCommand : Command<UpdateGroupHandler, UpdateGro
         : base("update", "Update a group")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The group ID" };
-        var nameOption = new Option<string?>("--name", "The new group name");
-        var descriptionOption = new Option<string?>("--description", "The new group description");
-        var versionOption = new Option<long?>("--version", "The expected version for optimistic concurrency");
+        var nameOption = new Option<string?>("--name") { Description = "The new group name" };
+        var descriptionOption = new Option<string?>("--description") { Description = "The new group description" };
+        var versionOption = new Option<long?>("--version") { Description = "The expected version for optimistic concurrency" };
 
         Arguments.Add(idArgument);
         Options.Add(nameOption);

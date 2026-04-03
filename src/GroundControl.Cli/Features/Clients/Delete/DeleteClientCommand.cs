@@ -8,9 +8,9 @@ internal sealed class DeleteClientCommand : Command<DeleteClientHandler, DeleteC
         : base("delete", "Delete a client")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The client ID" };
-        var projectIdOption = new Option<Guid>("--project-id", "The project ID");
-        var versionOption = new Option<long?>("--version", "The expected version for optimistic concurrency");
-        var yesOption = new Option<bool>("--yes", "Skip confirmation prompt");
+        var projectIdOption = new Option<Guid>("--project-id") { Description = "The project ID" };
+        var versionOption = new Option<long?>("--version") { Description = "The expected version for optimistic concurrency" };
+        var yesOption = new Option<bool>("--yes") { Description = "Skip confirmation prompt" };
 
         Arguments.Add(idArgument);
         Options.Add(projectIdOption);

@@ -8,11 +8,11 @@ internal sealed class UpdateClientCommand : Command<UpdateClientHandler, UpdateC
         : base("update", "Update a client")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The client ID" };
-        var projectIdOption = new Option<Guid>("--project-id", "The project ID");
-        var nameOption = new Option<string?>("--name", "The new client name");
-        var isActiveOption = new Option<bool?>("--is-active", "Whether the client is active");
-        var expiresAtOption = new Option<DateTimeOffset?>("--expires-at", "The new expiration timestamp (ISO 8601)");
-        var versionOption = new Option<long?>("--version", "The expected version for optimistic concurrency");
+        var projectIdOption = new Option<Guid>("--project-id") { Description = "The project ID" };
+        var nameOption = new Option<string?>("--name") { Description = "The new client name" };
+        var isActiveOption = new Option<bool?>("--is-active") { Description = "Whether the client is active" };
+        var expiresAtOption = new Option<DateTimeOffset?>("--expires-at") { Description = "The new expiration timestamp (ISO 8601)" };
+        var versionOption = new Option<long?>("--version") { Description = "The expected version for optimistic concurrency" };
 
         Arguments.Add(idArgument);
         Options.Add(projectIdOption);

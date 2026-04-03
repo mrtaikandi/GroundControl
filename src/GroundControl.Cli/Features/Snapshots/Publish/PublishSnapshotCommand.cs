@@ -7,8 +7,8 @@ internal sealed class PublishSnapshotCommand : Command<PublishSnapshotHandler, P
     public PublishSnapshotCommand()
         : base("publish", "Publish a new snapshot for a project")
     {
-        var projectIdOption = new Option<Guid?>("--project-id", "The project ID to publish a snapshot for");
-        var descriptionOption = new Option<string?>("--description", "An optional description for the snapshot");
+        var projectIdOption = new Option<Guid?>("--project-id") { Description = "The project ID to publish a snapshot for" };
+        var descriptionOption = new Option<string?>("--description") { Description = "An optional description for the snapshot" };
 
         Options.Add(projectIdOption);
         Options.Add(descriptionOption);

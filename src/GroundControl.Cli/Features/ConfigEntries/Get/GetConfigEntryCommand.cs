@@ -8,7 +8,7 @@ internal sealed class GetConfigEntryCommand : Command<GetConfigEntryHandler, Get
         : base("get", "Get a configuration entry by ID")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The configuration entry ID" };
-        var decryptOption = new Option<bool?>("--decrypt", "Decrypt sensitive values");
+        var decryptOption = new Option<bool?>("--decrypt") { Description = "Decrypt sensitive values" };
 
         Arguments.Add(idArgument);
         Options.Add(decryptOption);
