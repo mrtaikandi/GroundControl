@@ -2,5 +2,10 @@
     "chat.hookFilesLocations": {
         ".claude/settings.json": false,
         ".claude/settings.local.json": false
-    }
+    },
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "file": ".github/commit-message-instructions.md",
+        }
+    ]
 }

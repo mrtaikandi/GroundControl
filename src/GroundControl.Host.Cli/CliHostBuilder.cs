@@ -133,21 +133,28 @@ public sealed class CliHostBuilder
         handlerType = null;
         subCommandModuleType = null;
 
-        if (!commandType.IsGenericType)
+        var type = commandType;
+        while (type is not null)
         {
-            return false;
-        }
+            if (type.IsGenericType)
+            {
+                var genericDef = type.GetGenericTypeDefinition();
+                if (genericDef == typeof(Command<,>))
+                {
+                    handlerType = type.GetGenericArguments()[0];
+                    break;
+                }
 
-        var genericDef = commandType.GetGenericTypeDefinition();
-        if (genericDef == typeof(Command<,>))
-        {
-            handlerType = commandType.GetGenericArguments()[0];
-        }
-        else if (genericDef == typeof(Command<,,>))
-        {
-            var genericArgs = commandType.GetGenericArguments();
-            handlerType = genericArgs[0];
-            subCommandModuleType = genericArgs[2];
+                if (genericDef == typeof(Command<,,>))
+                {
+                    var genericArgs = type.GetGenericArguments();
+                    handlerType = genericArgs[0];
+                    subCommandModuleType = genericArgs[2];
+                    break;
+                }
+            }
+
+            type = type.BaseType;
         }
 
         return handlerType is not null;
@@ -271,7 +278,10 @@ public sealed class CliHostBuilder
                     options.AddFilter<SpectreConsoleLoggerProvider>("Default", l => l >= LogLevel.Information);
                     options.AddFilter<SpectreConsoleLoggerProvider>("System", l => l >= LogLevel.Warning);
                     options.AddFilter<SpectreConsoleLoggerProvider>("Microsoft", l => l >= LogLevel.Warning);
-                    options.AddFilter<SpectreConsoleLoggerProvider>("Microsoft.Hosting", l => l >= LogLevel.Information);
+                    options.AddFilter<SpectreConsoleLoggerProvider>(
+                        "Microsoft.Hosting",
+                        l => l >= LogLevel.Information);
+
                     options.AddFilter<SpectreConsoleLoggerProvider>("System.Net.Http", l => l >= LogLevel.Warning);
                 }
             });
