@@ -151,6 +151,34 @@ public sealed class CreateUserHandlerTests
     // Spectre.Console's PromptForStringAsync/PromptForSecretAsync requires real console input (ReadKey).
 
     [Fact]
+    public async Task HandleAsync_InvalidGrantId_ReturnsError()
+    {
+        // Arrange
+        var shellBuilder = new MockShellBuilder();
+        var client = Substitute.For<IGroundControlClient>();
+
+        var handler = CreateHandler(shellBuilder, client,
+            new CreateUserOptions
+            {
+                Username = "alice",
+                Email = "alice@example.com",
+                Password = "secret123",
+                Grants = ["not-a-guid"]
+            },
+            noInteractive: true);
+
+        // Act
+        var exitCode = await handler.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        exitCode.ShouldBe(1);
+        shellBuilder.GetOutput().ShouldContain("Invalid role ID");
+        shellBuilder.GetOutput().ShouldContain("not-a-guid");
+        await client.DidNotReceive().CreateUserHandlerAsync(
+            Arg.Any<CreateUserRequest>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleAsync_ApiValidationError_ShowsProblemDetails()
     {
         // Arrange

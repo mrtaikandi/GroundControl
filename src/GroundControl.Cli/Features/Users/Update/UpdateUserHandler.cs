@@ -43,7 +43,16 @@ internal sealed class UpdateUserHandler : ICommandHandler
             }
         }
 
-        var grants = ParseGrants(_options.Grants);
+        var (grants, invalidGrants) = GrantParser.Parse(_options.Grants);
+        if (invalidGrants is not null)
+        {
+            foreach (var invalid in invalidGrants)
+            {
+                _shell.DisplayError($"Invalid role ID: '{invalid}'. Expected a valid GUID.");
+            }
+
+            return 1;
+        }
 
         // WhenWritingNull serializer policy omits null fields from the JSON body,
         // so only fields the user explicitly provided are sent to the API.
@@ -110,22 +119,4 @@ internal sealed class UpdateUserHandler : ICommandHandler
         }
     }
 
-    private static List<GrantDto>? ParseGrants(string[]? grantValues)
-    {
-        if (grantValues is null or { Length: 0 })
-        {
-            return null;
-        }
-
-        var grants = new List<GrantDto>(grantValues.Length);
-        foreach (var value in grantValues)
-        {
-            if (Guid.TryParse(value, out var roleId))
-            {
-                grants.Add(new GrantDto { RoleId = roleId });
-            }
-        }
-
-        return grants.Count > 0 ? grants : null;
-    }
 }
