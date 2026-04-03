@@ -72,6 +72,6 @@ public static partial class ShellExtensions
         /// </summary>
         /// <param name="message">The success text to display.</param>
         public void DisplaySuccess(string message) =>
-            shell.DisplayMessage("thumbs_up", message);
+            shell.Console.MarkupLine($"[green]:check_mark:[/]  {message}");
     }
 }
