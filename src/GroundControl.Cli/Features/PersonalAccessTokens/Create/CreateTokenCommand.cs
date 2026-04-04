@@ -7,7 +7,7 @@ internal sealed class CreateTokenCommand : Command<CreateTokenHandler, CreateTok
     public CreateTokenCommand()
         : base("create", "Create a new personal access token")
     {
-        var nameOption = new Option<string?>("--name") { Description = "The token name" };
+        var nameOption = new Option<string?>("--name") { Description = "The token name (Required)" };
         var expiresInOption = new Option<string?>("--expires-in") { Description = "Token lifetime (e.g. 30d, 6m, 1y). Defaults to 30 days if omitted." };
 
         Options.Add(nameOption);

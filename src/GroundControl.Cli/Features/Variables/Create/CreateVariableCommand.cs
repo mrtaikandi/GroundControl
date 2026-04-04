@@ -8,8 +8,8 @@ internal sealed class CreateVariableCommand : Command<CreateVariableHandler, Cre
     public CreateVariableCommand()
         : base("create", "Create a new variable")
     {
-        var nameOption = new Option<string?>("--name") { Description = "The variable name" };
-        var scopeOption = new Option<VariableScope?>("--scope") { Description = "The variable scope (Global or Project)" };
+        var nameOption = new Option<string?>("--name") { Description = "The variable name (Required)" };
+        var scopeOption = new Option<VariableScope?>("--scope") { Description = "The variable scope (Global or Project) (Required)" };
         var groupIdOption = new Option<Guid?>("--group-id") { Description = "The group ID (for Global scope)" };
         var projectIdOption = new Option<Guid?>("--project-id") { Description = "The project ID (for Project scope)" };
         var sensitiveOption = new Option<bool?>("--sensitive") { Description = "Whether the variable contains sensitive data" };

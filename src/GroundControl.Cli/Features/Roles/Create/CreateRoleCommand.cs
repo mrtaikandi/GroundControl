@@ -7,7 +7,7 @@ internal sealed class CreateRoleCommand : Command<CreateRoleHandler, CreateRoleO
     public CreateRoleCommand()
         : base("create", "Create a new role")
     {
-        var nameOption = new Option<string?>("--name") { Description = "The role name" };
+        var nameOption = new Option<string?>("--name") { Description = "The role name (Required)" };
         var permissionsOption = new Option<string?>("--permissions") { Description = "Comma-separated permission strings" };
         var descriptionOption = new Option<string?>("--description") { Description = "The role description" };
 

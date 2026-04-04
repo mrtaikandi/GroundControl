@@ -7,7 +7,7 @@ internal sealed class CreateTemplateCommand : Command<CreateTemplateHandler, Cre
     public CreateTemplateCommand()
         : base("create", "Create a new template")
     {
-        var nameOption = new Option<string?>("--name") { Description = "The template name" };
+        var nameOption = new Option<string?>("--name") { Description = "The template name (Required)" };
         var descriptionOption = new Option<string?>("--description") { Description = "The template description" };
         var groupIdOption = new Option<Guid?>("--group-id") { Description = "The owning group ID" };
 

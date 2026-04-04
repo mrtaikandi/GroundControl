@@ -7,7 +7,7 @@ internal sealed class CreateGroupCommand : Command<CreateGroupHandler, CreateGro
     public CreateGroupCommand()
         : base("create", "Create a new group")
     {
-        var nameOption = new Option<string?>("--name") { Description = "The group name" };
+        var nameOption = new Option<string?>("--name") { Description = "The group name (Required)" };
         var descriptionOption = new Option<string?>("--description") { Description = "The group description" };
 
         Options.Add(nameOption);

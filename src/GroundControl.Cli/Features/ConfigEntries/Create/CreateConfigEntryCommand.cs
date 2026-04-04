@@ -8,10 +8,10 @@ internal sealed class CreateConfigEntryCommand : Command<CreateConfigEntryHandle
     public CreateConfigEntryCommand()
         : base("create", "Create a new configuration entry")
     {
-        var keyOption = new Option<string?>("--key") { Description = "The configuration key (e.g., Database:ConnectionString)" };
-        var ownerIdOption = new Option<Guid?>("--owner-id") { Description = "The owning template or project ID" };
-        var ownerTypeOption = new Option<ConfigEntryOwnerType?>("--owner-type") { Description = "The owner type (Template or Project)" };
-        var valueTypeOption = new Option<string?>("--value-type") { Description = "The value type name (e.g., String, Int32, Boolean)" };
+        var keyOption = new Option<string?>("--key") { Description = "The configuration key (e.g., Database:ConnectionString) (Required)" };
+        var ownerIdOption = new Option<Guid?>("--owner-id") { Description = "The owning template or project ID (Required)" };
+        var ownerTypeOption = new Option<ConfigEntryOwnerType?>("--owner-type") { Description = "The owner type (Template or Project) (Required)" };
+        var valueTypeOption = new Option<string?>("--value-type") { Description = "The value type name (e.g., String, Int32, Boolean) (Required)" };
         var sensitiveOption = new Option<bool?>("--sensitive") { Description = "Whether the entry contains sensitive data" };
         var descriptionOption = new Option<string?>("--description") { Description = "The entry description" };
         var valueOption = new Option<string[]?>("--value")

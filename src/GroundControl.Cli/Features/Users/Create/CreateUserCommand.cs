@@ -7,8 +7,8 @@ internal sealed class CreateUserCommand : Command<CreateUserHandler, CreateUserO
     public CreateUserCommand()
         : base("create", "Create a new user")
     {
-        var usernameOption = new Option<string?>("--username") { Description = "The username" };
-        var emailOption = new Option<string?>("--email") { Description = "The email address" };
+        var usernameOption = new Option<string?>("--username") { Description = "The username (Required)" };
+        var emailOption = new Option<string?>("--email") { Description = "The email address (Required)" };
         var passwordOption = new Option<string?>("--password") { Description = "The password (prompted securely in interactive mode)" };
         var grantOption = new Option<string[]>("--grant")
         {

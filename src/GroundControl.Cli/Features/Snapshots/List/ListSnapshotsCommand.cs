@@ -7,7 +7,7 @@ internal sealed class ListSnapshotsCommand : Command<ListSnapshotsHandler, ListS
     public ListSnapshotsCommand()
         : base("list", "List snapshots for a project")
     {
-        var projectIdOption = new Option<Guid?>("--project-id") { Description = "The project ID to list snapshots for" };
+        var projectIdOption = new Option<Guid?>("--project-id") { Description = "The project ID to list snapshots for (Required)" };
 
         Options.Add(projectIdOption);
 

@@ -7,8 +7,8 @@ internal sealed class LoginCommand : Command<LoginHandler, LoginOptions>
     public LoginCommand()
         : base("login", "Log in to a GroundControl server")
     {
-        var serverUrlOption = new Option<string?>("--server-url") { Description = "The server URL" };
-        var methodOption = new Option<AuthMethod?>("--method") { Description = "Authentication method (None, Pat, ApiKey, Credentials)" };
+        var serverUrlOption = new Option<string?>("--server-url") { Description = "The server URL (Required)" };
+        var methodOption = new Option<AuthMethod?>("--method") { Description = "Authentication method (None, Pat, ApiKey, Credentials) (Required)" };
         var tokenOption = new Option<string?>("--token") { Description = "Personal access token" };
         var clientIdOption = new Option<string?>("--client-id") { Description = "API key client ID" };
         var clientSecretOption = new Option<string?>("--client-secret") { Description = "API key client secret" };
