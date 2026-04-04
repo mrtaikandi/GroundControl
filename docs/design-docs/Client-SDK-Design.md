@@ -146,21 +146,17 @@ The local file cache stores the last successfully received configuration to disk
 
 ```json
 {
+  "snapshotId": "0192d4e0-7b3a-7f2e-8a1c-4d5e6f7a8b9c",
   "snapshotVersion": 12,
-  "fetchedAt": "2024-01-15T10:30:00Z",
-  "serverUrl": "https://groundcontrol.example.com",
+  "timestamp": "2024-01-15T10:30:00Z",
   "entries": {
-    "Logging:LogLevel:Default": {
-      "value": "Warning",
-      "valueType": "String"
-    },
-    "Database:ConnectionString": {
-      "value": "<encrypted>",
-      "valueType": "String"
-    }
+    "Logging:LogLevel:Default": "Warning",
+    "Database:ConnectionString": "***ENCRYPTED:<ciphertext>"
   }
 }
 ```
+
+The `entries` field contains flat key-value pairs. When a `IDataProtectionProvider` is available, all values are encrypted with a `***ENCRYPTED:` prefix. Without data protection, values are stored in plaintext.
 
 ### Sensitive Value Protection in Cache
 
@@ -190,7 +186,7 @@ The encryption key is derived from the machine identity, so the cache file is no
 3. **Updates**: When a new snapshot is activated, the server pushes a new `config` event with the full resolved config.
 4. **Heartbeat monitoring**: If no event (config or heartbeat) is received within the heartbeat timeout, the connection is considered dead.
 5. **Reconnect**: On disconnect, use exponential backoff with jitter: 1s, 2s, 4s, 8s, ... up to the configured max delay.
-6. **Last-Event-ID**: On reconnect, send the last received `snapshotVersion` as `Last-Event-ID` to avoid processing stale data.
+6. **Last-Event-ID**: On reconnect, send the last received snapshot ID as `Last-Event-ID` to avoid processing stale data.
 
 ### Configuration Reload
 
@@ -290,6 +286,7 @@ The SDK uses `ILogger` (injected from the host's DI container) for diagnostics:
 | `EnableLocalCache` | bool | true | Whether to cache config to disk |
 | `CacheFilePath` | string | `./groundcontrol-cache.json` | Path for the local cache file |
 | `ApiVersion` | string | `1.0` | API version sent in `api-version` header on all requests |
+| `LoggerFactory` | ILoggerFactory? | null | Logger factory for SDK diagnostics. If not set, logging is disabled. |
 
 ---
 
@@ -305,8 +302,9 @@ GroundControl.Link
 ├── IConfigFetcher                            : REST polling abstraction
 │   └── DefaultConfigFetcher                  : HttpClient-based REST implementation
 ├── IConfigCache                              : Local cache abstraction
-│   └── FileConfigCache                       : File-based cache implementation
-└── ServiceCollectionExtensions               : DI registration helpers
+│   ├── FileConfigCache                       : File-based cache implementation
+│   └── NullConfigCache                       : No-op implementation (when caching is disabled)
+└── ConfigurationBuilderExtensions            : AddGroundControl() extension method
 ```
 
 Abstractions (`ISseClient`, `IConfigFetcher`, `IConfigCache`) allow consuming applications to replace components if needed (e.g., custom cache backed by SQLite instead of a file).

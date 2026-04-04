@@ -226,7 +226,7 @@ All entity IDs use **UUIDv7** (`Guid.CreateVersion7()` in .NET). UUIDv7 embeds a
 | Index | Type | Purpose |
 |-------|------|---------|
 | `{ ProjectId: 1, SnapshotVersion: -1 }` | Unique | Enforce unique versions per project, efficient lookup of latest/specific versions |
-| `{ ProjectId: 1, PublishedAt: -1 }` | Standard | List snapshots by project in chronological order |
+| `{ ProjectId: 1 }` | Standard | List snapshots by project |
 
 **Notes:**
 - Snapshot documents are immutable. Once written, they are never updated.
@@ -259,6 +259,7 @@ All entity IDs use **UUIDv7** (`Guid.CreateVersion7()` in .NET). UUIDv7 embeds a
 | Index | Type | Purpose |
 |-------|------|---------|
 | `{ ProjectId: 1 }` | Standard | List keys for a project |
+| `{ IsActive: 1, ExpiresAt: 1 }` | Standard | Efficient lookup for cleanup of expired/deactivated clients |
 
 **Notes:**
 - Authentication uses a `clientId` + `clientSecret` pair. The `clientId` is the document's `Id` (used for O(1) lookup), and the `clientSecret` is verified by decrypting `Secret` and comparing.
@@ -296,8 +297,7 @@ All entity IDs use **UUIDv7** (`Guid.CreateVersion7()` in .NET). UUIDv7 embeds a
 |-------|------|---------|
 | `{ Username: 1 }` | Unique, case-insensitive collation | Enforce unique usernames, lookup by username |
 | `{ Email: 1 }` | Unique, case-insensitive collation | Enforce unique emails, lookup by email |
-| `{ "Grants.Resource": 1 }` | Standard | Find users by group |
-| `{ ExternalProvider: 1, ExternalId: 1 }` | Unique, sparse (where `ExternalId != null`) | JIT provisioning lookup by external identity |
+| `{ ExternalProvider: 1, ExternalId: 1 }` | Unique, partial filter (where `ExternalProvider` and `ExternalId` are strings) | JIT provisioning lookup by external identity |
 
 ---
 
@@ -438,11 +438,10 @@ Indexes are created automatically by the ASP.NET Identity MongoDB provider.
 **Indexes:**
 | Index | Type | Purpose |
 |-------|------|---------|
-| `{ EntityType: 1, EntityId: 1, PerformedAt: -1 }` | Standard | View history for a specific entity |
-| `{ PerformedBy: 1, PerformedAt: -1 }` | Standard | View actions by a specific user |
+| `{ EntityType: 1, EntityId: 1 }` | Standard | View history for a specific entity |
+| `{ GroupId: 1 }` | Standard | Scoped audit log queries (filter by user's group access) |
 | `{ PerformedAt: -1 }` | Standard | Global audit log (reverse chronological) |
-| `{ EntityType: 1, PerformedAt: -1 }` | Standard | Filter audit log by entity type |
-| `{ GroupId: 1, PerformedAt: -1 }` | Standard | Scoped audit log queries (filter by user's group access) |
+| `{ GroupId: 1, PerformedAt: -1 }` | Standard | Scoped audit log queries with chronological ordering |
 
 **Notes:**
 - This collection is append-only. No updates or deletes are permitted through the application.

@@ -312,7 +312,6 @@ Integration with external identity providers via OpenID Connect.
 |--------|------|-------------|---------------|
 | `GET` | `/auth/login/external` | Initiates OIDC challenge (redirects to IdP). | No |
 | `GET` | `/auth/callback` | OIDC callback. Validates response, provisions user if needed, sets session cookie. | No (handles OIDC response) |
-| `POST` | `/auth/logout` | Clears session cookie. Optionally performs OIDC front-channel logout. | Yes |
 | `GET` | `/auth/me` | Returns current user info. | Yes |
 
 **JIT Provisioning Flow:**
@@ -397,17 +396,17 @@ PATs provide programmatic access for CI/CD pipelines, CLI tools, and automation 
 
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|
-| `GET` | `/api/users/{userId}/tokens` | List user's PATs (metadata only, no token values). | Self or `users:write` |
-| `POST` | `/api/users/{userId}/tokens` | Create a PAT. Returns the raw token once. | Self only |
-| `GET` | `/api/users/{userId}/tokens/{tokenId}` | Get PAT metadata (name, prefix, expiration, last used). | Self or `users:write` |
-| `DELETE` | `/api/users/{userId}/tokens/{tokenId}` | Revoke a PAT. | Self or `users:write` |
+| `POST` | `/api/personal-access-tokens` | Create a PAT. Returns the raw token once. | Authenticated |
+| `GET` | `/api/personal-access-tokens` | List current user's PATs (metadata only, no token values). | Authenticated |
+| `GET` | `/api/personal-access-tokens/{id}` | Get PAT metadata (name, prefix, expiration, last used). | Authenticated |
+| `DELETE` | `/api/personal-access-tokens/{id}` | Revoke a PAT. | Authenticated |
 
-> **Note:** PAT creation is restricted to the owning user (Self only). This prevents users with `users:write` from creating tokens that inherit another user's permissions. Listing and revoking other users' PATs is allowed with `users:write` for administrative purposes.
+All PAT operations are scoped to the currently authenticated user. Users can only manage their own tokens.
 
 **Create request/response:**
 
 ```
-POST /api/users/{userId}/tokens
+POST /api/personal-access-tokens
 Content-Type: application/json
 
 { "name": "CI pipeline", "expiresInDays": 90, "permissions": ["config-entries:read", "snapshots:read"] }

@@ -88,10 +88,10 @@ GET /api/config-entries?ownerId=<id>&ownerType=template&key=Logging:*
 
 ### Search
 
-Endpoints that support text search accept a `q` parameter:
+Endpoints that support text search accept a `search` parameter:
 
 ```
-GET /api/projects?q=payment
+GET /api/projects?search=payment
 ```
 
 ### Error Responses
@@ -263,6 +263,15 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 | PUT | `/api/groups/{id}/members/{userId}` | Set a user's grant for this group | `groups:write` |
 | DELETE | `/api/groups/{id}/members/{userId}` | Remove a user's grant for this group | `groups:write` |
 
+**PUT Request (Set Member):**
+```json
+{
+  "roleId": "role-guid"
+}
+```
+
+The `PUT` endpoint adds the user to the group with the specified role, or updates their role if already a member. Returns `204 No Content` on success.
+
 ---
 
 ### Projects
@@ -294,8 +303,10 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 
 | Method | Path | Description | Authorization |
 |--------|------|-------------|---------------|
-| POST | `/api/projects/{id}/templates` | Add a template to the project | `projects:write` |
+| PUT | `/api/projects/{id}/templates/{templateId}` | Add a template to the project | `projects:write` |
 | DELETE | `/api/projects/{id}/templates/{templateId}` | Remove a template from the project | `projects:write` |
+
+Both endpoints require the `If-Match` header for optimistic concurrency. The `PUT` endpoint is idempotent — adding a template that is already associated with the project returns the current project state.
 
 ---
 
@@ -303,7 +314,7 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 
 | Method | Path | Description | Authorization |
 |--------|------|-------------|---------------|
-| GET | `/api/templates` | List templates (filter by `groupId` or `global=true`) | `templates:read` |
+| GET | `/api/templates` | List templates (filter by `groupId` or `globalOnly=true`) | `templates:read` |
 | POST | `/api/templates` | Create a template | `templates:write` |
 | GET | `/api/templates/{id}` | Get a template | `templates:read` |
 | PUT | `/api/templates/{id}` | Update template metadata | `templates:write` |
@@ -326,7 +337,7 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 - To retrieve decrypted values, include the query parameter `?decrypt=true`. This requires the `sensitive_values:decrypt` permission in addition to `variables:read`.
 - Every decrypted read is recorded in the audit log.
 
-**POST/PUT Request:**
+**POST Request (Create):**
 ```json
 {
   "name": "DatabaseHost",
@@ -351,6 +362,27 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 }
 ```
 
+**PUT Request (Update):**
+
+Only `values`, `isSensitive`, and `description` are mutable. The `name`, `scope`, `groupId`, and `projectId` are set at creation and cannot be changed.
+
+```json
+{
+  "values": [
+    {
+      "scopes": {},
+      "value": "localhost"
+    },
+    {
+      "scopes": { "environment": "Production" },
+      "value": "db-prod.example.com"
+    }
+  ],
+  "isSensitive": false,
+  "description": "Database server hostname"
+}
+```
+
 ---
 
 ### Configuration Entries
@@ -368,12 +400,34 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 - To retrieve decrypted values, include the query parameter `?decrypt=true`. This requires the `sensitive_values:decrypt` permission in addition to `config-entries:read`.
 - Every decrypted read is recorded in the audit log.
 
-**POST/PUT Request:**
+**POST Request (Create):**
 ```json
 {
   "key": "Database:ConnectionString",
   "ownerId": "project-id",
   "ownerType": "project",
+  "valueType": "String",
+  "values": [
+    {
+      "scopes": {},
+      "value": "Server={{DatabaseHost}};Database=mydb;User={{DbUser}};Password={{DbPassword}}"
+    },
+    {
+      "scopes": { "environment": "Development" },
+      "value": "Server=localhost;Database=mydb_dev;Integrated Security=true"
+    }
+  ],
+  "isSensitive": true,
+  "description": "Primary database connection string"
+}
+```
+
+**PUT Request (Update):**
+
+Only `valueType`, `values`, `isSensitive`, and `description` are mutable. The `key`, `ownerId`, and `ownerType` are set at creation and cannot be changed.
+
+```json
+{
   "valueType": "String",
   "values": [
     {
@@ -447,7 +501,7 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 | GET | `/api/projects/{projectId}/clients` | List clients for a project | `clients:read` |
 | POST | `/api/projects/{projectId}/clients` | Create a new client | `clients:write` |
 | GET | `/api/projects/{projectId}/clients/{id}` | Get client details (without the secret) | `clients:read` |
-| PUT | `/api/projects/{projectId}/clients/{id}` | Update client metadata (name, isActive, expiresAt) | `clients:write` |
+| PUT | `/api/projects/{projectId}/clients/{id}` | Update client (name, isActive, expiresAt) | `clients:write` |
 | DELETE | `/api/projects/{projectId}/clients/{id}` | Delete a client | `clients:write` |
 
 **POST Request:**
@@ -469,19 +523,28 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
   "name": "payment-service-prod-eu",
   "projectId": "project-id",
   "scopes": { "environment": "Production", "region": "EU" },
-  "clientId": "key-id",
   "clientSecret": "a1b2c3d4e5f6g7h8...",
   "isActive": true,
   "expiresAt": "2025-01-15T00:00:00Z",
   "version": 1,
   "createdAt": "2024-01-15T10:30:00Z",
-  "createdBy": "user-id",
-  "updatedAt": "2024-01-15T10:30:00Z",
-  "updatedBy": "user-id"
+  "createdBy": "user-id"
 }
 ```
 
-> **Note:** The `clientSecret` field is only present in the creation response. It is never returned again.
+> **Note:** The `clientSecret` field is only present in the creation response. It is never returned again. The `id` field serves as the `clientId` for API key authentication.
+
+**PUT Request (Update):**
+
+Only `name`, `isActive`, and `expiresAt` are mutable. Scopes are set at creation and cannot be changed.
+
+```json
+{
+  "name": "payment-service-prod-eu-v2",
+  "isActive": true,
+  "expiresAt": "2026-01-15T00:00:00Z"
+}
+```
 
 ---
 
@@ -535,18 +598,31 @@ Management API authentication is handled by a pluggable layer. See [Authenticati
 | GET | `/api/users/{id}` | Get a user | `users:read` or Self |
 | PUT | `/api/users/{id}` | Update a user | `users:write` (grants, isActive), Self (username, email) |
 | DELETE | `/api/users/{id}` | Delete a user | `users:write` |
-| PUT | `/api/users/{id}/password` | Change password (built-in auth only) | `users:write` or Self |
+| PUT | `/api/users/{id}/password` | Change password (built-in auth only) | Self only |
 
-User GET responses include `version` and `ETag`. PUT and DELETE on `/api/users/{id}` require the `If-Match` header (standard optimistic concurrency). The password change endpoint (`PUT /api/users/{id}/password`) does not require `If-Match` — it validates the current password instead.
+User GET responses include `version` and `ETag`. PUT and DELETE on `/api/users/{id}` require the `If-Match` header (standard optimistic concurrency). The password change endpoint (`PUT /api/users/{id}/password`) does not require `If-Match` — it validates the current password instead. Only the user themselves can change their password.
 
-#### Personal Access Tokens
+---
+
+### Audit Records
 
 | Method | Path | Description | Authorization |
 |--------|------|-------------|---------------|
-| GET | `/api/users/{userId}/tokens` | List user's PATs (metadata only) | Self or `users:write` |
-| POST | `/api/users/{userId}/tokens` | Create a PAT (returns raw token once) | Self only |
-| GET | `/api/users/{userId}/tokens/{tokenId}` | Get PAT metadata | Self or `users:write` |
-| DELETE | `/api/users/{userId}/tokens/{tokenId}` | Revoke a PAT | Self or `users:write` |
+| GET | `/api/audit-records` | List audit records (filter by `entityType`, `entityId`, `performedBy`, date range) | `audit:read` (scoped) |
+| GET | `/api/audit-records/{id}` | Get a specific audit record | `audit:read` (scoped) |
+
+Audit records are read-only. No create, update, or delete endpoints are exposed. Results are filtered by the user's grants — users only see audit records for groups they have access to, plus system-level records. Users with system-wide `audit:read` (no conditions) see all records. See [Authentication & Authorization](Authentication-Authorization.md#scoped-audit-records).
+
+### Personal Access Tokens
+
+| Method | Path | Description | Authorization |
+|--------|------|-------------|---------------|
+| POST | `/api/personal-access-tokens` | Create a PAT (returns raw token once) | Authenticated |
+| GET | `/api/personal-access-tokens` | List current user's PATs (metadata only) | Authenticated |
+| GET | `/api/personal-access-tokens/{id}` | Get PAT metadata | Authenticated |
+| DELETE | `/api/personal-access-tokens/{id}` | Revoke a PAT | Authenticated |
+
+All PAT operations are scoped to the currently authenticated user. Users can only manage their own tokens.
 
 **POST Request:**
 ```json
@@ -574,16 +650,19 @@ User GET responses include `version` and `ETag`. PUT and DELETE on `/api/users/{
 
 > **Note:** The `token` field is only present in the creation response. It is never returned again. The `permissions` field is `null` when the PAT inherits full user permissions. PATs are available in Built-In and External authentication modes only.
 
----
-
-### Audit Records
-
-| Method | Path | Description | Authorization |
-|--------|------|-------------|---------------|
-| GET | `/api/audit-records` | List audit records (filter by `entityType`, `entityId`, `performedBy`, date range) | `audit:read` (scoped) |
-| GET | `/api/audit-records/{id}` | Get a specific audit record | `audit:read` (scoped) |
-
-Audit records are read-only. No create, update, or delete endpoints are exposed. Results are filtered by the user's grants — users only see audit records for groups they have access to, plus system-level records. Users with system-wide `audit:read` (no conditions) see all records. See [Authentication & Authorization](Authentication-Authorization.md#scoped-audit-records).
+**GET Response (List/Get):**
+```json
+{
+  "id": "0192d4e0-...",
+  "name": "CI pipeline",
+  "tokenPrefix": "gc_pat_a1",
+  "permissions": ["config-entries:read", "snapshots:read"],
+  "isRevoked": false,
+  "expiresAt": "2026-05-26T00:00:00Z",
+  "lastUsedAt": "2026-03-15T14:20:00Z",
+  "createdAt": "2026-02-25T00:00:00Z"
+}
+```
 
 ---
 
@@ -607,7 +686,6 @@ Authentication endpoints are mode-dependent. See [Authentication & Authorization
 |--------|------|-------------|---------------|
 | `GET` | `/auth/login/external` | Initiates OIDC challenge (redirects to IdP). | No |
 | `GET` | `/auth/callback` | OIDC callback. Sets session cookie. | No (handles OIDC response) |
-| `POST` | `/auth/logout` | Clears session + optional OIDC front-channel logout. | Yes |
 | `GET` | `/auth/me` | Returns current user info. | Yes |
 
 ### No Auth Mode
@@ -633,36 +711,26 @@ api-version: 1.0
 **Response (200):**
 ```json
 {
-  "projectId": "project-id",
-  "projectName": "payment-service",
-  "snapshotVersion": 12,
-  "publishedAt": "2024-01-15T10:30:00Z",
-  "entries": {
-    "Logging:LogLevel:Default": {
-      "value": "Warning",
-      "valueType": "String"
-    },
-    "Database:ConnectionString": {
-      "value": "Server=db-prod-eu.example.com;Database=mydb;User=svc_payment;Password=s3cret",
-      "valueType": "String"
-    },
-    "FeatureFlags:NewCheckout": {
-      "value": "true",
-      "valueType": "Boolean"
-    }
-  }
+  "data": {
+    "Logging:LogLevel:Default": "Warning",
+    "Database:ConnectionString": "Server=db-prod-eu.example.com;Database=mydb;User=svc_payment;Password=s3cret",
+    "FeatureFlags:NewCheckout": "true"
+  },
+  "snapshotId": "0192d4e0-7b3a-7f2e-8a1c-4d5e6f7a8b9c",
+  "snapshotVersion": 12
 }
 ```
+
+The `data` field contains flat key-value pairs resolved for the client's registered scope combination. All values are strings, regardless of their declared `valueType`. Sensitive values are decrypted and included in plaintext (the connection is TLS-encrypted).
 
 > **Auth scheme rationale:** The `ApiKey` scheme is a custom HTTP authentication scheme (permitted by RFC 7235). It avoids `Basic` auth (which can trigger browser login dialogs and requires Base64 encoding) and `Bearer` (which is reserved for the Management API's JWT/PAT tokens). The scheme name is case-insensitive per HTTP spec.
 
 **Notes:**
-- The response contains only the entries resolved for the client's registered scope combination.
-- Sensitive values are decrypted and included in plaintext (the connection is TLS-encrypted).
 - If no active snapshot exists, returns `404 Not Found`.
+- The `ETag` response header is set to the `snapshotVersion` for conditional requests.
 
 **Response (304 Not Modified):**
-If the client sends `If-None-Match: "12"` (the snapshot version) and the version hasn't changed, the server returns 304 with no body.
+If the client sends `If-None-Match: "<snapshotVersion>"` and the version hasn't changed, the server returns 304 with no body.
 
 ---
 
@@ -680,16 +748,16 @@ api-version: 1.0
 
 On initial connection, the server sends the current config:
 ```
-id: 12
 event: config
-data: {"snapshotVersion":12,"publishedAt":"2024-01-15T10:30:00Z","entries":{"Logging:LogLevel:Default":{"value":"Warning","valueType":"String"},...}}
+id: 0192d4e0-7b3a-7f2e-8a1c-4d5e6f7a8b9c
+data: {"data":{"Logging:LogLevel:Default":"Warning","Database:ConnectionString":"..."},"snapshotId":"0192d4e0-7b3a-7f2e-8a1c-4d5e6f7a8b9c","snapshotVersion":12}
 ```
 
 On configuration change (new snapshot activated):
 ```
-id: 13
 event: config
-data: {"snapshotVersion":13,"publishedAt":"2024-01-15T14:20:00Z","entries":{...}}
+id: 0193a5f1-8c4b-7d3f-9b2d-5e6f7a8b9c0d
+data: {"data":{"Logging:LogLevel:Default":"Information",...},"snapshotId":"0193a5f1-8c4b-7d3f-9b2d-5e6f7a8b9c0d","snapshotVersion":13}
 ```
 
 Periodic heartbeat to keep the connection alive:
@@ -698,7 +766,7 @@ event: heartbeat
 data: {"timestamp":"2024-01-15T10:35:00Z"}
 ```
 
-The `id` field on `config` events is set to the `snapshotVersion`. This enables the SSE `Last-Event-ID` reconnect protocol — on reconnect, the client sends `Last-Event-ID: <snapshotVersion>` and the server skips sending a `config` event if the active snapshot version matches (avoiding duplicate delivery). Heartbeat events intentionally omit `id` to avoid overwriting the client's last known snapshot version.
+The `id` field on `config` events is set to the snapshot's unique ID (a GUID). This enables the SSE `Last-Event-ID` reconnect protocol — on reconnect, the client sends `Last-Event-ID: <snapshotId>` and the server skips sending a `config` event if the active snapshot ID matches (avoiding duplicate delivery). Heartbeat events intentionally omit `id` to avoid overwriting the client's last known snapshot ID.
 
 **SSE Event Types:**
 
@@ -713,7 +781,7 @@ The `id` field on `config` events is set to the `snapshotVersion`. This enables 
 3. Server sends the current config as the first `config` event.
 4. Server keeps the connection open, sending `heartbeat` events periodically.
 5. When a new snapshot is activated for the client's project, the server resolves the config for the client's scope and sends a `config` event.
-6. If the client disconnects, it can reconnect using `Last-Event-ID` header (set to the last received `snapshotVersion`) to avoid receiving stale data.
+6. If the client disconnects, it can reconnect using `Last-Event-ID` header (set to the last received snapshot ID) to avoid receiving stale data.
 
 ---
 
