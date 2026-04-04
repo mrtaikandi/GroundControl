@@ -1,10 +1,8 @@
-using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
 using GroundControl.Cli.Features.ClientConfig.Get;
 using GroundControl.Cli.Shared.ApiClient;
 using GroundControl.Host.Cli;
 using Microsoft.Extensions.Options;
-using NSubstitute.ExceptionExtensions;
 
 namespace GroundControl.Cli.Tests.ClientConfig.Get;
 

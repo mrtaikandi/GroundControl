@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using GroundControl.Cli.Shared.Auth;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
