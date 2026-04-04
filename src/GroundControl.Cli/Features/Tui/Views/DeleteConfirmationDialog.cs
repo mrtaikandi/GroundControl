@@ -63,8 +63,8 @@ internal sealed class DeleteConfirmationDialog
 
         cancelButton.Accepting += (_, _) => _app.RequestStop(dialog);
 
-        dialog.Add(deleteButton);
-        dialog.Add(cancelButton);
+        dialog.AddButton(deleteButton);
+        dialog.AddButton(cancelButton);
         _app.Run(dialog);
 
         return confirmed;

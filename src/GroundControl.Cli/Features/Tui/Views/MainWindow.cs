@@ -145,7 +145,7 @@ internal sealed class MainWindow : Window
         okButton.Accepting += (_, _) => _app.RequestStop(dialog);
 
         dialog.Add(helpText);
-        dialog.Add(okButton);
+        dialog.AddButton(okButton);
         _app.Run(dialog);
     }
 }

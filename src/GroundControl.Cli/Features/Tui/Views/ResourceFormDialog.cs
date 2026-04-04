@@ -85,8 +85,8 @@ internal sealed class ResourceFormDialog
 
         cancelButton.Accepting += (_, _) => _app.RequestStop(dialog);
 
-        dialog.Add(okButton);
-        dialog.Add(cancelButton);
+        dialog.AddButton(okButton);
+        dialog.AddButton(cancelButton);
         _app.Run(dialog);
 
         if (!confirmed)
