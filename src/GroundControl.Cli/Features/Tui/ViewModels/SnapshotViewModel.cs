@@ -11,6 +11,8 @@ internal sealed class SnapshotViewModel : ResourceViewModel<SnapshotSummaryRespo
         _client = client;
     }
 
+    internal override string ResourceTypeName => "Snapshot";
+
     public Guid? ProjectId { get; set; }
 
     protected override async Task<(IReadOnlyList<SnapshotSummaryResponse> Items, string? NextCursor)> FetchPageAsync(
@@ -47,6 +49,24 @@ internal sealed class SnapshotViewModel : ResourceViewModel<SnapshotSummaryRespo
         new("Published At", item.PublishedAt.ToString("u", CultureInfo.InvariantCulture)),
         new("Published By", item.PublishedBy.ToString())
     ];
+
+    internal override string GetResourceName(SnapshotSummaryResponse item) =>
+        $"v{item.SnapshotVersion.ToString(CultureInfo.InvariantCulture)}";
+
+    internal override IReadOnlyList<FieldDefinition> GetFormFields() =>
+        throw new NotSupportedException("Snapshots are read-only.");
+
+    internal override IReadOnlyList<FieldDefinition> GetEditFormFields(SnapshotSummaryResponse item) =>
+        throw new NotSupportedException("Snapshots are read-only.");
+
+    internal override Task CreateAsync(Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Snapshots are read-only.");
+
+    internal override Task UpdateAsync(SnapshotSummaryResponse item, Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Snapshots are read-only.");
+
+    internal override Task DeleteAsync(SnapshotSummaryResponse item, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Snapshots are read-only.");
 
     protected override bool MatchesFilter(SnapshotSummaryResponse item, string filter) =>
         item.SnapshotVersion.ToString(CultureInfo.InvariantCulture).Contains(filter, StringComparison.OrdinalIgnoreCase) ||

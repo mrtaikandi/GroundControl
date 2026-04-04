@@ -11,6 +11,8 @@ internal sealed class AuditViewModel : ResourceViewModel<AuditRecordResponse>
         _client = client;
     }
 
+    internal override string ResourceTypeName => "Audit Record";
+
     protected override async Task<(IReadOnlyList<AuditRecordResponse> Items, string? NextCursor)> FetchPageAsync(
         string? cursor,
         CancellationToken cancellationToken)
@@ -59,6 +61,24 @@ internal sealed class AuditViewModel : ResourceViewModel<AuditRecordResponse>
 
         return pairs;
     }
+
+    internal override string GetResourceName(AuditRecordResponse item) =>
+        $"{item.Action} {item.EntityType}";
+
+    internal override IReadOnlyList<FieldDefinition> GetFormFields() =>
+        throw new NotSupportedException("Audit records are read-only.");
+
+    internal override IReadOnlyList<FieldDefinition> GetEditFormFields(AuditRecordResponse item) =>
+        throw new NotSupportedException("Audit records are read-only.");
+
+    internal override Task CreateAsync(Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Audit records are read-only.");
+
+    internal override Task UpdateAsync(AuditRecordResponse item, Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Audit records are read-only.");
+
+    internal override Task DeleteAsync(AuditRecordResponse item, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("Audit records are read-only.");
 
     protected override bool MatchesFilter(AuditRecordResponse item, string filter) =>
         item.EntityType.Contains(filter, StringComparison.OrdinalIgnoreCase) ||

@@ -1,3 +1,4 @@
+using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
 
 namespace GroundControl.Cli.Features.Tui.ViewModels;
@@ -10,6 +11,8 @@ internal sealed class ClientViewModel : ResourceViewModel<ClientResponse>
     {
         _client = client;
     }
+
+    internal override string ResourceTypeName => "Client";
 
     public Guid? ProjectId { get; set; }
 
@@ -54,6 +57,81 @@ internal sealed class ClientViewModel : ResourceViewModel<ClientResponse>
         new("Updated By", item.UpdatedBy.ToString())
     ];
 
+    internal override string GetResourceName(ClientResponse item) => item.Name;
+
+    internal override IReadOnlyList<FieldDefinition> GetFormFields() =>
+    [
+        new() { Label = "Name", Type = FieldType.Text, IsRequired = true },
+        new() { Label = "Scopes", Type = FieldType.Text },
+        new() { Label = "Expires At", Type = FieldType.Text }
+    ];
+
+    internal override IReadOnlyList<FieldDefinition> GetEditFormFields(ClientResponse item) =>
+    [
+        new() { Label = "Name", Type = FieldType.Text, IsRequired = true, DefaultValue = item.Name },
+        new() { Label = "Is Active", Type = FieldType.Text, DefaultValue = item.IsActive.ToString() },
+        new() { Label = "Expires At", Type = FieldType.Text, DefaultValue = item.ExpiresAt?.ToString("u", CultureInfo.InvariantCulture) ?? string.Empty }
+    ];
+
+    internal override async Task CreateAsync(Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default)
+    {
+        if (ProjectId is not { } projectId)
+        {
+            throw new InvalidOperationException("No project selected.");
+        }
+
+        var request = new CreateClientRequest
+        {
+            Name = fieldValues["Name"],
+            Scopes = ParseScopes(fieldValues.GetValueOrDefault("Scopes")),
+            ExpiresAt = ParseDateTimeOffset(fieldValues.GetValueOrDefault("Expires At"))
+        };
+
+        await _client.CreateClientHandlerAsync(projectId, request, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal override async Task UpdateAsync(ClientResponse item, Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default)
+    {
+        GroundControlClient.SetIfMatch(item.Version);
+        var request = new UpdateClientRequest
+        {
+            Name = fieldValues["Name"],
+            IsActive = bool.TryParse(fieldValues.GetValueOrDefault("Is Active"), out var isActive) && isActive,
+            ExpiresAt = ParseDateTimeOffset(fieldValues.GetValueOrDefault("Expires At"))
+        };
+
+        await _client.UpdateClientHandlerAsync(item.ProjectId, item.Id, request, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal override async Task DeleteAsync(ClientResponse item, CancellationToken cancellationToken = default)
+    {
+        GroundControlClient.SetIfMatch(item.Version);
+        await _client.DeleteClientHandlerAsync(item.ProjectId, item.Id, cancellationToken).ConfigureAwait(false);
+    }
+
     protected override bool MatchesFilter(ClientResponse item, string filter) =>
         item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase);
+
+    private static Dictionary<string, string>? ParseScopes(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var result = new Dictionary<string, string>();
+        foreach (var pair in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = pair.Split('=', 2);
+            if (parts.Length == 2)
+            {
+                result[parts[0].Trim()] = parts[1].Trim();
+            }
+        }
+
+        return result.Count > 0 ? result : null;
+    }
+
+    private static DateTimeOffset? ParseDateTimeOffset(string? value) =>
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result) ? result : null;
 }
