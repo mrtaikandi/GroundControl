@@ -63,6 +63,8 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
         _listView.KeyDown += OnListViewKeyDown;
         _listView.Accepting += OnListViewAccepting;
 
+        KeyDown += OnKeyDown;
+
         _statusLabel = new Label
         {
             X = 0,
@@ -105,29 +107,31 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
         UpdateListView();
     }
 
-    private void OnListViewKeyDown(object? sender, Key args)
+    private void OnKeyDown(object? sender, Key args)
     {
-        if (args == Key.N)
+        if (args == Key.N.WithCtrl)
         {
             args.Handled = true;
             HandleCreate();
             return;
         }
 
-        if (args == Key.E)
+        if (args == Key.E.WithCtrl)
         {
             args.Handled = true;
             HandleEdit();
             return;
         }
 
-        if (args == Key.D)
+        if (args == Key.D.WithCtrl)
         {
             args.Handled = true;
             HandleDelete();
-            return;
         }
+    }
 
+    private void OnListViewKeyDown(object? sender, Key args)
+    {
         // Defer selection check to after the key is processed
         _app.Invoke(() => HandleSelectionChangeIfNeeded());
     }

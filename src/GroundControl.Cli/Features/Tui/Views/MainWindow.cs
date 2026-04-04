@@ -127,9 +127,9 @@ internal sealed class MainWindow : Window
                    ←/→       Switch tabs
                    Tab       Move focus between search and list
                    ↑/↓       Navigate list items
-                   N         New item (when list focused)
-                   E         Edit selected item
-                   D         Delete selected item
+                   Ctrl+N    New item
+                   Ctrl+E    Edit selected item
+                   Ctrl+D    Delete selected item
                    R         Refresh current list
                    """,
             X = 2,
