@@ -56,9 +56,7 @@ internal sealed class ScopeViewModel : ResourceViewModel<ScopeResponse>
         new() { Label = "Description", Type = FieldType.Text, DefaultValue = item.Description ?? string.Empty }
     ];
 
-    internal override async Task CreateAsync(
-        Dictionary<string, string> fieldValues,
-        CancellationToken cancellationToken)
+    internal override async Task CreateAsync(Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default)
     {
         var request = new CreateScopeRequest
         {
@@ -70,10 +68,7 @@ internal sealed class ScopeViewModel : ResourceViewModel<ScopeResponse>
         await _client.CreateScopeHandlerAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
-    internal override async Task UpdateAsync(
-        ScopeResponse item,
-        Dictionary<string, string> fieldValues,
-        CancellationToken cancellationToken)
+    internal override async Task UpdateAsync(ScopeResponse item, Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default)
     {
         GroundControlClient.SetIfMatch(item.Version);
         var request = new UpdateScopeRequest
@@ -86,7 +81,7 @@ internal sealed class ScopeViewModel : ResourceViewModel<ScopeResponse>
         await _client.UpdateScopeHandlerAsync(item.Id, request, cancellationToken).ConfigureAwait(false);
     }
 
-    internal override async Task DeleteAsync(ScopeResponse item, CancellationToken cancellationToken)
+    internal override async Task DeleteAsync(ScopeResponse item, CancellationToken cancellationToken = default)
     {
         GroundControlClient.SetIfMatch(item.Version);
         await _client.DeleteScopeHandlerAsync(item.Id, cancellationToken).ConfigureAwait(false);

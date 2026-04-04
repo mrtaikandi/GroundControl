@@ -22,6 +22,8 @@ internal sealed class ResourceDetailView<T> : FrameView
         Y = 0;
         Width = Dim.Fill();
         Height = Dim.Fill();
+        CanFocus = true;
+        TabStop = TabBehavior.TabGroup;
 
         _contentLabel = new Label
         {

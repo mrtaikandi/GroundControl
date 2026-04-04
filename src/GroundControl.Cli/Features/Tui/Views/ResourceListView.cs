@@ -31,6 +31,8 @@ internal sealed class ResourceListView<T> : FrameView, IRefreshable
         Y = 0;
         Width = Dim.Percent(40);
         Height = Dim.Fill();
+        CanFocus = true;
+        TabStop = TabBehavior.TabGroup;
 
         _searchField = new TextField
         {

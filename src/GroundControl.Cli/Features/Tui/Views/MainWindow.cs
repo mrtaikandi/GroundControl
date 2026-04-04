@@ -28,18 +28,18 @@ internal sealed class MainWindow : Window
             Height = Dim.Fill()
         };
 
-        AddResourceTab<ScopeResponse>("Scopes", new ScopeViewModel(client));
-        AddResourceTab<GroupResponse>("Groups", new GroupViewModel(client));
-        AddResourceTab<TemplateResponse>("Templates", new TemplateViewModel(client));
-        AddResourceTab<ConfigEntryResponse>("Config Entries", new ConfigEntryViewModel(client));
-        AddResourceTab<VariableResponse>("Variables", new VariableViewModel(client));
-        AddResourceTab<ProjectResponse>("Projects", new ProjectViewModel(client));
-        AddResourceTab<SnapshotSummaryResponse>("Snapshots", new SnapshotViewModel(client));
-        AddResourceTab<UserResponse>("Users", new UserViewModel(client));
-        AddResourceTab<RoleResponse>("Roles", new RoleViewModel(client));
-        AddResourceTab<ClientResponse>("Clients", new ClientViewModel(client));
-        AddResourceTab<PatResponse>("PATs", new PatViewModel(client));
-        AddResourceTab<AuditRecordResponse>("Audit", new AuditViewModel(client));
+        AddResourceTab("Scopes", new ScopeViewModel(client));
+        AddResourceTab("Groups", new GroupViewModel(client));
+        AddResourceTab("Templates", new TemplateViewModel(client));
+        AddResourceTab("Config Entries", new ConfigEntryViewModel(client));
+        AddResourceTab("Variables", new VariableViewModel(client));
+        AddResourceTab("Projects", new ProjectViewModel(client));
+        AddResourceTab("Snapshots", new SnapshotViewModel(client));
+        AddResourceTab("Users", new UserViewModel(client));
+        AddResourceTab("Roles", new RoleViewModel(client));
+        AddResourceTab("Clients", new ClientViewModel(client));
+        AddResourceTab("PATs", new PatViewModel(client));
+        AddResourceTab("Audit", new AuditViewModel(client));
 
         if (_tabView.Tabs.Count > 0)
         {
@@ -80,7 +80,9 @@ internal sealed class MainWindow : Window
             X = 0,
             Y = 0,
             Width = Dim.Fill(),
-            Height = Dim.Fill()
+            Height = Dim.Fill(),
+            CanFocus = true,
+            TabStop = TabBehavior.TabGroup
         };
 
         var listView = new ResourceListView<T>(viewModel, _app);
@@ -112,21 +114,20 @@ internal sealed class MainWindow : Window
 
     private void ShowHelpDialog()
     {
-        using var dialog = new Dialog
-        {
-            Title = "Help — Keyboard Shortcuts",
-            Width = 50,
-            Height = 14
-        };
+        using var dialog = new Dialog();
+        dialog.Title = "Help — Keyboard Shortcuts";
+        dialog.Width = 50;
+        dialog.Height = 16;
 
         var helpText = new Label
         {
             Text = """
                    Q         Quit
                    F1        Show this help
-                   Tab       Next tab
-                   Shift+Tab Previous tab
-                   N         New item
+                   ←/→       Switch tabs
+                   Tab       Move focus between search and list
+                   ↑/↓       Navigate list items
+                   N         New item (when list focused)
                    E         Edit selected item
                    D         Delete selected item
                    R         Refresh current list
