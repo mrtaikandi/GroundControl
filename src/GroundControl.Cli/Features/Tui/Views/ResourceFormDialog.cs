@@ -1,11 +1,13 @@
+#pragma warning disable CA2000 // Terminal.Gui containers dispose their children
+
 using GroundControl.Cli.Features.Tui.ViewModels;
 using Terminal.Gui.App;
+using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
 namespace GroundControl.Cli.Features.Tui.Views;
 
-#pragma warning disable CA2000 // Terminal.Gui containers dispose their children
 
 internal sealed class ResourceFormDialog
 {
@@ -18,19 +20,18 @@ internal sealed class ResourceFormDialog
 
     public Dictionary<string, string>? Show(string title, IReadOnlyList<FieldDefinition> fields)
     {
-        using var dialog = new Dialog
-        {
-            Title = title,
-            Width = 60,
-            Height = fields.Count * 3 + 6
-        };
+        using var dialog = new Dialog();
+
+        dialog.Title = title;
+        dialog.Width = 60;
+        dialog.Height = fields.Count * 3 + 7;
 
         var fieldWidgets = new List<(FieldDefinition Definition, TextField Widget)>();
         var y = 0;
 
         foreach (var field in fields)
         {
-            var requiredMark = field.IsRequired ? " *" : "";
+            var requiredMark = field.IsRequired ? " *" : string.Empty;
             var label = new Label
             {
                 Text = $"{field.Label}{requiredMark}:",
@@ -54,28 +55,38 @@ internal sealed class ResourceFormDialog
             y += 2;
         }
 
+        var errorLabel = new Label
+        {
+            X = 1,
+            Y = y,
+            Width = Dim.Fill(2),
+            Height = 1,
+            Text = string.Empty
+        };
+
+        dialog.Add(errorLabel);
+
         var confirmed = false;
+
+        // Intercept Enter on each text field to prevent Accept from bubbling to Dialog
+        foreach (var (_, widget) in fieldWidgets)
+        {
+            widget.Accepting += (_, args) =>
+            {
+                args.Handled = true;
+                ValidateAndSubmit();
+            };
+        }
 
         var okButton = new Button
         {
-            Text = "OK",
-            IsDefault = true
+            Text = "OK"
         };
 
-        okButton.Accepting += (_, _) =>
+        okButton.Accepting += (_, args) =>
         {
-            foreach (var (definition, widget) in fieldWidgets)
-            {
-                if (definition.IsRequired && string.IsNullOrWhiteSpace(widget.Text))
-                {
-                    MessageBox.ErrorQuery(_app, "Validation", $"{definition.Label} is required.", "OK");
-                    widget.SetFocus();
-                    return;
-                }
-            }
-
-            confirmed = true;
-            _app.RequestStop(dialog);
+            args.Handled = true;
+            ValidateAndSubmit();
         };
 
         var cancelButton = new Button
@@ -101,5 +112,25 @@ internal sealed class ResourceFormDialog
         }
 
         return result;
+
+        void ValidateAndSubmit()
+        {
+            foreach (var (definition, widget) in fieldWidgets)
+            {
+                if (!definition.IsRequired || !string.IsNullOrWhiteSpace(widget.Text))
+                {
+                    continue;
+                }
+
+                errorLabel.SetScheme(new Scheme(new Terminal.Gui.Drawing.Attribute(ColorName16.BrightRed, ColorName16.Gray)));
+                errorLabel.Text = $"{definition.Label} is required.";
+                widget.SetFocus();
+
+                return;
+            }
+
+            confirmed = true;
+            _app.RequestStop(dialog);
+        }
     }
 }
