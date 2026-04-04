@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using GroundControl.Cli.Shared.Config;
 
 namespace GroundControl.Cli.Features.Auth.Logout;

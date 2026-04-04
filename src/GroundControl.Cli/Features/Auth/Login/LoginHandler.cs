@@ -113,14 +113,7 @@ internal sealed class LoginHandler : ICommandHandler
                 break;
 
             case AuthMethod.Pat:
-            {
-                var token = _options.Token;
-
-                if (token is null)
-                {
-                    token = await _shell.PromptForSecretAsync("Personal access token:", cancellationToken: cancellationToken);
-                }
-
+                var token = _options.Token ?? await _shell.PromptForSecretAsync("Personal access token:", cancellationToken: cancellationToken);
                 section["Auth"] = new JsonObject
                 {
                     ["Method"] = "Bearer",
@@ -128,22 +121,13 @@ internal sealed class LoginHandler : ICommandHandler
                 };
 
                 break;
-            }
 
             case AuthMethod.ApiKey:
-            {
                 var clientId = _options.ClientId;
                 var clientSecret = _options.ClientSecret;
 
-                if (clientId is null)
-                {
-                    clientId = await _shell.PromptForStringAsync("Client ID:", cancellationToken: cancellationToken);
-                }
-
-                if (clientSecret is null)
-                {
-                    clientSecret = await _shell.PromptForSecretAsync("Client secret:", cancellationToken: cancellationToken);
-                }
+                clientId ??= await _shell.PromptForStringAsync("Client ID:", cancellationToken: cancellationToken);
+                clientSecret ??= await _shell.PromptForSecretAsync("Client secret:", cancellationToken: cancellationToken);
 
                 section["Auth"] = new JsonObject
                 {
@@ -153,22 +137,13 @@ internal sealed class LoginHandler : ICommandHandler
                 };
 
                 break;
-            }
 
             case AuthMethod.Credentials:
-            {
                 var username = _options.Username;
                 var password = _options.Password;
 
-                if (username is null)
-                {
-                    username = await _shell.PromptForStringAsync("Username:", cancellationToken: cancellationToken);
-                }
-
-                if (password is null)
-                {
-                    password = await _shell.PromptForSecretAsync("Password:", cancellationToken: cancellationToken);
-                }
+                username ??= await _shell.PromptForStringAsync("Username:", cancellationToken: cancellationToken);
+                password ??= await _shell.PromptForSecretAsync("Password:", cancellationToken: cancellationToken);
 
                 section["Auth"] = new JsonObject
                 {
@@ -178,7 +153,6 @@ internal sealed class LoginHandler : ICommandHandler
                 };
 
                 break;
-            }
         }
 
         await _store.WriteAsync(section, cancellationToken);

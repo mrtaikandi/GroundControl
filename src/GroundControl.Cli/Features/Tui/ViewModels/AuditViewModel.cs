@@ -47,20 +47,14 @@ internal sealed class AuditViewModel : ResourceViewModel<AuditRecordResponse>
 
         if (item.Changes.Count > 0)
         {
-            pairs.Add(new("Changes", ""));
-            foreach (var change in item.Changes)
-            {
-                pairs.Add(new($"  {change.Field}", $"{change.OldValue ?? "(null)"} → {change.NewValue ?? "(null)"}"));
-            }
+            pairs.Add(new KeyValuePair<string, string>("Changes", string.Empty));
+            pairs.AddRange(item.Changes.Select(change => new KeyValuePair<string, string>($"  {change.Field}", $"{change.OldValue ?? "(null)"} → {change.NewValue ?? "(null)"}")));
         }
 
         if (item.Metadata is { Count: > 0 })
         {
-            pairs.Add(new("Metadata", ""));
-            foreach (var entry in item.Metadata)
-            {
-                pairs.Add(new($"  {entry.Key}", entry.Value));
-            }
+            pairs.Add(new KeyValuePair<string, string>("Metadata", string.Empty));
+            pairs.AddRange(item.Metadata.Select(entry => new KeyValuePair<string, string>($"  {entry.Key}", entry.Value)));
         }
 
         return pairs;

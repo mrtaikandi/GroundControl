@@ -1,5 +1,3 @@
-using System.CommandLine;
-
 namespace GroundControl.Cli.Features.Auth.Logout;
 
 internal sealed class LogoutCommand : Command<LogoutHandler, LogoutOptions>

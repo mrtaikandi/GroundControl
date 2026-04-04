@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net.Http.Headers;
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
