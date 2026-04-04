@@ -39,7 +39,7 @@ internal sealed class ClientViewModel : ResourceViewModel<ClientResponse>
 
     internal override string GetDisplayText(ClientResponse item) => item.Name;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(ClientResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(ClientResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Project Id", item.ProjectId.ToString()),
@@ -50,11 +50,7 @@ internal sealed class ClientViewModel : ResourceViewModel<ClientResponse>
             : "-"),
         new("Expires At", item.ExpiresAt?.ToString("u", CultureInfo.InvariantCulture) ?? "-"),
         new("Last Used At", item.LastUsedAt?.ToString("u", CultureInfo.InvariantCulture) ?? "-"),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(ClientResponse item) => item.Name;
@@ -96,7 +92,7 @@ internal sealed class ClientViewModel : ResourceViewModel<ClientResponse>
         var request = new UpdateClientRequest
         {
             Name = fieldValues["Name"],
-            IsActive = bool.TryParse(fieldValues.GetValueOrDefault("Is Active"), out var isActive) && isActive,
+            IsActive = ParseBool(fieldValues.GetValueOrDefault("Is Active")) ?? false,
             ExpiresAt = ParseDateTimeOffset(fieldValues.GetValueOrDefault("Expires At"))
         };
 

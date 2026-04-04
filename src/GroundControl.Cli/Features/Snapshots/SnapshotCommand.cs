@@ -5,7 +5,7 @@ using GroundControl.Cli.Features.Snapshots.Publish;
 
 namespace GroundControl.Cli.Features.Snapshots;
 
-[RootCommand<SnapshotDependencyModule>]
+[RootCommand]
 internal sealed class SnapshotCommand : Command
 {
     public SnapshotCommand()

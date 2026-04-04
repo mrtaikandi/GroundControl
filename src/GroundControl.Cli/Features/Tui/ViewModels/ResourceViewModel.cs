@@ -1,5 +1,14 @@
 namespace GroundControl.Cli.Features.Tui.ViewModels;
 
+internal readonly record struct DetailPair(string Key, string Value);
+
+internal readonly record struct EntityMetadata(
+    long Version,
+    DateTimeOffset CreatedAt,
+    Guid CreatedBy,
+    DateTimeOffset UpdatedAt,
+    Guid UpdatedBy);
+
 internal abstract class ResourceViewModel<T>
 {
     private readonly List<T> _allItems = [];
@@ -107,7 +116,7 @@ internal abstract class ResourceViewModel<T>
 
     internal abstract string GetDisplayText(T item);
 
-    internal abstract IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(T item);
+    internal abstract IReadOnlyList<DetailPair> GetDetailPairs(T item);
 
     internal abstract string ResourceTypeName { get; }
 
@@ -130,8 +139,44 @@ internal abstract class ResourceViewModel<T>
 
     protected abstract bool MatchesFilter(T item, string filter);
 
+    protected static IReadOnlyList<DetailPair> GetStandardMetadataPairs(EntityMetadata metadata) =>
+    [
+        new("Version", metadata.Version.ToString(CultureInfo.InvariantCulture)),
+        new("Created At", metadata.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
+        new("Created By", metadata.CreatedBy.ToString()),
+        new("Updated At", metadata.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
+        new("Updated By", metadata.UpdatedBy.ToString())
+    ];
+
     protected static string? NullIfEmpty(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value;
+
+    protected static Guid? ParseGuid(string? value) =>
+        Guid.TryParse(value, out var guid) ? guid : null;
+
+    protected static List<Guid> ParseGuidList(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return [];
+        }
+
+        return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(s => Guid.TryParse(s, out _))
+            .Select(Guid.Parse)
+            .ToList();
+    }
+
+    protected static List<string> ParseCommaSeparated(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? []
+            : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+    protected static bool? ParseBool(string? value) =>
+        bool.TryParse(value, out var result) ? result : null;
+
+    protected static TEnum ParseEnum<TEnum>(string? value, TEnum defaultValue) where TEnum : struct, Enum =>
+        Enum.TryParse<TEnum>(value, true, out var result) ? result : defaultValue;
 
     private void ApplyFilter()
     {

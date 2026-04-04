@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.Roles.Update;
 
 namespace GroundControl.Cli.Features.Roles;
 
-[RootCommand<RoleDependencyModule>]
+[RootCommand]
 internal sealed class RoleCommand : Command
 {
     public RoleCommand()

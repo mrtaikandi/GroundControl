@@ -1,5 +1,6 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
+using GroundControl.Cli.Shared;
 using GroundControl.Cli.Shared.ErrorHandling;
 using Microsoft.Extensions.Options;
 using static GroundControl.Cli.Shared.ErrorHandling.ConflictRetryHelper;
@@ -27,22 +28,19 @@ internal sealed class DeleteScopeHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        var version = _options.Version;
-        ScopeResponse? current = null;
+        var resolved = await _shell.ResolveVersionAsync(
+            _options.Version,
+            ct => _client.GetScopeHandlerAsync(_options.Id, ct),
+            r => r.Version,
+            cancellationToken);
 
-        if (version is null)
+        if (!resolved.IsSuccess)
         {
-            try
-            {
-                current = await _client.GetScopeHandlerAsync(_options.Id, cancellationToken);
-                version = current.Version;
-            }
-            catch (GroundControlApiClientException<ProblemDetails> ex)
-            {
-                _shell.RenderProblemDetails(ex.Result);
-                return 1;
-            }
+            return resolved.ExitCode;
         }
+
+        var version = resolved.Version;
+        var current = resolved.Entity;
 
         if (!_options.Yes && !_hostOptions.NoInteractive)
         {
@@ -57,63 +55,48 @@ internal sealed class DeleteScopeHandler : ICommandHandler
             }
         }
 
-        try
-        {
-            GroundControlClient.SetIfMatch(version.Value);
-            await _client.DeleteScopeHandlerAsync(_options.Id, cancellationToken);
-            _shell.DisplaySuccess("Scope deleted.");
-            return 0;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex) when (ex.StatusCode == 409)
-        {
-            var retried = await _shell.HandleConflictAsync(
-                async ct =>
+        return await _shell.TryCallWithConflictHandlingAsync(
+            _hostOptions.NoInteractive,
+            async ct =>
+            {
+                GroundControlClient.SetIfMatch(version);
+                await _client.DeleteScopeHandlerAsync(_options.Id, ct);
+                _shell.DisplaySuccess("Scope deleted.");
+                return 0;
+            },
+            async ct =>
+            {
+                var latest = await _client.GetScopeHandlerAsync(_options.Id, ct);
+                var diffs = new List<FieldDiff>();
+
+                if (current is not null)
                 {
-                    var latest = await _client.GetScopeHandlerAsync(_options.Id, ct);
-                    var diffs = new List<FieldDiff>();
-
-                    if (current is not null)
+                    if (current.Dimension != latest.Dimension)
                     {
-                        if (current.Dimension != latest.Dimension)
-                        {
-                            diffs.Add(new FieldDiff("Dimension", current.Dimension, latest.Dimension));
-                        }
-
-                        var currentValues = string.Join(", ", current.AllowedValues);
-                        var latestValues = string.Join(", ", latest.AllowedValues);
-                        if (currentValues != latestValues)
-                        {
-                            diffs.Add(new FieldDiff("Allowed Values", currentValues, latestValues));
-                        }
-
-                        if ((current.Description ?? string.Empty) != (latest.Description ?? string.Empty))
-                        {
-                            diffs.Add(new FieldDiff("Description", current.Description ?? string.Empty, latest.Description ?? string.Empty));
-                        }
+                        diffs.Add(new FieldDiff("Dimension", current.Dimension, latest.Dimension));
                     }
 
-                    return new ConflictInfo(latest.Version, diffs);
-                },
-                async (newVersion, ct) =>
-                {
-                    GroundControlClient.SetIfMatch(newVersion);
-                    await _client.DeleteScopeHandlerAsync(_options.Id, ct);
-                    _shell.DisplaySuccess("Scope deleted.");
-                },
-                _hostOptions.NoInteractive,
-                cancellationToken);
+                    var currentValues = string.Join(", ", current.AllowedValues);
+                    var latestValues = string.Join(", ", latest.AllowedValues);
+                    if (currentValues != latestValues)
+                    {
+                        diffs.Add(new FieldDiff("Allowed Values", currentValues, latestValues));
+                    }
 
-            return retried ? 0 : 1;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+                    if ((current.Description ?? string.Empty) != (latest.Description ?? string.Empty))
+                    {
+                        diffs.Add(new FieldDiff("Description", current.Description ?? string.Empty, latest.Description ?? string.Empty));
+                    }
+                }
+
+                return new ConflictInfo(latest.Version, diffs);
+            },
+            async (newVersion, ct) =>
+            {
+                GroundControlClient.SetIfMatch(newVersion);
+                await _client.DeleteScopeHandlerAsync(_options.Id, ct);
+                _shell.DisplaySuccess("Scope deleted.");
+            },
+            cancellationToken);
     }
 }

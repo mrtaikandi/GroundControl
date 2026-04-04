@@ -31,7 +31,7 @@ internal sealed class UserViewModel : ResourceViewModel<UserResponse>
 
     internal override string GetDisplayText(UserResponse item) => item.Username;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(UserResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(UserResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Username", item.Username),
@@ -41,11 +41,7 @@ internal sealed class UserViewModel : ResourceViewModel<UserResponse>
         new("Grants", item.Grants.Count > 0
             ? string.Join("; ", item.Grants.Select(g => $"Role={g.RoleId}" + (g.Resource is not null ? $" Resource={g.Resource}" : "")))
             : "-"),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(UserResponse item) => item.Username;
@@ -83,7 +79,7 @@ internal sealed class UserViewModel : ResourceViewModel<UserResponse>
         {
             Username = fieldValues["Username"],
             Email = fieldValues["Email"],
-            IsActive = bool.TryParse(fieldValues.GetValueOrDefault("Is Active"), out var isActive) ? isActive : null
+            IsActive = ParseBool(fieldValues.GetValueOrDefault("Is Active"))
         };
 
         await _client.UpdateUserHandlerAsync(item.Id, request, cancellationToken).ConfigureAwait(false);

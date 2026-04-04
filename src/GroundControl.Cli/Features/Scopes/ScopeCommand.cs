@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.Scopes.Update;
 
 namespace GroundControl.Cli.Features.Scopes;
 
-[RootCommand<ScopeDependencyModule>]
+[RootCommand]
 internal sealed class ScopeCommand : Command
 {
     public ScopeCommand()

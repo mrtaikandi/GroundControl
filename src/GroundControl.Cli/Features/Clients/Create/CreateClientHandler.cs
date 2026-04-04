@@ -40,37 +40,30 @@ internal sealed class CreateClientHandler : ICommandHandler
 
         var scopes = ParseScopes(_options.Scopes);
 
-        try
+        var request = new CreateClientRequest
         {
-            var request = new CreateClientRequest
-            {
-                Name = name,
-                Scopes = scopes,
-                ExpiresAt = _options.ExpiresAt
-            };
+            Name = name,
+            Scopes = scopes,
+            ExpiresAt = _options.ExpiresAt
+        };
 
-            var result = await _client.CreateClientHandlerAsync(_options.ProjectId, request, cancellationToken);
+        var (exitCode, result) = await _shell.TryCallAsync(
+            ct => _client.CreateClientHandlerAsync(_options.ProjectId, request, ct), cancellationToken);
 
-            _shell.DisplaySuccess($"Client '{result.Name}' created (id: {result.Id}, version: {result.Version}).");
-            _shell.DisplayEmptyLine();
-            _shell.DisplayMessage("warning", "[yellow bold]The client secret is shown only once. Save it now — you will not be able to retrieve it later.[/]");
-            _shell.DisplayEmptyLine();
-            _shell.DisplayMessage($"  Client ID:     [bold]{result.Id}[/]");
-            _shell.DisplayMessage($"  Client Secret: [bold]{result.ClientSecret}[/]");
-            _shell.DisplayEmptyLine();
-
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Client '{result!.Name}' created (id: {result.Id}, version: {result.Version}).");
+        _shell.DisplayEmptyLine();
+        _shell.DisplayMessage("warning", "[yellow bold]The client secret is shown only once. Save it now — you will not be able to retrieve it later.[/]");
+        _shell.DisplayEmptyLine();
+        _shell.DisplayMessage($"  Client ID:     [bold]{result.Id}[/]");
+        _shell.DisplayMessage($"  Client Secret: [bold]{result.ClientSecret}[/]");
+        _shell.DisplayEmptyLine();
+
+        return 0;
     }
 
     private static Dictionary<string, string>? ParseScopes(string? scopesCsv)

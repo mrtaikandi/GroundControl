@@ -6,7 +6,7 @@ using GroundControl.Cli.Features.PersonalAccessTokens.Revoke;
 
 namespace GroundControl.Cli.Features.PersonalAccessTokens;
 
-[RootCommand<TokenDependencyModule>]
+[RootCommand]
 internal sealed class TokenCommand : Command
 {
     public TokenCommand()

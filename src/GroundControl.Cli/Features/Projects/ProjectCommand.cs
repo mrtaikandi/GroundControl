@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.Projects.Update;
 
 namespace GroundControl.Cli.Features.Projects;
 
-[RootCommand<ProjectDependencyModule>]
+[RootCommand]
 internal sealed class ProjectCommand : Command
 {
     public ProjectCommand()

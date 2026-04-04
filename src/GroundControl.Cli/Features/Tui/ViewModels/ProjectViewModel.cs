@@ -33,7 +33,7 @@ internal sealed class ProjectViewModel : ResourceViewModel<ProjectResponse>
 
     internal override string GetDisplayText(ProjectResponse item) => item.Name;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(ProjectResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(ProjectResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Name", item.Name),
@@ -41,11 +41,7 @@ internal sealed class ProjectViewModel : ResourceViewModel<ProjectResponse>
         new("Group Id", item.GroupId?.ToString() ?? "-"),
         new("Template Ids", item.TemplateIds.Count > 0 ? string.Join(", ", item.TemplateIds) : "-"),
         new("Active Snapshot", item.ActiveSnapshotId?.ToString() ?? "-"),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(ProjectResponse item) => item.Name;
@@ -73,7 +69,7 @@ internal sealed class ProjectViewModel : ResourceViewModel<ProjectResponse>
             Name = fieldValues["Name"],
             Description = NullIfEmpty(fieldValues.GetValueOrDefault("Description")),
             GroupId = ParseGuid(fieldValues.GetValueOrDefault("Group Id")),
-            TemplateIds = ParseGuidList(fieldValues.GetValueOrDefault("Template Ids"))
+            TemplateIds = ParseGuidList(fieldValues.GetValueOrDefault("Template Ids")) is { Count: > 0 } ids ? ids : null
         };
 
         await _client.CreateProjectHandlerAsync(request, cancellationToken).ConfigureAwait(false);
@@ -87,7 +83,7 @@ internal sealed class ProjectViewModel : ResourceViewModel<ProjectResponse>
             Name = fieldValues["Name"],
             Description = NullIfEmpty(fieldValues.GetValueOrDefault("Description")),
             GroupId = ParseGuid(fieldValues.GetValueOrDefault("Group Id")),
-            TemplateIds = ParseGuidList(fieldValues.GetValueOrDefault("Template Ids"))
+            TemplateIds = ParseGuidList(fieldValues.GetValueOrDefault("Template Ids")) is { Count: > 0 } ids ? ids : null
         };
 
         await _client.UpdateProjectHandlerAsync(item.Id, request, cancellationToken).ConfigureAwait(false);
@@ -103,19 +99,4 @@ internal sealed class ProjectViewModel : ResourceViewModel<ProjectResponse>
         item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
         (item.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
 
-    private static Guid? ParseGuid(string? value) =>
-        Guid.TryParse(value, out var guid) ? guid : null;
-
-    private static List<Guid>? ParseGuidList(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(s => Guid.TryParse(s, out _))
-            .Select(Guid.Parse)
-            .ToList();
-    }
 }

@@ -66,29 +66,23 @@ internal sealed class CreateScopeHandler : ICommandHandler
             }
         }
 
-        try
+        var allowedValues = values.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var request = new CreateScopeRequest
         {
-            var allowedValues = values.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var request = new CreateScopeRequest
-            {
-                Dimension = dimension,
-                AllowedValues = allowedValues,
-                Description = description
-            };
+            Dimension = dimension,
+            AllowedValues = allowedValues,
+            Description = description
+        };
 
-            var scope = await _client.CreateScopeHandlerAsync(request, cancellationToken);
-            _shell.DisplaySuccess($"Scope '{scope.Dimension}' created (id: {scope.Id}, version: {scope.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        var (exitCode, scope) = await _shell.TryCallAsync(
+            ct => _client.CreateScopeHandlerAsync(request, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Scope '{scope!.Dimension}' created (id: {scope.Id}, version: {scope.Version}).");
+        return 0;
     }
 }

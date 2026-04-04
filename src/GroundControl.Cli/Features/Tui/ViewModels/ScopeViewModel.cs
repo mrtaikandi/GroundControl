@@ -31,17 +31,13 @@ internal sealed class ScopeViewModel : ResourceViewModel<ScopeResponse>
 
     internal override string GetDisplayText(ScopeResponse item) => item.Dimension;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(ScopeResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(ScopeResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Dimension", item.Dimension),
         new("Allowed Values", string.Join(", ", item.AllowedValues)),
         new("Description", item.Description ?? "-"),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(ScopeResponse item) => item.Dimension;
@@ -100,6 +96,4 @@ internal sealed class ScopeViewModel : ResourceViewModel<ScopeResponse>
         item.Dimension.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
         (item.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
 
-    private static List<string> ParseCommaSeparated(string value) =>
-        value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 }

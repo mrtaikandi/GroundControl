@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.ConfigEntries.Update;
 
 namespace GroundControl.Cli.Features.ConfigEntries;
 
-[RootCommand<ConfigEntryDependencyModule>]
+[RootCommand]
 internal sealed class ConfigEntryCommand : Command
 {
     public ConfigEntryCommand()

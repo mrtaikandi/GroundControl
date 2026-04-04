@@ -31,30 +31,29 @@ internal sealed class GetClientConfigHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        try
+        using var httpClient = _httpClientFactory.CreateClient();
+        httpClient.BaseAddress = new Uri(_clientOptions.ServerUrl);
+        httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("ApiKey", $"{_options.ClientId}:{_options.ClientSecret}");
+
+        var client = new GroundControlClient(httpClient);
+
+        var (exitCode, response) = await _shell.TryCallAsync(
+            ct => client.GetConfigHandlerAsync(ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            using var httpClient = _httpClientFactory.CreateClient();
-            httpClient.BaseAddress = new Uri(_clientOptions.ServerUrl);
-            httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("ApiKey", $"{_options.ClientId}:{_options.ClientSecret}");
+            return exitCode;
+        }
 
-            var client = new GroundControlClient(httpClient);
-            var response = await client.GetConfigHandlerAsync(cancellationToken);
-
-            if (_hostOptions.OutputFormat == OutputFormat.Json)
-            {
-                _shell.RenderJson(response);
-                return 0;
-            }
-
-            RenderConfigTable(response);
+        if (_hostOptions.OutputFormat == OutputFormat.Json)
+        {
+            _shell.RenderJson(response!);
             return 0;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        RenderConfigTable(response!);
+        return 0;
     }
 
     private void RenderConfigTable(ClientConfigResponse response)

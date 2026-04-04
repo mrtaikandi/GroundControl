@@ -55,29 +55,23 @@ internal sealed class CreateTemplateHandler : ICommandHandler
             groupId = await PromptForGroupSelectionAsync(cancellationToken);
         }
 
-        try
+        var request = new CreateTemplateRequest
         {
-            var request = new CreateTemplateRequest
-            {
-                Name = name,
-                Description = description,
-                GroupId = groupId
-            };
+            Name = name,
+            Description = description,
+            GroupId = groupId
+        };
 
-            var template = await _client.CreateTemplateHandlerAsync(request, cancellationToken);
-            _shell.DisplaySuccess($"Template '{template.Name}' created (id: {template.Id}, version: {template.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        var (exitCode, template) = await _shell.TryCallAsync(
+            ct => _client.CreateTemplateHandlerAsync(request, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Template '{template!.Name}' created (id: {template.Id}, version: {template.Version}).");
+        return 0;
     }
 
     private async Task<Guid?> PromptForGroupSelectionAsync(CancellationToken cancellationToken)

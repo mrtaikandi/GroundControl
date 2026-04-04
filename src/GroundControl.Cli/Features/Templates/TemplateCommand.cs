@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.Templates.Update;
 
 namespace GroundControl.Cli.Features.Templates;
 
-[RootCommand<TemplateDependencyModule>]
+[RootCommand]
 internal sealed class TemplateCommand : Command
 {
     public TemplateCommand()

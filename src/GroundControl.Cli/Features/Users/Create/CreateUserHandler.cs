@@ -77,30 +77,24 @@ internal sealed class CreateUserHandler : ICommandHandler
             return 1;
         }
 
-        try
+        var request = new CreateUserRequest
         {
-            var request = new CreateUserRequest
-            {
-                Username = username,
-                Email = email,
-                Password = password,
-                Grants = grants
-            };
+            Username = username,
+            Email = email,
+            Password = password,
+            Grants = grants
+        };
 
-            var user = await _client.CreateUserHandlerAsync(request, cancellationToken);
-            _shell.DisplaySuccess($"User '{user.Username}' created (id: {user.Id}, version: {user.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        var (exitCode, user) = await _shell.TryCallAsync(
+            ct => _client.CreateUserHandlerAsync(request, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"User '{user!.Username}' created (id: {user.Id}, version: {user.Version}).");
+        return 0;
     }
 
 }

@@ -113,39 +113,33 @@ internal sealed class CreateConfigEntryHandler : ICommandHandler
             parsedValues = await PromptForScopedValuesAsync(cancellationToken);
         }
 
-        try
+        var scopedValues = parsedValues.Select(v => new ScopedValueRequest
         {
-            var scopedValues = parsedValues.Select(v => new ScopedValueRequest
-            {
-                Scopes = v.Scopes.Count > 0 ? new Dictionary<string, string>(v.Scopes) : null,
-                Value = v.Value
-            }).ToList();
+            Scopes = v.Scopes.Count > 0 ? new Dictionary<string, string>(v.Scopes) : null,
+            Value = v.Value
+        }).ToList();
 
-            var request = new CreateConfigEntryRequest
-            {
-                Key = key,
-                OwnerId = ownerId.Value,
-                OwnerType = ownerType.Value,
-                ValueType = valueType,
-                Values = scopedValues,
-                IsSensitive = sensitive,
-                Description = description
-            };
+        var request = new CreateConfigEntryRequest
+        {
+            Key = key,
+            OwnerId = ownerId.Value,
+            OwnerType = ownerType.Value,
+            ValueType = valueType,
+            Values = scopedValues,
+            IsSensitive = sensitive,
+            Description = description
+        };
 
-            var entry = await _client.CreateConfigEntryHandlerAsync(request, cancellationToken);
-            _shell.DisplaySuccess($"Config entry '{entry.Key}' created (id: {entry.Id}, version: {entry.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        var (exitCode, entry) = await _shell.TryCallAsync(
+            ct => _client.CreateConfigEntryHandlerAsync(request, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Config entry '{entry!.Key}' created (id: {entry.Id}, version: {entry.Version}).");
+        return 0;
     }
 
     private async Task<List<ScopedValueParser.ParsedScopedValue>> PromptForScopedValuesAsync(CancellationToken cancellationToken)

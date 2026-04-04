@@ -25,17 +25,16 @@ internal sealed class GetScopeHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        try
+        var (exitCode, scope) = await _shell.TryCallAsync(
+            ct => _client.GetScopeHandlerAsync(_options.Id, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            var scope = await _client.GetScopeHandlerAsync(_options.Id, cancellationToken);
-            _shell.RenderDetail(BuildDetail(scope), _hostOptions.OutputFormat);
-            return 0;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.RenderDetail(BuildDetail(scope!), _hostOptions.OutputFormat);
+        return 0;
     }
 
     private static IReadOnlyList<(string Key, string Value)> BuildDetail(ScopeResponse scope) =>

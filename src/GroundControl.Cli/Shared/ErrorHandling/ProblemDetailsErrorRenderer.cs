@@ -1,5 +1,6 @@
 using GroundControl.Api.Client.Contracts;
 using Spectre.Console;
+using static GroundControl.Cli.Shared.ErrorHandling.ConflictRetryHelper;
 
 namespace GroundControl.Cli.Shared.ErrorHandling;
 
@@ -7,6 +8,77 @@ internal static class ProblemDetailsErrorRenderer
 {
     extension(IShell shell)
     {
+        internal async Task<(int ExitCode, T? Result)> TryCallAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await action(cancellationToken);
+                return (0, result);
+            }
+            catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+            {
+                shell.RenderProblemDetails(ex.Result);
+                return (1, default);
+            }
+            catch (GroundControlApiClientException<ProblemDetails> ex)
+            {
+                shell.RenderProblemDetails(ex.Result);
+                return (1, default);
+            }
+        }
+
+        internal async Task<int> TryCallAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await action(cancellationToken);
+                return 0;
+            }
+            catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+            {
+                shell.RenderProblemDetails(ex.Result);
+                return 1;
+            }
+            catch (GroundControlApiClientException<ProblemDetails> ex)
+            {
+                shell.RenderProblemDetails(ex.Result);
+                return 1;
+            }
+        }
+
+        internal async Task<int> TryCallWithConflictHandlingAsync(
+            bool noInteractive,
+            Func<CancellationToken, Task<int>> action,
+            Func<CancellationToken, Task<ConflictInfo>> fetchConflictInfo,
+            Func<long, CancellationToken, Task> retryAction,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await action(cancellationToken);
+            }
+            catch (GroundControlApiClientException<ProblemDetails> ex) when (ex.StatusCode == 409)
+            {
+                var retried = await shell.HandleConflictAsync(
+                    fetchConflictInfo,
+                    retryAction,
+                    noInteractive,
+                    cancellationToken);
+
+                return retried ? 0 : 1;
+            }
+            catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+            {
+                shell.RenderProblemDetails(ex.Result);
+                return 1;
+            }
+            catch (GroundControlApiClientException<ProblemDetails> ex)
+            {
+                shell.RenderProblemDetails(ex.Result);
+                return 1;
+            }
+        }
+
         internal void RenderProblemDetails(ProblemDetails ex)
         {
             if (ex is HttpValidationProblemDetails validationProblemDetails)

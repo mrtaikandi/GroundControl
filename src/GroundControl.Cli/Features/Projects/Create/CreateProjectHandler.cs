@@ -70,30 +70,24 @@ internal sealed class CreateProjectHandler : ICommandHandler
             templateIds = await PromptForTemplateSelectionAsync(cancellationToken);
         }
 
-        try
+        var request = new CreateProjectRequest
         {
-            var request = new CreateProjectRequest
-            {
-                Name = name,
-                Description = description,
-                GroupId = groupId,
-                TemplateIds = templateIds
-            };
+            Name = name,
+            Description = description,
+            GroupId = groupId,
+            TemplateIds = templateIds
+        };
 
-            var project = await _client.CreateProjectHandlerAsync(request, cancellationToken);
-            _shell.DisplaySuccess($"Project '{project.Name}' created (id: {project.Id}, version: {project.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        var (exitCode, project) = await _shell.TryCallAsync(
+            ct => _client.CreateProjectHandlerAsync(request, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Project '{project!.Name}' created (id: {project.Id}, version: {project.Version}).");
+        return 0;
     }
 
     private List<Guid>? ParseTemplateIds(string csv)

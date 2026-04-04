@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.Groups.Update;
 
 namespace GroundControl.Cli.Features.Groups;
 
-[RootCommand<GroupDependencyModule>]
+[RootCommand]
 internal sealed class GroupCommand : Command
 {
     public GroupCommand()

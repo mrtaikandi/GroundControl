@@ -1,5 +1,6 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
+using GroundControl.Cli.Shared;
 using GroundControl.Cli.Shared.ErrorHandling;
 using Microsoft.Extensions.Options;
 using static GroundControl.Cli.Shared.ErrorHandling.ConflictRetryHelper;
@@ -27,21 +28,18 @@ internal sealed class UpdateUserHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        var version = _options.Version;
+        var resolved = await _shell.ResolveVersionAsync(
+            _options.Version,
+            ct => _client.GetUserHandlerAsync(_options.Id, ct),
+            r => r.Version,
+            cancellationToken);
 
-        if (version is null)
+        if (!resolved.IsSuccess)
         {
-            try
-            {
-                var current = await _client.GetUserHandlerAsync(_options.Id, cancellationToken);
-                version = current.Version;
-            }
-            catch (GroundControlApiClientException<ProblemDetails> ex)
-            {
-                _shell.RenderProblemDetails(ex.Result);
-                return 1;
-            }
+            return resolved.ExitCode;
         }
+
+        var version = resolved.Version;
 
         var (grants, invalidGrants) = GrantParser.Parse(_options.Grants);
         if (invalidGrants is not null)
@@ -64,59 +62,44 @@ internal sealed class UpdateUserHandler : ICommandHandler
             Grants = grants
         };
 
-        try
-        {
-            GroundControlClient.SetIfMatch(version.Value);
-            var user = await _client.UpdateUserHandlerAsync(_options.Id, request, cancellationToken);
-            _shell.DisplaySuccess($"User '{user.Username}' updated (version: {user.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex) when (ex.StatusCode == 409)
-        {
-            var retried = await _shell.HandleConflictAsync(
-                async ct =>
+        return await _shell.TryCallWithConflictHandlingAsync(
+            _hostOptions.NoInteractive,
+            async ct =>
+            {
+                GroundControlClient.SetIfMatch(version);
+                var user = await _client.UpdateUserHandlerAsync(_options.Id, request, ct);
+                _shell.DisplaySuccess($"User '{user.Username}' updated (version: {user.Version}).");
+                return 0;
+            },
+            async ct =>
+            {
+                var current = await _client.GetUserHandlerAsync(_options.Id, ct);
+                var diffs = new List<FieldDiff>();
+
+                if (_options.Username is not null && _options.Username != current.Username)
                 {
-                    var current = await _client.GetUserHandlerAsync(_options.Id, ct);
-                    var diffs = new List<FieldDiff>();
+                    diffs.Add(new FieldDiff("Username", _options.Username, current.Username));
+                }
 
-                    if (_options.Username is not null && _options.Username != current.Username)
-                    {
-                        diffs.Add(new FieldDiff("Username", _options.Username, current.Username));
-                    }
-
-                    if (_options.Email is not null && _options.Email != current.Email)
-                    {
-                        diffs.Add(new FieldDiff("Email", _options.Email, current.Email));
-                    }
-
-                    if (_options.IsActive is not null && _options.IsActive != current.IsActive)
-                    {
-                        diffs.Add(new FieldDiff("Active", _options.IsActive.Value.ToString(), current.IsActive.ToString()));
-                    }
-
-                    return new ConflictInfo(current.Version, diffs);
-                },
-                async (newVersion, ct) =>
+                if (_options.Email is not null && _options.Email != current.Email)
                 {
-                    GroundControlClient.SetIfMatch(newVersion);
-                    var user = await _client.UpdateUserHandlerAsync(_options.Id, request, ct);
-                    _shell.DisplaySuccess($"User '{user.Username}' updated (version: {user.Version}).");
-                },
-                _hostOptions.NoInteractive,
-                cancellationToken);
+                    diffs.Add(new FieldDiff("Email", _options.Email, current.Email));
+                }
 
-            return retried ? 0 : 1;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+                if (_options.IsActive is not null && _options.IsActive != current.IsActive)
+                {
+                    diffs.Add(new FieldDiff("Active", _options.IsActive.Value.ToString(), current.IsActive.ToString()));
+                }
+
+                return new ConflictInfo(current.Version, diffs);
+            },
+            async (newVersion, ct) =>
+            {
+                GroundControlClient.SetIfMatch(newVersion);
+                var user = await _client.UpdateUserHandlerAsync(_options.Id, request, ct);
+                _shell.DisplaySuccess($"User '{user.Username}' updated (version: {user.Version}).");
+            },
+            cancellationToken);
     }
 
 }

@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.Users.Update;
 
 namespace GroundControl.Cli.Features.Users;
 
-[RootCommand<UserDependencyModule>]
+[RootCommand]
 internal sealed class UserCommand : Command
 {
     public UserCommand()

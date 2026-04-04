@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.Clients.Update;
 
 namespace GroundControl.Cli.Features.Clients;
 
-[RootCommand<ClientDependencyModule>]
+[RootCommand]
 internal sealed class ClientCommand : Command
 {
     public ClientCommand()

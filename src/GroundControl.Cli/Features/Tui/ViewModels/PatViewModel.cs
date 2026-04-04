@@ -25,7 +25,7 @@ internal sealed class PatViewModel : ResourceViewModel<PatResponse>
     internal override string GetDisplayText(PatResponse item) =>
         $"{item.Name} ({item.TokenPrefix}...)";
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(PatResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(PatResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Name", item.Name),
@@ -55,7 +55,7 @@ internal sealed class PatViewModel : ResourceViewModel<PatResponse>
         {
             Name = fieldValues["Name"],
             ExpiresInDays = int.TryParse(fieldValues.GetValueOrDefault("Expires In Days"), out var days) ? days : null,
-            Permissions = ParseCommaSeparated(fieldValues.GetValueOrDefault("Permissions"))
+            Permissions = ParseCommaSeparated(fieldValues.GetValueOrDefault("Permissions")) is { Count: > 0 } perms ? perms : null
         };
 
         await _client.CreatePatHandlerAsync(request, cancellationToken).ConfigureAwait(false);
@@ -73,8 +73,4 @@ internal sealed class PatViewModel : ResourceViewModel<PatResponse>
         item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
         item.TokenPrefix.Contains(filter, StringComparison.OrdinalIgnoreCase);
 
-    private static List<string>? ParseCommaSeparated(string? value) =>
-        string.IsNullOrWhiteSpace(value)
-            ? null
-            : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 }

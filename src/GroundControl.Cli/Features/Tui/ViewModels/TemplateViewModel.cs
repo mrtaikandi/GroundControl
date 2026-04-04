@@ -33,17 +33,13 @@ internal sealed class TemplateViewModel : ResourceViewModel<TemplateResponse>
 
     internal override string GetDisplayText(TemplateResponse item) => item.Name;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(TemplateResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(TemplateResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Name", item.Name),
         new("Description", item.Description ?? "-"),
         new("Group Id", item.GroupId?.ToString() ?? "-"),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(TemplateResponse item) => item.Name;
@@ -102,6 +98,4 @@ internal sealed class TemplateViewModel : ResourceViewModel<TemplateResponse>
         item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
         (item.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
 
-    private static Guid? ParseGuid(string? value) =>
-        Guid.TryParse(value, out var guid) ? guid : null;
 }

@@ -26,17 +26,13 @@ internal sealed class RoleViewModel : ResourceViewModel<RoleResponse>
 
     internal override string GetDisplayText(RoleResponse item) => item.Name;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(RoleResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(RoleResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Name", item.Name),
         new("Description", item.Description ?? "-"),
         new("Permissions", item.Permissions.Count > 0 ? string.Join(", ", item.Permissions) : "-"),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(RoleResponse item) => item.Name;
@@ -90,8 +86,4 @@ internal sealed class RoleViewModel : ResourceViewModel<RoleResponse>
         item.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
         (item.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
 
-    private static List<string> ParseCommaSeparated(string? value) =>
-        string.IsNullOrWhiteSpace(value)
-            ? []
-            : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 }

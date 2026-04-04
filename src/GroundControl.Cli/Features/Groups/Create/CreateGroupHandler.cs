@@ -49,27 +49,21 @@ internal sealed class CreateGroupHandler : ICommandHandler
             }
         }
 
-        try
+        var request = new CreateGroupRequest
         {
-            var request = new CreateGroupRequest
-            {
-                Name = name,
-                Description = description
-            };
+            Name = name,
+            Description = description
+        };
 
-            var group = await _client.CreateGroupHandlerAsync(request, cancellationToken);
-            _shell.DisplaySuccess($"Group '{group.Name}' created (id: {group.Id}, version: {group.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        var (exitCode, group) = await _shell.TryCallAsync(
+            ct => _client.CreateGroupHandlerAsync(request, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Group '{group!.Name}' created (id: {group.Id}, version: {group.Version}).");
+        return 0;
     }
 }

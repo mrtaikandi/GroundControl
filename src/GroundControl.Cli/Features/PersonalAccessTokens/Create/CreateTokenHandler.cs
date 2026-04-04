@@ -52,32 +52,25 @@ internal sealed class CreateTokenHandler : ICommandHandler
             expiresInDays = days;
         }
 
-        try
+        var request = new CreatePatRequest
         {
-            var request = new CreatePatRequest
-            {
-                Name = name,
-                ExpiresInDays = expiresInDays
-            };
+            Name = name,
+            ExpiresInDays = expiresInDays
+        };
 
-            var token = await _client.CreatePatHandlerAsync(request, cancellationToken);
+        var (exitCode, token) = await _shell.TryCallAsync(
+            ct => _client.CreatePatHandlerAsync(request, ct), cancellationToken);
 
-            _shell.DisplaySuccess($"Personal access token '{token.Name}' created (id: {token.Id}).");
-            _shell.DisplayMessage("warning", "[yellow bold]Token value shown only once — store it securely:[/]");
-            _shell.Console.MarkupLine($"[bold]{Markup.Escape(token.Token)}[/]");
-
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Personal access token '{token!.Name}' created (id: {token.Id}).");
+        _shell.DisplayMessage("warning", "[yellow bold]Token value shown only once — store it securely:[/]");
+        _shell.Console.MarkupLine($"[bold]{Markup.Escape(token.Token)}[/]");
+
+        return 0;
     }
 
     internal static bool TryParseExpiresIn(string value, out int days)

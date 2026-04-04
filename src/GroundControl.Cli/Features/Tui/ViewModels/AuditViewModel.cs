@@ -2,7 +2,7 @@ using GroundControl.Api.Client.Contracts;
 
 namespace GroundControl.Cli.Features.Tui.ViewModels;
 
-internal sealed class AuditViewModel : ResourceViewModel<AuditRecordResponse>
+internal sealed class AuditViewModel : ReadOnlyResourceViewModel<AuditRecordResponse>
 {
     private readonly IGroundControlClient _client;
 
@@ -34,9 +34,9 @@ internal sealed class AuditViewModel : ResourceViewModel<AuditRecordResponse>
     internal override string GetDisplayText(AuditRecordResponse item) =>
         $"{item.Action} {item.EntityType} ({item.PerformedAt.ToString("u", CultureInfo.InvariantCulture)})";
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(AuditRecordResponse item)
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(AuditRecordResponse item)
     {
-        var pairs = new List<KeyValuePair<string, string>>
+        var pairs = new List<DetailPair>
         {
             new("Id", item.Id.ToString()),
             new("Entity Type", item.EntityType),
@@ -49,14 +49,14 @@ internal sealed class AuditViewModel : ResourceViewModel<AuditRecordResponse>
 
         if (item.Changes.Count > 0)
         {
-            pairs.Add(new KeyValuePair<string, string>("Changes", string.Empty));
-            pairs.AddRange(item.Changes.Select(change => new KeyValuePair<string, string>($"  {change.Field}", $"{change.OldValue ?? "(null)"} → {change.NewValue ?? "(null)"}")));
+            pairs.Add(new DetailPair("Changes", string.Empty));
+            pairs.AddRange(item.Changes.Select(change => new DetailPair($"  {change.Field}", $"{change.OldValue ?? "(null)"} → {change.NewValue ?? "(null)"}")));
         }
 
         if (item.Metadata is { Count: > 0 })
         {
-            pairs.Add(new KeyValuePair<string, string>("Metadata", string.Empty));
-            pairs.AddRange(item.Metadata.Select(entry => new KeyValuePair<string, string>($"  {entry.Key}", entry.Value)));
+            pairs.Add(new DetailPair("Metadata", string.Empty));
+            pairs.AddRange(item.Metadata.Select(entry => new DetailPair($"  {entry.Key}", entry.Value)));
         }
 
         return pairs;
@@ -64,21 +64,6 @@ internal sealed class AuditViewModel : ResourceViewModel<AuditRecordResponse>
 
     internal override string GetResourceName(AuditRecordResponse item) =>
         $"{item.Action} {item.EntityType}";
-
-    internal override IReadOnlyList<FieldDefinition> GetFormFields() =>
-        throw new NotSupportedException("Audit records are read-only.");
-
-    internal override IReadOnlyList<FieldDefinition> GetEditFormFields(AuditRecordResponse item) =>
-        throw new NotSupportedException("Audit records are read-only.");
-
-    internal override Task CreateAsync(Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Audit records are read-only.");
-
-    internal override Task UpdateAsync(AuditRecordResponse item, Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Audit records are read-only.");
-
-    internal override Task DeleteAsync(AuditRecordResponse item, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Audit records are read-only.");
 
     protected override bool MatchesFilter(AuditRecordResponse item, string filter) =>
         item.EntityType.Contains(filter, StringComparison.OrdinalIgnoreCase) ||

@@ -25,17 +25,16 @@ internal sealed class GetTemplateHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        try
+        var (exitCode, template) = await _shell.TryCallAsync(
+            ct => _client.GetTemplateHandlerAsync(_options.Id, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            var template = await _client.GetTemplateHandlerAsync(_options.Id, cancellationToken);
-            _shell.RenderDetail(BuildDetail(template), _hostOptions.OutputFormat);
-            return 0;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.RenderDetail(BuildDetail(template!), _hostOptions.OutputFormat);
+        return 0;
     }
 
     private static IReadOnlyList<(string Key, string Value)> BuildDetail(TemplateResponse template) =>

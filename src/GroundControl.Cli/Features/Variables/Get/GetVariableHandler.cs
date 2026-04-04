@@ -27,17 +27,16 @@ internal sealed class GetVariableHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        try
+        var (exitCode, variable) = await _shell.TryCallAsync(
+            ct => _client.GetVariableHandlerAsync(_options.Id, _options.Decrypt, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            var variable = await _client.GetVariableHandlerAsync(_options.Id, _options.Decrypt, cancellationToken);
-            _shell.RenderDetail(BuildDetail(variable), _hostOptions.OutputFormat);
-            return 0;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.RenderDetail(BuildDetail(variable!), _hostOptions.OutputFormat);
+        return 0;
     }
 
     private List<(string Key, string Value)> BuildDetail(VariableResponse variable)

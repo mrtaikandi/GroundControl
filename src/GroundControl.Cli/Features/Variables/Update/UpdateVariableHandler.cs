@@ -1,5 +1,6 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
+using GroundControl.Cli.Shared;
 using GroundControl.Cli.Shared.ErrorHandling;
 using GroundControl.Cli.Shared.Parsing;
 using Microsoft.Extensions.Options;
@@ -28,21 +29,18 @@ internal sealed class UpdateVariableHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        var version = _options.Version;
+        var resolved = await _shell.ResolveVersionAsync(
+            _options.Version,
+            ct => _client.GetVariableHandlerAsync(_options.Id, decrypt: null, ct),
+            r => r.Version,
+            cancellationToken);
 
-        if (version is null)
+        if (!resolved.IsSuccess)
         {
-            try
-            {
-                var current = await _client.GetVariableHandlerAsync(_options.Id, decrypt: null, cancellationToken);
-                version = current.Version;
-            }
-            catch (GroundControlApiClientException<ProblemDetails> ex)
-            {
-                _shell.RenderProblemDetails(ex.Result);
-                return 1;
-            }
+            return resolved.ExitCode;
         }
+
+        var version = resolved.Version;
 
         List<ScopedValueRequest>? scopedValues = null;
         if (_options.Values is not null || _options.ValuesJson is not null)
@@ -72,48 +70,33 @@ internal sealed class UpdateVariableHandler : ICommandHandler
             Description = _options.Description
         };
 
-        try
-        {
-            GroundControlClient.SetIfMatch(version.Value);
-            var variable = await _client.UpdateVariableHandlerAsync(_options.Id, request, cancellationToken);
-            _shell.DisplaySuccess($"Variable '{variable.Name}' updated (version: {variable.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex) when (ex.StatusCode == 409)
-        {
-            var retried = await _shell.HandleConflictAsync(
-                async ct =>
+        return await _shell.TryCallWithConflictHandlingAsync(
+            _hostOptions.NoInteractive,
+            async ct =>
+            {
+                GroundControlClient.SetIfMatch(version);
+                var variable = await _client.UpdateVariableHandlerAsync(_options.Id, request, ct);
+                _shell.DisplaySuccess($"Variable '{variable.Name}' updated (version: {variable.Version}).");
+                return 0;
+            },
+            async ct =>
+            {
+                var current = await _client.GetVariableHandlerAsync(_options.Id, decrypt: null, ct);
+                var diffs = new List<FieldDiff>();
+
+                if (_options.Description is not null && _options.Description != (current.Description ?? string.Empty))
                 {
-                    var current = await _client.GetVariableHandlerAsync(_options.Id, decrypt: null, ct);
-                    var diffs = new List<FieldDiff>();
+                    diffs.Add(new FieldDiff("Description", _options.Description, current.Description ?? string.Empty));
+                }
 
-                    if (_options.Description is not null && _options.Description != (current.Description ?? string.Empty))
-                    {
-                        diffs.Add(new FieldDiff("Description", _options.Description, current.Description ?? string.Empty));
-                    }
-
-                    return new ConflictInfo(current.Version, diffs);
-                },
-                async (newVersion, ct) =>
-                {
-                    GroundControlClient.SetIfMatch(newVersion);
-                    var variable = await _client.UpdateVariableHandlerAsync(_options.Id, request, ct);
-                    _shell.DisplaySuccess($"Variable '{variable.Name}' updated (version: {variable.Version}).");
-                },
-                _hostOptions.NoInteractive,
-                cancellationToken);
-
-            return retried ? 0 : 1;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+                return new ConflictInfo(current.Version, diffs);
+            },
+            async (newVersion, ct) =>
+            {
+                GroundControlClient.SetIfMatch(newVersion);
+                var variable = await _client.UpdateVariableHandlerAsync(_options.Id, request, ct);
+                _shell.DisplaySuccess($"Variable '{variable.Name}' updated (version: {variable.Version}).");
+            },
+            cancellationToken);
     }
 }

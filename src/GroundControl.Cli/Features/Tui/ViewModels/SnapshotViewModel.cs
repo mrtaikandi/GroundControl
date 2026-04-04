@@ -2,7 +2,7 @@ using GroundControl.Api.Client.Contracts;
 
 namespace GroundControl.Cli.Features.Tui.ViewModels;
 
-internal sealed class SnapshotViewModel : ResourceViewModel<SnapshotSummaryResponse>
+internal sealed class SnapshotViewModel : ReadOnlyResourceViewModel<SnapshotSummaryResponse>
 {
     private readonly IGroundControlClient _client;
 
@@ -39,7 +39,7 @@ internal sealed class SnapshotViewModel : ResourceViewModel<SnapshotSummaryRespo
     internal override string GetDisplayText(SnapshotSummaryResponse item) =>
         $"v{item.SnapshotVersion.ToString(CultureInfo.InvariantCulture)} ({item.EntryCount} entries)";
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(SnapshotSummaryResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(SnapshotSummaryResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Project Id", item.ProjectId.ToString()),
@@ -52,21 +52,6 @@ internal sealed class SnapshotViewModel : ResourceViewModel<SnapshotSummaryRespo
 
     internal override string GetResourceName(SnapshotSummaryResponse item) =>
         $"v{item.SnapshotVersion.ToString(CultureInfo.InvariantCulture)}";
-
-    internal override IReadOnlyList<FieldDefinition> GetFormFields() =>
-        throw new NotSupportedException("Snapshots are read-only.");
-
-    internal override IReadOnlyList<FieldDefinition> GetEditFormFields(SnapshotSummaryResponse item) =>
-        throw new NotSupportedException("Snapshots are read-only.");
-
-    internal override Task CreateAsync(Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Snapshots are read-only.");
-
-    internal override Task UpdateAsync(SnapshotSummaryResponse item, Dictionary<string, string> fieldValues, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Snapshots are read-only.");
-
-    internal override Task DeleteAsync(SnapshotSummaryResponse item, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Snapshots are read-only.");
 
     protected override bool MatchesFilter(SnapshotSummaryResponse item, string filter) =>
         item.SnapshotVersion.ToString(CultureInfo.InvariantCulture).Contains(filter, StringComparison.OrdinalIgnoreCase) ||

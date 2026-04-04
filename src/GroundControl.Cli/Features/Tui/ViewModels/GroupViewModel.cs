@@ -31,16 +31,12 @@ internal sealed class GroupViewModel : ResourceViewModel<GroupResponse>
 
     internal override string GetDisplayText(GroupResponse item) => item.Name;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(GroupResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(GroupResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Name", item.Name),
         new("Description", item.Description ?? "-"),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(GroupResponse item) => item.Name;

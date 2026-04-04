@@ -1,5 +1,6 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
+using GroundControl.Cli.Shared;
 using GroundControl.Cli.Shared.ErrorHandling;
 using Microsoft.Extensions.Options;
 using static GroundControl.Cli.Shared.ErrorHandling.ConflictRetryHelper;
@@ -27,22 +28,19 @@ internal sealed class DeleteTemplateHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        var version = _options.Version;
-        TemplateResponse? current = null;
+        var resolved = await _shell.ResolveVersionAsync(
+            _options.Version,
+            ct => _client.GetTemplateHandlerAsync(_options.Id, ct),
+            r => r.Version,
+            cancellationToken);
 
-        if (version is null)
+        if (!resolved.IsSuccess)
         {
-            try
-            {
-                current = await _client.GetTemplateHandlerAsync(_options.Id, cancellationToken);
-                version = current.Version;
-            }
-            catch (GroundControlApiClientException<ProblemDetails> ex)
-            {
-                _shell.RenderProblemDetails(ex.Result);
-                return 1;
-            }
+            return resolved.ExitCode;
         }
+
+        var version = resolved.Version;
+        var current = resolved.Entity;
 
         if (!_options.Yes && !_hostOptions.NoInteractive)
         {
@@ -57,61 +55,46 @@ internal sealed class DeleteTemplateHandler : ICommandHandler
             }
         }
 
-        try
-        {
-            GroundControlClient.SetIfMatch(version.Value);
-            await _client.DeleteTemplateHandlerAsync(_options.Id, cancellationToken);
-            _shell.DisplaySuccess("Template deleted.");
-            return 0;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex) when (ex.StatusCode == 409)
-        {
-            var retried = await _shell.HandleConflictAsync(
-                async ct =>
+        return await _shell.TryCallWithConflictHandlingAsync(
+            _hostOptions.NoInteractive,
+            async ct =>
+            {
+                GroundControlClient.SetIfMatch(version);
+                await _client.DeleteTemplateHandlerAsync(_options.Id, ct);
+                _shell.DisplaySuccess("Template deleted.");
+                return 0;
+            },
+            async ct =>
+            {
+                var latest = await _client.GetTemplateHandlerAsync(_options.Id, ct);
+                var diffs = new List<FieldDiff>();
+
+                if (current is not null)
                 {
-                    var latest = await _client.GetTemplateHandlerAsync(_options.Id, ct);
-                    var diffs = new List<FieldDiff>();
-
-                    if (current is not null)
+                    if (current.Name != latest.Name)
                     {
-                        if (current.Name != latest.Name)
-                        {
-                            diffs.Add(new FieldDiff("Name", current.Name, latest.Name));
-                        }
-
-                        if ((current.Description ?? string.Empty) != (latest.Description ?? string.Empty))
-                        {
-                            diffs.Add(new FieldDiff("Description", current.Description ?? string.Empty, latest.Description ?? string.Empty));
-                        }
-
-                        if (current.GroupId != latest.GroupId)
-                        {
-                            diffs.Add(new FieldDiff("GroupId", current.GroupId?.ToString() ?? string.Empty, latest.GroupId?.ToString() ?? string.Empty));
-                        }
+                        diffs.Add(new FieldDiff("Name", current.Name, latest.Name));
                     }
 
-                    return new ConflictInfo(latest.Version, diffs);
-                },
-                async (newVersion, ct) =>
-                {
-                    GroundControlClient.SetIfMatch(newVersion);
-                    await _client.DeleteTemplateHandlerAsync(_options.Id, ct);
-                    _shell.DisplaySuccess("Template deleted.");
-                },
-                _hostOptions.NoInteractive,
-                cancellationToken);
+                    if ((current.Description ?? string.Empty) != (latest.Description ?? string.Empty))
+                    {
+                        diffs.Add(new FieldDiff("Description", current.Description ?? string.Empty, latest.Description ?? string.Empty));
+                    }
 
-            return retried ? 0 : 1;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+                    if (current.GroupId != latest.GroupId)
+                    {
+                        diffs.Add(new FieldDiff("GroupId", current.GroupId?.ToString() ?? string.Empty, latest.GroupId?.ToString() ?? string.Empty));
+                    }
+                }
+
+                return new ConflictInfo(latest.Version, diffs);
+            },
+            async (newVersion, ct) =>
+            {
+                GroundControlClient.SetIfMatch(newVersion);
+                await _client.DeleteTemplateHandlerAsync(_options.Id, ct);
+                _shell.DisplaySuccess("Template deleted.");
+            },
+            cancellationToken);
     }
 }

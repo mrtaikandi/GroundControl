@@ -90,39 +90,33 @@ internal sealed class CreateVariableHandler : ICommandHandler
             parsedValues = await PromptForScopedValuesAsync(cancellationToken);
         }
 
-        try
+        var scopedValues = parsedValues.Select(v => new ScopedValueRequest
         {
-            var scopedValues = parsedValues.Select(v => new ScopedValueRequest
-            {
-                Scopes = v.Scopes.Count > 0 ? new Dictionary<string, string>(v.Scopes) : null,
-                Value = v.Value
-            }).ToList();
+            Scopes = v.Scopes.Count > 0 ? new Dictionary<string, string>(v.Scopes) : null,
+            Value = v.Value
+        }).ToList();
 
-            var request = new CreateVariableRequest
-            {
-                Name = name,
-                Scope = scope.Value,
-                GroupId = _options.GroupId,
-                ProjectId = _options.ProjectId,
-                Values = scopedValues,
-                IsSensitive = sensitive,
-                Description = description
-            };
+        var request = new CreateVariableRequest
+        {
+            Name = name,
+            Scope = scope.Value,
+            GroupId = _options.GroupId,
+            ProjectId = _options.ProjectId,
+            Values = scopedValues,
+            IsSensitive = sensitive,
+            Description = description
+        };
 
-            var variable = await _client.CreateVariableHandlerAsync(request, cancellationToken);
-            _shell.DisplaySuccess($"Variable '{variable.Name}' created (id: {variable.Id}, version: {variable.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        var (exitCode, variable) = await _shell.TryCallAsync(
+            ct => _client.CreateVariableHandlerAsync(request, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Variable '{variable!.Name}' created (id: {variable.Id}, version: {variable.Version}).");
+        return 0;
     }
 
     private async Task<List<ScopedValueParser.ParsedScopedValue>> PromptForScopedValuesAsync(CancellationToken cancellationToken)

@@ -69,28 +69,22 @@ internal sealed class CreateRoleHandler : ICommandHandler
             }
         }
 
-        try
+        var request = new CreateRoleRequest
         {
-            var request = new CreateRoleRequest
-            {
-                Name = name,
-                Permissions = permissions,
-                Description = description
-            };
+            Name = name,
+            Permissions = permissions,
+            Description = description
+        };
 
-            var role = await _client.CreateRoleHandlerAsync(request, cancellationToken);
-            _shell.DisplaySuccess($"Role '{role.Name}' created (id: {role.Id}, version: {role.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        var (exitCode, role) = await _shell.TryCallAsync(
+            ct => _client.CreateRoleHandlerAsync(request, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess($"Role '{role!.Name}' created (id: {role.Id}, version: {role.Version}).");
+        return 0;
     }
 }

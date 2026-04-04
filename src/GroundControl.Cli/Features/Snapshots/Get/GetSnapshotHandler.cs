@@ -27,29 +27,24 @@ internal sealed class GetSnapshotHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        try
+        var (exitCode, snapshot) = await _shell.TryCallAsync(
+            ct => _client.GetSnapshotHandlerAsync(_options.ProjectId, _options.Id, _options.Decrypt, ct),
+            cancellationToken);
+
+        if (exitCode != 0)
         {
-            var snapshot = await _client.GetSnapshotHandlerAsync(
-                _options.ProjectId,
-                _options.Id,
-                _options.Decrypt,
-                cancellationToken);
-
-            _shell.RenderDetail(BuildDetail(snapshot), _hostOptions.OutputFormat);
-
-            if (snapshot.Entries.Count > 0 && _hostOptions.OutputFormat != OutputFormat.Json)
-            {
-                _shell.DisplayEmptyLine();
-                RenderEntries(snapshot);
-            }
-
-            return 0;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
+
+        _shell.RenderDetail(BuildDetail(snapshot!), _hostOptions.OutputFormat);
+
+        if (snapshot!.Entries.Count > 0 && _hostOptions.OutputFormat != OutputFormat.Json)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            _shell.DisplayEmptyLine();
+            RenderEntries(snapshot);
         }
+
+        return 0;
     }
 
     private static List<(string Key, string Value)> BuildDetail(SnapshotResponse snapshot) =>

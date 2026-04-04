@@ -1,5 +1,6 @@
 using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
+using GroundControl.Cli.Shared;
 using GroundControl.Cli.Shared.ErrorHandling;
 using GroundControl.Cli.Shared.Parsing;
 using Microsoft.Extensions.Options;
@@ -28,21 +29,18 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        var version = _options.Version;
+        var resolved = await _shell.ResolveVersionAsync(
+            _options.Version,
+            ct => _client.GetConfigEntryHandlerAsync(_options.Id, decrypt: null, ct),
+            r => r.Version,
+            cancellationToken);
 
-        if (version is null)
+        if (!resolved.IsSuccess)
         {
-            try
-            {
-                var current = await _client.GetConfigEntryHandlerAsync(_options.Id, decrypt: null, cancellationToken);
-                version = current.Version;
-            }
-            catch (GroundControlApiClientException<ProblemDetails> ex)
-            {
-                _shell.RenderProblemDetails(ex.Result);
-                return 1;
-            }
+            return resolved.ExitCode;
         }
+
+        var version = resolved.Version;
 
         List<ScopedValueRequest>? scopedValues = null;
         if (_options.Values is not null || _options.ValuesJson is not null)
@@ -75,64 +73,49 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
             Description = _options.Description
         };
 
-        try
-        {
-            GroundControlClient.SetIfMatch(version.Value);
-            var entry = await _client.UpdateConfigEntryHandlerAsync(_options.Id, request, cancellationToken);
-            _shell.DisplaySuccess($"Config entry '{entry.Key}' updated (version: {entry.Version}).");
-            return 0;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex) when (ex.StatusCode == 409)
-        {
-            var retried = await _shell.HandleConflictAsync(
-                async ct =>
+        return await _shell.TryCallWithConflictHandlingAsync(
+            _hostOptions.NoInteractive,
+            async ct =>
+            {
+                GroundControlClient.SetIfMatch(version);
+                var entry = await _client.UpdateConfigEntryHandlerAsync(_options.Id, request, ct);
+                _shell.DisplaySuccess($"Config entry '{entry.Key}' updated (version: {entry.Version}).");
+                return 0;
+            },
+            async ct =>
+            {
+                var current = await _client.GetConfigEntryHandlerAsync(_options.Id, decrypt: null, ct);
+                var diffs = new List<FieldDiff>();
+
+                if (_options.ValueType is not null && _options.ValueType != current.ValueType)
                 {
-                    var current = await _client.GetConfigEntryHandlerAsync(_options.Id, decrypt: null, ct);
-                    var diffs = new List<FieldDiff>();
+                    diffs.Add(new FieldDiff("Value Type", _options.ValueType, current.ValueType));
+                }
 
-                    if (_options.ValueType is not null && _options.ValueType != current.ValueType)
-                    {
-                        diffs.Add(new FieldDiff("Value Type", _options.ValueType, current.ValueType));
-                    }
-
-                    if (scopedValues is not null)
-                    {
-                        var currentValuesStr = FormatScopedValues(current.Values);
-                        var requestedValuesStr = FormatScopedValueRequests(scopedValues);
-                        if (requestedValuesStr != currentValuesStr)
-                        {
-                            diffs.Add(new FieldDiff("Values", requestedValuesStr, currentValuesStr));
-                        }
-                    }
-
-                    if (_options.Description is not null && _options.Description != (current.Description ?? string.Empty))
-                    {
-                        diffs.Add(new FieldDiff("Description", _options.Description, current.Description ?? string.Empty));
-                    }
-
-                    return new ConflictInfo(current.Version, diffs);
-                },
-                async (newVersion, ct) =>
+                if (scopedValues is not null)
                 {
-                    GroundControlClient.SetIfMatch(newVersion);
-                    var entry = await _client.UpdateConfigEntryHandlerAsync(_options.Id, request, ct);
-                    _shell.DisplaySuccess($"Config entry '{entry.Key}' updated (version: {entry.Version}).");
-                },
-                _hostOptions.NoInteractive,
-                cancellationToken);
+                    var currentValuesStr = FormatScopedValues(current.Values);
+                    var requestedValuesStr = FormatScopedValueRequests(scopedValues);
+                    if (requestedValuesStr != currentValuesStr)
+                    {
+                        diffs.Add(new FieldDiff("Values", requestedValuesStr, currentValuesStr));
+                    }
+                }
 
-            return retried ? 0 : 1;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+                if (_options.Description is not null && _options.Description != (current.Description ?? string.Empty))
+                {
+                    diffs.Add(new FieldDiff("Description", _options.Description, current.Description ?? string.Empty));
+                }
+
+                return new ConflictInfo(current.Version, diffs);
+            },
+            async (newVersion, ct) =>
+            {
+                GroundControlClient.SetIfMatch(newVersion);
+                var entry = await _client.UpdateConfigEntryHandlerAsync(_options.Id, request, ct);
+                _shell.DisplaySuccess($"Config entry '{entry.Key}' updated (version: {entry.Version}).");
+            },
+            cancellationToken);
     }
 
     private static string FormatScopedValues(ICollection<ScopedValue> values) =>

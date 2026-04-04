@@ -35,7 +35,7 @@ internal sealed class VariableViewModel : ResourceViewModel<VariableResponse>
 
     internal override string GetDisplayText(VariableResponse item) => item.Name;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(VariableResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(VariableResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Name", item.Name),
@@ -45,11 +45,7 @@ internal sealed class VariableViewModel : ResourceViewModel<VariableResponse>
         new("Project Id", item.ProjectId?.ToString() ?? "-"),
         new("Values", ScopedValueFormatter.Format(item.Values)),
         new("Is Sensitive", item.IsSensitive.ToString()),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(VariableResponse item) => item.Name;
@@ -77,11 +73,11 @@ internal sealed class VariableViewModel : ResourceViewModel<VariableResponse>
         var request = new CreateVariableRequest
         {
             Name = fieldValues["Name"],
-            Scope = Enum.TryParse<VariableScope>(fieldValues["Scope"], true, out var scope) ? scope : VariableScope.Global,
+            Scope = ParseEnum(fieldValues["Scope"], VariableScope.Global),
             Description = NullIfEmpty(fieldValues.GetValueOrDefault("Description")),
-            IsSensitive = bool.TryParse(fieldValues.GetValueOrDefault("Is Sensitive"), out var isSensitive) ? isSensitive : null,
-            GroupId = Guid.TryParse(fieldValues.GetValueOrDefault("Group Id"), out var groupId) ? groupId : null,
-            ProjectId = Guid.TryParse(fieldValues.GetValueOrDefault("Project Id"), out var projectId) ? projectId : null,
+            IsSensitive = ParseBool(fieldValues.GetValueOrDefault("Is Sensitive")),
+            GroupId = ParseGuid(fieldValues.GetValueOrDefault("Group Id")),
+            ProjectId = ParseGuid(fieldValues.GetValueOrDefault("Project Id")),
             Values = [new ScopedValueRequest { Value = fieldValues.GetValueOrDefault("Default Value") ?? string.Empty }]
         };
 
@@ -94,7 +90,7 @@ internal sealed class VariableViewModel : ResourceViewModel<VariableResponse>
         var request = new UpdateVariableRequest
         {
             Description = NullIfEmpty(fieldValues.GetValueOrDefault("Description")),
-            IsSensitive = bool.TryParse(fieldValues.GetValueOrDefault("Is Sensitive"), out var isSensitive) ? isSensitive : null,
+            IsSensitive = ParseBool(fieldValues.GetValueOrDefault("Is Sensitive")),
             Values = [new ScopedValueRequest { Value = fieldValues.GetValueOrDefault("Default Value") ?? string.Empty }]
         };
 

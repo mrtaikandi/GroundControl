@@ -7,7 +7,7 @@ using GroundControl.Cli.Features.Variables.Update;
 
 namespace GroundControl.Cli.Features.Variables;
 
-[RootCommand<VariableDependencyModule>]
+[RootCommand]
 internal sealed class VariableCommand : Command
 {
     public VariableCommand()

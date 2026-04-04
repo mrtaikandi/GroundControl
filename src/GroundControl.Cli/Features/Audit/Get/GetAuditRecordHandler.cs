@@ -26,31 +26,29 @@ internal sealed class GetAuditRecordHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        try
+        var (exitCode, record) = await _shell.TryCallAsync(
+            ct => _client.GetAuditRecordHandlerAsync(_options.Id, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            var record = await _client.GetAuditRecordHandlerAsync(_options.Id, cancellationToken);
+            return exitCode;
+        }
 
-            if (_hostOptions.OutputFormat == OutputFormat.Json)
-            {
-                _shell.RenderJson(record);
-                return 0;
-            }
-
-            _shell.RenderDetail(BuildDetail(record), _hostOptions.OutputFormat);
-
-            if (record.Changes.Count > 0)
-            {
-                _shell.DisplayEmptyLine();
-                RenderFieldChanges(record.Changes);
-            }
-
+        if (_hostOptions.OutputFormat == OutputFormat.Json)
+        {
+            _shell.RenderJson(record!);
             return 0;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
+
+        _shell.RenderDetail(BuildDetail(record!), _hostOptions.OutputFormat);
+
+        if (record!.Changes.Count > 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            _shell.DisplayEmptyLine();
+            RenderFieldChanges(record.Changes);
         }
+
+        return 0;
     }
 
     private static IReadOnlyList<(string Key, string Value)> BuildDetail(AuditRecordResponse record) =>

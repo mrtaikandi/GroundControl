@@ -25,17 +25,16 @@ internal sealed class GetConfigEntryHandler : ICommandHandler
 
     public async Task<int> HandleAsync(CancellationToken cancellationToken)
     {
-        try
+        var (exitCode, entry) = await _shell.TryCallAsync(
+            ct => _client.GetConfigEntryHandlerAsync(_options.Id, _options.Decrypt, ct), cancellationToken);
+
+        if (exitCode != 0)
         {
-            var entry = await _client.GetConfigEntryHandlerAsync(_options.Id, _options.Decrypt, cancellationToken);
-            _shell.RenderDetail(BuildDetail(entry), _hostOptions.OutputFormat);
-            return 0;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.RenderDetail(BuildDetail(entry!), _hostOptions.OutputFormat);
+        return 0;
     }
 
     private static List<(string Key, string Value)> BuildDetail(ConfigEntryResponse entry)

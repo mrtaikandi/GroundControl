@@ -35,7 +35,7 @@ internal sealed class ConfigEntryViewModel : ResourceViewModel<ConfigEntryRespon
 
     internal override string GetDisplayText(ConfigEntryResponse item) => item.Key;
 
-    internal override IReadOnlyList<KeyValuePair<string, string>> GetDetailPairs(ConfigEntryResponse item) =>
+    internal override IReadOnlyList<DetailPair> GetDetailPairs(ConfigEntryResponse item) =>
     [
         new("Id", item.Id.ToString()),
         new("Key", item.Key),
@@ -45,11 +45,7 @@ internal sealed class ConfigEntryViewModel : ResourceViewModel<ConfigEntryRespon
         new("Values", ScopedValueFormatter.Format(item.Values)),
         new("Is Sensitive", item.IsSensitive.ToString()),
         new("Description", item.Description ?? "-"),
-        new("Version", item.Version.ToString(CultureInfo.InvariantCulture)),
-        new("Created At", item.CreatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Created By", item.CreatedBy.ToString()),
-        new("Updated At", item.UpdatedAt.ToString("u", CultureInfo.InvariantCulture)),
-        new("Updated By", item.UpdatedBy.ToString())
+        .. GetStandardMetadataPairs(new(item.Version, item.CreatedAt, item.CreatedBy, item.UpdatedAt, item.UpdatedBy))
     ];
 
     internal override string GetResourceName(ConfigEntryResponse item) => item.Key;
@@ -79,11 +75,9 @@ internal sealed class ConfigEntryViewModel : ResourceViewModel<ConfigEntryRespon
         {
             Key = fieldValues["Key"],
             OwnerId = Guid.Parse(fieldValues["Owner Id"]),
-            OwnerType = Enum.TryParse<ConfigEntryOwnerType>(fieldValues["Owner Type"], true, out var ownerType)
-                ? ownerType
-                : ConfigEntryOwnerType.Template,
+            OwnerType = ParseEnum(fieldValues["Owner Type"], ConfigEntryOwnerType.Template),
             ValueType = fieldValues["Value Type"],
-            IsSensitive = bool.TryParse(fieldValues.GetValueOrDefault("Is Sensitive"), out var isSensitive) ? isSensitive : null,
+            IsSensitive = ParseBool(fieldValues.GetValueOrDefault("Is Sensitive")),
             Description = NullIfEmpty(fieldValues.GetValueOrDefault("Description")),
             Values = [new ScopedValueRequest { Value = fieldValues.GetValueOrDefault("Default Value") ?? string.Empty }]
         };
@@ -97,7 +91,7 @@ internal sealed class ConfigEntryViewModel : ResourceViewModel<ConfigEntryRespon
         var request = new UpdateConfigEntryRequest
         {
             ValueType = fieldValues["Value Type"],
-            IsSensitive = bool.TryParse(fieldValues.GetValueOrDefault("Is Sensitive"), out var isSensitive) ? isSensitive : null,
+            IsSensitive = ParseBool(fieldValues.GetValueOrDefault("Is Sensitive")),
             Description = NullIfEmpty(fieldValues.GetValueOrDefault("Description")),
             Values = [new ScopedValueRequest { Value = fieldValues.GetValueOrDefault("Default Value") ?? string.Empty }]
         };
