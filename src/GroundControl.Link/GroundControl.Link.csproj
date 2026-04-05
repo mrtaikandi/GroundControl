@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+        <InternalsVisibleTo Include="GroundControl.E2E.Tests" />
     </ItemGroup>
 
     <ItemGroup>
