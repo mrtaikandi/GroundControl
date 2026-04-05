@@ -79,7 +79,8 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var entry = await _client.UpdateConfigEntryHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Config entry '{entry.Key}' updated (version: {entry.Version}).");
+                _shell.DisplaySuccess(entry, _hostOptions.OutputFormat,
+                    e => $"Config entry '{e.Key}' updated (version: {e.Version}).");
                 return 0;
             },
             async ct =>
@@ -113,7 +114,8 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var entry = await _client.UpdateConfigEntryHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Config entry '{entry.Key}' updated (version: {entry.Version}).");
+                _shell.DisplaySuccess(entry, _hostOptions.OutputFormat,
+                    e => $"Config entry '{e.Key}' updated (version: {e.Version}).");
             },
             cancellationToken);
     }

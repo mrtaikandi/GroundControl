@@ -61,7 +61,7 @@ internal sealed class DeleteGroupHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 await _client.DeleteGroupHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Group deleted.");
+                _shell.DisplaySuccess("Group deleted.", _hostOptions.OutputFormat);
                 return 0;
             },
             async ct =>
@@ -88,7 +88,7 @@ internal sealed class DeleteGroupHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 await _client.DeleteGroupHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Group deleted.");
+                _shell.DisplaySuccess("Group deleted.", _hostOptions.OutputFormat);
             },
             cancellationToken);
     }

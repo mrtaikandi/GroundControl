@@ -68,7 +68,8 @@ internal sealed class UpdateUserHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var user = await _client.UpdateUserHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"User '{user.Username}' updated (version: {user.Version}).");
+                _shell.DisplaySuccess(user, _hostOptions.OutputFormat,
+                    u => $"User '{u.Username}' updated (version: {u.Version}).");
                 return 0;
             },
             async ct =>
@@ -97,7 +98,8 @@ internal sealed class UpdateUserHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var user = await _client.UpdateUserHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"User '{user.Username}' updated (version: {user.Version}).");
+                _shell.DisplaySuccess(user, _hostOptions.OutputFormat,
+                    u => $"User '{u.Username}' updated (version: {u.Version}).");
             },
             cancellationToken);
     }

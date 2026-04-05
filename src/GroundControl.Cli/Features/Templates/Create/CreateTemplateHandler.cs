@@ -35,10 +35,7 @@ internal sealed class CreateTemplateHandler : ICommandHandler
             return 1;
         }
 
-        if (name is null)
-        {
-            name = await _shell.PromptForStringAsync("Template name:", cancellationToken: cancellationToken);
-        }
+        name ??= await _shell.PromptForStringAsync("Template name:", cancellationToken: cancellationToken);
 
         if (description is null && !_hostOptions.NoInteractive)
         {
@@ -70,7 +67,8 @@ internal sealed class CreateTemplateHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Template '{template!.Name}' created (id: {template.Id}, version: {template.Version}).");
+        _shell.DisplaySuccess(template!, _hostOptions.OutputFormat,
+            t => $"Template '{t.Name}' created (id: {t.Id}, version: {t.Version}).");
         return 0;
     }
 
@@ -108,7 +106,7 @@ internal sealed class CreateTemplateHandler : ICommandHandler
 
         var selected = await _shell.PromptForSelectionAsync(
             "Select group:",
-            (IReadOnlyCollection<GroupResponse>)groups,
+            groups,
             g => $"{g.Name} ({g.Id})",
             enableSearch: true,
             cancellationToken: cancellationToken);

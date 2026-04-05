@@ -61,7 +61,7 @@ internal sealed class DeleteClientHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 await _client.DeleteClientHandlerAsync(_options.ProjectId, _options.Id, ct);
-                _shell.DisplaySuccess("Client deleted.");
+                _shell.DisplaySuccess("Client deleted.", _hostOptions.OutputFormat);
                 return 0;
             },
             async ct =>
@@ -93,7 +93,7 @@ internal sealed class DeleteClientHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 await _client.DeleteClientHandlerAsync(_options.ProjectId, _options.Id, ct);
-                _shell.DisplaySuccess("Client deleted.");
+                _shell.DisplaySuccess("Client deleted.", _hostOptions.OutputFormat);
             },
             cancellationToken);
     }

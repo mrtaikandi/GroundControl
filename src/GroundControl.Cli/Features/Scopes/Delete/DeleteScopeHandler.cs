@@ -61,7 +61,7 @@ internal sealed class DeleteScopeHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 await _client.DeleteScopeHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Scope deleted.");
+                _shell.DisplaySuccess("Scope deleted.", _hostOptions.OutputFormat);
                 return 0;
             },
             async ct =>
@@ -95,7 +95,7 @@ internal sealed class DeleteScopeHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 await _client.DeleteScopeHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Scope deleted.");
+                _shell.DisplaySuccess("Scope deleted.", _hostOptions.OutputFormat);
             },
             cancellationToken);
     }

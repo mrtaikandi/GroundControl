@@ -61,7 +61,7 @@ internal sealed class DeleteVariableHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 await _client.DeleteVariableHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Variable deleted.");
+                _shell.DisplaySuccess("Variable deleted.", _hostOptions.OutputFormat);
                 return 0;
             },
             async ct =>
@@ -93,7 +93,7 @@ internal sealed class DeleteVariableHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 await _client.DeleteVariableHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Variable deleted.");
+                _shell.DisplaySuccess("Variable deleted.", _hostOptions.OutputFormat);
             },
             cancellationToken);
     }

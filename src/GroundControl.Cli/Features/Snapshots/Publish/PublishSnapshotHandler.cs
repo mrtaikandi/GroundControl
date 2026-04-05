@@ -55,8 +55,8 @@ internal sealed class PublishSnapshotHandler : ICommandHandler
                 "Publishing snapshot...",
                 () => _client.PublishSnapshotHandlerAsync(projectId.Value, request, cancellationToken));
 
-            _shell.DisplaySuccess(
-                $"Snapshot published (version: {snapshot.SnapshotVersion}, entries: {snapshot.EntryCount}).");
+            _shell.DisplaySuccess(snapshot, _hostOptions.OutputFormat,
+                s => $"Snapshot published (version: {s.SnapshotVersion}, entries: {s.EntryCount}).");
 
             return 0;
         }
@@ -101,7 +101,7 @@ internal sealed class PublishSnapshotHandler : ICommandHandler
 
         var selected = await _shell.PromptForSelectionAsync(
             "Select project:",
-            (IReadOnlyCollection<ProjectResponse>)projects,
+            projects,
             p => $"{p.Name} ({p.Id})",
             enableSearch: true,
             cancellationToken: cancellationToken);

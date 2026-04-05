@@ -61,7 +61,7 @@ internal sealed class DeleteRoleHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 await _client.DeleteRoleHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Role deleted.");
+                _shell.DisplaySuccess("Role deleted.", _hostOptions.OutputFormat);
                 return 0;
             },
             async ct =>
@@ -95,7 +95,7 @@ internal sealed class DeleteRoleHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 await _client.DeleteRoleHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Role deleted.");
+                _shell.DisplaySuccess("Role deleted.", _hostOptions.OutputFormat);
             },
             cancellationToken);
     }

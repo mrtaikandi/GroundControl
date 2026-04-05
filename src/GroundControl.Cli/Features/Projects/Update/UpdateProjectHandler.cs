@@ -73,7 +73,8 @@ internal sealed class UpdateProjectHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var project = await _client.UpdateProjectHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Project '{project.Name}' updated (version: {project.Version}).");
+                _shell.DisplaySuccess(project, _hostOptions.OutputFormat,
+                    p => $"Project '{p.Name}' updated (version: {p.Version}).");
                 return 0;
             },
             async ct =>
@@ -112,7 +113,8 @@ internal sealed class UpdateProjectHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var project = await _client.UpdateProjectHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Project '{project.Name}' updated (version: {project.Version}).");
+                _shell.DisplaySuccess(project, _hostOptions.OutputFormat,
+                    p => $"Project '{p.Name}' updated (version: {p.Version}).");
             },
             cancellationToken);
     }

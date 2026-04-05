@@ -34,10 +34,7 @@ internal sealed class CreateGroupHandler : ICommandHandler
             return 1;
         }
 
-        if (name is null)
-        {
-            name = await _shell.PromptForStringAsync("Group name:", cancellationToken: cancellationToken);
-        }
+        name ??= await _shell.PromptForStringAsync("Group name:", cancellationToken: cancellationToken);
 
         if (description is null && !_hostOptions.NoInteractive)
         {
@@ -63,7 +60,8 @@ internal sealed class CreateGroupHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Group '{group!.Name}' created (id: {group.Id}, version: {group.Version}).");
+        _shell.DisplaySuccess(group!, _hostOptions.OutputFormat,
+            g => $"Group '{g.Name}' created (id: {g.Id}, version: {g.Version}).");
         return 0;
     }
 }

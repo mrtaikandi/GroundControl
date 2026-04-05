@@ -45,15 +45,9 @@ internal sealed class CreateScopeHandler : ICommandHandler
             return 1;
         }
 
-        if (dimension is null)
-        {
-            dimension = await _shell.PromptForStringAsync("Dimension name:", cancellationToken: cancellationToken);
-        }
+        dimension ??= await _shell.PromptForStringAsync("Dimension name:", cancellationToken: cancellationToken);
 
-        if (values is null)
-        {
-            values = await _shell.PromptForStringAsync("Allowed values (comma-separated):", cancellationToken: cancellationToken);
-        }
+        values ??= await _shell.PromptForStringAsync("Allowed values (comma-separated):", cancellationToken: cancellationToken);
 
         var description = _options.Description;
         if (description is null && !_hostOptions.NoInteractive)
@@ -82,7 +76,8 @@ internal sealed class CreateScopeHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Scope '{scope!.Dimension}' created (id: {scope.Id}, version: {scope.Version}).");
+        _shell.DisplaySuccess(scope!, _hostOptions.OutputFormat,
+            s => $"Scope '{s.Dimension}' created (id: {s.Id}, version: {s.Version}).");
         return 0;
     }
 }

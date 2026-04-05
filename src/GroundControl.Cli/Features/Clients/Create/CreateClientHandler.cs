@@ -33,10 +33,7 @@ internal sealed class CreateClientHandler : ICommandHandler
             return 1;
         }
 
-        if (name is null)
-        {
-            name = await _shell.PromptForStringAsync("Client name:", cancellationToken: cancellationToken);
-        }
+        name ??= await _shell.PromptForStringAsync("Client name:", cancellationToken: cancellationToken);
 
         var scopes = ParseScopes(_options.Scopes);
 
@@ -55,13 +52,15 @@ internal sealed class CreateClientHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Client '{result!.Name}' created (id: {result.Id}, version: {result.Version}).");
-        _shell.DisplayEmptyLine();
-        _shell.DisplayMessage("warning", "[yellow bold]The client secret is shown only once. Save it now — you will not be able to retrieve it later.[/]");
-        _shell.DisplayEmptyLine();
-        _shell.DisplayMessage($"  Client ID:     [bold]{result.Id}[/]");
-        _shell.DisplayMessage($"  Client Secret: [bold]{result.ClientSecret}[/]");
-        _shell.DisplayEmptyLine();
+        _shell.DisplaySuccess(result!, _hostOptions.OutputFormat, r =>
+            $"""
+            Client '{r.Name}' created (id: {r.Id}, version: {r.Version}).
+
+            :warning:  [yellow bold]The client secret is shown only once. Save it now — you will not be able to retrieve it later.[/]
+
+            Client ID:     [bold]{r.Id}[/]
+            Client Secret: [bold]{r.ClientSecret}[/]
+            """);
 
         return 0;
     }

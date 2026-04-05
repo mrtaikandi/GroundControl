@@ -82,7 +82,7 @@ internal sealed class GetSnapshotHandler : ICommandHandler
         }
 
         _shell.RenderTable(
-            (IReadOnlyList<string[]>)rows,
+            rows,
             headers,
             [r => r[0], r => r[1], r => r[2], r => r[3], r => r[4]],
             _hostOptions.OutputFormat);

@@ -46,10 +46,7 @@ internal sealed class CreateVariableHandler : ICommandHandler
             return 1;
         }
 
-        if (name is null)
-        {
-            name = await _shell.PromptForStringAsync("Variable name:", cancellationToken: cancellationToken);
-        }
+        name ??= await _shell.PromptForStringAsync("Variable name:", cancellationToken: cancellationToken);
 
         if (scope is null)
         {
@@ -115,7 +112,8 @@ internal sealed class CreateVariableHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Variable '{variable!.Name}' created (id: {variable.Id}, version: {variable.Version}).");
+        _shell.DisplaySuccess(variable!, _hostOptions.OutputFormat,
+            v => $"Variable '{v.Name}' created (id: {v.Id}, version: {v.Version}).");
         return 0;
     }
 

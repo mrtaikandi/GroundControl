@@ -35,10 +35,7 @@ internal sealed class LoginHandler : ICommandHandler
             return await HandleNonInteractiveAsync(serverUrl, method, cancellationToken);
         }
 
-        if (serverUrl is null)
-        {
-            serverUrl = await _shell.PromptForStringAsync("Server URL:", cancellationToken: cancellationToken);
-        }
+        serverUrl ??= await _shell.PromptForStringAsync("Server URL:", cancellationToken: cancellationToken);
 
         if (method is null)
         {

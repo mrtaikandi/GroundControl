@@ -61,7 +61,7 @@ internal sealed class DeleteTemplateHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 await _client.DeleteTemplateHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Template deleted.");
+                _shell.DisplaySuccess("Template deleted.", _hostOptions.OutputFormat);
                 return 0;
             },
             async ct =>
@@ -93,7 +93,7 @@ internal sealed class DeleteTemplateHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 await _client.DeleteTemplateHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Template deleted.");
+                _shell.DisplaySuccess("Template deleted.", _hostOptions.OutputFormat);
             },
             cancellationToken);
     }

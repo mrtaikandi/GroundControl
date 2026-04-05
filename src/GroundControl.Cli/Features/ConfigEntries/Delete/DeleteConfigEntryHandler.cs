@@ -61,7 +61,7 @@ internal sealed class DeleteConfigEntryHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 await _client.DeleteConfigEntryHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Config entry deleted.");
+                _shell.DisplaySuccess("Config entry deleted.", _hostOptions.OutputFormat);
                 return 0;
             },
             async ct =>
@@ -98,7 +98,7 @@ internal sealed class DeleteConfigEntryHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 await _client.DeleteConfigEntryHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Config entry deleted.");
+                _shell.DisplaySuccess("Config entry deleted.", _hostOptions.OutputFormat);
             },
             cancellationToken);
     }

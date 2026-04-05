@@ -94,7 +94,7 @@ public static partial class ShellExtensions
         /// Renders an object as pretty-printed JSON to the console.
         /// </summary>
         /// <param name="value">The object to serialize and render.</param>
-        public void RenderJson(object value)
+        public void RenderJson<T>(T value)
         {
             var json = JsonSerializer.Serialize(value, JsonOptions);
             shell.Console.WriteLine(json);
