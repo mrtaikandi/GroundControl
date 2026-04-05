@@ -20,7 +20,7 @@ services:
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongo_data:/data/db
-      - ./infra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./build/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "try { rs.status().ok } catch(e) { quit(1) }"]
       interval: 10s

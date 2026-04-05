@@ -42,7 +42,7 @@ The simplest deployment: one GroundControl API container and one MongoDB contain
 docker compose up
 ```
 
-The repository ships a `docker-compose.yml` at the solution root that starts MongoDB (single-node replica set) and the GroundControl API. MongoDB is initialized with `infra/mongo-init.js`, which calls `rs.initiate()` on first startup to enable change stream support.
+The repository ships a `docker-compose.yml` at the solution root that starts MongoDB (single-node replica set) and the GroundControl API. MongoDB is initialized with `build/mongo-init.js`, which calls `rs.initiate()` on first startup to enable change stream support.
 
 ```yaml
 services:
@@ -51,7 +51,7 @@ services:
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     volumes:
       - mongo_data:/data/db
-      - ./infra/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./build/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "try { rs.status().ok } catch(e) { quit(1) }"]
 
