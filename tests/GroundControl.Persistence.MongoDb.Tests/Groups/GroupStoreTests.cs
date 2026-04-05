@@ -2,7 +2,6 @@ using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.MongoDb.Conventions;
 using GroundControl.Persistence.MongoDb.Stores;
 using GroundControl.Persistence.MongoDb.Tests.Infrastructure;
-using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Shouldly;
@@ -26,7 +25,7 @@ public sealed class GroupStoreTests
         // Arrange
         var cancellationToken = TestContext.Current.CancellationToken;
         var database = _mongoFixture.CreateDatabase();
-        var context = CreateContext(database);
+        var context = _mongoFixture.CreateContext(database);
         var configuration = new GroupConfiguration(context);
 
         // Act
@@ -209,23 +208,12 @@ public sealed class GroupStoreTests
     private async Task<(GroupStore Store, IMongoDatabase Database)> CreateStoreAsync(CancellationToken cancellationToken)
     {
         var database = _mongoFixture.CreateDatabase();
-        var context = CreateContext(database);
+        var context = _mongoFixture.CreateContext(database);
         var configuration = new GroupConfiguration(context);
 
         await configuration.ConfigureAsync(cancellationToken).ConfigureAwait(false);
 
         return (new GroupStore(context), database);
-    }
-
-    private MongoDbContext CreateContext(IMongoDatabase database)
-    {
-        var options = Options.Create(new MongoDbOptions
-        {
-            ConnectionString = _mongoFixture.ConnectionString,
-            DatabaseName = database.DatabaseNamespace.DatabaseName
-        });
-
-        return new MongoDbContext(database.Client, options);
     }
 
     private static Group CreateGroup(string name)

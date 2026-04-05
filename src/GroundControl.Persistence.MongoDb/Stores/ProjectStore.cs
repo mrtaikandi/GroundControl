@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.MongoDb.Pagination;
 using GroundControl.Persistence.Stores;
@@ -8,6 +7,13 @@ namespace GroundControl.Persistence.MongoDb.Stores;
 
 internal sealed class ProjectStore : IProjectStore
 {
+    private static readonly SortFieldMap<Project> SortFields = SortFieldMap<Project>.Build("name", b => b
+        .Field("name", "name", p => p.Name, collation: true)
+        .Field("createdAt", "createdAt", p => p.CreatedAt)
+        .Field("updatedAt", "updatedAt", p => p.UpdatedAt)
+        .Field("version", "version", p => p.Version)
+        .Field("id", "_id", p => p.Id));
+
     private readonly IMongoDbContext _context;
     private readonly IMongoCollection<Project> _collection;
 
@@ -24,41 +30,12 @@ internal sealed class ProjectStore : IProjectStore
         return await _collection.Find(project => project.Id == id).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<PagedResult<Project>> ListAsync(ProjectListQuery query, CancellationToken cancellationToken = default)
+    public Task<PagedResult<Project>> ListAsync(ProjectListQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var sortField = NormalizeSortField(query.SortField);
-        var bsonSortField = GetBsonSortField(sortField);
-        query.SortField = sortField;
-
-        var pageFilter = MongoCursorPagination.BuildPageFilter<Project>(query, bsonSortField);
         var entityFilter = BuildEntityFilter(query);
-        var combinedFilter = Builders<Project>.Filter.And(entityFilter, pageFilter);
-
-        var sort = MongoCursorPagination.BuildSort<Project>(query, bsonSortField);
-        var findOptions = new FindOptions
-        {
-            Collation = GetCollation(sortField)
-        };
-
-        var items = await _collection
-            .Find(combinedFilter, findOptions)
-            .Sort(sort)
-            .Limit(query.Limit + 1)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var totalCount = await _collection
-            .CountDocumentsAsync(entityFilter, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-
-        return MongoCursorPagination.MaterializePage(
-            items,
-            query,
-            totalCount,
-            project => GetSortValue(project, sortField),
-            project => project.Id);
+        return _collection.ExecutePagedQueryAsync(query, SortFields, _context, entityFilter, cancellationToken);
     }
 
     public async Task CreateAsync(Project project, CancellationToken cancellationToken = default)
@@ -103,15 +80,8 @@ internal sealed class ProjectStore : IProjectStore
         return true;
     }
 
-    public async Task<bool> DeleteAsync(Guid id, long expectedVersion, CancellationToken cancellationToken = default)
-    {
-        var filter = Builders<Project>.Filter.And(
-            Builders<Project>.Filter.Eq(p => p.Id, id),
-            Builders<Project>.Filter.Eq(p => p.Version, expectedVersion));
-
-        var result = await _collection.DeleteOneAsync(filter, cancellationToken).ConfigureAwait(false);
-        return result.DeletedCount == 1;
-    }
+    public Task<bool> DeleteAsync(Guid id, long expectedVersion, CancellationToken cancellationToken = default) =>
+        _collection.DeleteWithVersionAsync(id, expectedVersion, cancellationToken);
 
     public async Task<bool> ActivateSnapshotAsync(Guid projectId, Guid snapshotId, long expectedVersion, CancellationToken cancellationToken = default)
     {
@@ -150,47 +120,5 @@ internal sealed class ProjectStore : IProjectStore
         return filters.Count == 0
             ? FilterDefinition<Project>.Empty
             : Builders<Project>.Filter.And(filters);
-    }
-
-    private Collation? GetCollation(string sortField) => string.Equals(sortField, "name", StringComparison.Ordinal)
-        ? _context.DefaultCollation
-        : null;
-
-    private static object GetSortValue(Project project, string sortField) => sortField switch
-    {
-        "name" => project.Name,
-        "createdAt" => project.CreatedAt,
-        "updatedAt" => project.UpdatedAt,
-        "version" => project.Version,
-        "id" => project.Id,
-        _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-    };
-
-    private static string GetBsonSortField(string sortField) => sortField switch
-    {
-        "name" => "name",
-        "createdAt" => "createdAt",
-        "updatedAt" => "updatedAt",
-        "version" => "version",
-        "id" => "_id",
-        _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-    };
-
-    private static string NormalizeSortField(string? sortField)
-    {
-        if (string.IsNullOrWhiteSpace(sortField))
-        {
-            return "name";
-        }
-
-        return sortField.Trim() switch
-        {
-            var value when value.Equals("name", StringComparison.OrdinalIgnoreCase) => "name",
-            var value when value.Equals("createdAt", StringComparison.OrdinalIgnoreCase) => "createdAt",
-            var value when value.Equals("updatedAt", StringComparison.OrdinalIgnoreCase) => "updatedAt",
-            var value when value.Equals("version", StringComparison.OrdinalIgnoreCase) => "version",
-            var value when value.Equals("id", StringComparison.OrdinalIgnoreCase) => "id",
-            _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-        };
     }
 }

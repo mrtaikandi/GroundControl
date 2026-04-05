@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using GroundControl.Persistence.MongoDb.Conventions;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Testcontainers.MongoDb;
 using Xunit;
@@ -32,6 +33,20 @@ public sealed class MongoFixture : IAsyncLifetime
 
         var databaseName = $"groundcontrol_test_{Guid.CreateVersion7():N}";
         return client.GetDatabase(databaseName);
+    }
+
+    /// <summary>
+    /// Creates a <see cref="MongoDbContext"/> for the given database.
+    /// </summary>
+    public MongoDbContext CreateContext(IMongoDatabase database)
+    {
+        var options = Options.Create(new MongoDbOptions
+        {
+            ConnectionString = ConnectionString,
+            DatabaseName = database.DatabaseNamespace.DatabaseName
+        });
+
+        return new MongoDbContext(database.Client, options);
     }
 
     public async ValueTask InitializeAsync()

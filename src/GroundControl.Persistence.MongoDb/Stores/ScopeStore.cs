@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.MongoDb.Pagination;
 using GroundControl.Persistence.Stores;
@@ -8,6 +7,14 @@ namespace GroundControl.Persistence.MongoDb.Stores;
 
 internal sealed class ScopeStore : IScopeStore
 {
+    private static readonly SortFieldMap<Scope> SortFields = SortFieldMap<Scope>.Build("dimension", b => b
+        .Field("dimension", "dimension", s => s.Dimension, collation: true)
+        .Alias("name", "dimension")
+        .Field("createdAt", "createdAt", s => s.CreatedAt)
+        .Field("updatedAt", "updatedAt", s => s.UpdatedAt)
+        .Field("version", "version", s => s.Version)
+        .Field("id", "_id", s => s.Id));
+
     private readonly IMongoDbContext _context;
     private readonly IMongoCollection<Client> _clientCollection;
     private readonly IMongoCollection<ConfigEntry> _configEntryCollection;
@@ -45,38 +52,11 @@ internal sealed class ScopeStore : IScopeStore
         return await _scopeCollection.Find(filter, options).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<PagedResult<Scope>> ListAsync(ListQuery query, CancellationToken cancellationToken = default)
+    public Task<PagedResult<Scope>> ListAsync(ListQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var sortField = NormalizeSortField(query.SortField);
-        var bsonSortField = GetBsonSortField(sortField);
-        query.SortField = sortField;
-
-        var filter = MongoCursorPagination.BuildPageFilter<Scope>(query, bsonSortField);
-        var sort = MongoCursorPagination.BuildSort<Scope>(query, bsonSortField);
-        var findOptions = new FindOptions
-        {
-            Collation = GetCollation(sortField)
-        };
-
-        var items = await _scopeCollection
-            .Find(filter, findOptions)
-            .Sort(sort)
-            .Limit(query.Limit + 1)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var totalCount = await _scopeCollection
-            .CountDocumentsAsync(FilterDefinition<Scope>.Empty, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-
-        return MongoCursorPagination.MaterializePage(
-            items,
-            query,
-            totalCount,
-            scope => GetSortValue(scope, sortField),
-            scope => scope.Id);
+        return _scopeCollection.ExecutePagedQueryAsync(query, SortFields, _context, cancellationToken);
     }
 
     public Task CreateAsync(Scope scope, CancellationToken cancellationToken = default)
@@ -113,15 +93,8 @@ internal sealed class ScopeStore : IScopeStore
         return true;
     }
 
-    public async Task<bool> DeleteAsync(Guid id, long expectedVersion, CancellationToken cancellationToken = default)
-    {
-        var filter = Builders<Scope>.Filter.And(
-            Builders<Scope>.Filter.Eq(entity => entity.Id, id),
-            Builders<Scope>.Filter.Eq(entity => entity.Version, expectedVersion));
-
-        var result = await _scopeCollection.DeleteOneAsync(filter, cancellationToken).ConfigureAwait(false);
-        return result.DeletedCount == 1;
-    }
+    public Task<bool> DeleteAsync(Guid id, long expectedVersion, CancellationToken cancellationToken = default) =>
+        _scopeCollection.DeleteWithVersionAsync(id, expectedVersion, cancellationToken);
 
     public async Task<bool> IsReferencedAsync(string dimension, string value, CancellationToken cancellationToken = default)
     {
@@ -152,48 +125,5 @@ internal sealed class ScopeStore : IScopeStore
         var filter = Builders<TDocument>.Filter.Eq(fieldPath, value);
         var count = await collection.CountDocumentsAsync(filter, new CountOptions { Limit = 1 }, cancellationToken).ConfigureAwait(false);
         return count > 0;
-    }
-
-    private Collation? GetCollation(string sortField) => string.Equals(sortField, "dimension", StringComparison.Ordinal)
-        ? _context.DefaultCollation
-        : null;
-
-    private static object GetSortValue(Scope scope, string sortField) => sortField switch
-    {
-        "dimension" => scope.Dimension,
-        "createdAt" => scope.CreatedAt,
-        "updatedAt" => scope.UpdatedAt,
-        "version" => scope.Version,
-        "id" => scope.Id,
-        _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-    };
-
-    private static string GetBsonSortField(string sortField) => sortField switch
-    {
-        "dimension" => "dimension",
-        "createdAt" => "createdAt",
-        "updatedAt" => "updatedAt",
-        "version" => "version",
-        "id" => "_id",
-        _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-    };
-
-    private static string NormalizeSortField(string? sortField)
-    {
-        if (string.IsNullOrWhiteSpace(sortField))
-        {
-            return "dimension";
-        }
-
-        return sortField.Trim() switch
-        {
-            var value when value.Equals("name", StringComparison.OrdinalIgnoreCase) => "dimension",
-            var value when value.Equals("dimension", StringComparison.OrdinalIgnoreCase) => "dimension",
-            var value when value.Equals("createdAt", StringComparison.OrdinalIgnoreCase) => "createdAt",
-            var value when value.Equals("updatedAt", StringComparison.OrdinalIgnoreCase) => "updatedAt",
-            var value when value.Equals("version", StringComparison.OrdinalIgnoreCase) => "version",
-            var value when value.Equals("id", StringComparison.OrdinalIgnoreCase) => "id",
-            _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-        };
     }
 }

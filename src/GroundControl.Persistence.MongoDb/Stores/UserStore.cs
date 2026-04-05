@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.MongoDb.Pagination;
 using GroundControl.Persistence.Stores;
@@ -8,6 +7,13 @@ namespace GroundControl.Persistence.MongoDb.Stores;
 
 internal sealed class UserStore : IUserStore
 {
+    private static readonly SortFieldMap<User> SortFields = SortFieldMap<User>.Build("username", b => b
+        .Field("username", "username", u => u.Username, collation: true)
+        .Field("email", "email", u => u.Email)
+        .Field("createdAt", "createdAt", u => u.CreatedAt)
+        .Field("updatedAt", "updatedAt", u => u.UpdatedAt)
+        .Field("id", "_id", u => u.Id));
+
     private readonly IMongoDbContext _context;
     private readonly IMongoCollection<User> _userCollection;
 
@@ -62,38 +68,11 @@ internal sealed class UserStore : IUserStore
         return await _userCollection.Find(filter).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<PagedResult<User>> ListAsync(ListQuery query, CancellationToken cancellationToken = default)
+    public Task<PagedResult<User>> ListAsync(ListQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var sortField = NormalizeSortField(query.SortField);
-        var bsonSortField = GetBsonSortField(sortField);
-        query.SortField = sortField;
-
-        var filter = MongoCursorPagination.BuildPageFilter<User>(query, bsonSortField);
-        var sort = MongoCursorPagination.BuildSort<User>(query, bsonSortField);
-        var findOptions = new FindOptions
-        {
-            Collation = GetCollation(sortField)
-        };
-
-        var items = await _userCollection
-            .Find(filter, findOptions)
-            .Sort(sort)
-            .Limit(query.Limit + 1)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var totalCount = await _userCollection
-            .CountDocumentsAsync(FilterDefinition<User>.Empty, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-
-        return MongoCursorPagination.MaterializePage(
-            items,
-            query,
-            totalCount,
-            user => GetSortValue(user, sortField),
-            user => user.Id);
+        return _userCollection.ExecutePagedQueryAsync(query, SortFields, _context, cancellationToken);
     }
 
     public Task CreateAsync(User user, CancellationToken cancellationToken = default)
@@ -133,61 +112,12 @@ internal sealed class UserStore : IUserStore
         return true;
     }
 
-    public async Task<bool> DeleteAsync(Guid id, long expectedVersion, CancellationToken cancellationToken = default)
-    {
-        var filter = Builders<User>.Filter.And(
-            Builders<User>.Filter.Eq(entity => entity.Id, id),
-            Builders<User>.Filter.Eq(entity => entity.Version, expectedVersion));
-
-        var result = await _userCollection.DeleteOneAsync(filter, cancellationToken).ConfigureAwait(false);
-        return result.DeletedCount == 1;
-    }
+    public Task<bool> DeleteAsync(Guid id, long expectedVersion, CancellationToken cancellationToken = default) =>
+        _userCollection.DeleteWithVersionAsync(id, expectedVersion, cancellationToken);
 
     public async Task<IReadOnlyList<User>> GetByGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
         var filter = Builders<User>.Filter.ElemMatch(user => user.Grants, grant => grant.Resource == groupId);
         return await _userCollection.Find(filter).ToListAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private Collation? GetCollation(string sortField) => string.Equals(sortField, "username", StringComparison.Ordinal)
-        ? _context.DefaultCollation
-        : null;
-
-    private static object GetSortValue(User user, string sortField) => sortField switch
-    {
-        "username" => user.Username,
-        "email" => user.Email,
-        "createdAt" => user.CreatedAt,
-        "updatedAt" => user.UpdatedAt,
-        "id" => user.Id,
-        _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-    };
-
-    private static string GetBsonSortField(string sortField) => sortField switch
-    {
-        "username" => "username",
-        "email" => "email",
-        "createdAt" => "createdAt",
-        "updatedAt" => "updatedAt",
-        "id" => "_id",
-        _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-    };
-
-    private static string NormalizeSortField(string? sortField)
-    {
-        if (string.IsNullOrWhiteSpace(sortField))
-        {
-            return "username";
-        }
-
-        return sortField.Trim() switch
-        {
-            var value when value.Equals("username", StringComparison.OrdinalIgnoreCase) => "username",
-            var value when value.Equals("email", StringComparison.OrdinalIgnoreCase) => "email",
-            var value when value.Equals("createdAt", StringComparison.OrdinalIgnoreCase) => "createdAt",
-            var value when value.Equals("updatedAt", StringComparison.OrdinalIgnoreCase) => "updatedAt",
-            var value when value.Equals("id", StringComparison.OrdinalIgnoreCase) => "id",
-            _ => throw new ValidationException($"SortField '{sortField}' is not supported.")
-        };
     }
 }

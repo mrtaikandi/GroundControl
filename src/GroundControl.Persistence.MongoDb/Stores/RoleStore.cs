@@ -85,15 +85,8 @@ internal sealed class RoleStore : IRoleStore
         return true;
     }
 
-    public async Task<bool> DeleteAsync(Guid id, long expectedVersion, CancellationToken cancellationToken = default)
-    {
-        var filter = Builders<Role>.Filter.And(
-            Builders<Role>.Filter.Eq(entity => entity.Id, id),
-            Builders<Role>.Filter.Eq(entity => entity.Version, expectedVersion));
-
-        var result = await _roleCollection.DeleteOneAsync(filter, cancellationToken).ConfigureAwait(false);
-        return result.DeletedCount == 1;
-    }
+    public Task<bool> DeleteAsync(Guid id, long expectedVersion, CancellationToken cancellationToken = default) =>
+        _roleCollection.DeleteWithVersionAsync(id, expectedVersion, cancellationToken);
 
     public async Task<bool> IsReferencedByUsersAsync(Guid roleId, CancellationToken cancellationToken = default)
     {
