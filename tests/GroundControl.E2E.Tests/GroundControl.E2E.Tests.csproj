@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Shouldly" />
+        <PackageReference Include="xunit.v3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\GroundControl.Api.Client\GroundControl.Api.Client.csproj" />
+        <ProjectReference Include="..\..\src\GroundControl.Link\GroundControl.Link.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="docker-compose.yml" CopyToOutputDirectory="PreserveNewest" />
+        <Content Include="build\mongo-init.js" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>
