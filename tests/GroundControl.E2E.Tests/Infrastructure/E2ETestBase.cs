@@ -100,9 +100,27 @@ public abstract class E2ETestBase : IDisposable
     }
 
     /// <summary>
+    /// Wraps step execution with automatic skip-on-failure tracking.
+    /// Skips if a prior step failed; marks the current step as failed on exception.
+    /// </summary>
+    protected async Task RunStep(int step, Func<Task> body)
+    {
+        SkipIfPriorStepFailed(step);
+        try
+        {
+            await body().ConfigureAwait(false);
+        }
+        catch
+        {
+            MarkStepFailed(step);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Records that a step has failed so subsequent steps can be skipped.
     /// </summary>
-    protected void MarkStepFailed(int step)
+    private void MarkStepFailed(int step)
     {
         var failures = FailedSteps.GetOrAdd(GetType(), _ => new ConcurrentDictionary<int, bool>());
         failures[step] = true;
@@ -111,7 +129,7 @@ public abstract class E2ETestBase : IDisposable
     /// <summary>
     /// Skips the current test if any prior step (with a lower order) has failed.
     /// </summary>
-    protected void SkipIfPriorStepFailed(int currentStep)
+    private void SkipIfPriorStepFailed(int currentStep)
     {
         var failures = FailedSteps.GetOrAdd(GetType(), _ => new ConcurrentDictionary<int, bool>());
         var hasPriorFailure = failures.Keys.Any(failedStep => failedStep < currentStep);

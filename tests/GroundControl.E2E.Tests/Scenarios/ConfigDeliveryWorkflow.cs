@@ -20,7 +20,7 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
     }
 
     [Fact, Step(1)]
-    public async Task Step01_CreateProject()
+    public Task Step01_CreateProject() => RunStep(1, async () =>
     {
         // Arrange & Act
         var result = await Cli.RunAsync(TestCancellationToken,
@@ -39,13 +39,11 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
 
         // Store for subsequent steps
         Set(ProjectIdKey, project.Id);
-    }
+    });
 
     [Fact, Step(2)]
-    public async Task Step02_AddConfigEntries()
+    public Task Step02_AddConfigEntries() => RunStep(2, async () =>
     {
-        SkipIfPriorStepFailed(2);
-
         // Arrange
         var projectId = Get<Guid>(ProjectIdKey);
 
@@ -84,13 +82,11 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
 
         entries.Data.ShouldNotBeNull();
         entries.Data.Count.ShouldBe(2);
-    }
+    });
 
     [Fact, Step(3)]
-    public async Task Step03_PublishSnapshot()
+    public Task Step03_PublishSnapshot() => RunStep(3, async () =>
     {
-        SkipIfPriorStepFailed(3);
-
         // Arrange
         var projectId = Get<Guid>(ProjectIdKey);
 
@@ -112,13 +108,11 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
 
         snapshots.Data.ShouldNotBeNull();
         snapshots.Data.Count.ShouldBe(1);
-    }
+    });
 
     [Fact, Step(4)]
-    public async Task Step04_CreateApiClient()
+    public Task Step04_CreateApiClient() => RunStep(4, async () =>
     {
-        SkipIfPriorStepFailed(4);
-
         // Arrange
         var projectId = Get<Guid>(ProjectIdKey);
 
@@ -143,13 +137,11 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
         // Store for Link SDK step
         Set(ClientIdKey, client.Id);
         Set(ClientSecretKey, client.ClientSecret);
-    }
+    });
 
     [Fact, Step(5)]
-    public async Task Step05_LinkSdkReceivesConfig()
+    public Task Step05_LinkSdkReceivesConfig() => RunStep(5, () =>
     {
-        SkipIfPriorStepFailed(5);
-
         // Arrange
         var clientId = Get<Guid>(ClientIdKey);
         var clientSecret = Get<string>(ClientSecretKey);
@@ -158,14 +150,13 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
         using var provider = CreateLinkProvider(clientId, clientSecret);
         provider.Load();
 
-        // Allow a brief moment for async initialization if needed
-        await Task.Delay(TimeSpan.FromSeconds(2), TestCancellationToken);
-
         // Assert
         provider.TryGet("app:name", out var appName).ShouldBeTrue("Expected 'app:name' to be present in configuration");
         appName.ShouldBe("MyApp");
 
         provider.TryGet("app:version", out var appVersion).ShouldBeTrue("Expected 'app:version' to be present in configuration");
         appVersion.ShouldBe("1.0.0");
-    }
+
+        return Task.CompletedTask;
+    });
 }
