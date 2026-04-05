@@ -35,12 +35,10 @@ public sealed class CliRunner
             UseShellExecute = false
         };
 
-        using var process = Process.Start(psi)
-                            ?? throw new InvalidOperationException("Failed to start dotnet build process");
-
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start dotnet build process");
         var stderr = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException($"dotnet build failed (exit {process.ExitCode}): {stderr}");
@@ -120,7 +118,12 @@ public sealed class CliRunner
         {
             process.Kill(entireProcessTree: true);
             throw new TimeoutException(
-                $"CLI command timed out after {_timeout.TotalSeconds}s. Args: {fullArgs}");
+                $"CLI command timed out after {_timeout.TotalSeconds}s. Args: {fullArgs}{Environment.NewLine}" +
+                $"--------------------------- STD OUT ---------------------------{Environment.NewLine}" +
+                $"{stdoutBuilder}{Environment.NewLine}" +
+                $"--------------------------- STD ERR ---------------------------{Environment.NewLine}" +
+                $"{stderrBuilder}{Environment.NewLine}" +
+                $"---------------------------------------------------------------{Environment.NewLine}");
         }
 
         return new CliResult(process.ExitCode, stdoutBuilder.ToString().Trim(), stderrBuilder.ToString().Trim());

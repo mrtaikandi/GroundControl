@@ -31,7 +31,12 @@ public sealed record CliResult(int ExitCode, string Stdout, string Stderr)
 
         return result is not null && exception is null
             ? result
-            : throw new InvalidOperationException($"Failed to deserialize CLI output to {typeof(T).Name}. Stdout: {Stdout}", exception);
+            : throw new InvalidOperationException(
+                $"Failed to deserialize CLI output to {typeof(T).Name}.{Environment.NewLine}" +
+                $"--------------------------- STD OUT ---------------------------{Environment.NewLine}" +
+                $"{Stdout}{Environment.NewLine}" +
+                $"---------------------------------------------------------------{Environment.NewLine}",
+                exception);
     }
 
     /// <summary>

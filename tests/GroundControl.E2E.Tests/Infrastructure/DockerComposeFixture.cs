@@ -72,7 +72,12 @@ public sealed class DockerComposeFixture : IAsyncLifetime
         }
 
         var port = output[(colonIndex + 1)..];
-        return $"http://localhost:{port}";
+
+        // Use 127.0.0.1 instead of localhost to avoid IPv6 resolution issues.
+        // Docker maps ports to 0.0.0.0 (IPv4 only), but localhost may resolve
+        // to ::1 (IPv6) first on Windows, causing .NET's HttpClient to hang
+        // until the connection attempt times out.
+        return $"http://127.0.0.1:{port}";
     }
 
     private async Task WaitForHealthAsync()
