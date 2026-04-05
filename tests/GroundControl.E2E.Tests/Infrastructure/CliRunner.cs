@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -38,10 +37,7 @@ public sealed class CliRunner
 
     private static string ResolveCliProjectPath()
     {
-        var repoRoot = typeof(CliRunner).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a => a.Key == "RepositoryRoot")?.Value
-                       ?? throw new InvalidOperationException("RepositoryRoot assembly metadata not found.");
-
-        var path = Path.Combine(repoRoot, "src", "GroundControl.Cli", "GroundControl.Cli.csproj");
+        var path = Path.Combine(RepositoryRootResolver.GetResolveRoot(), "src", "GroundControl.Cli", "GroundControl.Cli.csproj");
         if (!File.Exists(path))
         {
             throw new FileNotFoundException(
