@@ -15,9 +15,7 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
     private const string ClientSecretKey = "ClientSecret";
 
     public ConfigDeliveryWorkflow(DockerComposeFixture fixture)
-        : base(fixture)
-    {
-    }
+        : base(fixture) { }
 
     [Fact, Step(1)]
     public Task Step01_CreateProject() => RunStep(1, async () =>
@@ -29,6 +27,7 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
 
         // Assert
         result.ShouldSucceed();
+
         var project = result.ParseOutput<ProjectResponse>();
         project.Id.ShouldNotBe(Guid.Empty);
         project.Name.ShouldBe("E2E Config Delivery");

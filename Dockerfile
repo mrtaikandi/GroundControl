@@ -26,7 +26,8 @@ RUN dotnet restore src/GroundControl.Api/GroundControl.Api.csproj
 RUN dotnet publish src/GroundControl.Api/GroundControl.Api.csproj \
     -c Release \
     -o /app/publish \
-    --no-restore
+    --no-restore \
+    -p:OpenApiGenerateDocuments=false
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

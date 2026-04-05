@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -20,9 +21,12 @@ public sealed class DockerComposeFixture : IAsyncLifetime
     {
         _isRunningInDocker = Environment.GetEnvironmentVariable("E2E_RUNNING_IN_DOCKER") == "true";
 
-        // Resolve compose file relative to the test assembly location
-        var assemblyDir = Path.GetDirectoryName(typeof(DockerComposeFixture).Assembly.Location)!;
-        _composeFilePath = Path.Combine(assemblyDir, "docker-compose.yml");
+        // Resolve compose file from the source tree via RepositoryRoot metadata,
+        // so Docker build context paths in the compose file resolve correctly.
+        var repoRoot = typeof(DockerComposeFixture).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a => a.Key == "RepositoryRoot")?.Value
+            ?? throw new InvalidOperationException("RepositoryRoot assembly metadata not found.");
+
+        _composeFilePath = Path.Combine(repoRoot, "tests", "GroundControl.E2E.Tests", "docker-compose.yml");
     }
 
     /// <summary>
@@ -39,6 +43,7 @@ public sealed class DockerComposeFixture : IAsyncLifetime
             return;
         }
 
+        await CliRunner.BuildAsync().ConfigureAwait(false);
         await RunComposeAsync("up", "-d", "--build", "--wait").ConfigureAwait(false);
         ApiBaseUrl = await DiscoverApiPortAsync().ConfigureAwait(false);
         await WaitForHealthAsync().ConfigureAwait(false);
@@ -72,7 +77,9 @@ public sealed class DockerComposeFixture : IAsyncLifetime
 
     private async Task WaitForHealthAsync()
     {
-        using var httpClient = new HttpClient { BaseAddress = new Uri(ApiBaseUrl) };
+        // ReSharper disable once ShortLivedHttpClient
+        using var httpClient = new HttpClient();
+        httpClient.BaseAddress = new Uri(ApiBaseUrl);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(HealthCheckTimeoutSeconds));
 
         try
