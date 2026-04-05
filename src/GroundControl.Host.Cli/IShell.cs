@@ -8,9 +8,14 @@ namespace GroundControl.Host.Cli;
 public interface IShell
 {
     /// <summary>
-    /// Gets the underlying Spectre Console instance.
+    /// Gets the underlying Spectre Console instance for standard output.
     /// </summary>
     IAnsiConsole Console { get; }
+
+    /// <summary>
+    /// Gets the Spectre Console instance for standard error output, used for diagnostics and logging.
+    /// </summary>
+    IAnsiConsole ErrorConsole { get; }
 
     internal TextReader Input { get; }
 

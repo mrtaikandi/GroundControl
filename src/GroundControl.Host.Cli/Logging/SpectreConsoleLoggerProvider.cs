@@ -39,7 +39,7 @@ public sealed class SpectreConsoleLoggerProvider : ILoggerProvider
 
         lock (_writeLock)
         {
-            var console = _shell.Console;
+            var console = _shell.ErrorConsole;
             console.Write(new NoWrapText().Append(label, style).Append($": {category}: {message}"));
 
             if (exception is not null)
