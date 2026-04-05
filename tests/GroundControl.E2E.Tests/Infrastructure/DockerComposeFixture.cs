@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -22,10 +21,7 @@ public sealed class DockerComposeFixture : IAsyncLifetime
 
         // Resolve compose file from the source tree via RepositoryRoot metadata,
         // so Docker build context paths in the compose file resolve correctly.
-        var repoRoot = typeof(DockerComposeFixture).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a => a.Key == "RepositoryRoot")?.Value
-            ?? throw new InvalidOperationException("RepositoryRoot assembly metadata not found.");
-
-        _composeFilePath = Path.Combine(repoRoot, "tests", "GroundControl.E2E.Tests", "docker-compose.yml");
+        _composeFilePath = Path.Combine(RepositoryRootResolver.GetResolveRoot(), "tests", "GroundControl.E2E.Tests", "docker-compose.yml");
     }
 
     /// <summary>
@@ -60,8 +56,8 @@ public sealed class DockerComposeFixture : IAsyncLifetime
 
     private async Task<string> DiscoverApiPortAsync()
     {
-        var result = await RunComposeWithOutputAsync("port", "api", "8080").ConfigureAwait(false);
-        var output = result.Trim();
+        var result = await RunComposeAsync("port", "api", "8080").ConfigureAwait(false);
+        var output = result.Stdout.Trim();
 
         // Output is like "0.0.0.0:32789" -- extract the port
         var colonIndex = output.LastIndexOf(':');
@@ -112,19 +108,12 @@ public sealed class DockerComposeFixture : IAsyncLifetime
         }
     }
 
-    private async Task RunComposeAsync(params string[] args)
+    private async Task<ProcessResult> RunComposeAsync(params string[] args)
     {
         var options = CreateComposeOptions(args);
         var result = await ProcessRunner.RunAsync(options).ConfigureAwait(false);
         result.ThrowIfFailed($"docker compose {string.Join(' ', args)} failed");
-    }
-
-    private async Task<string> RunComposeWithOutputAsync(params string[] args)
-    {
-        var options = CreateComposeOptions(args);
-        var result = await ProcessRunner.RunAsync(options).ConfigureAwait(false);
-        result.ThrowIfFailed($"docker compose {string.Join(' ', args)} failed");
-        return result.Stdout;
+        return result;
     }
 
     private ProcessRunOptions CreateComposeOptions(string[] args) =>
