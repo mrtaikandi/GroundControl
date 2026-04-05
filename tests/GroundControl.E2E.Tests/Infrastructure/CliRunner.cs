@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -28,21 +26,14 @@ public sealed class CliRunner
     /// </summary>
     public static async Task BuildAsync(CancellationToken cancellationToken = default)
     {
-        var psi = new ProcessStartInfo("dotnet", $"build \"{CliProjectPath}\" -c Debug --nologo -v q")
+        var options = new ProcessRunOptions
         {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
+            FileName = "dotnet",
+            Arguments = $"build \"{CliProjectPath}\" -c Debug --nologo -v q"
         };
 
-        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start dotnet build process");
-        var stderr = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException($"dotnet build failed (exit {process.ExitCode}): {stderr}");
-        }
+        var result = await ProcessRunner.RunAsync(options, cancellationToken).ConfigureAwait(false);
+        result.ThrowIfFailed($"dotnet build failed for {CliProjectPath}");
     }
 
     private static string ResolveCliProjectPath()
@@ -71,62 +62,19 @@ public sealed class CliRunner
         var fullArgs = BuildArguments(args);
         var arguments = $"run --no-build --project \"{CliProjectPath}\" -- {fullArgs}";
 
-        var psi = new ProcessStartInfo("dotnet", arguments)
+        var options = new ProcessRunOptions
         {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            Environment =
+            FileName = "dotnet",
+            Arguments = arguments,
+            Timeout = _timeout,
+            EnvironmentVariables = new Dictionary<string, string?>
             {
                 ["GroundControl__ServerUrl"] = _apiBaseUrl
             }
         };
 
-        using var process = Process.Start(psi)
-                            ?? throw new InvalidOperationException("Failed to start CLI process");
-
-        var stdoutBuilder = new StringBuilder();
-        var stderrBuilder = new StringBuilder();
-
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data is not null)
-            {
-                stdoutBuilder.AppendLine(e.Data);
-            }
-        };
-
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data is not null)
-            {
-                stderrBuilder.AppendLine(e.Data);
-            }
-        };
-
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(_timeout);
-
-        try
-        {
-            await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            process.Kill(entireProcessTree: true);
-            throw new TimeoutException(
-                $"CLI command timed out after {_timeout.TotalSeconds}s. Args: {fullArgs}{Environment.NewLine}" +
-                $"--------------------------- STD OUT ---------------------------{Environment.NewLine}" +
-                $"{stdoutBuilder}{Environment.NewLine}" +
-                $"--------------------------- STD ERR ---------------------------{Environment.NewLine}" +
-                $"{stderrBuilder}{Environment.NewLine}" +
-                $"---------------------------------------------------------------{Environment.NewLine}");
-        }
-
-        return new CliResult(process.ExitCode, stdoutBuilder.ToString().Trim(), stderrBuilder.ToString().Trim());
+        var result = await ProcessRunner.RunAsync(options, cancellationToken).ConfigureAwait(false);
+        return new CliResult(result.ExitCode, result.Stdout, result.Stderr);
     }
 
     /// <summary>

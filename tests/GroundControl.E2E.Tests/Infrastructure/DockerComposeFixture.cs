@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -115,55 +114,24 @@ public sealed class DockerComposeFixture : IAsyncLifetime
 
     private async Task RunComposeAsync(params string[] args)
     {
-        var composeDir = Path.GetDirectoryName(_composeFilePath)!;
-        var arguments = $"compose -f \"{_composeFilePath}\" {string.Join(' ', args)}";
-
-        var psi = new ProcessStartInfo("docker", arguments)
-        {
-            WorkingDirectory = composeDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start docker compose");
-        var stdoutTask = process.StandardOutput.ReadToEndAsync();
-        var stderrTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(false);
-        await stdoutTask.ConfigureAwait(false);
-        var stderr = await stderrTask.ConfigureAwait(false);
-
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException($"docker compose {string.Join(' ', args)} failed (exit {process.ExitCode}): {stderr}");
-        }
+        var options = CreateComposeOptions(args);
+        var result = await ProcessRunner.RunAsync(options).ConfigureAwait(false);
+        result.ThrowIfFailed($"docker compose {string.Join(' ', args)} failed");
     }
 
     private async Task<string> RunComposeWithOutputAsync(params string[] args)
     {
-        var composeDir = Path.GetDirectoryName(_composeFilePath)!;
-        var arguments = $"compose -f \"{_composeFilePath}\" {string.Join(' ', args)}";
-
-        var psi = new ProcessStartInfo("docker", arguments)
-        {
-            WorkingDirectory = composeDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start docker compose");
-        var stdoutTask = process.StandardOutput.ReadToEndAsync();
-        var stderrTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(false);
-        var stdout = await stdoutTask.ConfigureAwait(false);
-        var stderr = await stderrTask.ConfigureAwait(false);
-
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException($"docker compose {string.Join(' ', args)} failed (exit {process.ExitCode}): {stderr}");
-        }
-
-        return stdout;
+        var options = CreateComposeOptions(args);
+        var result = await ProcessRunner.RunAsync(options).ConfigureAwait(false);
+        result.ThrowIfFailed($"docker compose {string.Join(' ', args)} failed");
+        return result.Stdout;
     }
+
+    private ProcessRunOptions CreateComposeOptions(string[] args) =>
+        new()
+        {
+            FileName = "docker",
+            Arguments = $"compose -f \"{_composeFilePath}\" {string.Join(' ', args)}",
+            WorkingDirectory = Path.GetDirectoryName(_composeFilePath)!
+        };
 }
