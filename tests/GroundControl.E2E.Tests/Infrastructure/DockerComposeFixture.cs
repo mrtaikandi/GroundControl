@@ -1,0 +1,148 @@
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using Xunit;
+
+namespace GroundControl.E2E.Tests.Infrastructure;
+
+/// <summary>
+/// Assembly-level fixture that manages the Docker Compose lifecycle for E2E tests.
+/// Starts the stack in InitializeAsync, tears it down in DisposeAsync.
+/// When E2E_RUNNING_IN_DOCKER is set, skips compose management and reads E2E_API_URL.
+/// </summary>
+public sealed class DockerComposeFixture : IAsyncLifetime
+{
+    private const int HealthCheckTimeoutSeconds = 120;
+    private const int HealthCheckPollIntervalMs = 2000;
+
+    private readonly string _composeFilePath;
+    private readonly bool _isRunningInDocker;
+
+    public DockerComposeFixture()
+    {
+        _isRunningInDocker = Environment.GetEnvironmentVariable("E2E_RUNNING_IN_DOCKER") == "true";
+
+        // Resolve compose file relative to the test assembly location
+        var assemblyDir = Path.GetDirectoryName(typeof(DockerComposeFixture).Assembly.Location)!;
+        _composeFilePath = Path.Combine(assemblyDir, "docker-compose.yml");
+    }
+
+    /// <summary>
+    /// Gets the base URL of the API server (e.g., http://localhost:32789).
+    /// </summary>
+    [SuppressMessage("Design", "CA1056:URI-like properties should not be strings", Justification = "String URL is the design contract for consumer convenience")]
+    public string ApiBaseUrl { get; private set; } = string.Empty;
+
+    public async ValueTask InitializeAsync()
+    {
+        if (_isRunningInDocker)
+        {
+            ApiBaseUrl = Environment.GetEnvironmentVariable("E2E_API_URL") ?? "http://api:8080";
+            return;
+        }
+
+        await RunComposeAsync("up", "-d", "--build", "--wait").ConfigureAwait(false);
+        ApiBaseUrl = await DiscoverApiPortAsync().ConfigureAwait(false);
+        await WaitForHealthAsync().ConfigureAwait(false);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_isRunningInDocker)
+        {
+            return;
+        }
+
+        await RunComposeAsync("down", "-v").ConfigureAwait(false);
+    }
+
+    private async Task<string> DiscoverApiPortAsync()
+    {
+        var result = await RunComposeWithOutputAsync("port", "api", "8080").ConfigureAwait(false);
+        var output = result.Trim();
+
+        // Output is like "0.0.0.0:32789" -- extract the port
+        var colonIndex = output.LastIndexOf(':');
+        if (colonIndex < 0)
+        {
+            throw new InvalidOperationException($"Unexpected 'docker compose port' output: {output}");
+        }
+
+        var port = output[(colonIndex + 1)..];
+        return $"http://localhost:{port}";
+    }
+
+    private async Task WaitForHealthAsync()
+    {
+        using var httpClient = new HttpClient { BaseAddress = new Uri(ApiBaseUrl) };
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(HealthCheckTimeoutSeconds));
+
+        while (!cts.Token.IsCancellationRequested)
+        {
+            try
+            {
+                var response = await httpClient.GetAsync("/healthz/ready", cts.Token).ConfigureAwait(false);
+                if (response.IsSuccessStatusCode)
+                {
+                    return;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                // API not ready yet
+            }
+
+            await Task.Delay(HealthCheckPollIntervalMs, cts.Token).ConfigureAwait(false);
+        }
+
+        throw new TimeoutException($"API at {ApiBaseUrl} did not become healthy within {HealthCheckTimeoutSeconds}s");
+    }
+
+    private async Task RunComposeAsync(params string[] args)
+    {
+        var composeDir = Path.GetDirectoryName(_composeFilePath)!;
+        var arguments = $"compose -f \"{_composeFilePath}\" {string.Join(' ', args)}";
+
+        var psi = new ProcessStartInfo("docker", arguments)
+        {
+            WorkingDirectory = composeDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start docker compose");
+        await process.WaitForExitAsync().ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+            throw new InvalidOperationException($"docker compose {string.Join(' ', args)} failed (exit {process.ExitCode}): {stderr}");
+        }
+    }
+
+    private async Task<string> RunComposeWithOutputAsync(params string[] args)
+    {
+        var composeDir = Path.GetDirectoryName(_composeFilePath)!;
+        var arguments = $"compose -f \"{_composeFilePath}\" {string.Join(' ', args)}";
+
+        var psi = new ProcessStartInfo("docker", arguments)
+        {
+            WorkingDirectory = composeDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start docker compose");
+        var stdout = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        await process.WaitForExitAsync().ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+            throw new InvalidOperationException($"docker compose {string.Join(' ', args)} failed (exit {process.ExitCode}): {stderr}");
+        }
+
+        return stdout;
+    }
+}
