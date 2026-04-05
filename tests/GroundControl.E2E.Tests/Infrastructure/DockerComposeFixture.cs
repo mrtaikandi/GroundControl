@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Xunit;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -76,25 +75,30 @@ public sealed class DockerComposeFixture : IAsyncLifetime
         using var httpClient = new HttpClient { BaseAddress = new Uri(ApiBaseUrl) };
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(HealthCheckTimeoutSeconds));
 
-        while (!cts.Token.IsCancellationRequested)
+        try
         {
-            try
+            while (true)
             {
-                var response = await httpClient.GetAsync("/healthz/ready", cts.Token).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    return;
+                    var response = await httpClient.GetAsync("/healthz/ready", cts.Token).ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return;
+                    }
                 }
-            }
-            catch (HttpRequestException)
-            {
-                // API not ready yet
-            }
+                catch (HttpRequestException)
+                {
+                    // API not ready yet
+                }
 
-            await Task.Delay(HealthCheckPollIntervalMs, cts.Token).ConfigureAwait(false);
+                await Task.Delay(HealthCheckPollIntervalMs, cts.Token).ConfigureAwait(false);
+            }
         }
-
-        throw new TimeoutException($"API at {ApiBaseUrl} did not become healthy within {HealthCheckTimeoutSeconds}s");
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            throw new TimeoutException($"API at {ApiBaseUrl} did not become healthy within {HealthCheckTimeoutSeconds}s");
+        }
     }
 
     private async Task RunComposeAsync(params string[] args)
@@ -111,11 +115,14 @@ public sealed class DockerComposeFixture : IAsyncLifetime
         };
 
         using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start docker compose");
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync().ConfigureAwait(false);
+        await stdoutTask.ConfigureAwait(false);
+        var stderr = await stderrTask.ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
-            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
             throw new InvalidOperationException($"docker compose {string.Join(' ', args)} failed (exit {process.ExitCode}): {stderr}");
         }
     }
@@ -134,12 +141,14 @@ public sealed class DockerComposeFixture : IAsyncLifetime
         };
 
         using var process = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start docker compose");
-        var stdout = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync().ConfigureAwait(false);
+        var stdout = await stdoutTask.ConfigureAwait(false);
+        var stderr = await stderrTask.ConfigureAwait(false);
 
         if (process.ExitCode != 0)
         {
-            var stderr = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
             throw new InvalidOperationException($"docker compose {string.Join(' ', args)} failed (exit {process.ExitCode}): {stderr}");
         }
 

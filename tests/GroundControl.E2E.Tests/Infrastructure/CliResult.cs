@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Shouldly;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -24,10 +25,6 @@ public sealed record CliResult(int ExitCode, string Stdout, string Stderr)
     /// </summary>
     public void ShouldSucceed()
     {
-        if (ExitCode != 0)
-        {
-            throw new InvalidOperationException(
-                $"CLI exited with code {ExitCode}.\nStdout: {Stdout}\nStderr: {Stderr}");
-        }
+        ExitCode.ShouldBe(0, $"CLI failed.\nStdout: {Stdout}\nStderr: {Stderr}");
     }
 }
