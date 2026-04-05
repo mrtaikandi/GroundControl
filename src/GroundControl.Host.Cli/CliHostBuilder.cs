@@ -42,7 +42,7 @@ public sealed class CliHostBuilder
         _commandAssembly = commandAssembly ?? Assembly.GetCallingAssembly();
         _innerBuilder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
 
-        ConfigureConfiguration(_innerBuilder.Configuration);
+        ConfigureConfiguration(_innerBuilder.Configuration, args);
     }
 
     /// <summary>
@@ -245,10 +245,14 @@ public sealed class CliHostBuilder
         return AnsiConsole.Create(settings);
     }
 
-    private static void ConfigureConfiguration(ConfigurationManager configuration)
+    private static void ConfigureConfiguration(ConfigurationManager configuration, string[] args)
     {
+        configuration.Sources.Clear();
+
         configuration.AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"), true, true);
         configuration.AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.local.json"), true, true);
+        configuration.AddEnvironmentVariables();
+        configuration.AddCommandLine(args);
     }
 
     private static void ConfigureLogging(ILoggingBuilder builder, ParseResult parseResult)

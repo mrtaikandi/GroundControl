@@ -3,7 +3,6 @@
     <PropertyGroup>
         <NoWarn>$(NoWarn);CA2007;CS1591;CA1822</NoWarn>
         <NSwagConfigFile>$(MSBuildProjectDirectory)\nswag.json</NSwagConfigFile>
-        <GenerateApiClient>true</GenerateApiClient>
     </PropertyGroup>
 
     <ItemGroup>
