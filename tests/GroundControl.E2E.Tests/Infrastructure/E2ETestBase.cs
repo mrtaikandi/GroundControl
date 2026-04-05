@@ -106,6 +106,7 @@ public abstract class E2ETestBase : IDisposable
     protected async Task RunStep(int step, Func<Task> body)
     {
         SkipIfPriorStepFailed(step);
+
         try
         {
             await body().ConfigureAwait(false);
@@ -133,6 +134,7 @@ public abstract class E2ETestBase : IDisposable
     {
         var failures = FailedSteps.GetOrAdd(GetType(), _ => new ConcurrentDictionary<int, bool>());
         var hasPriorFailure = failures.Keys.Any(failedStep => failedStep < currentStep);
+
         Assert.SkipWhen(hasPriorFailure, $"Skipped because a prior step (before step {currentStep}) failed.");
     }
 
@@ -144,14 +146,16 @@ public abstract class E2ETestBase : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!_disposed)
+        if (_disposed)
         {
-            if (disposing)
-            {
-                _apiHttpClient.Dispose();
-            }
-
-            _disposed = true;
+            return;
         }
+
+        if (disposing)
+        {
+            _apiHttpClient.Dispose();
+        }
+
+        _disposed = true;
     }
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Shouldly;
 
@@ -13,11 +14,24 @@ public sealed record CliResult(int ExitCode, string Stdout, string Stderr)
     /// <summary>
     /// Deserializes the stdout as JSON into the specified type.
     /// </summary>
-    public T ParseOutput<T>()
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types")]
+    public T ParseOutput<T>() where T : class
     {
-        var result = JsonSerializer.Deserialize<T>(Stdout, JsonOptions);
-        return result ?? throw new InvalidOperationException(
-            $"Failed to deserialize CLI output to {typeof(T).Name}. Stdout: {Stdout}");
+        T? result = null;
+        Exception? exception = null;
+
+        try
+        {
+            result = JsonSerializer.Deserialize<T>(Stdout, JsonOptions);
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        return result is not null && exception is null
+            ? result
+            : throw new InvalidOperationException($"Failed to deserialize CLI output to {typeof(T).Name}. Stdout: {Stdout}", exception);
     }
 
     /// <summary>
