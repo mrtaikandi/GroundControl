@@ -44,32 +44,22 @@ internal sealed class PublishSnapshotHandler : ICommandHandler
             }
         }
 
-        try
+        var request = new PublishSnapshotRequest
         {
-            var request = new PublishSnapshotRequest
-            {
-                Description = _options.Description
-            };
+            Description = _options.Description
+        };
 
-            var snapshot = await _shell.ShowStatusAsync(
-                "Publishing snapshot...",
-                () => _client.PublishSnapshotHandlerAsync(projectId.Value, request, cancellationToken));
+        var (exitCode, snapshot) = await _shell.TryCallAsync(
+            ct => _client.PublishSnapshotHandlerAsync(projectId.Value, request, ct), cancellationToken);
 
-            _shell.DisplaySuccess(snapshot, _hostOptions.OutputFormat,
-                s => $"Snapshot published (version: {s.SnapshotVersion}, entries: {s.EntryCount}).");
-
-            return 0;
-        }
-        catch (GroundControlApiClientException<HttpValidationProblemDetails> ex)
+        if (exitCode != 0)
         {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
+            return exitCode;
         }
-        catch (GroundControlApiClientException<ProblemDetails> ex)
-        {
-            _shell.RenderProblemDetails(ex.Result);
-            return 1;
-        }
+
+        _shell.DisplaySuccess(snapshot!, _hostOptions.OutputFormat,
+            s => $"Snapshot published (version: {s.SnapshotVersion}, entries: {s.EntryCount}).");
+        return 0;
     }
 
     private async Task<Guid?> PromptForProjectSelectionAsync(CancellationToken cancellationToken)
