@@ -209,7 +209,13 @@ public sealed class CliHostBuilder
     {
         _innerBuilder.Services.TryAddTransient(handlerType);
         _innerBuilder.Services.AddSingleton(BuildAnsiConsole);
-        _innerBuilder.Services.AddSingleton<IShell, Shell>();
+        _innerBuilder.Services.AddSingleton<IShell>(sp =>
+        {
+            var stdoutConsole = sp.GetRequiredService<IAnsiConsole>();
+            var stderrConsole = BuildStdErrAnsiConsole();
+            return new Shell(stdoutConsole, stderrConsole);
+        });
+
         _innerBuilder.Services.AddSingleton<IFileService, FileService>();
         _innerBuilder.Services.AddSingleton<IPackageService, PackageService>();
         _innerBuilder.Services.AddHttpClient();
@@ -240,6 +246,19 @@ public sealed class CliHostBuilder
             Ansi = AnsiSupport.Detect,
             Interactive = InteractionSupport.Detect,
             ColorSystem = ColorSystemSupport.Detect
+        };
+
+        return AnsiConsole.Create(settings);
+    }
+
+    private static IAnsiConsole BuildStdErrAnsiConsole()
+    {
+        var settings = new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.Detect,
+            Interactive = InteractionSupport.No,
+            ColorSystem = ColorSystemSupport.Detect,
+            Out = new AnsiConsoleOutput(System.Console.Error)
         };
 
         return AnsiConsole.Create(settings);

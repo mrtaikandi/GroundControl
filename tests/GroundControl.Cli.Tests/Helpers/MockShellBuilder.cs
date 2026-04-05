@@ -26,8 +26,15 @@ internal sealed class MockShellBuilder
             Ansi = AnsiSupport.No
         });
 
+        var errorConsole = AnsiConsole.Create(new AnsiConsoleSettings
+        {
+            Out = new AnsiConsoleOutput(TextWriter.Null),
+            Interactive = InteractionSupport.No,
+            Ansi = AnsiSupport.No
+        });
+
         var input = _inputText is not null ? new StringReader(_inputText) : null;
-        return new Shell(console, input);
+        return new Shell(console, errorConsole, input);
     }
 
     public string GetOutput() => _outputBuffer.ToString();
