@@ -34,10 +34,7 @@ internal sealed class CreateTokenHandler : ICommandHandler
             return 1;
         }
 
-        if (name is null)
-        {
-            name = await _shell.PromptForStringAsync("Token name:", cancellationToken: cancellationToken);
-        }
+        name ??= await _shell.PromptForStringAsync("Token name:", cancellationToken: cancellationToken);
 
         int? expiresInDays = null;
 
@@ -66,9 +63,13 @@ internal sealed class CreateTokenHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Personal access token '{token!.Name}' created (id: {token.Id}).");
-        _shell.DisplayMessage("warning", "[yellow bold]Token value shown only once — store it securely:[/]");
-        _shell.Console.MarkupLine($"[bold]{Markup.Escape(token.Token)}[/]");
+        _shell.DisplaySuccess(token!, _hostOptions.OutputFormat, t =>
+            $"""
+            Personal access token '{t.Name}' created (id: {t.Id}).
+
+            :warning:  [yellow bold]Token value shown only once — store it securely:[/]
+            [bold]{Markup.Escape(t.Token)}[/]
+            """);
 
         return 0;
     }

@@ -73,5 +73,43 @@ public static partial class ShellExtensions
         /// <param name="message">The success text to display.</param>
         public void DisplaySuccess(string message) =>
             shell.Console.MarkupLine($"[green]:check_mark:[/]  {message}");
+
+        /// <summary>
+        /// Displays a success result with format awareness. In <see cref="OutputFormat.Table"/> mode,
+        /// displays the message produced by <paramref name="message"/> with a visual indicator.
+        /// In <see cref="OutputFormat.Json"/> mode, serializes <paramref name="value"/> as JSON.
+        /// </summary>
+        /// <typeparam name="T">The type of the response value.</typeparam>
+        /// <param name="value">The API response object to serialize in JSON mode.</param>
+        /// <param name="outputFormat">The output format to use.</param>
+        /// <param name="message">A function that builds the human-readable success message from the value.</param>
+        public void DisplaySuccess<T>(T value, OutputFormat outputFormat, Func<T, string> message)
+        {
+            if (outputFormat == OutputFormat.Json)
+            {
+                shell.RenderJson(value!);
+                return;
+            }
+
+            shell.DisplaySuccess(message(value));
+        }
+
+        /// <summary>
+        /// Displays a success result for operations with no response body (e.g., delete).
+        /// In <see cref="OutputFormat.Table"/> mode, displays the message with a visual indicator.
+        /// In <see cref="OutputFormat.Json"/> mode, emits a structured status object.
+        /// </summary>
+        /// <param name="message">The success text to display.</param>
+        /// <param name="outputFormat">The output format to use.</param>
+        public void DisplaySuccess(string message, OutputFormat outputFormat)
+        {
+            if (outputFormat == OutputFormat.Json)
+            {
+                shell.RenderJson(new { status = "success", message });
+                return;
+            }
+
+            shell.DisplaySuccess(message);
+        }
     }
 }

@@ -95,7 +95,7 @@ internal sealed class ListSnapshotsHandler : ICommandHandler
 
         var selected = await _shell.PromptForSelectionAsync(
             "Select project:",
-            (IReadOnlyCollection<ProjectResponse>)projects,
+            projects,
             p => $"{p.Name} ({p.Id})",
             enableSearch: true,
             cancellationToken: cancellationToken);

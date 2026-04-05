@@ -57,7 +57,8 @@ internal sealed class UpdateClientHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var response = await _client.UpdateClientHandlerAsync(_options.ProjectId, _options.Id, request, ct);
-                _shell.DisplaySuccess($"Client '{response.Name}' updated (version: {response.Version}).");
+                _shell.DisplaySuccess(response, _hostOptions.OutputFormat,
+                    r => $"Client '{r.Name}' updated (version: {r.Version}).");
                 return 0;
             },
             async ct =>
@@ -86,7 +87,8 @@ internal sealed class UpdateClientHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var response = await _client.UpdateClientHandlerAsync(_options.ProjectId, _options.Id, request, ct);
-                _shell.DisplaySuccess($"Client '{response.Name}' updated (version: {response.Version}).");
+                _shell.DisplaySuccess(response, _hostOptions.OutputFormat,
+                    r => $"Client '{r.Name}' updated (version: {r.Version}).");
             },
             cancellationToken);
     }

@@ -59,7 +59,8 @@ internal sealed class UpdateRoleHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var role = await _client.UpdateRoleHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Role '{role.Name}' updated (version: {role.Version}).");
+                _shell.DisplaySuccess(role, _hostOptions.OutputFormat,
+                    r => $"Role '{r.Name}' updated (version: {r.Version}).");
                 return 0;
             },
             async ct =>
@@ -93,7 +94,8 @@ internal sealed class UpdateRoleHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var role = await _client.UpdateRoleHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Role '{role.Name}' updated (version: {role.Version}).");
+                _shell.DisplaySuccess(role, _hostOptions.OutputFormat,
+                    r => $"Role '{r.Name}' updated (version: {r.Version}).");
             },
             cancellationToken);
     }

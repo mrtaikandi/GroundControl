@@ -33,10 +33,7 @@ internal sealed class CreateRoleHandler : ICommandHandler
             return 1;
         }
 
-        if (name is null)
-        {
-            name = await _shell.PromptForStringAsync("Role name:", cancellationToken: cancellationToken);
-        }
+        name ??= await _shell.PromptForStringAsync("Role name:", cancellationToken: cancellationToken);
 
         string[] permissions;
         if (_options.Permissions is not null)
@@ -84,7 +81,8 @@ internal sealed class CreateRoleHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Role '{role!.Name}' created (id: {role.Id}, version: {role.Version}).");
+        _shell.DisplaySuccess(role!, _hostOptions.OutputFormat,
+            r => $"Role '{r.Name}' created (id: {r.Id}, version: {r.Version}).");
         return 0;
     }
 }

@@ -46,15 +46,9 @@ internal sealed class CreateUserHandler : ICommandHandler
             return 1;
         }
 
-        if (username is null)
-        {
-            username = await _shell.PromptForStringAsync("Username:", cancellationToken: cancellationToken);
-        }
+        username ??= await _shell.PromptForStringAsync("Username:", cancellationToken: cancellationToken);
 
-        if (email is null)
-        {
-            email = await _shell.PromptForStringAsync("Email:", cancellationToken: cancellationToken);
-        }
+        email ??= await _shell.PromptForStringAsync("Email:", cancellationToken: cancellationToken);
 
         if (password is null && !_hostOptions.NoInteractive)
         {
@@ -93,7 +87,8 @@ internal sealed class CreateUserHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"User '{user!.Username}' created (id: {user.Id}, version: {user.Version}).");
+        _shell.DisplaySuccess(user!, _hostOptions.OutputFormat,
+            u => $"User '{u.Username}' created (id: {u.Id}, version: {u.Version}).");
         return 0;
     }
 

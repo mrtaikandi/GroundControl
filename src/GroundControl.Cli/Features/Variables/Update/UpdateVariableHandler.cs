@@ -76,7 +76,8 @@ internal sealed class UpdateVariableHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var variable = await _client.UpdateVariableHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Variable '{variable.Name}' updated (version: {variable.Version}).");
+                _shell.DisplaySuccess(variable, _hostOptions.OutputFormat,
+                    v => $"Variable '{v.Name}' updated (version: {v.Version}).");
                 return 0;
             },
             async ct =>
@@ -95,7 +96,8 @@ internal sealed class UpdateVariableHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var variable = await _client.UpdateVariableHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Variable '{variable.Name}' updated (version: {variable.Version}).");
+                _shell.DisplaySuccess(variable, _hostOptions.OutputFormat,
+                    v => $"Variable '{v.Name}' updated (version: {v.Version}).");
             },
             cancellationToken);
     }

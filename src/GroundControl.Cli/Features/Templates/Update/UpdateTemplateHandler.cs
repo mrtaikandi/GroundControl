@@ -56,7 +56,8 @@ internal sealed class UpdateTemplateHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var template = await _client.UpdateTemplateHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Template '{template.Name}' updated (version: {template.Version}).");
+                _shell.DisplaySuccess(template, _hostOptions.OutputFormat,
+                    t => $"Template '{t.Name}' updated (version: {t.Version}).");
                 return 0;
             },
             async ct =>
@@ -85,7 +86,8 @@ internal sealed class UpdateTemplateHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var template = await _client.UpdateTemplateHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Template '{template.Name}' updated (version: {template.Version}).");
+                _shell.DisplaySuccess(template, _hostOptions.OutputFormat,
+                    t => $"Template '{t.Name}' updated (version: {t.Version}).");
             },
             cancellationToken);
     }

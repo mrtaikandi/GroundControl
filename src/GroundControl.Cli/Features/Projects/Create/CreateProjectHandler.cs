@@ -35,10 +35,7 @@ internal sealed class CreateProjectHandler : ICommandHandler
             return 1;
         }
 
-        if (name is null)
-        {
-            name = await _shell.PromptForStringAsync("Project name:", cancellationToken: cancellationToken);
-        }
+        name ??= await _shell.PromptForStringAsync("Project name:", cancellationToken: cancellationToken);
 
         var description = _options.Description;
         if (description is null && !_hostOptions.NoInteractive)
@@ -86,7 +83,8 @@ internal sealed class CreateProjectHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Project '{project!.Name}' created (id: {project.Id}, version: {project.Version}).");
+        _shell.DisplaySuccess(project!, _hostOptions.OutputFormat,
+            p => $"Project '{p.Name}' created (id: {p.Id}, version: {p.Version}).");
         return 0;
     }
 
@@ -143,7 +141,7 @@ internal sealed class CreateProjectHandler : ICommandHandler
 
         var selected = await _shell.PromptForSelectionAsync(
             "Select group:",
-            (IReadOnlyCollection<GroupResponse>)groups,
+            groups,
             g => $"{g.Name} ({g.Id})",
             enableSearch: true,
             cancellationToken: cancellationToken);
@@ -187,7 +185,7 @@ internal sealed class CreateProjectHandler : ICommandHandler
 
         var selected = await _shell.PromptForMultiSelectionAsync(
             "Select templates:",
-            (IReadOnlyCollection<TemplateResponse>)templates,
+            templates,
             t => $"{t.Name} ({t.Id})",
             selectedChoices: [],
             cancellationToken: cancellationToken);

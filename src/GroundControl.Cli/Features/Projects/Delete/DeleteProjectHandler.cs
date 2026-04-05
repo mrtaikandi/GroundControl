@@ -61,7 +61,7 @@ internal sealed class DeleteProjectHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 await _client.DeleteProjectHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Project deleted.");
+                _shell.DisplaySuccess("Project deleted.", _hostOptions.OutputFormat);
                 return 0;
             },
             async ct =>
@@ -100,7 +100,7 @@ internal sealed class DeleteProjectHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 await _client.DeleteProjectHandlerAsync(_options.Id, ct);
-                _shell.DisplaySuccess("Project deleted.");
+                _shell.DisplaySuccess("Project deleted.", _hostOptions.OutputFormat);
             },
             cancellationToken);
     }

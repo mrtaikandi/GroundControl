@@ -53,7 +53,7 @@ internal sealed class RevokeTokenHandler : ICommandHandler
         try
         {
             await _client.RevokePatHandlerAsync(_options.Id, cancellationToken);
-            _shell.DisplaySuccess("Personal access token revoked.");
+            _shell.DisplaySuccess("Personal access token revoked.", _hostOptions.OutputFormat);
             return 0;
         }
         catch (GroundControlApiClientException<ProblemDetails> ex)

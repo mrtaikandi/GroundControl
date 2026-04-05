@@ -59,7 +59,8 @@ internal sealed class UpdateScopeHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var scope = await _client.UpdateScopeHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Scope '{scope.Dimension}' updated (version: {scope.Version}).");
+                _shell.DisplaySuccess(scope, _hostOptions.OutputFormat,
+                    s => $"Scope '{s.Dimension}' updated (version: {s.Version}).");
                 return 0;
             },
             async ct =>
@@ -93,7 +94,8 @@ internal sealed class UpdateScopeHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var scope = await _client.UpdateScopeHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Scope '{scope.Dimension}' updated (version: {scope.Version}).");
+                _shell.DisplaySuccess(scope, _hostOptions.OutputFormat,
+                    s => $"Scope '{s.Dimension}' updated (version: {s.Version}).");
             },
             cancellationToken);
     }

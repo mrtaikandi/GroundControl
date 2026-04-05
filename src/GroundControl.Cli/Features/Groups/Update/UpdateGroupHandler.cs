@@ -55,7 +55,8 @@ internal sealed class UpdateGroupHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(version);
                 var group = await _client.UpdateGroupHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Group '{group.Name}' updated (version: {group.Version}).");
+                _shell.DisplaySuccess(group, _hostOptions.OutputFormat,
+                    g => $"Group '{g.Name}' updated (version: {g.Version}).");
                 return 0;
             },
             async ct =>
@@ -79,7 +80,8 @@ internal sealed class UpdateGroupHandler : ICommandHandler
             {
                 GroundControlClient.SetIfMatch(newVersion);
                 var group = await _client.UpdateGroupHandlerAsync(_options.Id, request, ct);
-                _shell.DisplaySuccess($"Group '{group.Name}' updated (version: {group.Version}).");
+                _shell.DisplaySuccess(group, _hostOptions.OutputFormat,
+                    g => $"Group '{g.Name}' updated (version: {g.Version}).");
             },
             cancellationToken);
     }

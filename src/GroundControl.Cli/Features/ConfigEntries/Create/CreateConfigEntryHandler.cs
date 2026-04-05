@@ -58,10 +58,7 @@ internal sealed class CreateConfigEntryHandler : ICommandHandler
             return 1;
         }
 
-        if (key is null)
-        {
-            key = await _shell.PromptForStringAsync("Configuration key:", cancellationToken: cancellationToken);
-        }
+        key ??= await _shell.PromptForStringAsync("Configuration key:", cancellationToken: cancellationToken);
 
         if (ownerId is null)
         {
@@ -75,10 +72,7 @@ internal sealed class CreateConfigEntryHandler : ICommandHandler
             ownerType = Enum.Parse<ConfigEntryOwnerType>(ownerTypeStr, ignoreCase: true);
         }
 
-        if (valueType is null)
-        {
-            valueType = await _shell.PromptForStringAsync("Value type (e.g., String, Int32, Boolean):", cancellationToken: cancellationToken);
-        }
+        valueType ??= await _shell.PromptForStringAsync("Value type (e.g., String, Int32, Boolean):", cancellationToken: cancellationToken);
 
         var sensitive = _options.Sensitive;
         if (sensitive is null && !_hostOptions.NoInteractive)
@@ -138,7 +132,8 @@ internal sealed class CreateConfigEntryHandler : ICommandHandler
             return exitCode;
         }
 
-        _shell.DisplaySuccess($"Config entry '{entry!.Key}' created (id: {entry.Id}, version: {entry.Version}).");
+        _shell.DisplaySuccess(entry!, _hostOptions.OutputFormat,
+            e => $"Config entry '{e.Key}' created (id: {e.Id}, version: {e.Version}).");
         return 0;
     }
 
