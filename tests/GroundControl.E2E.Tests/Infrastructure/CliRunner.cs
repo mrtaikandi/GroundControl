@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
@@ -19,13 +20,10 @@ public sealed class CliRunner
         _apiBaseUrl = apiBaseUrl;
         _timeout = timeout ?? TimeSpan.FromSeconds(30);
 
-        // Resolve CLI project path relative to the repository root.
-        // The test assembly is at: artifacts/bin/GroundControl.E2E.Tests/<config>/<tfm>/
-        // Repository root is 5 levels up from the assembly location.
-        var assemblyDir = Path.GetDirectoryName(typeof(CliRunner).Assembly.Location)!;
-        var repoRoot = Path.GetFullPath(Path.Combine(assemblyDir, "..", "..", "..", "..", ".."));
-        _cliProjectPath = Path.Combine(repoRoot, "src", "GroundControl.Cli", "GroundControl.Cli.csproj");
+        var repoRoot = typeof(CliRunner).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(a => a.Key == "RepositoryRoot")?.Value
+            ?? throw new InvalidOperationException("RepositoryRoot assembly metadata not found.");
 
+        _cliProjectPath = Path.Combine(repoRoot, "src", "GroundControl.Cli", "GroundControl.Cli.csproj");
         if (!File.Exists(_cliProjectPath))
         {
             throw new FileNotFoundException(

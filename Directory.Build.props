@@ -8,7 +8,7 @@
         <UseArtifactsOutput>true</UseArtifactsOutput>
         <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
 
-        <RepositoryRoot>$(MSBuildThisFileDirectory).TrimEnd([System.IO]::DirectorySeparatorChar)</RepositoryRoot>
+        <RepositoryRoot>$([System.IO.Path]::TrimEndingDirectorySeparator($(MSBuildThisFileDirectory)))</RepositoryRoot>
     </PropertyGroup>
 
     <PropertyGroup Label="Code analysis">
