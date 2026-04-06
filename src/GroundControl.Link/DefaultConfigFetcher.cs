@@ -30,7 +30,7 @@ public sealed partial class DefaultConfigFetcher : IConfigFetcher
     }
 
     /// <inheritdoc />
-    public async Task<FetchResult?> FetchAsync(string? etag, CancellationToken cancellationToken = default)
+    public async Task<FetchResult> FetchAsync(string? etag, CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "/client/config");
         request.Headers.Add("Authorization", $"ApiKey {_options.ClientId}:{_options.ClientSecret}");
@@ -46,18 +46,25 @@ public sealed partial class DefaultConfigFetcher : IConfigFetcher
         if (response.StatusCode == HttpStatusCode.NotModified)
         {
             LogNotModified(_logger);
-            return new FetchResult
-            {
-                Config = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                ETag = etag,
-                NotModified = true
-            };
+            return new FetchResult { Status = FetchStatus.NotModified, ETag = etag };
+        }
+
+        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            LogAuthenticationFailed(_logger, (int)response.StatusCode);
+            return new FetchResult { Status = FetchStatus.AuthenticationError };
+        }
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            LogNotFound(_logger);
+            return new FetchResult { Status = FetchStatus.NotFound };
         }
 
         if (!response.IsSuccessStatusCode)
         {
             LogNonSuccessStatus(_logger, (int)response.StatusCode);
-            return null;
+            return new FetchResult { Status = FetchStatus.TransientError };
         }
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -68,9 +75,9 @@ public sealed partial class DefaultConfigFetcher : IConfigFetcher
 
         return new FetchResult
         {
+            Status = FetchStatus.Success,
             Config = config,
-            ETag = newEtag,
-            NotModified = false
+            ETag = newEtag
         };
     }
 
@@ -126,4 +133,10 @@ public sealed partial class DefaultConfigFetcher : IConfigFetcher
 
     [LoggerMessage(3, LogLevel.Warning, "REST fetch: non-success status code {StatusCode}.")]
     private static partial void LogNonSuccessStatus(ILogger logger, int statusCode);
+
+    [LoggerMessage(4, LogLevel.Error, "REST fetch: authentication failed with status code {StatusCode}.")]
+    private static partial void LogAuthenticationFailed(ILogger logger, int statusCode);
+
+    [LoggerMessage(5, LogLevel.Warning, "REST fetch: no active snapshot found (404).")]
+    private static partial void LogNotFound(ILogger logger);
 }

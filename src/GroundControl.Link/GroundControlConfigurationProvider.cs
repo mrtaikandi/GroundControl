@@ -204,7 +204,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         try
         {
             var result = await _configFetcher.FetchAsync(null, cancellationToken).ConfigureAwait(false);
-            if (result is { NotModified: false })
+            if (result.Status == FetchStatus.Success && result.Config is not null)
             {
                 ApplyConfig(result.Config);
                 _currentRestETag = result.ETag;
@@ -339,17 +339,32 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
                 await Task.Delay(AddJitter(_options.PollingInterval), cancellationToken).ConfigureAwait(false);
 
                 var result = await _configFetcher.FetchAsync(_currentRestETag, cancellationToken).ConfigureAwait(false);
-                if (result is { NotModified: false })
+
+                switch (result.Status)
                 {
-                    ApplyConfig(result.Config);
-                    _currentRestETag = result.ETag;
-                    LogPollingConfigUpdated(_logger);
-                    OnReload();
-                    await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    LogPollingNotModified(_logger);
+                    case FetchStatus.Success when result.Config is not null:
+                        ApplyConfig(result.Config);
+                        _currentRestETag = result.ETag;
+                        LogPollingConfigUpdated(_logger);
+                        OnReload();
+                        await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
+                        break;
+
+                    case FetchStatus.NotModified:
+                        LogPollingNotModified(_logger);
+                        break;
+
+                    case FetchStatus.AuthenticationError:
+                        LogAuthFailureStoppingPolling(_logger);
+                        return;
+
+                    case FetchStatus.NotFound:
+                        LogPollingNotFound(_logger);
+                        break;
+
+                    default:
+                        LogPollingFetchFailed(_logger, null);
+                        break;
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -457,7 +472,13 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     private static partial void LogPollingNotModified(ILogger logger);
 
     [LoggerMessage(12, LogLevel.Warning, "Polling fetch failed, will retry at next interval.")]
-    private static partial void LogPollingFetchFailed(ILogger logger, Exception exception);
+    private static partial void LogPollingFetchFailed(ILogger logger, Exception? exception);
+
+    [LoggerMessage(18, LogLevel.Error, "Authentication failed. Polling stopped permanently.")]
+    private static partial void LogAuthFailureStoppingPolling(ILogger logger);
+
+    [LoggerMessage(19, LogLevel.Debug, "Polling: no active snapshot (404).")]
+    private static partial void LogPollingNotFound(ILogger logger);
 
     [LoggerMessage(13, LogLevel.Debug, "Local cache updated.")]
     private static partial void LogCacheUpdated(ILogger logger);

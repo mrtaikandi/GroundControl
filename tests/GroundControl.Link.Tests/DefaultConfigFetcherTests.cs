@@ -42,7 +42,8 @@ public sealed class DefaultConfigFetcherTests : IDisposable
 
         // Assert
         result.ShouldNotBeNull();
-        result.NotModified.ShouldBeFalse();
+        result.Status.ShouldBe(FetchStatus.Success);
+        result.Config.ShouldNotBeNull();
         result.Config.Count.ShouldBe(2);
         result.Config["Key1"].ShouldBe("Value1");
         result.Config["Key2"].ShouldBe("Value2");
@@ -60,8 +61,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
 
         // Assert
         result.ShouldNotBeNull();
-        result.NotModified.ShouldBeTrue();
-        result.Config.ShouldBeEmpty();
+        result.Status.ShouldBe(FetchStatus.NotModified);
         result.ETag.ShouldBe("v1");
     }
 
@@ -124,7 +124,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_NonSuccessStatusCode_ReturnsNull()
+    public async Task FetchAsync_NonSuccessStatusCode_ReturnsTransientError()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.InternalServerError);
@@ -133,7 +133,50 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
-        result.ShouldBeNull();
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe(FetchStatus.TransientError);
+    }
+
+    [Fact]
+    public async Task FetchAsync_Unauthorized_ReturnsAuthenticationError()
+    {
+        // Arrange
+        _handler.SetResponse(HttpStatusCode.Unauthorized);
+
+        // Act
+        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe(FetchStatus.AuthenticationError);
+    }
+
+    [Fact]
+    public async Task FetchAsync_Forbidden_ReturnsAuthenticationError()
+    {
+        // Arrange
+        _handler.SetResponse(HttpStatusCode.Forbidden);
+
+        // Act
+        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe(FetchStatus.AuthenticationError);
+    }
+
+    [Fact]
+    public async Task FetchAsync_NotFound_ReturnsNotFound()
+    {
+        // Arrange
+        _handler.SetResponse(HttpStatusCode.NotFound);
+
+        // Act
+        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Status.ShouldBe(FetchStatus.NotFound);
     }
 
     [Fact]
