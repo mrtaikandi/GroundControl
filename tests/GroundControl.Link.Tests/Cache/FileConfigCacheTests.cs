@@ -76,15 +76,15 @@ public sealed class FileConfigCacheTests : IDisposable
         };
 
         // Act
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
-        result.Count.ShouldBe(3);
-        result["Logging:LogLevel:Default"].ShouldBe("Warning");
-        result["Database:Host"].ShouldBe("localhost");
-        result["FeatureFlags:DarkMode"].ShouldBe("true");
+        result.Entries.Count.ShouldBe(3);
+        result.Entries["Logging:LogLevel:Default"].ShouldBe("Warning");
+        result.Entries["Database:Host"].ShouldBe("localhost");
+        result.Entries["FeatureFlags:DarkMode"].ShouldBe("true");
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public sealed class FileConfigCacheTests : IDisposable
         var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
 
         // Act
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Assert
         File.Exists(_cachePath).ShouldBeTrue();
@@ -111,7 +111,7 @@ public sealed class FileConfigCacheTests : IDisposable
         var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
 
         // Act
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Assert
         File.Exists(nestedPath).ShouldBeTrue();
@@ -126,15 +126,15 @@ public sealed class FileConfigCacheTests : IDisposable
         var config2 = new Dictionary<string, string> { ["Key1"] = "Updated", ["Key2"] = "New" };
 
         // Act
-        await cache.SaveAsync(config1, TestContext.Current.CancellationToken);
-        await cache.SaveAsync(config2, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config1 }, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config2 }, TestContext.Current.CancellationToken);
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
-        result.Count.ShouldBe(2);
-        result["Key1"].ShouldBe("Updated");
-        result["Key2"].ShouldBe("New");
+        result.Entries.Count.ShouldBe(2);
+        result.Entries["Key1"].ShouldBe("Updated");
+        result.Entries["Key2"].ShouldBe("New");
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public sealed class FileConfigCacheTests : IDisposable
         var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
 
         // Act
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Assert
         var rawJson = await File.ReadAllTextAsync(_cachePath, TestContext.Current.CancellationToken);
@@ -167,13 +167,13 @@ public sealed class FileConfigCacheTests : IDisposable
         };
 
         // Act
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
-        result["Secret"].ShouldBe("my-password");
-        result["ApiKey"].ShouldBe("abc-123");
+        result.Entries["Secret"].ShouldBe("my-password");
+        result.Entries["ApiKey"].ShouldBe("abc-123");
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public sealed class FileConfigCacheTests : IDisposable
         var config = new Dictionary<string, string> { ["Key1"] = "plaintext-value" };
 
         // Act
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Assert
         var rawJson = await File.ReadAllTextAsync(_cachePath, TestContext.Current.CancellationToken);
@@ -199,7 +199,7 @@ public sealed class FileConfigCacheTests : IDisposable
         var (provider, _) = CreateMockDataProtection();
         using var encryptedCache = CreateCache(dataProtection: provider);
         var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
-        await encryptedCache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await encryptedCache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Act — read without DataProtection
         using var plainCache = CreateCache();
@@ -218,7 +218,7 @@ public sealed class FileConfigCacheTests : IDisposable
         var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
 
         // Act
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Assert
         File.Exists(customPath).ShouldBeTrue();
@@ -236,7 +236,7 @@ public sealed class FileConfigCacheTests : IDisposable
         {
             var index = i;
             tasks.Add(cache.SaveAsync(
-                new Dictionary<string, string> { ["Key"] = $"Value{index}" },
+                new CachedConfiguration { Entries = new Dictionary<string, string> { ["Key"] = $"Value{index}" } },
                 TestContext.Current.CancellationToken));
         }
 
@@ -245,8 +245,8 @@ public sealed class FileConfigCacheTests : IDisposable
         // Assert — the file should be readable and contain a valid config
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
         result.ShouldNotBeNull();
-        result.ShouldContainKey("Key");
-        result["Key"].ShouldStartWith("Value");
+        result.Entries.ShouldContainKey("Key");
+        result.Entries["Key"].ShouldStartWith("Value");
     }
 
     [Fact]
@@ -257,7 +257,7 @@ public sealed class FileConfigCacheTests : IDisposable
         var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
 
         // Act
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Assert
         var rawJson = await File.ReadAllTextAsync(_cachePath, TestContext.Current.CancellationToken);
@@ -270,15 +270,15 @@ public sealed class FileConfigCacheTests : IDisposable
         // Arrange
         using var cache = CreateCache();
         var config = new Dictionary<string, string> { ["MyKey"] = "Value" };
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Act
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
-        result["mykey"].ShouldBe("Value");
-        result["MYKEY"].ShouldBe("Value");
+        result.Entries["mykey"].ShouldBe("Value");
+        result.Entries["MYKEY"].ShouldBe("Value");
     }
 
     private FileConfigCache CreateCache(string? cachePath = null, IDataProtectionProvider? dataProtection = null) =>

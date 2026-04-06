@@ -52,7 +52,7 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
 
     /// <inheritdoc />
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Graceful degradation: corrupted or unreadable cache is treated as a cache miss")]
-    public async Task<IReadOnlyDictionary<string, string>?> LoadAsync(CancellationToken cancellationToken = default)
+    public async Task<CachedConfiguration?> LoadAsync(CancellationToken cancellationToken = default)
     {
         if (!File.Exists(_cachePath))
         {
@@ -91,7 +91,11 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
             }
 
             LogCacheLoaded(_logger);
-            return result;
+            return new CachedConfiguration
+            {
+                Entries = result,
+                ETag = cacheFile.ETag,
+            };
         }
         catch (Exception ex)
         {
@@ -102,7 +106,7 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
 
     /// <inheritdoc />
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Best-effort temp file cleanup should not mask the original exception")]
-    public async Task SaveAsync(IReadOnlyDictionary<string, string> config, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(CachedConfiguration config, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(config);
 
@@ -112,9 +116,9 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
             Directory.CreateDirectory(directory);
         }
 
-        var entries = new Dictionary<string, string>(config.Count, StringComparer.OrdinalIgnoreCase);
+        var entries = new Dictionary<string, string>(config.Entries.Count, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (key, value) in config)
+        foreach (var (key, value) in config.Entries)
         {
             entries[key] = _protector is not null
                 ? EncryptedPrefix + _protector.Protect(value)
@@ -124,6 +128,7 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
         var cacheFile = new CacheEnvelope
         {
             Timestamp = DateTimeOffset.UtcNow,
+            ETag = config.ETag,
             Entries = entries
         };
 
@@ -172,9 +177,7 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
 
     internal sealed class CacheEnvelope
     {
-        public Guid? SnapshotId { get; init; }
-
-        public long? SnapshotVersion { get; init; }
+        public string? ETag { get; init; }
 
         public DateTimeOffset Timestamp { get; init; }
 

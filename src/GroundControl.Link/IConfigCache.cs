@@ -10,12 +10,28 @@ public interface IConfigCache
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>The cached configuration, or <c>null</c> if no cache is available.</returns>
-    Task<IReadOnlyDictionary<string, string>?> LoadAsync(CancellationToken cancellationToken = default);
+    Task<CachedConfiguration?> LoadAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves configuration to the local store.
     /// </summary>
-    /// <param name="config">The configuration entries to cache.</param>
+    /// <param name="config">The configuration to cache.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
-    Task SaveAsync(IReadOnlyDictionary<string, string> config, CancellationToken cancellationToken = default);
+    Task SaveAsync(CachedConfiguration config, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Represents cached configuration data with optional snapshot metadata.
+/// </summary>
+public sealed record CachedConfiguration
+{
+    /// <summary>
+    /// Gets the configuration entries as key-value pairs.
+    /// </summary>
+    public required IReadOnlyDictionary<string, string> Entries { get; init; }
+
+    /// <summary>
+    /// Gets the REST ETag for conditional requests.
+    /// </summary>
+    public string? ETag { get; init; }
 }

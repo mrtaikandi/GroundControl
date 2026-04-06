@@ -32,7 +32,7 @@ public sealed class SdkFallbackTests : IDisposable
             ["app.version"] = "1.0.0"
         };
 
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         var options = new GroundControlOptions
         {
@@ -92,7 +92,7 @@ public sealed class SdkFallbackTests : IDisposable
         var cachePath = Path.Combine(_cacheDir, "polling-fallback.cache.json");
         using var cache = CreateFileConfigCache(cachePath);
         var config = new Dictionary<string, string> { ["key1"] = "cached-value" };
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         var options = new GroundControlOptions
         {
@@ -123,7 +123,7 @@ public sealed class SdkFallbackTests : IDisposable
         var cachePath = Path.Combine(_cacheDir, "sse-only-fallback.cache.json");
         using var cache = CreateFileConfigCache(cachePath);
         var config = new Dictionary<string, string> { ["key1"] = "sse-cached" };
-        await cache.SaveAsync(config, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         var options = new GroundControlOptions
         {

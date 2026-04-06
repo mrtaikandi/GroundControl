@@ -296,7 +296,8 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             var cached = await _configCache.LoadAsync(cancellationToken).ConfigureAwait(false);
             if (cached is not null)
             {
-                ApplyConfig(cached);
+                ApplyConfig(cached.Entries);
+                _currentRestETag = cached.ETag;
                 LogCacheConfigLoaded(_logger);
             }
         }
@@ -478,7 +479,13 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
                 }
             }
 
-            await _configCache.SaveAsync(snapshot, cancellationToken).ConfigureAwait(false);
+            var cached = new CachedConfiguration
+            {
+                Entries = snapshot,
+                ETag = _currentRestETag,
+            };
+
+            await _configCache.SaveAsync(cached, cancellationToken).ConfigureAwait(false);
             LogCacheUpdated(_logger);
         }
         catch (Exception ex)
