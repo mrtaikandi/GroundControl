@@ -27,14 +27,14 @@ public abstract class SdkIntegrationTestBase
     /// </summary>
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; SSE client and provider are disposed by test via using")]
     protected static GroundControlConfigurationProvider CreateSdkProvider(
-        HttpClient serverHttpClient,
+        HttpMessageHandler serverHandler,
         Guid clientId,
         string clientSecret,
         GroundControlOptions? optionsOverride = null)
     {
         var options = optionsOverride ?? new GroundControlOptions
         {
-            ServerUrl = serverHttpClient.BaseAddress!.ToString(),
+            ServerUrl = "http://localhost",
             ClientId = clientId.ToString(),
             ClientSecret = clientSecret,
             StartupTimeout = TimeSpan.FromSeconds(10),
@@ -43,8 +43,11 @@ public abstract class SdkIntegrationTestBase
             EnableLocalCache = false,
         };
 
-        var sseClient = new DefaultSseClient(serverHttpClient, options, NullLogger<DefaultSseClient>.Instance);
-        var configFetcher = new DefaultConfigFetcher(serverHttpClient, options, NullLogger<DefaultConfigFetcher>.Instance);
+        var authHandler = new GroundControlAuthHandler(options) { InnerHandler = serverHandler };
+        var httpClient = new HttpClient(authHandler, disposeHandler: false);
+
+        var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
+        var configFetcher = new DefaultConfigFetcher(httpClient, options, NullLogger<DefaultConfigFetcher>.Instance);
         IConfigCache configCache = options.EnableLocalCache
             ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
             : NullConfigCache.Instance;
@@ -54,6 +57,7 @@ public abstract class SdkIntegrationTestBase
             sseClient,
             configFetcher,
             configCache,
-            NullLogger<GroundControlConfigurationProvider>.Instance);
+            NullLogger<GroundControlConfigurationProvider>.Instance,
+            httpClient);
     }
 }

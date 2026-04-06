@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.ServerSentEvents;
 
 namespace GroundControl.Link;
@@ -51,8 +52,6 @@ public sealed partial class DefaultSseClient : ISseClient
         heartbeatCts.CancelAfter(_options.SseHeartbeatTimeout);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/client/config/stream");
-        request.Headers.Add("Authorization", $"ApiKey {_options.ClientId}:{_options.ClientSecret}");
-        request.Headers.Add("api-version", _options.ApiVersion);
         request.Headers.Accept.Add(
             new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/event-stream"));
 
@@ -100,8 +99,12 @@ public sealed partial class DefaultSseClient : ISseClient
         return ValueTask.CompletedTask;
     }
 
-    private static HttpClient CreateHttpClient(GroundControlOptions options) =>
-        new() { BaseAddress = new Uri(options.ServerUrl) };
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Handler is owned and disposed by HttpClient")]
+    private static HttpClient CreateHttpClient(GroundControlOptions options)
+    {
+        var handler = new GroundControlAuthHandler(options) { InnerHandler = new HttpClientHandler() };
+        return new HttpClient(handler) { BaseAddress = new Uri(options.ServerUrl) };
+    }
 
     [LoggerMessage(1, LogLevel.Debug, "SSE event received: type={EventType}, id={EventId}.")]
     private static partial void LogEventReceived(ILogger logger, string eventType, string? eventId);

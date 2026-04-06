@@ -33,8 +33,6 @@ public sealed partial class DefaultConfigFetcher : IConfigFetcher
     public async Task<FetchResult> FetchAsync(string? etag, CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "/client/config");
-        request.Headers.Add("Authorization", $"ApiKey {_options.ClientId}:{_options.ClientSecret}");
-        request.Headers.Add("api-version", _options.ApiVersion);
 
         if (etag is not null)
         {

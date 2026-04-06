@@ -1,28 +1,30 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
 
 namespace GroundControl.Link.Tests;
 
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
 public sealed class DefaultConfigFetcherTests : IDisposable
 {
     private readonly MockHandler _handler;
     private readonly HttpClient _httpClient;
     private readonly DefaultConfigFetcher _fetcher;
 
+    private static readonly GroundControlOptions TestOptions = new()
+    {
+        ServerUrl = "http://localhost",
+        ClientId = "test-client",
+        ClientSecret = "test-secret",
+        ApiVersion = "1.0"
+    };
+
     public DefaultConfigFetcherTests()
     {
         _handler = new MockHandler();
-        _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("http://localhost") };
-        _fetcher = new DefaultConfigFetcher(
-            _httpClient,
-            new GroundControlOptions
-            {
-                ServerUrl = "http://localhost",
-                ClientId = "test-client",
-                ClientSecret = "test-secret",
-                ApiVersion = "1.0"
-            },
-            NullLogger<DefaultConfigFetcher>.Instance);
+        var authHandler = new GroundControlAuthHandler(TestOptions) { InnerHandler = _handler };
+        _httpClient = new HttpClient(authHandler) { BaseAddress = new Uri("http://localhost") };
+        _fetcher = new DefaultConfigFetcher(_httpClient, TestOptions, NullLogger<DefaultConfigFetcher>.Instance);
     }
 
     public void Dispose()
