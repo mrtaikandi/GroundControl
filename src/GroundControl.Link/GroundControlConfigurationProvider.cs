@@ -205,10 +205,10 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
                     continue;
                 }
 
-                var config = ParseConfigData(sseEvent.Data);
+                var (config, snapshotVersion) = ParseConfigDataWithVersion(sseEvent.Data);
                 ApplyConfig(config);
-                Volatile.Write(ref _lastSseEventId, sseEvent.Id);
-                Volatile.Write(ref _currentRestETag, ParseSnapshotVersion(sseEvent.Data));
+                _lastSseEventId = sseEvent.Id;
+                _currentRestETag = snapshotVersion;
 
                 if (!firstConfigReceived.Task.IsCompleted)
                 {
@@ -263,7 +263,7 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
             if (result is { Status: FetchStatus.Success, Config: not null })
             {
                 ApplyConfig(result.Config);
-                Volatile.Write(ref _currentRestETag, result.ETag);
+                _currentRestETag = result.ETag;
                 LogRestConfigLoaded(_logger);
                 await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
                 return true;
@@ -286,7 +286,7 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
             if (cached is not null)
             {
                 ApplyConfig(cached.Entries);
-                Volatile.Write(ref _currentRestETag, cached.ETag);
+                _currentRestETag = cached.ETag;
                 LogCacheConfigLoaded(_logger);
             }
         }
@@ -395,13 +395,13 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
             {
                 await Task.Delay(AddJitter(_options.PollingInterval), cancellationToken).ConfigureAwait(false);
 
-                var result = await _configFetcher.FetchAsync(Volatile.Read(ref _currentRestETag), cancellationToken).ConfigureAwait(false);
+                var result = await _configFetcher.FetchAsync(_currentRestETag, cancellationToken).ConfigureAwait(false);
 
                 switch (result.Status)
                 {
                     case FetchStatus.Success when result.Config is not null:
                         ApplyConfig(result.Config);
-                        Volatile.Write(ref _currentRestETag, result.ETag);
+                        _currentRestETag = result.ETag;
                         LogPollingConfigUpdated(_logger);
                         OnReload();
                         await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
@@ -442,6 +442,13 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
         return TimeSpan.FromMilliseconds(Math.Max(baseDelay.TotalMilliseconds * jitterFactor, 100));
     }
 
+    private void ApplyConfig(Dictionary<string, string> config)
+    {
+        // FlattenJson already produces OrdinalIgnoreCase dictionaries,
+        // so we can use it directly as the Data backing store.
+        Data = config!;
+    }
+
     private void ApplyConfig(IReadOnlyDictionary<string, string> config)
     {
         var data = new Dictionary<string, string?>(config.Count, StringComparer.OrdinalIgnoreCase);
@@ -471,7 +478,7 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
             var cached = new CachedConfiguration
             {
                 Entries = snapshot,
-                ETag = Volatile.Read(ref _currentRestETag),
+                ETag = _currentRestETag,
             };
 
             await _configCache.SaveAsync(cached, cancellationToken).ConfigureAwait(false);
@@ -483,18 +490,23 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
         }
     }
 
-    internal static IReadOnlyDictionary<string, string> ParseConfigData(string json) =>
-        Internals.DefaultConfigFetcher.FlattenJson(json);
-
-    internal static string? ParseSnapshotVersion(string json)
+    internal static (Dictionary<string, string> Config, string? SnapshotVersion) ParseConfigDataWithVersion(string json)
     {
         using var doc = JsonDocument.Parse(json);
-        if (doc.RootElement.TryGetProperty("snapshotVersion", out var version))
+        var config = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        if (doc.RootElement.TryGetProperty("data", out var data))
         {
-            return version.GetInt64().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            DefaultConfigFetcher.FlattenElement(data, string.Empty, config);
         }
 
-        return null;
+        string? snapshotVersion = null;
+        if (doc.RootElement.TryGetProperty("snapshotVersion", out var version))
+        {
+            snapshotVersion = version.GetInt64().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        return (config, snapshotVersion);
     }
 
     // --- LoggerMessage definitions ---

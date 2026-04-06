@@ -248,31 +248,33 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
     }
 
     [Fact]
-    public void ParseConfigData_ValidJson_ReturnsEntries()
+    public void ParseConfigDataWithVersion_ValidJson_ReturnsEntriesAndVersion()
     {
         // Arrange
         var json = CreateConfigJson(("Key1", "Value1"), ("Key2", "Value2"));
 
         // Act
-        var result = GroundControlConfigurationProvider.ParseConfigData(json);
+        var (config, snapshotVersion) = GroundControlConfigurationProvider.ParseConfigDataWithVersion(json);
 
         // Assert
-        result.Count.ShouldBe(2);
-        result["Key1"].ShouldBe("Value1");
-        result["Key2"].ShouldBe("Value2");
+        config.Count.ShouldBe(2);
+        config["Key1"].ShouldBe("Value1");
+        config["Key2"].ShouldBe("Value2");
+        snapshotVersion.ShouldBe("1");
     }
 
     [Fact]
-    public void ParseConfigData_NoEntriesProperty_ReturnsEmpty()
+    public void ParseConfigDataWithVersion_NoEntriesProperty_ReturnsEmpty()
     {
         // Arrange
         var json = "{}";
 
         // Act
-        var result = GroundControlConfigurationProvider.ParseConfigData(json);
+        var (config, snapshotVersion) = GroundControlConfigurationProvider.ParseConfigDataWithVersion(json);
 
         // Assert
-        result.Count.ShouldBe(0);
+        config.Count.ShouldBe(0);
+        snapshotVersion.ShouldBeNull();
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
