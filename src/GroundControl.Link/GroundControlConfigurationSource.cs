@@ -22,23 +22,33 @@ public sealed class GroundControlConfigurationSource : IConfigurationSource
     /// <inheritdoc />
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
-        var logger = (_options.LoggerFactory ?? NullLoggerFactory.Instance)
-            .CreateLogger<GroundControlConfigurationProvider>();
+        var loggerFactory = _options.LoggerFactory ?? NullLoggerFactory.Instance;
 
-        // Concrete implementations will be provided by T043 (DefaultSseClient),
-        // T044 (DefaultConfigFetcher), and T045 (FileConfigCache).
-        ISseClient sseClient = NoOpSseClient.Instance;
-        IConfigFetcher configFetcher = NoOpConfigFetcher.Instance;
-        IConfigCache configCache = NullConfigCache.Instance;
+        var httpClient = new HttpClient { BaseAddress = new Uri(_options.ServerUrl) };
 
-        return new GroundControlConfigurationProvider(_options, sseClient, configFetcher, configCache, logger);
+        ISseClient sseClient = _options.ConnectionMode == ConnectionMode.Polling
+            ? NoOpSseClient.Instance
+            : new DefaultSseClient(httpClient, _options, loggerFactory.CreateLogger<DefaultSseClient>());
+
+        IConfigFetcher configFetcher = new DefaultConfigFetcher(
+            httpClient, _options, loggerFactory.CreateLogger<DefaultConfigFetcher>());
+
+        IConfigCache configCache = _options.EnableLocalCache
+            ? new FileConfigCache(_options, loggerFactory.CreateLogger<FileConfigCache>())
+            : NullConfigCache.Instance;
+
+        return new GroundControlConfigurationProvider(
+            _options, sseClient, configFetcher, configCache,
+            loggerFactory.CreateLogger<GroundControlConfigurationProvider>(),
+            httpClient);
     }
 
-    private sealed class NoOpSseClient : ISseClient
+    internal sealed class NoOpSseClient : ISseClient
     {
         public static NoOpSseClient Instance { get; } = new();
 
-        public async IAsyncEnumerable<SseEvent> StreamAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<SseEvent> StreamAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await Task.CompletedTask.ConfigureAwait(false);
             yield break;
@@ -47,7 +57,7 @@ public sealed class GroundControlConfigurationSource : IConfigurationSource
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    private sealed class NoOpConfigFetcher : IConfigFetcher
+    internal sealed class NoOpConfigFetcher : IConfigFetcher
     {
         public static NoOpConfigFetcher Instance { get; } = new();
 

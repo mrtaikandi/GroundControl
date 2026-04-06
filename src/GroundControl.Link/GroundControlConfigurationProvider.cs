@@ -13,6 +13,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     private readonly IConfigFetcher _configFetcher;
     private readonly IConfigCache _configCache;
     private readonly ILogger<GroundControlConfigurationProvider> _logger;
+    private readonly HttpClient? _ownedHttpClient;
     private CancellationTokenSource _cts = new();
     private CancellationTokenSource? _sseCts;
     private string? _currentETag;
@@ -27,18 +28,21 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     /// <param name="configFetcher">The REST fetcher for polling.</param>
     /// <param name="configCache">The local cache for offline fallback.</param>
     /// <param name="logger">The logger instance.</param>
+    /// <param name="ownedHttpClient">An optional <see cref="HttpClient"/> owned by this provider for disposal.</param>
     public GroundControlConfigurationProvider(
         GroundControlOptions options,
         ISseClient sseClient,
         IConfigFetcher configFetcher,
         IConfigCache configCache,
-        ILogger<GroundControlConfigurationProvider> logger)
+        ILogger<GroundControlConfigurationProvider> logger,
+        HttpClient? ownedHttpClient = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _sseClient = sseClient ?? throw new ArgumentNullException(nameof(sseClient));
         _configFetcher = configFetcher ?? throw new ArgumentNullException(nameof(configFetcher));
         _configCache = configCache ?? throw new ArgumentNullException(nameof(configCache));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _ownedHttpClient = ownedHttpClient;
     }
 
     /// <inheritdoc />
@@ -65,6 +69,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         _sseCts?.Cancel();
 
         _sseClient.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        _ownedHttpClient?.Dispose();
 
         _sseCts?.Dispose();
         _cts.Dispose();
