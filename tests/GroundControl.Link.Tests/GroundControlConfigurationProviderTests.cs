@@ -74,7 +74,11 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
         _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new FetchResult { Status = FetchStatus.TransientError });
 
-        var cachedConfig = new Dictionary<string, string> { ["Key1"] = "FromCache" };
+        var cachedConfig = new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" }
+        };
+
         _configCache.LoadAsync(Arg.Any<CancellationToken>())
             .Returns(cachedConfig);
 
@@ -98,7 +102,11 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
         _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
 
-        var cachedConfig = new Dictionary<string, string> { ["Key1"] = "FromCache" };
+        var cachedConfig = new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" }
+        };
+
         _configCache.LoadAsync(Arg.Any<CancellationToken>())
             .Returns(cachedConfig);
 
@@ -161,7 +169,7 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
         // Assert — give background task a moment to save cache
         Thread.Sleep(100);
         _configCache.Received().SaveAsync(
-            Arg.Is<IReadOnlyDictionary<string, string>>(d => d.ContainsKey("Key1")),
+            Arg.Is<CachedConfiguration>(c => c.Entries.ContainsKey("Key1")),
             Arg.Any<CancellationToken>());
     }
 

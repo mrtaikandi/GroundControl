@@ -11,10 +11,10 @@ internal sealed class NullConfigCache : IConfigCache
     public static NullConfigCache Instance { get; } = new();
 
     /// <inheritdoc />
-    public Task<IReadOnlyDictionary<string, string>?> LoadAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyDictionary<string, string>?>(null);
+    public Task<CachedConfiguration?> LoadAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<CachedConfiguration?>(null);
 
     /// <inheritdoc />
-    public Task SaveAsync(IReadOnlyDictionary<string, string> config, CancellationToken cancellationToken = default) =>
+    public Task SaveAsync(CachedConfiguration config, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 }
