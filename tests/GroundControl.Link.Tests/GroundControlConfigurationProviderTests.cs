@@ -46,9 +46,9 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
 
         var fetchResult = new FetchResult
         {
+            Status = FetchStatus.Success,
             Config = new Dictionary<string, string> { ["Key1"] = "FromRest" },
-            ETag = "\"v1\"",
-            NotModified = false
+            ETag = "\"v1\""
         };
 
         _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
@@ -72,7 +72,7 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
             .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
 
         _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns((FetchResult?)null);
+            .Returns(new FetchResult { Status = FetchStatus.TransientError });
 
         var cachedConfig = new Dictionary<string, string> { ["Key1"] = "FromCache" };
         _configCache.LoadAsync(Arg.Any<CancellationToken>())
@@ -171,9 +171,9 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
         // Arrange
         var fetchResult = new FetchResult
         {
+            Status = FetchStatus.Success,
             Config = new Dictionary<string, string> { ["Key1"] = "FromRest" },
-            ETag = "\"v1\"",
-            NotModified = false
+            ETag = "\"v1\""
         };
 
         _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
