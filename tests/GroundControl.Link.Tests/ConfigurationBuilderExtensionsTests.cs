@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+
 namespace GroundControl.Link.Tests;
 
 public sealed class ConfigurationBuilderExtensionsTests
@@ -21,64 +23,64 @@ public sealed class ConfigurationBuilderExtensionsTests
     }
 
     [Fact]
-    public void AddGroundControl_MissingServerUrl_ThrowsArgumentException()
+    public void AddGroundControl_MissingServerUrl_ThrowsOptionsValidationException()
     {
         // Arrange
         var builder = new ConfigurationBuilder();
 
         // Act & Assert
-        var ex = Should.Throw<ArgumentException>(() =>
+        var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
                 options.ClientId = "test-client";
                 options.ClientSecret = "test-secret";
             }));
 
-        ex.ParamName.ShouldBe("ServerUrl");
+        ex.Failures.ShouldContain(f => f.Contains("ServerUrl"));
     }
 
     [Fact]
-    public void AddGroundControl_MissingClientId_ThrowsArgumentException()
+    public void AddGroundControl_MissingClientId_ThrowsOptionsValidationException()
     {
         // Arrange
         var builder = new ConfigurationBuilder();
 
         // Act & Assert
-        var ex = Should.Throw<ArgumentException>(() =>
+        var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
                 options.ServerUrl = "https://test.example.com";
                 options.ClientSecret = "test-secret";
             }));
 
-        ex.ParamName.ShouldBe("ClientId");
+        ex.Failures.ShouldContain(f => f.Contains("ClientId"));
     }
 
     [Fact]
-    public void AddGroundControl_MissingClientSecret_ThrowsArgumentException()
+    public void AddGroundControl_MissingClientSecret_ThrowsOptionsValidationException()
     {
         // Arrange
         var builder = new ConfigurationBuilder();
 
         // Act & Assert
-        var ex = Should.Throw<ArgumentException>(() =>
+        var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
                 options.ServerUrl = "https://test.example.com";
                 options.ClientId = "test-client";
             }));
 
-        ex.ParamName.ShouldBe("ClientSecret");
+        ex.Failures.ShouldContain(f => f.Contains("ClientSecret"));
     }
 
     [Fact]
-    public void AddGroundControl_WhitespaceServerUrl_ThrowsArgumentException()
+    public void AddGroundControl_WhitespaceServerUrl_ThrowsOptionsValidationException()
     {
         // Arrange
         var builder = new ConfigurationBuilder();
 
         // Act & Assert
-        Should.Throw<ArgumentException>(() =>
+        Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
                 options.ServerUrl = "   ";
@@ -120,13 +122,13 @@ public sealed class ConfigurationBuilderExtensionsTests
     [InlineData(nameof(GroundControlOptions.PollingInterval))]
     [InlineData(nameof(GroundControlOptions.SseHeartbeatTimeout))]
     [InlineData(nameof(GroundControlOptions.SseReconnectDelay))]
-    public void AddGroundControl_ZeroTimeSpan_ThrowsArgumentException(string propertyName)
+    public void AddGroundControl_ZeroTimeSpan_ThrowsOptionsValidationException(string propertyName)
     {
         // Arrange
         var builder = new ConfigurationBuilder();
 
         // Act & Assert
-        var ex = Should.Throw<ArgumentException>(() =>
+        var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
                 options.ServerUrl = "https://test.example.com";
@@ -135,17 +137,17 @@ public sealed class ConfigurationBuilderExtensionsTests
                 typeof(GroundControlOptions).GetProperty(propertyName)!.SetValue(options, TimeSpan.Zero);
             }));
 
-        ex.ParamName.ShouldBe(propertyName);
+        ex.Failures.ShouldContain(f => f.Contains(propertyName));
     }
 
     [Fact]
-    public void AddGroundControl_SseMaxReconnectDelayLessThanReconnectDelay_ThrowsArgumentException()
+    public void AddGroundControl_SseMaxReconnectDelayLessThanReconnectDelay_ThrowsOptionsValidationException()
     {
         // Arrange
         var builder = new ConfigurationBuilder();
 
         // Act & Assert
-        var ex = Should.Throw<ArgumentException>(() =>
+        var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
                 options.ServerUrl = "https://test.example.com";
@@ -155,6 +157,6 @@ public sealed class ConfigurationBuilderExtensionsTests
                 options.SseMaxReconnectDelay = TimeSpan.FromSeconds(5);
             }));
 
-        ex.ParamName.ShouldBe(nameof(GroundControlOptions.SseMaxReconnectDelay));
+        ex.Failures.ShouldContain(f => f.Contains(nameof(GroundControlOptions.SseMaxReconnectDelay)));
     }
 }

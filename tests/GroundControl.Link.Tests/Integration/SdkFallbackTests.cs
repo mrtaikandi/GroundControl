@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests.Integration;
 
@@ -189,14 +190,15 @@ public sealed class SdkFallbackTests : IDisposable
     private static GroundControlConfigurationProvider CreateProviderWithUnreachableServer(GroundControlOptions options)
     {
         // Use the public constructor so the SSE client creates and owns its own HttpClient
-        var sseClient = new DefaultSseClient(options, NullLogger<DefaultSseClient>.Instance);
-        var fetcherHttpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl) };
-        var configFetcher = new DefaultConfigFetcher(fetcherHttpClient, options, NullLogger<DefaultConfigFetcher>.Instance);
+        var httpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl) };
+        var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
+        var configFetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
         IConfigCache configCache = options.EnableLocalCache
             ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
             : NullConfigCache.Instance;
 
         return new GroundControlConfigurationProvider(
+            httpClient,
             options,
             sseClient,
             configFetcher,

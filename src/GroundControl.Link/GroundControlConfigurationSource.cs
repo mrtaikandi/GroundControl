@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
+using GroundControl.Link.Internals;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GroundControl.Link;
@@ -7,7 +9,7 @@ namespace GroundControl.Link;
 /// An <see cref="IConfigurationSource"/> that creates a <see cref="GroundControlConfigurationProvider"/>
 /// for loading configuration from a GroundControl server.
 /// </summary>
-public sealed class GroundControlConfigurationSource : IConfigurationSource
+internal sealed class GroundControlConfigurationSource : IConfigurationSource
 {
     private readonly GroundControlOptions _options;
 
@@ -21,43 +23,32 @@ public sealed class GroundControlConfigurationSource : IConfigurationSource
     }
 
     /// <inheritdoc />
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Handler is owned and disposed by HttpClient; HttpClient is owned by the provider")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient is owned by the provider")]
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
         var loggerFactory = _options.LoggerFactory ?? NullLoggerFactory.Instance;
 
-        var handler = new GroundControlAuthHandler(_options) { InnerHandler = new HttpClientHandler() };
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri(_options.ServerUrl) };
+        var httpClient = new HttpClient { BaseAddress = new Uri(_options.ServerUrl) };
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{_options.ClientId}:{_options.ClientSecret}");
+        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, _options.ApiVersion);
 
         ISseClient sseClient = _options.ConnectionMode == ConnectionMode.Polling
             ? NoOpSseClient.Instance
             : new DefaultSseClient(httpClient, _options, loggerFactory.CreateLogger<DefaultSseClient>());
 
         IConfigFetcher configFetcher = new DefaultConfigFetcher(
-            httpClient, _options, loggerFactory.CreateLogger<DefaultConfigFetcher>());
+            httpClient, loggerFactory.CreateLogger<DefaultConfigFetcher>());
 
         IConfigCache configCache = _options.EnableLocalCache
             ? new FileConfigCache(_options, loggerFactory.CreateLogger<FileConfigCache>())
             : NullConfigCache.Instance;
 
         return new GroundControlConfigurationProvider(
-            _options, sseClient, configFetcher, configCache,
-            loggerFactory.CreateLogger<GroundControlConfigurationProvider>(),
-            httpClient);
+            httpClient,
+            _options,
+            sseClient,
+            configFetcher,
+            configCache,
+            loggerFactory.CreateLogger<GroundControlConfigurationProvider>());
     }
-
-    internal sealed class NoOpSseClient : ISseClient
-    {
-        public static NoOpSseClient Instance { get; } = new();
-
-        public async IAsyncEnumerable<SseEvent> StreamAsync(
-            [EnumeratorCancellation] CancellationToken cancellationToken = default)
-        {
-            await Task.CompletedTask.ConfigureAwait(false);
-            yield break;
-        }
-
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-    }
-
 }

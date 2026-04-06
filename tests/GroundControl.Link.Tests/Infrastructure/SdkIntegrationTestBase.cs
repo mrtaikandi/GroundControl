@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
+using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests.Infrastructure;
 
@@ -26,7 +28,7 @@ public abstract class SdkIntegrationTestBase
     /// pointing at the given test server.
     /// </summary>
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; SSE client and provider are disposed by test via using")]
-    protected static GroundControlConfigurationProvider CreateSdkProvider(
+    internal static GroundControlConfigurationProvider CreateSdkProvider(
         HttpMessageHandler serverHandler,
         Guid clientId,
         string clientSecret,
@@ -43,24 +45,16 @@ public abstract class SdkIntegrationTestBase
             EnableLocalCache = false,
         };
 
-        var authHandler = new GroundControlAuthHandler(options) { InnerHandler = serverHandler };
-        var httpClient = new HttpClient(authHandler, disposeHandler: false)
-        {
-            BaseAddress = new Uri(options.ServerUrl)
-        };
+        var httpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl) };
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
+        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
         var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
-        var configFetcher = new DefaultConfigFetcher(httpClient, options, NullLogger<DefaultConfigFetcher>.Instance);
+        var configFetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
         IConfigCache configCache = options.EnableLocalCache
             ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
             : NullConfigCache.Instance;
 
-        return new GroundControlConfigurationProvider(
-            options,
-            sseClient,
-            configFetcher,
-            configCache,
-            NullLogger<GroundControlConfigurationProvider>.Instance,
-            httpClient);
+        return new GroundControlConfigurationProvider(httpClient, options, sseClient, configFetcher, configCache, NullLogger<GroundControlConfigurationProvider>.Instance);
     }
 }

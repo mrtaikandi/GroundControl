@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using GroundControl.Link.Internals;
 
 namespace GroundControl.Link;
 
@@ -7,14 +8,14 @@ namespace GroundControl.Link;
 /// A configuration provider that loads and live-updates configuration from a GroundControl server
 /// via SSE streaming and REST polling, with local file cache fallback.
 /// </summary>
-public sealed partial class GroundControlConfigurationProvider : ConfigurationProvider, IDisposable
+internal sealed partial class GroundControlConfigurationProvider : ConfigurationProvider, IDisposable
 {
     private readonly GroundControlOptions _options;
     private readonly ISseClient _sseClient;
     private readonly IConfigFetcher _configFetcher;
     private readonly IConfigCache _configCache;
     private readonly ILogger<GroundControlConfigurationProvider> _logger;
-    private readonly HttpClient? _ownedHttpClient;
+    private readonly HttpClient _ownedHttpClient;
     private CancellationTokenSource _cts = new();
     private CancellationTokenSource? _sseCts;
     private string? _lastSseEventId;
@@ -25,33 +26,34 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundControlConfigurationProvider"/> class.
     /// </summary>
+    /// <param name="httpClient"></param>
     /// <param name="options">The SDK options.</param>
     /// <param name="sseClient">The SSE client for streaming events.</param>
     /// <param name="configFetcher">The REST fetcher for polling.</param>
     /// <param name="configCache">The local cache for offline fallback.</param>
     /// <param name="logger">The logger instance.</param>
-    /// <param name="ownedHttpClient">An optional <see cref="HttpClient"/> owned by this provider for disposal.</param>
     public GroundControlConfigurationProvider(
+        HttpClient httpClient,
         GroundControlOptions options,
         ISseClient sseClient,
         IConfigFetcher configFetcher,
         IConfigCache configCache,
-        ILogger<GroundControlConfigurationProvider> logger,
-        HttpClient? ownedHttpClient = null)
+        ILogger<GroundControlConfigurationProvider> logger)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _sseClient = sseClient ?? throw new ArgumentNullException(nameof(sseClient));
         _configFetcher = configFetcher ?? throw new ArgumentNullException(nameof(configFetcher));
         _configCache = configCache ?? throw new ArgumentNullException(nameof(configCache));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _ownedHttpClient = ownedHttpClient;
+        _ownedHttpClient = httpClient;
     }
 
     /// <inheritdoc />
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Load() must not throw for background task cleanup — exceptions were already logged")]
     public override void Load()
     {
-        var oldCts = Interlocked.Exchange(ref _cts, new CancellationTokenSource());
+        var oldCts = _cts;
+        _cts = new CancellationTokenSource();
         oldCts.Cancel();
 
         try
@@ -91,16 +93,15 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         }
         catch (OperationCanceledException)
         {
-            // Expected — background task was cancelled
+            // Expected — background task was canceled
         }
         catch
         {
             // Already logged by the background task
         }
 
-        _sseClient.DisposeAsync().AsTask().GetAwaiter().GetResult();
-        (_configCache as IDisposable)?.Dispose();
-        _ownedHttpClient?.Dispose();
+        _configCache.Dispose();
+        _ownedHttpClient.Dispose();
 
         _sseCts?.Dispose();
         _cts.Dispose();
@@ -148,7 +149,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             }
         }
         catch (OperationCanceledException) when (startupCts.IsCancellationRequested
-            && !cancellationToken.IsCancellationRequested)
+                                                 && !cancellationToken.IsCancellationRequested)
         {
             LogStartupTimeout(_logger, _options.StartupTimeout);
         }
@@ -157,23 +158,13 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         StartBackgroundUpdates();
     }
 
-    private void StartBackgroundUpdates()
+    private void StartBackgroundUpdates() => _backgroundTask = _options.ConnectionMode switch
     {
-        switch (_options.ConnectionMode)
-        {
-            case ConnectionMode.Sse:
-                _backgroundTask = Task.Run(() => RunSseReconnectLoopAsync(_cts.Token));
-                break;
-
-            case ConnectionMode.SseWithPollingFallback:
-                _backgroundTask = Task.Run(() => RunFallbackWithSseRetryAsync(_cts.Token));
-                break;
-
-            case ConnectionMode.Polling:
-                _backgroundTask = Task.Run(() => RunPollingLoopAsync(_cts.Token));
-                break;
-        }
-    }
+        ConnectionMode.Sse => Task.Run(() => RunSseReconnectLoopAsync(_cts.Token)),
+        ConnectionMode.SseWithPollingFallback => Task.Run(() => RunFallbackWithSseRetryAsync(_cts.Token)),
+        ConnectionMode.Polling => Task.Run(() => RunPollingLoopAsync(_cts.Token)),
+        _ => _backgroundTask
+    };
 
     private async Task<bool> TryLoadFromSseAsync(CancellationToken cancellationToken)
     {
@@ -203,9 +194,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Resilience: SSE errors are logged and trigger fallback to polling")]
-    private async Task StreamSseEventsAsync(
-        TaskCompletionSource<bool> firstConfigReceived,
-        CancellationToken cancellationToken)
+    private async Task StreamSseEventsAsync(TaskCompletionSource<bool> firstConfigReceived, CancellationToken cancellationToken)
     {
         try
         {
@@ -271,7 +260,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         try
         {
             var result = await _configFetcher.FetchAsync(null, cancellationToken).ConfigureAwait(false);
-            if (result.Status == FetchStatus.Success && result.Config is not null)
+            if (result is { Status: FetchStatus.Success, Config: not null })
             {
                 ApplyConfig(result.Config);
                 Volatile.Write(ref _currentRestETag, result.ETag);
@@ -495,7 +484,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     }
 
     internal static IReadOnlyDictionary<string, string> ParseConfigData(string json) =>
-        DefaultConfigFetcher.FlattenJson(json);
+        Internals.DefaultConfigFetcher.FlattenJson(json);
 
     internal static string? ParseSnapshotVersion(string json)
     {

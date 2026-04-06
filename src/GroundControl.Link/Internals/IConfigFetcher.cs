@@ -1,9 +1,9 @@
-namespace GroundControl.Link;
+namespace GroundControl.Link.Internals;
 
 /// <summary>
 /// Abstraction for fetching configuration from the GroundControl REST endpoint.
 /// </summary>
-public interface IConfigFetcher
+internal interface IConfigFetcher
 {
     /// <summary>
     /// Fetches the current configuration from the server.
@@ -17,7 +17,7 @@ public interface IConfigFetcher
 /// <summary>
 /// Indicates the outcome of a configuration fetch from the REST endpoint.
 /// </summary>
-public enum FetchStatus
+internal enum FetchStatus
 {
     /// <summary>
     /// Configuration was fetched successfully.
@@ -48,7 +48,7 @@ public enum FetchStatus
 /// <summary>
 /// Represents the result of a configuration fetch from the REST endpoint.
 /// </summary>
-public sealed record FetchResult
+internal sealed record FetchResult
 {
     /// <summary>
     /// Gets the fetch outcome status.

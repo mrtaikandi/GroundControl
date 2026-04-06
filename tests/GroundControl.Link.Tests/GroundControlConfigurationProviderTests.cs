@@ -1,4 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
+using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests;
 
@@ -9,10 +12,12 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
     private readonly IConfigCache _configCache = Substitute.For<IConfigCache>();
     private GroundControlConfigurationProvider? _provider;
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _provider?.Dispose();
-        await _sseClient.DisposeAsync();
+        _configCache.Dispose();
+
+        return ValueTask.CompletedTask;
     }
 
     [Fact]
@@ -270,9 +275,8 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
         result.Count.ShouldBe(0);
     }
 
-    private GroundControlConfigurationProvider CreateProvider(
-        TimeSpan? startupTimeout = null,
-        ConnectionMode connectionMode = ConnectionMode.SseWithPollingFallback)
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
+    private GroundControlConfigurationProvider CreateProvider(TimeSpan? startupTimeout = null, ConnectionMode connectionMode = ConnectionMode.SseWithPollingFallback)
     {
         var options = new GroundControlOptions
         {
@@ -284,7 +288,12 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
             PollingInterval = TimeSpan.FromHours(1)
         };
 
+        var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost") };
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
+        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
+
         return new GroundControlConfigurationProvider(
+            httpClient,
             options,
             _sseClient,
             _configFetcher,

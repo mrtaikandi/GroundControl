@@ -2,37 +2,31 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace GroundControl.Link;
+namespace GroundControl.Link.Internals;
 
 /// <summary>
 /// Fetches configuration from the GroundControl REST endpoint with ETag-based conditional requests.
 /// </summary>
-public sealed partial class DefaultConfigFetcher : IConfigFetcher
+internal sealed class DefaultConfigFetcher : IConfigFetcher
 {
     private readonly HttpClient _httpClient;
-    private readonly GroundControlOptions _options;
     private readonly ILogger<DefaultConfigFetcher> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultConfigFetcher"/> class.
     /// </summary>
     /// <param name="httpClient">The HTTP client configured with the server base address.</param>
-    /// <param name="options">The SDK options.</param>
     /// <param name="logger">The logger instance.</param>
-    public DefaultConfigFetcher(
-        HttpClient httpClient,
-        GroundControlOptions options,
-        ILogger<DefaultConfigFetcher> logger)
+    public DefaultConfigFetcher(HttpClient httpClient, ILogger<DefaultConfigFetcher> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <inheritdoc />
     public async Task<FetchResult> FetchAsync(string? etag, CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/client/config");
+        using var request = new HttpRequestMessage(HttpMethod.Get, GroundControlApiEndpoints.ClientConfig);
 
         if (etag is not null)
         {
@@ -40,36 +34,32 @@ public sealed partial class DefaultConfigFetcher : IConfigFetcher
         }
 
         using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-
-        if (response.StatusCode == HttpStatusCode.NotModified)
+        switch (response.StatusCode)
         {
-            LogNotModified(_logger);
-            return new FetchResult { Status = FetchStatus.NotModified, ETag = etag };
-        }
+            case HttpStatusCode.NotModified:
+                _logger.LogNotModified();
+                return new FetchResult { Status = FetchStatus.NotModified, ETag = etag };
 
-        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-        {
-            LogAuthenticationFailed(_logger, (int)response.StatusCode);
-            return new FetchResult { Status = FetchStatus.AuthenticationError };
-        }
+            case HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden:
+                _logger.LogAuthenticationFailed((int)response.StatusCode);
+                return new FetchResult { Status = FetchStatus.AuthenticationError };
 
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            LogNotFound(_logger);
-            return new FetchResult { Status = FetchStatus.NotFound };
+            case HttpStatusCode.NotFound:
+                _logger.LogNotFound();
+                return new FetchResult { Status = FetchStatus.NotFound };
         }
 
         if (!response.IsSuccessStatusCode)
         {
-            LogNonSuccessStatus(_logger, (int)response.StatusCode);
+            _logger.LogNonSuccessStatus((int)response.StatusCode);
             return new FetchResult { Status = FetchStatus.TransientError };
         }
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         var config = FlattenJson(json);
-        var newEtag = response.Headers.ETag?.Tag?.Trim('"');
+        var newEtag = response.Headers.ETag?.Tag.Trim('"');
 
-        LogFetched(_logger);
+        _logger.LogFetched(newEtag);
 
         return new FetchResult
         {
@@ -122,19 +112,22 @@ public sealed partial class DefaultConfigFetcher : IConfigFetcher
                 break;
         }
     }
+}
 
+internal static partial class DefaultConfigFetcherLogs
+{
     [LoggerMessage(1, LogLevel.Debug, "REST fetch: 304 Not Modified.")]
-    private static partial void LogNotModified(ILogger logger);
+    public static partial void LogNotModified(this ILogger<DefaultConfigFetcher> logger);
 
-    [LoggerMessage(2, LogLevel.Debug, "REST fetch: configuration loaded.")]
-    private static partial void LogFetched(ILogger logger);
+    [LoggerMessage(2, LogLevel.Debug, "REST fetch: configuration loaded. E-Tag: {etag}")]
+    public static partial void LogFetched(this ILogger<DefaultConfigFetcher> logger, string? etag);
 
     [LoggerMessage(3, LogLevel.Warning, "REST fetch: non-success status code {StatusCode}.")]
-    private static partial void LogNonSuccessStatus(ILogger logger, int statusCode);
+    public static partial void LogNonSuccessStatus(this ILogger<DefaultConfigFetcher> logger, int statusCode);
 
     [LoggerMessage(4, LogLevel.Error, "REST fetch: authentication failed with status code {StatusCode}.")]
-    private static partial void LogAuthenticationFailed(ILogger logger, int statusCode);
+    public static partial void LogAuthenticationFailed(this ILogger<DefaultConfigFetcher> logger, int statusCode);
 
     [LoggerMessage(5, LogLevel.Warning, "REST fetch: no active snapshot found (404).")]
-    private static partial void LogNotFound(ILogger logger);
+    public static partial void LogNotFound(this ILogger<DefaultConfigFetcher> logger);
 }

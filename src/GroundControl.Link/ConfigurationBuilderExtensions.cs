@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+
 namespace GroundControl.Link;
 
 /// <summary>
@@ -22,8 +24,10 @@ public static class ConfigurationBuilderExtensions
 
         var options = new GroundControlOptions();
         configure(options);
-        options.Validate();
 
-        return builder.Add(new GroundControlConfigurationSource(options));
+        var result = new GroundControlOptions.Validator().Validate(null, options);
+        return result.Failed
+            ? throw new OptionsValidationException(nameof(GroundControlOptions), typeof(GroundControlOptions), result.Failures)
+            : builder.Add(new GroundControlConfigurationSource(options));
     }
 }
