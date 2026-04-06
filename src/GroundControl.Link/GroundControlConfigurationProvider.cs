@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 
 namespace GroundControl.Link;
 
@@ -16,7 +17,8 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     private readonly HttpClient? _ownedHttpClient;
     private CancellationTokenSource _cts = new();
     private CancellationTokenSource? _sseCts;
-    private string? _currentETag;
+    private string? _lastSseEventId;
+    private string? _currentRestETag;
     private Task? _backgroundTask;
     private bool _disposed;
 
@@ -136,7 +138,8 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
 
                 var config = ParseConfigData(sseEvent.Data);
                 ApplyConfig(config);
-                _currentETag = sseEvent.Id;
+                _lastSseEventId = sseEvent.Id;
+                _currentRestETag = ParseSnapshotVersion(sseEvent.Data);
 
                 if (!firstConfigReceived.Task.IsCompleted)
                 {
@@ -182,7 +185,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             if (result is { NotModified: false })
             {
                 ApplyConfig(result.Config);
-                _currentETag = result.ETag;
+                _currentRestETag = result.ETag;
                 LogRestConfigLoaded(_logger);
                 await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
                 return true;
@@ -233,11 +236,11 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             {
                 await Task.Delay(_options.PollingInterval, cancellationToken).ConfigureAwait(false);
 
-                var result = await _configFetcher.FetchAsync(_currentETag, cancellationToken).ConfigureAwait(false);
+                var result = await _configFetcher.FetchAsync(_currentRestETag, cancellationToken).ConfigureAwait(false);
                 if (result is { NotModified: false })
                 {
                     ApplyConfig(result.Config);
-                    _currentETag = result.ETag;
+                    _currentRestETag = result.ETag;
                     LogPollingConfigUpdated(_logger);
                     OnReload();
                     await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
@@ -294,6 +297,17 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
 
     internal static IReadOnlyDictionary<string, string> ParseConfigData(string json) =>
         DefaultConfigFetcher.FlattenJson(json);
+
+    internal static string? ParseSnapshotVersion(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        if (doc.RootElement.TryGetProperty("snapshotVersion", out var version))
+        {
+            return version.GetInt64().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        return null;
+    }
 
     // --- LoggerMessage definitions ---
 
