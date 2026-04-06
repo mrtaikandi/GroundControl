@@ -180,12 +180,21 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
 
         firstConfigReceived.TrySetResult(false);
 
-        // SSE ended unexpectedly — switch to polling if mode allows
-        if (!cancellationToken.IsCancellationRequested &&
-            _options.ConnectionMode == ConnectionMode.SseWithPollingFallback)
+        if (cancellationToken.IsCancellationRequested)
         {
-            LogSseDisconnectedSwitchingToPolling(_logger);
-            await RunPollingLoopAsync(cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        switch (_options.ConnectionMode)
+        {
+            case ConnectionMode.Sse:
+                await RunSseReconnectLoopAsync(cancellationToken).ConfigureAwait(false);
+                break;
+
+            case ConnectionMode.SseWithPollingFallback:
+                LogSseDisconnectedSwitchingToPolling(_logger);
+                await RunFallbackWithSseRetryAsync(cancellationToken).ConfigureAwait(false);
+                break;
         }
     }
 
@@ -240,6 +249,86 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         _backgroundTask = Task.Run(() => RunPollingLoopAsync(_cts.Token));
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Resilience: SSE reconnect errors are logged; backoff continues")]
+    private async Task RunSseReconnectLoopAsync(CancellationToken cancellationToken)
+    {
+        var delay = _options.SseReconnectDelay;
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var jitteredDelay = AddJitter(delay);
+            LogSseReconnecting(_logger, jitteredDelay);
+
+            await Task.Delay(jitteredDelay, cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                _sseCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var reconnected = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var streamTask = StreamSseEventsAsync(reconnected, _sseCts.Token);
+
+                if (await reconnected.Task.ConfigureAwait(false))
+                {
+                    LogSseReconnected(_logger);
+                    _backgroundTask = streamTask;
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogSseStreamError(_logger, ex);
+            }
+
+            delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, _options.SseMaxReconnectDelay.Ticks));
+        }
+    }
+
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Resilience: SSE retry errors are logged; polling continues as fallback")]
+    private async Task RunFallbackWithSseRetryAsync(CancellationToken cancellationToken)
+    {
+        using var pollingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var pollingTask = Task.Run(() => RunPollingLoopAsync(pollingCts.Token), pollingCts.Token);
+
+        var delay = _options.SseReconnectDelay;
+
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(AddJitter(delay), cancellationToken).ConfigureAwait(false);
+
+                try
+                {
+                    _sseCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    var reconnected = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    var sseTask = StreamSseEventsAsync(reconnected, _sseCts.Token);
+
+                    if (await reconnected.Task.ConfigureAwait(false))
+                    {
+                        LogSseReconnected(_logger);
+                        await pollingCts.CancelAsync().ConfigureAwait(false);
+                        _backgroundTask = sseTask;
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogSseStreamError(_logger, ex);
+                }
+
+                delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, _options.SseMaxReconnectDelay.Ticks));
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Shutting down
+        }
+        finally
+        {
+            await pollingCts.CancelAsync().ConfigureAwait(false);
+        }
+    }
+
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Resilience: polling errors are logged; next interval retries")]
     private async Task RunPollingLoopAsync(CancellationToken cancellationToken)
     {
@@ -247,7 +336,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         {
             try
             {
-                await Task.Delay(_options.PollingInterval, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(AddJitter(_options.PollingInterval), cancellationToken).ConfigureAwait(false);
 
                 var result = await _configFetcher.FetchAsync(_currentRestETag, cancellationToken).ConfigureAwait(false);
                 if (result is { NotModified: false })
@@ -272,6 +361,13 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
                 LogPollingFetchFailed(_logger, ex);
             }
         }
+    }
+
+    [SuppressMessage("Security", "CA5394:Do not use insecure randomness", Justification = "Jitter for polling/reconnect intervals does not require cryptographic randomness")]
+    private static TimeSpan AddJitter(TimeSpan baseDelay)
+    {
+        var jitterFactor = 0.75 + (Random.Shared.NextDouble() * 0.5);
+        return TimeSpan.FromMilliseconds(Math.Max(baseDelay.TotalMilliseconds * jitterFactor, 100));
     }
 
     private void ApplyConfig(IReadOnlyDictionary<string, string> config)
@@ -368,4 +464,10 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
 
     [LoggerMessage(14, LogLevel.Debug, "Failed to update local cache.")]
     private static partial void LogCacheUpdateFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(16, LogLevel.Information, "SSE reconnecting in {Delay}.")]
+    private static partial void LogSseReconnecting(ILogger logger, TimeSpan delay);
+
+    [LoggerMessage(17, LogLevel.Information, "SSE reconnected successfully.")]
+    private static partial void LogSseReconnected(ILogger logger);
 }
