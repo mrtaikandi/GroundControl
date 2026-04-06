@@ -218,8 +218,8 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
 
                 var config = ParseConfigData(sseEvent.Data);
                 ApplyConfig(config);
-                _lastSseEventId = sseEvent.Id;
-                _currentRestETag = ParseSnapshotVersion(sseEvent.Data);
+                Volatile.Write(ref _lastSseEventId, sseEvent.Id);
+                Volatile.Write(ref _currentRestETag, ParseSnapshotVersion(sseEvent.Data));
 
                 if (!firstConfigReceived.Task.IsCompleted)
                 {
@@ -274,7 +274,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             if (result.Status == FetchStatus.Success && result.Config is not null)
             {
                 ApplyConfig(result.Config);
-                _currentRestETag = result.ETag;
+                Volatile.Write(ref _currentRestETag, result.ETag);
                 LogRestConfigLoaded(_logger);
                 await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
                 return true;
@@ -297,7 +297,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             if (cached is not null)
             {
                 ApplyConfig(cached.Entries);
-                _currentRestETag = cached.ETag;
+                Volatile.Write(ref _currentRestETag, cached.ETag);
                 LogCacheConfigLoaded(_logger);
             }
         }
@@ -406,13 +406,13 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             {
                 await Task.Delay(AddJitter(_options.PollingInterval), cancellationToken).ConfigureAwait(false);
 
-                var result = await _configFetcher.FetchAsync(_currentRestETag, cancellationToken).ConfigureAwait(false);
+                var result = await _configFetcher.FetchAsync(Volatile.Read(ref _currentRestETag), cancellationToken).ConfigureAwait(false);
 
                 switch (result.Status)
                 {
                     case FetchStatus.Success when result.Config is not null:
                         ApplyConfig(result.Config);
-                        _currentRestETag = result.ETag;
+                        Volatile.Write(ref _currentRestETag, result.ETag);
                         LogPollingConfigUpdated(_logger);
                         OnReload();
                         await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
@@ -482,7 +482,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             var cached = new CachedConfiguration
             {
                 Entries = snapshot,
-                ETag = _currentRestETag,
+                ETag = Volatile.Read(ref _currentRestETag),
             };
 
             await _configCache.SaveAsync(cached, cancellationToken).ConfigureAwait(false);

@@ -44,7 +44,10 @@ public abstract class SdkIntegrationTestBase
         };
 
         var authHandler = new GroundControlAuthHandler(options) { InnerHandler = serverHandler };
-        var httpClient = new HttpClient(authHandler, disposeHandler: false);
+        var httpClient = new HttpClient(authHandler, disposeHandler: false)
+        {
+            BaseAddress = new Uri(options.ServerUrl)
+        };
 
         var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
         var configFetcher = new DefaultConfigFetcher(httpClient, options, NullLogger<DefaultConfigFetcher>.Instance);

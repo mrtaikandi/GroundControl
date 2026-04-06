@@ -108,7 +108,4 @@ public sealed partial class DefaultSseClient : ISseClient
 
     [LoggerMessage(1, LogLevel.Debug, "SSE event received: type={EventType}, id={EventId}.")]
     private static partial void LogEventReceived(ILogger logger, string eventType, string? eventId);
-
-    [LoggerMessage(2, LogLevel.Warning, "SSE heartbeat timeout — no heartbeat received within the configured timeout.")]
-    private static partial void LogHeartbeatTimeout(ILogger logger);
 }

@@ -60,11 +60,4 @@ public sealed class GroundControlConfigurationSource : IConfigurationSource
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
-    internal sealed class NoOpConfigFetcher : IConfigFetcher
-    {
-        public static NoOpConfigFetcher Instance { get; } = new();
-
-        public Task<FetchResult> FetchAsync(string? etag, CancellationToken cancellationToken = default) =>
-            Task.FromResult(new FetchResult { Status = FetchStatus.TransientError });
-    }
 }
