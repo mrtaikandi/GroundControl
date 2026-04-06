@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GroundControl.Link;
@@ -20,11 +21,13 @@ public sealed class GroundControlConfigurationSource : IConfigurationSource
     }
 
     /// <inheritdoc />
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Handler is owned and disposed by HttpClient; HttpClient is owned by the provider")]
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
         var loggerFactory = _options.LoggerFactory ?? NullLoggerFactory.Instance;
 
-        var httpClient = new HttpClient { BaseAddress = new Uri(_options.ServerUrl) };
+        var handler = new GroundControlAuthHandler(_options) { InnerHandler = new HttpClientHandler() };
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri(_options.ServerUrl) };
 
         ISseClient sseClient = _options.ConnectionMode == ConnectionMode.Polling
             ? NoOpSseClient.Instance

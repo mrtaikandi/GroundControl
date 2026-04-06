@@ -31,8 +31,8 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
 
         var client = await CreateApiClientAsync(adminClient, project.Id, "sdk-test-client");
 
-        using var sdkHttpClient = factory.CreateClient();
-        using var provider = CreateSdkProvider(sdkHttpClient, client.Id, client.ClientSecret);
+        using var sdkHandler = factory.Server.CreateHandler();
+        using var provider = CreateSdkProvider(sdkHandler, client.Id, client.ClientSecret);
 
         // Act
         provider.Load();
@@ -57,10 +57,10 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
 
         var client = await CreateApiClientAsync(adminClient, project.Id, "polling-client");
 
-        using var sdkHttpClient = factory.CreateClient();
+        using var sdkHandler = factory.Server.CreateHandler();
         var options = new GroundControlOptions
         {
-            ServerUrl = sdkHttpClient.BaseAddress!.ToString(),
+            ServerUrl = "http://localhost",
             ClientId = client.Id.ToString(),
             ClientSecret = client.ClientSecret,
             StartupTimeout = TimeSpan.FromSeconds(10),
@@ -69,7 +69,7 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
             EnableLocalCache = false,
         };
 
-        using var provider = CreateSdkProvider(sdkHttpClient, client.Id, client.ClientSecret, options);
+        using var provider = CreateSdkProvider(sdkHandler, client.Id, client.ClientSecret, options);
 
         // Act
         provider.Load();
@@ -92,8 +92,8 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
 
         var client = await CreateApiClientAsync(adminClient, project.Id, "realtime-client");
 
-        using var sdkHttpClient = factory.CreateClient();
-        using var provider = CreateSdkProvider(sdkHttpClient, client.Id, client.ClientSecret);
+        using var sdkHandler = factory.Server.CreateHandler();
+        using var provider = CreateSdkProvider(sdkHandler, client.Id, client.ClientSecret);
 
         provider.Load();
         provider.TryGet("feature.enabled", out var initialValue).ShouldBeTrue();
@@ -135,8 +135,8 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
 
         var client = await CreateApiClientAsync(adminClient, project.Id, "multi-entry-client");
 
-        using var sdkHttpClient = factory.CreateClient();
-        using var provider = CreateSdkProvider(sdkHttpClient, client.Id, client.ClientSecret);
+        using var sdkHandler = factory.Server.CreateHandler();
+        using var provider = CreateSdkProvider(sdkHandler, client.Id, client.ClientSecret);
 
         // Act
         provider.Load();
@@ -165,8 +165,8 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
 
         var client = await CreateApiClientAsync(adminClient, project.Id, "case-client");
 
-        using var sdkHttpClient = factory.CreateClient();
-        using var provider = CreateSdkProvider(sdkHttpClient, client.Id, client.ClientSecret);
+        using var sdkHandler = factory.Server.CreateHandler();
+        using var provider = CreateSdkProvider(sdkHandler, client.Id, client.ClientSecret);
 
         // Act
         provider.Load();
@@ -188,10 +188,10 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
         var project = await CreateProjectAsync(adminClient);
         var client = await CreateApiClientAsync(adminClient, project.Id, "no-snapshot-client");
 
-        using var sdkHttpClient = factory.CreateClient();
+        using var sdkHandler = factory.Server.CreateHandler();
         var options = new GroundControlOptions
         {
-            ServerUrl = sdkHttpClient.BaseAddress!.ToString(),
+            ServerUrl = "http://localhost",
             ClientId = client.Id.ToString(),
             ClientSecret = client.ClientSecret,
             StartupTimeout = TimeSpan.FromSeconds(2),
@@ -200,7 +200,7 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
             EnableLocalCache = false,
         };
 
-        using var provider = CreateSdkProvider(sdkHttpClient, client.Id, client.ClientSecret, options);
+        using var provider = CreateSdkProvider(sdkHandler, client.Id, client.ClientSecret, options);
 
         // Act
         provider.Load();
