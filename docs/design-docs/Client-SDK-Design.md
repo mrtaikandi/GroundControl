@@ -156,7 +156,7 @@ The local file cache stores the last successfully received configuration to disk
 }
 ```
 
-The `entries` field contains flat key-value pairs. When a `IDataProtectionProvider` is available, all values are encrypted with a `***ENCRYPTED:` prefix. Without data protection, values are stored in plaintext.
+The `entries` field contains flat key-value pairs. When an `IDataProtectionProvider` is supplied directly to the `FileConfigCache` constructor, all values are encrypted with a `***ENCRYPTED:` prefix. Without data protection, values are stored in plaintext. Note: the standard `AddGroundControl(...)` extension method does not currently support supplying a data protection provider, since `IConfigurationSource.Build()` runs before the DI container is finalized.
 
 ### Sensitive Value Protection in Cache
 
@@ -227,7 +227,7 @@ Polling interval is configurable (default: 5 minutes). Jitter is added to preven
 
 ## Type Handling
 
-The server delivers values as strings with a `valueType` metadata field. The SDK stores all values as strings in the `IConfiguration` data dictionary (consistent with how .NET configuration works). Type conversion is handled by the consuming application through the standard binding mechanisms:
+The SDK stores all values as strings in the `IConfiguration` data dictionary (consistent with how .NET configuration works). Type conversion is handled by the consuming application through the standard binding mechanisms:
 
 ```csharp
 // .NET handles type conversion from string automatically
@@ -235,8 +235,6 @@ var timeout = configuration.GetValue<int>("RequestTimeout");
 var enabled = configuration.GetValue<bool>("FeatureFlags:NewCheckout");
 var deadline = configuration.GetValue<DateOnly>("Project:Deadline");
 ```
-
-The `valueType` metadata can be used by the SDK for validation purposes (e.g., logging a warning if a value marked as `Int32` cannot be parsed as an integer).
 
 ---
 
