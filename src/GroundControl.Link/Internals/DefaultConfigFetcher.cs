@@ -82,7 +82,7 @@ internal sealed class DefaultConfigFetcher : IConfigFetcher
         return result;
     }
 
-    private static void FlattenElement(JsonElement element, string prefix, Dictionary<string, string> result)
+    internal static void FlattenElement(JsonElement element, string prefix, Dictionary<string, string> result)
     {
         switch (element.ValueKind)
         {
@@ -107,6 +107,11 @@ internal sealed class DefaultConfigFetcher : IConfigFetcher
             case JsonValueKind.Null:
                 break;
 
+            case JsonValueKind.Undefined:
+            case JsonValueKind.String:
+            case JsonValueKind.Number:
+            case JsonValueKind.True:
+            case JsonValueKind.False:
             default:
                 result[prefix] = element.ToString();
                 break;

@@ -45,7 +45,7 @@ public abstract class SdkIntegrationTestBase
             EnableLocalCache = false,
         };
 
-        var httpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl) };
+        var httpClient = new HttpClient(serverHandler, disposeHandler: false) { BaseAddress = new Uri(options.ServerUrl) };
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
