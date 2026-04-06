@@ -48,16 +48,31 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     }
 
     /// <inheritdoc />
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Load() must not throw for background task cleanup — exceptions were already logged")]
     public override void Load()
     {
-        _cts.Cancel();
-        _cts.Dispose();
-        _cts = new CancellationTokenSource();
+        var oldCts = Interlocked.Exchange(ref _cts, new CancellationTokenSource());
+        oldCts.Cancel();
 
+        try
+        {
+            _backgroundTask?.GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected — previous background task was cancelled
+        }
+        catch
+        {
+            // Already logged by the background task
+        }
+
+        oldCts.Dispose();
         LoadInitialConfigAsync(_cts.Token).GetAwaiter().GetResult();
     }
 
     /// <inheritdoc />
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Dispose must not throw — background task errors were already logged")]
     public void Dispose()
     {
         if (_disposed)
@@ -70,7 +85,21 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         _cts.Cancel();
         _sseCts?.Cancel();
 
+        try
+        {
+            _backgroundTask?.GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected — background task was cancelled
+        }
+        catch
+        {
+            // Already logged by the background task
+        }
+
         _sseClient.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        (_configCache as IDisposable)?.Dispose();
         _ownedHttpClient?.Dispose();
 
         _sseCts?.Dispose();
@@ -439,8 +468,9 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     {
         try
         {
+            var currentData = Data;
             var snapshot = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var (key, value) in Data)
+            foreach (var (key, value) in currentData)
             {
                 if (value is not null)
                 {
