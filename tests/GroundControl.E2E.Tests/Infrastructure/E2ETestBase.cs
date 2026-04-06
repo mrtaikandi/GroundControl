@@ -3,7 +3,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using GroundControl.Api.Client;
 using GroundControl.Link;
+using GroundControl.Link.Internals;
 using Microsoft.Extensions.Logging.Abstractions;
+using DefaultConfigFetcher = GroundControl.Link.Internals.DefaultConfigFetcher;
+using DefaultSseClient = GroundControl.Link.Internals.DefaultSseClient;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -50,7 +53,7 @@ public abstract class E2ETestBase : IDisposable
     /// The caller owns the returned provider and must dispose it.
     /// </summary>
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Ownership transfers to the returned GroundControlConfigurationProvider which disposes the SSE client")]
-    protected GroundControlConfigurationProvider CreateLinkProvider(Guid clientId, string clientSecret)
+    internal GroundControlConfigurationProvider CreateLinkProvider(Guid clientId, string clientSecret)
     {
         var httpClient = new HttpClient { BaseAddress = new Uri(Fixture.ApiBaseUrl) };
 
@@ -66,9 +69,10 @@ public abstract class E2ETestBase : IDisposable
         };
 
         var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
-        var configFetcher = new DefaultConfigFetcher(httpClient, options, NullLogger<DefaultConfigFetcher>.Instance);
+        var configFetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
 
         return new GroundControlConfigurationProvider(
+            httpClient,
             options,
             sseClient,
             configFetcher,

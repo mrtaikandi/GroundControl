@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 
-namespace GroundControl.Link;
+namespace GroundControl.Link.Internals;
 
 /// <summary>
 /// A file-based <see cref="IConfigCache"/> implementation that persists configuration to disk
@@ -13,15 +13,12 @@ namespace GroundControl.Link;
 /// The current <see cref="IConfigCache"/> interface does not carry per-key sensitivity metadata, so selective
 /// encryption (encrypting only sensitive keys) will be added when the interface is extended with that information.
 /// </remarks>
-public sealed partial class FileConfigCache : IConfigCache, IDisposable
+internal sealed class FileConfigCache : IConfigCache
 {
     private const string EncryptedPrefix = "***ENCRYPTED:";
     private const string ProtectorPurpose = "GroundControl.Link.ConfigCache";
 
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true
-    };
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly string _cachePath;
@@ -34,19 +31,18 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
     /// <param name="options">The SDK options containing the cache file path.</param>
     /// <param name="logger">The logger instance.</param>
     /// <param name="dataProtection">Optional data protection provider for encrypting cached values.</param>
-    public FileConfigCache(
-        GroundControlOptions options,
-        ILogger<FileConfigCache> logger,
-        IDataProtectionProvider? dataProtection = null)
+    public FileConfigCache(GroundControlOptions options, ILogger<FileConfigCache> logger, IDataProtectionProvider? dataProtection = null)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+
         _cachePath = options.CacheFilePath;
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger = logger;
         _protector = dataProtection?.CreateProtector(ProtectorPurpose);
 
         if (_protector is null)
         {
-            LogDataProtectionUnavailable(_logger);
+            _logger.LogDataProtectionUnavailable();
         }
     }
 
@@ -77,7 +73,7 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
                 {
                     if (_protector is null)
                     {
-                        LogCannotDecryptWithoutDataProtection(_logger);
+                        _logger.LogCannotDecryptWithoutDataProtection();
                         return null;
                     }
 
@@ -90,7 +86,7 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
                 }
             }
 
-            LogCacheLoaded(_logger);
+            _logger.LogCacheLoaded();
             return new CachedConfiguration
             {
                 Entries = result,
@@ -99,7 +95,7 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
         }
         catch (Exception ex)
         {
-            LogCacheReadFailed(_logger, ex);
+            _logger.LogCacheReadFailed(ex);
             return null;
         }
     }
@@ -133,6 +129,9 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
         };
 
         var json = JsonSerializer.Serialize(cacheFile, SerializerOptions);
+
+        // Write to a temp file then atomically move to avoid leaving a corrupted
+        // cache file if the process crashes mid-write.
         var tmpPath = _cachePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
 
         await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -163,18 +162,6 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
     /// <inheritdoc />
     public void Dispose() => _writeLock.Dispose();
 
-    [LoggerMessage(1, LogLevel.Information, "Data protection is not available. Cache values will be stored unencrypted.")]
-    private static partial void LogDataProtectionUnavailable(ILogger logger);
-
-    [LoggerMessage(2, LogLevel.Information, "Configuration loaded from local cache.")]
-    private static partial void LogCacheLoaded(ILogger logger);
-
-    [LoggerMessage(3, LogLevel.Warning, "Failed to read local cache file.")]
-    private static partial void LogCacheReadFailed(ILogger logger, Exception exception);
-
-    [LoggerMessage(4, LogLevel.Warning, "Cache contains encrypted values but data protection is not available. Treating as cache miss.")]
-    private static partial void LogCannotDecryptWithoutDataProtection(ILogger logger);
-
     internal sealed class CacheEnvelope
     {
         public string? ETag { get; init; }
@@ -183,4 +170,19 @@ public sealed partial class FileConfigCache : IConfigCache, IDisposable
 
         public Dictionary<string, string> Entries { get; init; } = [];
     }
+}
+
+internal static partial class FileConfigCacheLogs
+{
+    [LoggerMessage(1, LogLevel.Information, "Data protection is not available. Cache values will be stored unencrypted.")]
+    public static partial void LogDataProtectionUnavailable(this ILogger<FileConfigCache> logger);
+
+    [LoggerMessage(2, LogLevel.Information, "Configuration loaded from local cache.")]
+    public static partial void LogCacheLoaded(this ILogger<FileConfigCache> logger);
+
+    [LoggerMessage(3, LogLevel.Warning, "Failed to read local cache file.")]
+    public static partial void LogCacheReadFailed(this ILogger<FileConfigCache> logger, Exception exception);
+
+    [LoggerMessage(4, LogLevel.Warning, "Cache contains encrypted values but data protection is not available. Treating as cache miss.")]
+    public static partial void LogCannotDecryptWithoutDataProtection(this ILogger<FileConfigCache> logger);
 }

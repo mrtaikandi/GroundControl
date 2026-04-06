@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests;
 
@@ -9,15 +10,12 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
     private HttpClient? _httpClient;
     private DefaultSseClient? _sut;
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_sut is not null)
-        {
-            await _sut.DisposeAsync();
-        }
-
         _httpClient?.Dispose();
         _handler?.Dispose();
+
+        return ValueTask.CompletedTask;
     }
 
     [Fact]

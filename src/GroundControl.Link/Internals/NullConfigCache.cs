@@ -1,4 +1,4 @@
-namespace GroundControl.Link;
+namespace GroundControl.Link.Internals;
 
 /// <summary>
 /// A no-op cache implementation used when local caching is disabled.
@@ -17,4 +17,8 @@ internal sealed class NullConfigCache : IConfigCache
     /// <inheritdoc />
     public Task SaveAsync(CachedConfiguration config, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
+
+    public void Dispose()
+    {
+    }
 }

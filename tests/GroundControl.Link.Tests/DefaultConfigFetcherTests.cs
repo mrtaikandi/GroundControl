@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
+using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests;
 
@@ -22,9 +23,10 @@ public sealed class DefaultConfigFetcherTests : IDisposable
     public DefaultConfigFetcherTests()
     {
         _handler = new MockHandler();
-        var authHandler = new GroundControlAuthHandler(TestOptions) { InnerHandler = _handler };
-        _httpClient = new HttpClient(authHandler) { BaseAddress = new Uri("http://localhost") };
-        _fetcher = new DefaultConfigFetcher(_httpClient, TestOptions, NullLogger<DefaultConfigFetcher>.Instance);
+        _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("http://localhost") };
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{TestOptions.ClientId}:{TestOptions.ClientSecret}");
+        _httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, TestOptions.ApiVersion);
+        _fetcher = new DefaultConfigFetcher(_httpClient, NullLogger<DefaultConfigFetcher>.Instance);
     }
 
     public void Dispose()

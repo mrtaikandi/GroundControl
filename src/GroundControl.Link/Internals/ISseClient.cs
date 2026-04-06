@@ -1,10 +1,10 @@
-namespace GroundControl.Link;
+namespace GroundControl.Link.Internals;
 
 /// <summary>
 /// Abstraction for a Server-Sent Events client that streams configuration events
 /// from the GroundControl server.
 /// </summary>
-public interface ISseClient : IAsyncDisposable
+public interface ISseClient
 {
     /// <summary>
     /// Opens an SSE connection and streams events from the server.

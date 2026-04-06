@@ -1,26 +1,31 @@
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Link;
 
 /// <summary>
 /// Configuration options for the GroundControl client SDK.
 /// </summary>
-public sealed class GroundControlOptions
+public sealed partial class GroundControlOptions : IValidatableObject
 {
     /// <summary>
     /// Gets or sets the GroundControl server URL.
     /// </summary>
+    [Required(AllowEmptyStrings = false)]
     [SuppressMessage("Design", "CA1056:URI-like properties should not be strings", Justification = "String URL is the design contract for consumer convenience")]
     public string ServerUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the client ID for authentication.
     /// </summary>
+    [Required(AllowEmptyStrings = false)]
     public string ClientId { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the client secret for authentication.
     /// </summary>
+    [Required(AllowEmptyStrings = false)]
     public string ClientSecret { get; set; } = string.Empty;
 
     /// <summary>
@@ -83,46 +88,35 @@ public sealed class GroundControlOptions
     /// <remarks>If not set, logging is disabled.</remarks>
     public ILoggerFactory? LoggerFactory { get; set; }
 
-    internal void Validate()
+    /// <inheritdoc />
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (string.IsNullOrWhiteSpace(ServerUrl))
-        {
-            throw new ArgumentException("ServerUrl is required.", nameof(ServerUrl));
-        }
-
-        if (string.IsNullOrWhiteSpace(ClientId))
-        {
-            throw new ArgumentException("ClientId is required.", nameof(ClientId));
-        }
-
-        if (string.IsNullOrWhiteSpace(ClientSecret))
-        {
-            throw new ArgumentException("ClientSecret is required.", nameof(ClientSecret));
-        }
-
         if (StartupTimeout <= TimeSpan.Zero)
         {
-            throw new ArgumentException("StartupTimeout must be positive.", nameof(StartupTimeout));
+            yield return new ValidationResult($"{nameof(StartupTimeout)} must be positive.", [nameof(StartupTimeout)]);
         }
 
         if (PollingInterval <= TimeSpan.Zero)
         {
-            throw new ArgumentException("PollingInterval must be positive.", nameof(PollingInterval));
+            yield return new ValidationResult($"{nameof(PollingInterval)} must be positive.", [nameof(PollingInterval)]);
         }
 
         if (SseHeartbeatTimeout <= TimeSpan.Zero)
         {
-            throw new ArgumentException("SseHeartbeatTimeout must be positive.", nameof(SseHeartbeatTimeout));
+            yield return new ValidationResult($"{nameof(SseHeartbeatTimeout)} must be positive.", [nameof(SseHeartbeatTimeout)]);
         }
 
         if (SseReconnectDelay <= TimeSpan.Zero)
         {
-            throw new ArgumentException("SseReconnectDelay must be positive.", nameof(SseReconnectDelay));
+            yield return new ValidationResult($"{nameof(SseReconnectDelay)} must be positive.", [nameof(SseReconnectDelay)]);
         }
 
         if (SseMaxReconnectDelay < SseReconnectDelay)
         {
-            throw new ArgumentException("SseMaxReconnectDelay must be >= SseReconnectDelay.", nameof(SseMaxReconnectDelay));
+            yield return new ValidationResult($"{nameof(SseMaxReconnectDelay)} must be >= SseReconnectDelay.", [nameof(SseMaxReconnectDelay)]);
         }
     }
+
+    [OptionsValidator]
+    internal sealed partial class Validator : IValidateOptions<GroundControlOptions>;
 }

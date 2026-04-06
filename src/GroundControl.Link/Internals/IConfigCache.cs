@@ -1,9 +1,9 @@
-namespace GroundControl.Link;
+namespace GroundControl.Link.Internals;
 
 /// <summary>
 /// Abstraction for local caching of configuration data.
 /// </summary>
-public interface IConfigCache
+internal interface IConfigCache : IDisposable
 {
     /// <summary>
     /// Loads cached configuration from the local store.
@@ -23,7 +23,7 @@ public interface IConfigCache
 /// <summary>
 /// Represents cached configuration data with optional snapshot metadata.
 /// </summary>
-public sealed record CachedConfiguration
+internal sealed record CachedConfiguration
 {
     /// <summary>
     /// Gets the configuration entries as key-value pairs.
