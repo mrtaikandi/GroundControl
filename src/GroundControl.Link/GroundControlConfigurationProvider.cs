@@ -79,16 +79,29 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
 
     private async Task LoadInitialConfigAsync(CancellationToken cancellationToken)
     {
-        if (_options.ConnectionMode != ConnectionMode.Polling &&
-            await TryLoadFromSseAsync(cancellationToken).ConfigureAwait(false))
-        {
-            return;
-        }
+        // Overall startup timeout bounds the entire initial acquisition (SSE + REST)
+        using var startupCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        startupCts.CancelAfter(_options.StartupTimeout);
 
-        if (await TryLoadFromFetcherAsync(cancellationToken).ConfigureAwait(false))
+        try
         {
-            StartPolling();
-            return;
+            if (_options.ConnectionMode != ConnectionMode.Polling &&
+                await TryLoadFromSseAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            // REST fetch bounded by the overall startup timeout
+            if (await TryLoadFromFetcherAsync(startupCts.Token).ConfigureAwait(false))
+            {
+                StartPolling();
+                return;
+            }
+        }
+        catch (OperationCanceledException) when (startupCts.IsCancellationRequested
+            && !cancellationToken.IsCancellationRequested)
+        {
+            LogStartupTimeout(_logger, _options.StartupTimeout);
         }
 
         await TryLoadFromCacheAsync(cancellationToken).ConfigureAwait(false);
@@ -112,13 +125,13 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
             return true;
         }
 
-        // Timed out or SSE failed during startup — cancel the SSE stream
+        // SSE failed or timed out during startup — cancel the SSE stream
         await _sseCts.CancelAsync().ConfigureAwait(false);
         _sseCts.Dispose();
         _sseCts = null;
 
         cancellationToken.ThrowIfCancellationRequested();
-        LogSseStartupTimeout(_logger, _options.StartupTimeout);
+        LogSseStartupFailed(_logger);
         return false;
     }
 
@@ -314,8 +327,11 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
     [LoggerMessage(1, LogLevel.Information, "Connected to GroundControl server via SSE.")]
     private static partial void LogSseConnected(ILogger logger);
 
-    [LoggerMessage(2, LogLevel.Information, "SSE startup timed out after {Timeout}, falling back to REST.")]
-    private static partial void LogSseStartupTimeout(ILogger logger, TimeSpan timeout);
+    [LoggerMessage(2, LogLevel.Warning, "Startup timed out after {Timeout}. Using cached configuration if available.")]
+    private static partial void LogStartupTimeout(ILogger logger, TimeSpan timeout);
+
+    [LoggerMessage(15, LogLevel.Information, "SSE startup failed, falling back to REST.")]
+    private static partial void LogSseStartupFailed(ILogger logger);
 
     [LoggerMessage(3, LogLevel.Information, "Configuration updated via SSE (version {Version}).")]
     private static partial void LogSseConfigUpdated(ILogger logger, string? version);
