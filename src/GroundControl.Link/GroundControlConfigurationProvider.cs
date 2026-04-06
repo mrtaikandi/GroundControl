@@ -232,7 +232,7 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
                     OnReload();
                 }
 
-                await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
+                _ = SaveToCacheAsync(cancellationToken);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
