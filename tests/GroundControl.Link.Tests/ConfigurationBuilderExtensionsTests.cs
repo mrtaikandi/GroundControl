@@ -114,4 +114,47 @@ public sealed class ConfigurationBuilderExtensionsTests
         var config = builder.Build();
         config.ShouldNotBeNull();
     }
+
+    [Theory]
+    [InlineData(nameof(GroundControlOptions.StartupTimeout))]
+    [InlineData(nameof(GroundControlOptions.PollingInterval))]
+    [InlineData(nameof(GroundControlOptions.SseHeartbeatTimeout))]
+    [InlineData(nameof(GroundControlOptions.SseReconnectDelay))]
+    public void AddGroundControl_ZeroTimeSpan_ThrowsArgumentException(string propertyName)
+    {
+        // Arrange
+        var builder = new ConfigurationBuilder();
+
+        // Act & Assert
+        var ex = Should.Throw<ArgumentException>(() =>
+            builder.AddGroundControl(options =>
+            {
+                options.ServerUrl = "https://test.example.com";
+                options.ClientId = "test-client";
+                options.ClientSecret = "test-secret";
+                typeof(GroundControlOptions).GetProperty(propertyName)!.SetValue(options, TimeSpan.Zero);
+            }));
+
+        ex.ParamName.ShouldBe(propertyName);
+    }
+
+    [Fact]
+    public void AddGroundControl_SseMaxReconnectDelayLessThanReconnectDelay_ThrowsArgumentException()
+    {
+        // Arrange
+        var builder = new ConfigurationBuilder();
+
+        // Act & Assert
+        var ex = Should.Throw<ArgumentException>(() =>
+            builder.AddGroundControl(options =>
+            {
+                options.ServerUrl = "https://test.example.com";
+                options.ClientId = "test-client";
+                options.ClientSecret = "test-secret";
+                options.SseReconnectDelay = TimeSpan.FromSeconds(10);
+                options.SseMaxReconnectDelay = TimeSpan.FromSeconds(5);
+            }));
+
+        ex.ParamName.ShouldBe(nameof(GroundControlOptions.SseMaxReconnectDelay));
+    }
 }
