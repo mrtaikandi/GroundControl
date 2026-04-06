@@ -99,5 +99,30 @@ public sealed class GroundControlOptions
         {
             throw new ArgumentException("ClientSecret is required.", nameof(ClientSecret));
         }
+
+        if (StartupTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentException("StartupTimeout must be positive.", nameof(StartupTimeout));
+        }
+
+        if (PollingInterval <= TimeSpan.Zero)
+        {
+            throw new ArgumentException("PollingInterval must be positive.", nameof(PollingInterval));
+        }
+
+        if (SseHeartbeatTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentException("SseHeartbeatTimeout must be positive.", nameof(SseHeartbeatTimeout));
+        }
+
+        if (SseReconnectDelay <= TimeSpan.Zero)
+        {
+            throw new ArgumentException("SseReconnectDelay must be positive.", nameof(SseReconnectDelay));
+        }
+
+        if (SseMaxReconnectDelay < SseReconnectDelay)
+        {
+            throw new ArgumentException("SseMaxReconnectDelay must be >= SseReconnectDelay.", nameof(SseMaxReconnectDelay));
+        }
     }
 }
