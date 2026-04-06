@@ -79,23 +79,43 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
 
     private async Task LoadInitialConfigAsync(CancellationToken cancellationToken)
     {
-        // Overall startup timeout bounds the entire initial acquisition (SSE + REST)
         using var startupCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         startupCts.CancelAfter(_options.StartupTimeout);
 
         try
         {
-            if (_options.ConnectionMode != ConnectionMode.Polling &&
-                await TryLoadFromSseAsync(cancellationToken).ConfigureAwait(false))
+            switch (_options.ConnectionMode)
             {
-                return;
-            }
+                case ConnectionMode.Sse:
+                    if (await TryLoadFromSseAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        return;
+                    }
 
-            // REST fetch bounded by the overall startup timeout
-            if (await TryLoadFromFetcherAsync(startupCts.Token).ConfigureAwait(false))
-            {
-                StartPolling();
-                return;
+                    break;
+
+                case ConnectionMode.SseWithPollingFallback:
+                    if (await TryLoadFromSseAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        return;
+                    }
+
+                    if (await TryLoadFromFetcherAsync(startupCts.Token).ConfigureAwait(false))
+                    {
+                        StartPolling();
+                        return;
+                    }
+
+                    break;
+
+                case ConnectionMode.Polling:
+                    if (await TryLoadFromFetcherAsync(startupCts.Token).ConfigureAwait(false))
+                    {
+                        StartPolling();
+                        return;
+                    }
+
+                    break;
             }
         }
         catch (OperationCanceledException) when (startupCts.IsCancellationRequested
@@ -105,7 +125,25 @@ public sealed partial class GroundControlConfigurationProvider : ConfigurationPr
         }
 
         await TryLoadFromCacheAsync(cancellationToken).ConfigureAwait(false);
-        StartPolling();
+        StartBackgroundUpdates();
+    }
+
+    private void StartBackgroundUpdates()
+    {
+        switch (_options.ConnectionMode)
+        {
+            case ConnectionMode.Sse:
+                _backgroundTask = Task.Run(() => RunSseReconnectLoopAsync(_cts.Token));
+                break;
+
+            case ConnectionMode.SseWithPollingFallback:
+                _backgroundTask = Task.Run(() => RunFallbackWithSseRetryAsync(_cts.Token));
+                break;
+
+            case ConnectionMode.Polling:
+                _backgroundTask = Task.Run(() => RunPollingLoopAsync(_cts.Token));
+                break;
+        }
     }
 
     private async Task<bool> TryLoadFromSseAsync(CancellationToken cancellationToken)
