@@ -1,9 +1,11 @@
+using System.Net.ServerSentEvents;
+
 namespace GroundControl.Link;
 
 /// <summary>
 /// An SSE client that connects to the GroundControl server and streams configuration events.
-/// Parses the text/event-stream format, monitors heartbeat timeouts, and tracks Last-Event-ID
-/// for reconnection.
+/// Uses <see cref="SseParser"/> for W3C-compliant parsing including empty <c>id:</c> handling,
+/// multi-line <c>data:</c> concatenation, and <c>retry:</c> field support.
 /// </summary>
 public sealed partial class DefaultSseClient : ISseClient
 {
@@ -51,6 +53,8 @@ public sealed partial class DefaultSseClient : ISseClient
         using var request = new HttpRequestMessage(HttpMethod.Get, "/client/config/stream");
         request.Headers.Add("Authorization", $"ApiKey {_options.ClientId}:{_options.ClientSecret}");
         request.Headers.Add("api-version", _options.ApiVersion);
+        request.Headers.Accept.Add(
+            new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/event-stream"));
 
         if (_lastEventId is not null)
         {
@@ -63,87 +67,25 @@ public sealed partial class DefaultSseClient : ISseClient
 
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync(heartbeatCts.Token).ConfigureAwait(false);
-        using var reader = new StreamReader(stream);
+        await using var stream = await response.Content
+            .ReadAsStreamAsync(heartbeatCts.Token).ConfigureAwait(false);
 
-        // Log heartbeat timeout as a warning when the linked CTS fires from the timer (not external cancellation)
-        heartbeatCts.Token.Register(() =>
+        var parser = SseParser.Create(stream);
+
+        await foreach (var item in parser.EnumerateAsync(heartbeatCts.Token).ConfigureAwait(false))
         {
-            if (!cancellationToken.IsCancellationRequested)
+            heartbeatCts.CancelAfter(_options.SseHeartbeatTimeout);
+
+            _lastEventId = string.IsNullOrEmpty(parser.LastEventId) ? null : parser.LastEventId;
+
+            LogEventReceived(_logger, item.EventType, _lastEventId);
+
+            yield return new SseEvent
             {
-                LogHeartbeatTimeout(_logger);
-            }
-        });
-
-        string? eventType = null;
-        string? data = null;
-        string? id = null;
-
-        while (await reader.ReadLineAsync(heartbeatCts.Token).ConfigureAwait(false) is { } line)
-        {
-            if (line.Length == 0)
-            {
-                if (data is not null)
-                {
-                    var sseEvent = new SseEvent
-                    {
-                        EventType = eventType ?? "message",
-                        Data = data,
-                        Id = id,
-                    };
-
-                    LogEventReceived(_logger, sseEvent.EventType, sseEvent.Id);
-
-                    // Any event (config or heartbeat) proves the connection is alive
-                    heartbeatCts.CancelAfter(_options.SseHeartbeatTimeout);
-
-                    yield return sseEvent;
-                }
-
-                eventType = null;
-                data = null;
-                id = null;
-                continue;
-            }
-
-            // W3C SSE spec: lines starting with U+003A COLON are comments
-            if (line[0] == ':')
-            {
-                continue;
-            }
-
-            var colonIndex = line.IndexOf(':', StringComparison.Ordinal);
-            string fieldName;
-            string fieldValue;
-
-            if (colonIndex >= 0)
-            {
-                fieldName = line[..colonIndex];
-
-                // Per W3C SSE spec: strip one leading space after the colon if present
-                fieldValue = colonIndex + 1 < line.Length && line[colonIndex + 1] == ' '
-                    ? line[(colonIndex + 2)..]
-                    : line[(colonIndex + 1)..];
-            }
-            else
-            {
-                fieldName = line;
-                fieldValue = string.Empty;
-            }
-
-            switch (fieldName)
-            {
-                case "event":
-                    eventType = fieldValue;
-                    break;
-                case "data":
-                    data = data is null ? fieldValue : $"{data}\n{fieldValue}";
-                    break;
-                case "id":
-                    id = fieldValue;
-                    _lastEventId = fieldValue;
-                    break;
-            }
+                EventType = item.EventType,
+                Data = item.Data,
+                Id = _lastEventId,
+            };
         }
     }
 
