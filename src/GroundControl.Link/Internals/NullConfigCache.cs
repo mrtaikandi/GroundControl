@@ -11,6 +11,14 @@ internal sealed class NullConfigCache : IConfigCache
     public static NullConfigCache Instance { get; } = new();
 
     /// <inheritdoc />
+    public CachedConfiguration? Load() => null;
+
+    /// <inheritdoc />
+    public void Save(CachedConfiguration config)
+    {
+    }
+
+    /// <inheritdoc />
     public Task<CachedConfiguration?> LoadAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<CachedConfiguration?>(null);
 
