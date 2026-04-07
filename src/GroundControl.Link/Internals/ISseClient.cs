@@ -7,6 +7,15 @@ namespace GroundControl.Link.Internals;
 public interface ISseClient
 {
     /// <summary>
+    /// Gets or sets the last received SSE event ID, used to resume streams after reconnection.
+    /// </summary>
+    /// <remarks>
+    /// Set this before calling <see cref="StreamAsync"/> to resume from a previously known event ID
+    /// (e.g., restored from cache after a process restart).
+    /// </remarks>
+    string? LastEventId { get; set; }
+
+    /// <summary>
     /// Opens an SSE connection and streams events from the server.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the stream.</param>
