@@ -48,6 +48,67 @@ internal sealed class FileConfigCache : IConfigCache
 
     /// <inheritdoc />
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Graceful degradation: corrupted or unreadable cache is treated as a cache miss")]
+    public CachedConfiguration? Load()
+    {
+        if (!File.Exists(_cachePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            var json = File.ReadAllText(_cachePath);
+            return DeserializeEnvelope(json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCacheReadFailed(ex);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Best-effort temp file cleanup should not mask the original exception")]
+    public void Save(CachedConfiguration config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        var directory = Path.GetDirectoryName(_cachePath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var json = SerializeEnvelope(config);
+        var tmpPath = _cachePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+        _writeLock.Wait();
+
+        try
+        {
+            File.WriteAllText(tmpPath, json);
+            File.Move(tmpPath, _cachePath, overwrite: true);
+        }
+        finally
+        {
+            _writeLock.Release();
+
+            if (File.Exists(tmpPath))
+            {
+                try
+                {
+                    File.Delete(tmpPath);
+                }
+                catch
+                {
+                    // Best-effort cleanup
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Graceful degradation: corrupted or unreadable cache is treated as a cache miss")]
     public async Task<CachedConfiguration?> LoadAsync(CancellationToken cancellationToken = default)
     {
         if (!File.Exists(_cachePath))
@@ -58,41 +119,7 @@ internal sealed class FileConfigCache : IConfigCache
         try
         {
             var json = await File.ReadAllTextAsync(_cachePath, cancellationToken).ConfigureAwait(false);
-            var cacheFile = JsonSerializer.Deserialize<CacheEnvelope>(json, SerializerOptions);
-
-            if (cacheFile?.Entries is null)
-            {
-                return null;
-            }
-
-            var result = new Dictionary<string, string>(cacheFile.Entries.Count, StringComparer.OrdinalIgnoreCase);
-
-            foreach (var (key, value) in cacheFile.Entries)
-            {
-                if (value.StartsWith(EncryptedPrefix, StringComparison.Ordinal))
-                {
-                    if (_protector is null)
-                    {
-                        _logger.LogCannotDecryptWithoutDataProtection();
-                        return null;
-                    }
-
-                    var cipherText = value[EncryptedPrefix.Length..];
-                    result[key] = _protector.Unprotect(cipherText);
-                }
-                else
-                {
-                    result[key] = value;
-                }
-            }
-
-            _logger.LogCacheLoaded();
-            return new CachedConfiguration
-            {
-                Entries = result,
-                ETag = cacheFile.ETag,
-                LastEventId = cacheFile.LastEventId,
-            };
+            return DeserializeEnvelope(json);
         }
         catch (Exception ex)
         {
@@ -113,24 +140,7 @@ internal sealed class FileConfigCache : IConfigCache
             Directory.CreateDirectory(directory);
         }
 
-        var entries = new Dictionary<string, string>(config.Entries.Count, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var (key, value) in config.Entries)
-        {
-            entries[key] = _protector is not null
-                ? EncryptedPrefix + _protector.Protect(value)
-                : value;
-        }
-
-        var cacheFile = new CacheEnvelope
-        {
-            Timestamp = DateTimeOffset.UtcNow,
-            ETag = config.ETag,
-            LastEventId = config.LastEventId,
-            Entries = entries
-        };
-
-        var json = JsonSerializer.Serialize(cacheFile, SerializerOptions);
+        var json = SerializeEnvelope(config);
 
         // Write to a temp file then atomically move to avoid leaving a corrupted
         // cache file if the process crashes mid-write.
@@ -163,6 +173,67 @@ internal sealed class FileConfigCache : IConfigCache
 
     /// <inheritdoc />
     public void Dispose() => _writeLock.Dispose();
+
+    private CachedConfiguration? DeserializeEnvelope(string json)
+    {
+        var cacheFile = JsonSerializer.Deserialize<CacheEnvelope>(json, SerializerOptions);
+
+        if (cacheFile?.Entries is null)
+        {
+            return null;
+        }
+
+        var result = new Dictionary<string, string>(cacheFile.Entries.Count, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (key, value) in cacheFile.Entries)
+        {
+            if (value.StartsWith(EncryptedPrefix, StringComparison.Ordinal))
+            {
+                if (_protector is null)
+                {
+                    _logger.LogCannotDecryptWithoutDataProtection();
+                    return null;
+                }
+
+                var cipherText = value[EncryptedPrefix.Length..];
+                result[key] = _protector.Unprotect(cipherText);
+            }
+            else
+            {
+                result[key] = value;
+            }
+        }
+
+        _logger.LogCacheLoaded();
+        return new CachedConfiguration
+        {
+            Entries = result,
+            ETag = cacheFile.ETag,
+            LastEventId = cacheFile.LastEventId,
+        };
+    }
+
+    private string SerializeEnvelope(CachedConfiguration config)
+    {
+        var entries = new Dictionary<string, string>(config.Entries.Count, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (key, value) in config.Entries)
+        {
+            entries[key] = _protector is not null
+                ? EncryptedPrefix + _protector.Protect(value)
+                : value;
+        }
+
+        var cacheFile = new CacheEnvelope
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            ETag = config.ETag,
+            LastEventId = config.LastEventId,
+            Entries = entries
+        };
+
+        return JsonSerializer.Serialize(cacheFile, SerializerOptions);
+    }
 
     internal sealed class CacheEnvelope
     {

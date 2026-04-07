@@ -282,6 +282,56 @@ public sealed class FileConfigCacheTests : IDisposable
         result.Entries["MYKEY"].ShouldBe("Value");
     }
 
+    [Fact]
+    public void Load_MissingFile_ReturnsNull()
+    {
+        // Arrange
+        using var cache = CreateCache();
+
+        // Act
+        var result = cache.Load();
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Save_ThenLoad_ReturnsSameConfig()
+    {
+        // Arrange
+        using var cache = CreateCache();
+        var config = new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["App:Name"] = "Test" },
+            ETag = "\"42\"",
+            LastEventId = "evt-1"
+        };
+
+        // Act
+        cache.Save(config);
+        var loaded = cache.Load();
+
+        // Assert
+        loaded.ShouldNotBeNull();
+        loaded.Entries.ShouldContainKeyAndValue("App:Name", "Test");
+        loaded.ETag.ShouldBe("\"42\"");
+        loaded.LastEventId.ShouldBe("evt-1");
+    }
+
+    [Fact]
+    public void Load_CorruptedJson_ReturnsNull()
+    {
+        // Arrange
+        File.WriteAllText(_cachePath, "not-valid-json{{{");
+        using var cache = CreateCache();
+
+        // Act
+        var result = cache.Load();
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
     private FileConfigCache CreateCache(string? cachePath = null, IDataProtectionProvider? dataProtection = null) =>
         new(
             new GroundControlOptions
