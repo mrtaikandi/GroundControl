@@ -1,11 +1,15 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Metrics;
 using System.Net;
 using System.Net.Http.Json;
 using GroundControl.Api.Features.Clients.Contracts;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Features.Snapshots.Contracts;
+using GroundControl.Link.Internals;
 using GroundControl.Link.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 using ScopedValueRequest = GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest;
 
 namespace GroundControl.Link.Tests.Integration;
@@ -80,6 +84,7 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
     }
 
     [Fact]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "ServiceProvider and metrics are short-lived test objects")]
     public async Task Sdk_RealTimeUpdate_ReloadsWhenNewSnapshotPublished()
     {
         // Arrange
@@ -93,30 +98,44 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
         var client = await CreateApiClientAsync(adminClient, project.Id, "realtime-client");
 
         using var sdkHandler = factory.Server.CreateHandler();
-        using var provider = CreateSdkProvider(sdkHandler, client.Id, client.ClientSecret);
+        var (provider, store, sseClient) = CreateProviderWithStore(sdkHandler, client.Id, client.ClientSecret);
+        using (provider)
+        {
+            // Phase 1: initial load
+            provider.Load();
+            provider.TryGet("feature.enabled", out var initialValue).ShouldBeTrue();
+            initialValue.ShouldBe("false");
 
-        provider.Load();
-        provider.TryGet("feature.enabled", out var initialValue).ShouldBeTrue();
-        initialValue.ShouldBe("false");
+            // Phase 2: start background SSE stream
+            var services = new ServiceCollection();
+            services.AddMetrics();
+            using var sp = services.BuildServiceProvider();
+            var metrics = new GroundControlMetrics(sp.GetRequiredService<IMeterFactory>());
+            var strategy = new SseConnectionStrategy(sseClient, NullConfigCache.Instance, NullLogger<SseConnectionStrategy>.Instance, metrics);
+            using var bgCts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
+            var bgTask = Task.Run(() => strategy.StreamEventsAsync(store, bgCts.Token), bgCts.Token);
 
-        // Set up reload listener
-        var reloadTriggered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var changeToken = provider.GetReloadToken();
-        changeToken.RegisterChangeCallback(_ => reloadTriggered.TrySetResult(true), null);
+            // Set up reload listener
+            var reloadTriggered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var changeToken = provider.GetReloadToken();
+            changeToken.RegisterChangeCallback(_ => reloadTriggered.TrySetResult(true), null);
 
-        // Act — update config and publish new snapshot
-        await CreateConfigEntryAsync(adminClient, "feature.new-key", project.Id, value: "new-value");
-        await PublishSnapshotAsync(adminClient, project.Id);
+            // Act — update config and publish new snapshot
+            await CreateConfigEntryAsync(adminClient, "feature.new-key", project.Id, value: "new-value");
+            await PublishSnapshotAsync(adminClient, project.Id);
 
-        // Assert — wait for reload with timeout
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
-        cts.CancelAfter(TimeSpan.FromSeconds(5));
+            // Assert — wait for reload with timeout
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
 
-        var completed = await Task.WhenAny(reloadTriggered.Task, Task.Delay(Timeout.Infinite, cts.Token));
-        completed.ShouldBe(reloadTriggered.Task, "OnReload should have been triggered within 5 seconds");
+            var completed = await Task.WhenAny(reloadTriggered.Task, Task.Delay(Timeout.Infinite, cts.Token));
+            completed.ShouldBe(reloadTriggered.Task, "OnReload should have been triggered within 5 seconds");
 
-        provider.TryGet("feature.new-key", out var newValue).ShouldBeTrue();
-        newValue.ShouldBe("new-value");
+            provider.TryGet("feature.new-key", out var newValue).ShouldBeTrue();
+            newValue.ShouldBe("new-value");
+
+            await bgCts.CancelAsync();
+        }
     }
 
     [Fact]
