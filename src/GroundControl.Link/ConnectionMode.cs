@@ -18,5 +18,10 @@ public enum ConnectionMode
     /// <summary>
     /// Uses periodic REST polling only.
     /// </summary>
-    Polling
+    Polling,
+
+    /// <summary>
+    /// Fetches configuration only during startup (Phase 1). No background service is registered.
+    /// </summary>
+    OnlyOnStartup
 }
