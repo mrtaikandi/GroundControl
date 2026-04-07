@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using GroundControl.Api.Client;
 using GroundControl.Link;
@@ -56,6 +57,8 @@ public abstract class E2ETestBase : IDisposable
     internal GroundControlConfigurationProvider CreateLinkProvider(Guid clientId, string clientSecret)
     {
         var httpClient = new HttpClient { BaseAddress = new Uri(Fixture.ApiBaseUrl) };
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{clientId}:{clientSecret}");
+        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, "1.0");
 
         var options = new GroundControlOptions
         {
