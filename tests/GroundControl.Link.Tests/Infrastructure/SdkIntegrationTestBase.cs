@@ -24,10 +24,9 @@ public abstract class SdkIntegrationTestBase
     protected GroundControlApiFactory CreateFactory(Dictionary<string, string?>? extraConfig = null) => new(_mongoFixture, extraConfig);
 
     /// <summary>
-    /// Creates a <see cref="GroundControlConfigurationProvider"/> wired to real SDK components
-    /// pointing at the given test server.
+    /// Creates a Phase 1 provider wired to real SDK components using the test server handler.
     /// </summary>
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; SSE client and provider are disposed by test via using")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; provider is disposed by test via using")]
     internal static GroundControlConfigurationProvider CreateSdkProvider(
         HttpMessageHandler serverHandler,
         Guid clientId,
@@ -45,16 +44,53 @@ public abstract class SdkIntegrationTestBase
             EnableLocalCache = false,
         };
 
+        var store = new GroundControlStore(options);
+
         var httpClient = new HttpClient(serverHandler, disposeHandler: false) { BaseAddress = new Uri(options.ServerUrl) };
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
-        var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
-        var configFetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
-        IConfigCache configCache = options.EnableLocalCache
+        IConfigFetcher fetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
+
+        IConfigCache cache = options.EnableLocalCache
             ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
             : NullConfigCache.Instance;
 
-        return new GroundControlConfigurationProvider(httpClient, options, sseClient, configFetcher, configCache, NullLogger<GroundControlConfigurationProvider>.Instance);
+        return new GroundControlConfigurationProvider(store, cache, fetcher);
+    }
+
+    /// <summary>
+    /// Creates a provider and returns its store for wiring a background SSE/polling connection.
+    /// </summary>
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; provider is disposed by test via using")]
+    internal static (GroundControlConfigurationProvider Provider, GroundControlStore Store, ISseClient SseClient) CreateProviderWithStore(
+        HttpMessageHandler serverHandler,
+        Guid clientId,
+        string clientSecret,
+        GroundControlOptions? optionsOverride = null)
+    {
+        var options = optionsOverride ?? new GroundControlOptions
+        {
+            ServerUrl = "http://localhost",
+            ClientId = clientId.ToString(),
+            ClientSecret = clientSecret,
+            StartupTimeout = TimeSpan.FromSeconds(10),
+            ConnectionMode = ConnectionMode.SseWithPollingFallback,
+            EnableLocalCache = false,
+        };
+
+        var store = new GroundControlStore(options);
+
+        var httpClient = new HttpClient(serverHandler, disposeHandler: false) { BaseAddress = new Uri(options.ServerUrl) };
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
+        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
+
+        IConfigFetcher fetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
+        IConfigCache cache = NullConfigCache.Instance;
+        ISseClient sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
+
+        var provider = new GroundControlConfigurationProvider(store, cache, fetcher);
+
+        return (provider, store, sseClient);
     }
 }

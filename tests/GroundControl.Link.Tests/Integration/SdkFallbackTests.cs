@@ -3,206 +3,107 @@ using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests.Integration;
 
+[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Test helper objects are short-lived; provider disposal handles cleanup")]
 public sealed class SdkFallbackTests : IDisposable
 {
     private readonly string _cacheDir;
+    private readonly string _cachePath;
 
     public SdkFallbackTests()
     {
         _cacheDir = Path.Combine(Path.GetTempPath(), "groundcontrol-sdk-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_cacheDir);
+        _cachePath = Path.Combine(_cacheDir, "test-cache.json");
     }
 
     public void Dispose()
     {
         if (Directory.Exists(_cacheDir))
         {
-            Directory.Delete(_cacheDir, recursive: true);
+            Directory.Delete(_cacheDir, true);
         }
     }
 
     [Fact]
-    public async Task Sdk_ServerUnreachable_FallsBackToCache()
+    public void Sdk_ServerUnreachable_FallsBackToCache()
     {
-        // Arrange — pre-populate cache file
-        var cachePath = Path.Combine(_cacheDir, "fallback.cache.json");
-        using var cache = CreateFileConfigCache(cachePath);
-        var config = new Dictionary<string, string>
+        // Arrange — write cache, then create provider pointing at unreachable server
+        var options = CreateOptions(enableCache: true);
+        var cache = new FileConfigCache(options, NullLogger<FileConfigCache>.Instance);
+        cache.Save(new CachedConfiguration
         {
-            ["app.name"] = "CachedApp",
-            ["app.version"] = "1.0.0"
-        };
+            Entries = new Dictionary<string, string> { ["Cached:Key"] = "CachedValue" },
+            ETag = "\"1\""
+        });
 
-        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
-
-        var options = new GroundControlOptions
-        {
-            ServerUrl = "http://localhost:1",
-            ClientId = "test-client",
-            ClientSecret = "test-secret",
-            StartupTimeout = TimeSpan.FromSeconds(1),
-            ConnectionMode = ConnectionMode.SseWithPollingFallback,
-            PollingInterval = TimeSpan.FromHours(1),
-            CacheFilePath = cachePath,
-            EnableLocalCache = true,
-        };
-
-        using var provider = CreateProviderWithUnreachableServer(options);
+        using var provider = CreateProviderWithUnreachableServer(options, cache);
 
         // Act
         provider.Load();
 
         // Assert
-        provider.TryGet("app.name", out var name).ShouldBeTrue();
-        name.ShouldBe("CachedApp");
-        provider.TryGet("app.version", out var version).ShouldBeTrue();
-        version.ShouldBe("1.0.0");
+        provider.TryGet("Cached:Key", out var value).ShouldBeTrue();
+        value.ShouldBe("CachedValue");
     }
 
     [Fact]
     public void Sdk_NoServerAndNoCache_StartsWithEmptyConfig()
     {
-        // Arrange — no cache file exists, server is unreachable
-        var cachePath = Path.Combine(_cacheDir, "nonexistent.cache.json");
-
-        var options = new GroundControlOptions
-        {
-            ServerUrl = "http://localhost:1",
-            ClientId = "test-client",
-            ClientSecret = "test-secret",
-            StartupTimeout = TimeSpan.FromSeconds(1),
-            ConnectionMode = ConnectionMode.SseWithPollingFallback,
-            PollingInterval = TimeSpan.FromHours(1),
-            CacheFilePath = cachePath,
-            EnableLocalCache = true,
-        };
-
-        using var provider = CreateProviderWithUnreachableServer(options);
-
-        // Act — should not throw
-        provider.Load();
-
-        // Assert — empty config, no keys set
-        provider.TryGet("any.key", out _).ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task Sdk_PollingMode_ServerUnreachable_FallsBackToCache()
-    {
-        // Arrange — pre-populate cache file
-        var cachePath = Path.Combine(_cacheDir, "polling-fallback.cache.json");
-        using var cache = CreateFileConfigCache(cachePath);
-        var config = new Dictionary<string, string> { ["key1"] = "cached-value" };
-        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
-
-        var options = new GroundControlOptions
-        {
-            ServerUrl = "http://localhost:1",
-            ClientId = "test-client",
-            ClientSecret = "test-secret",
-            StartupTimeout = TimeSpan.FromSeconds(1),
-            ConnectionMode = ConnectionMode.Polling,
-            PollingInterval = TimeSpan.FromHours(1),
-            CacheFilePath = cachePath,
-            EnableLocalCache = true,
-        };
-
-        using var provider = CreateProviderWithUnreachableServer(options);
+        // Arrange
+        var options = CreateOptions(enableCache: false);
+        using var provider = CreateProviderWithUnreachableServer(options, NullConfigCache.Instance);
 
         // Act
         provider.Load();
 
         // Assert
-        provider.TryGet("key1", out var value).ShouldBeTrue();
-        value.ShouldBe("cached-value");
+        provider.TryGet("anything", out _).ShouldBeFalse();
     }
 
-    [Fact]
-    public async Task Sdk_SseOnlyMode_ServerUnreachable_FallsBackToCache()
+    [Theory]
+    [InlineData(ConnectionMode.Polling)]
+    [InlineData(ConnectionMode.SseWithPollingFallback)]
+    [InlineData(ConnectionMode.Sse)]
+    public void Sdk_AllModes_ServerUnreachable_FallsBackToCache(ConnectionMode mode)
     {
         // Arrange
-        var cachePath = Path.Combine(_cacheDir, "sse-only-fallback.cache.json");
-        using var cache = CreateFileConfigCache(cachePath);
-        var config = new Dictionary<string, string> { ["key1"] = "sse-cached" };
-        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
-
-        var options = new GroundControlOptions
+        var options = CreateOptions(enableCache: true);
+        options.ConnectionMode = mode;
+        var cache = new FileConfigCache(options, NullLogger<FileConfigCache>.Instance);
+        cache.Save(new CachedConfiguration
         {
-            ServerUrl = "http://localhost:1",
-            ClientId = "test-client",
-            ClientSecret = "test-secret",
-            StartupTimeout = TimeSpan.FromSeconds(1),
-            ConnectionMode = ConnectionMode.Sse,
-            PollingInterval = TimeSpan.FromHours(1),
-            CacheFilePath = cachePath,
-            EnableLocalCache = true,
-        };
+            Entries = new Dictionary<string, string> { ["Mode"] = mode.ToString() },
+            ETag = "\"1\""
+        });
 
-        using var provider = CreateProviderWithUnreachableServer(options);
+        using var provider = CreateProviderWithUnreachableServer(options, cache);
 
         // Act
         provider.Load();
 
         // Assert
-        provider.TryGet("key1", out var value).ShouldBeTrue();
-        value.ShouldBe("sse-cached");
+        provider.TryGet("Mode", out var value).ShouldBeTrue();
+        value.ShouldBe(mode.ToString());
     }
 
-    [Fact]
-    public void Sdk_NoServerAndNoCache_PollingMode_StartsWithEmptyConfig()
+    private GroundControlOptions CreateOptions(bool enableCache) => new()
     {
-        // Arrange
-        var cachePath = Path.Combine(_cacheDir, "no-cache-polling.cache.json");
+        ServerUrl = "http://localhost:1",
+        ClientId = "test-client",
+        ClientSecret = "test-secret",
+        EnableLocalCache = enableCache,
+        CacheFilePath = _cachePath,
+        StartupTimeout = TimeSpan.FromSeconds(2),
+        ConnectionMode = ConnectionMode.SseWithPollingFallback
+    };
 
-        var options = new GroundControlOptions
-        {
-            ServerUrl = "http://localhost:1",
-            ClientId = "test-client",
-            ClientSecret = "test-secret",
-            StartupTimeout = TimeSpan.FromSeconds(1),
-            ConnectionMode = ConnectionMode.Polling,
-            PollingInterval = TimeSpan.FromHours(1),
-            CacheFilePath = cachePath,
-            EnableLocalCache = true,
-        };
-
-        using var provider = CreateProviderWithUnreachableServer(options);
-
-        // Act — should not throw
-        provider.Load();
-
-        // Assert
-        provider.TryGet("any.key", out _).ShouldBeFalse();
-    }
-
-    private static FileConfigCache CreateFileConfigCache(string cachePath) =>
-        new(
-            new GroundControlOptions
-            {
-                ServerUrl = "http://localhost",
-                ClientId = "test-client",
-                ClientSecret = "test-secret",
-                CacheFilePath = cachePath,
-            },
-            NullLogger<FileConfigCache>.Instance);
-
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "SSE client owns its HttpClient; provider disposes SSE client")]
-    private static GroundControlConfigurationProvider CreateProviderWithUnreachableServer(GroundControlOptions options)
+    private static GroundControlConfigurationProvider CreateProviderWithUnreachableServer(
+        GroundControlOptions options,
+        IConfigCache cache)
     {
-        // Use the public constructor so the SSE client creates and owns its own HttpClient
-        var httpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl) };
-        var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
-        var configFetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
-        IConfigCache configCache = options.EnableLocalCache
-            ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
-            : NullConfigCache.Instance;
-
-        return new GroundControlConfigurationProvider(
-            httpClient,
-            options,
-            sseClient,
-            configFetcher,
-            configCache,
-            NullLogger<GroundControlConfigurationProvider>.Instance);
+        var store = new GroundControlStore(options);
+        var httpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl), Timeout = TimeSpan.FromSeconds(1) };
+        var fetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
+        return new GroundControlConfigurationProvider(store, cache, fetcher);
     }
 }
