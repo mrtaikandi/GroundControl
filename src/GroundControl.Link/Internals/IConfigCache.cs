@@ -34,4 +34,9 @@ internal sealed record CachedConfiguration
     /// Gets the REST ETag for conditional requests.
     /// </summary>
     public string? ETag { get; init; }
+
+    /// <summary>
+    /// Gets the last SSE event ID for resuming streams across restarts.
+    /// </summary>
+    public string? LastEventId { get; init; }
 }

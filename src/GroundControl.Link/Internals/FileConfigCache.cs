@@ -91,6 +91,7 @@ internal sealed class FileConfigCache : IConfigCache
             {
                 Entries = result,
                 ETag = cacheFile.ETag,
+                LastEventId = cacheFile.LastEventId,
             };
         }
         catch (Exception ex)
@@ -125,6 +126,7 @@ internal sealed class FileConfigCache : IConfigCache
         {
             Timestamp = DateTimeOffset.UtcNow,
             ETag = config.ETag,
+            LastEventId = config.LastEventId,
             Entries = entries
         };
 
@@ -165,6 +167,8 @@ internal sealed class FileConfigCache : IConfigCache
     internal sealed class CacheEnvelope
     {
         public string? ETag { get; init; }
+
+        public string? LastEventId { get; init; }
 
         public DateTimeOffset Timestamp { get; init; }
 

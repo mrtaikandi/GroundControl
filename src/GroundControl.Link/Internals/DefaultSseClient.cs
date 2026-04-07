@@ -14,7 +14,9 @@ internal sealed partial class DefaultSseClient : ISseClient
     private readonly HttpClient _httpClient;
     private readonly GroundControlOptions _options;
     private readonly ILogger<DefaultSseClient> _logger;
-    private string? _lastEventId;
+
+    /// <inheritdoc />
+    public string? LastEventId { get; set; }
 
     public DefaultSseClient(HttpClient httpClient, GroundControlOptions options, ILogger<DefaultSseClient> logger)
     {
@@ -32,9 +34,9 @@ internal sealed partial class DefaultSseClient : ISseClient
         using var request = new HttpRequestMessage(HttpMethod.Get, GroundControlApiEndpoints.ClientConfigStream);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Text.EventStream));
 
-        if (_lastEventId is not null)
+        if (LastEventId is not null)
         {
-            request.Headers.Add(HeaderNames.LastEventId, _lastEventId);
+            request.Headers.Add(HeaderNames.LastEventId, LastEventId);
         }
 
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, heartbeatCts.Token).ConfigureAwait(false);
@@ -47,14 +49,14 @@ internal sealed partial class DefaultSseClient : ISseClient
         {
             heartbeatCts.CancelAfter(_options.SseHeartbeatTimeout);
 
-            _lastEventId = string.IsNullOrEmpty(parser.LastEventId) ? null : parser.LastEventId;
-            LogEventReceived(_logger, item.EventType, _lastEventId);
+            LastEventId = string.IsNullOrEmpty(parser.LastEventId) ? null : parser.LastEventId;
+            LogEventReceived(_logger, item.EventType, LastEventId);
 
             yield return new SseEvent
             {
                 EventType = item.EventType,
                 Data = item.Data,
-                Id = _lastEventId,
+                Id = LastEventId,
             };
         }
     }

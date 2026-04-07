@@ -8,7 +8,7 @@ namespace GroundControl.Link;
 /// A configuration provider that loads and live-updates configuration from a GroundControl server
 /// via SSE streaming and REST polling, with local file cache fallback.
 /// </summary>
-internal sealed partial class GroundControlConfigurationProvider : ConfigurationProvider, IDisposable
+internal sealed partial class GroundControlConfigurationProvider : ConfigurationProvider, IDisposable, IAsyncDisposable
 {
     private readonly GroundControlOptions _options;
     private readonly ISseClient _sseClient;
@@ -107,8 +107,53 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
         _cts.Dispose();
     }
 
+    /// <inheritdoc />
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "DisposeAsync must not throw — background task errors were already logged")]
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        await _cts.CancelAsync().ConfigureAwait(false);
+
+        if (_sseCts is not null)
+        {
+            await _sseCts.CancelAsync().ConfigureAwait(false);
+        }
+
+        try
+        {
+            if (_backgroundTask is not null)
+            {
+                await _backgroundTask.ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected — background task was canceled
+        }
+        catch
+        {
+            // Already logged by the background task
+        }
+
+        _configCache.Dispose();
+        _ownedHttpClient.Dispose();
+
+        _sseCts?.Dispose();
+        _cts.Dispose();
+    }
+
     private async Task LoadInitialConfigAsync(CancellationToken cancellationToken)
     {
+        // Load cache first to get ETag and LastEventId for conditional server requests.
+        // This also serves as provisional data if the server is unreachable.
+        await TryLoadFromCacheAsync(cancellationToken).ConfigureAwait(false);
+
         using var startupCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         startupCts.CancelAfter(_options.StartupTimeout);
 
@@ -146,6 +191,9 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
                     }
 
                     break;
+
+                default:
+                    throw new ArgumentOutOfRangeException($"Unsupported connection mode: {_options.ConnectionMode}");
             }
         }
         catch (OperationCanceledException) when (startupCts.IsCancellationRequested
@@ -154,7 +202,7 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
             LogStartupTimeout(_logger, _options.StartupTimeout);
         }
 
-        await TryLoadFromCacheAsync(cancellationToken).ConfigureAwait(false);
+        // Cache data (if any) is already applied from the initial load above.
         StartBackgroundUpdates();
     }
 
@@ -259,14 +307,19 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
     {
         try
         {
-            var result = await _configFetcher.FetchAsync(null, cancellationToken).ConfigureAwait(false);
-            if (result is { Status: FetchStatus.Success, Config: not null })
+            var result = await _configFetcher.FetchAsync(_currentRestETag, cancellationToken).ConfigureAwait(false);
+            switch (result.Status)
             {
-                ApplyConfig(result.Config);
-                _currentRestETag = result.ETag;
-                LogRestConfigLoaded(_logger);
-                await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
-                return true;
+                case FetchStatus.Success when result.Config is not null:
+                    ApplyConfig(result.Config);
+                    _currentRestETag = result.ETag;
+                    LogRestConfigLoaded(_logger);
+                    await SaveToCacheAsync(cancellationToken).ConfigureAwait(false);
+                    return true;
+
+                case FetchStatus.NotModified:
+                    LogRestConfigNotModified(_logger);
+                    return true;
             }
         }
         catch (Exception ex)
@@ -287,6 +340,8 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
             {
                 ApplyConfig(cached.Entries);
                 _currentRestETag = cached.ETag;
+                _lastSseEventId = cached.LastEventId;
+                _sseClient.LastEventId = cached.LastEventId;
                 LogCacheConfigLoaded(_logger);
             }
         }
@@ -479,6 +534,7 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
             {
                 Entries = snapshot,
                 ETag = _currentRestETag,
+                LastEventId = _lastSseEventId,
             };
 
             await _configCache.SaveAsync(cached, cancellationToken).ConfigureAwait(false);
@@ -531,6 +587,9 @@ internal sealed partial class GroundControlConfigurationProvider : Configuration
 
     [LoggerMessage(6, LogLevel.Information, "Loaded configuration from REST endpoint.")]
     private static partial void LogRestConfigLoaded(ILogger logger);
+
+    [LoggerMessage(20, LogLevel.Information, "REST endpoint returned 304 Not Modified. Using cached configuration.")]
+    private static partial void LogRestConfigNotModified(ILogger logger);
 
     [LoggerMessage(7, LogLevel.Warning, "REST fetch failed during startup.")]
     private static partial void LogRestFetchFailed(ILogger logger, Exception exception);

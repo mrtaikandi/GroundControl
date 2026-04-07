@@ -248,6 +248,176 @@ public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
     }
 
     [Fact]
+    public void Load_CachedETag_SentToFetcherAsConditionalRequest()
+    {
+        // Arrange
+        var cachedConfig = new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
+            ETag = "\"v5\""
+        };
+
+        _configCache.LoadAsync(Arg.Any<CancellationToken>())
+            .Returns(cachedConfig);
+
+        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
+            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
+
+        _configFetcher.FetchAsync("\"v5\"", Arg.Any<CancellationToken>())
+            .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"v5\"" });
+
+        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200));
+
+        // Act
+        _provider.Load();
+
+        // Assert — fetcher received the cached ETag
+        _configFetcher.Received().FetchAsync("\"v5\"", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Load_FetcherReturns304_UsesCachedData()
+    {
+        // Arrange
+        var cachedConfig = new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
+            ETag = "\"v5\""
+        };
+
+        _configCache.LoadAsync(Arg.Any<CancellationToken>())
+            .Returns(cachedConfig);
+
+        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
+            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
+
+        _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"v5\"" });
+
+        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200));
+
+        // Act
+        _provider.Load();
+
+        // Assert — cached data is used when server says not modified
+        _provider.TryGet("Key1", out var value).ShouldBeTrue();
+        value.ShouldBe("FromCache");
+    }
+
+    [Fact]
+    public void Load_FetcherReturns304_DoesNotSaveToCache()
+    {
+        // Arrange
+        var cachedConfig = new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
+            ETag = "\"v5\""
+        };
+
+        _configCache.LoadAsync(Arg.Any<CancellationToken>())
+            .Returns(cachedConfig);
+
+        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
+            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
+
+        _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"v5\"" });
+
+        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200), connectionMode: ConnectionMode.Polling);
+
+        // Act
+        _provider.Load();
+
+        // Assert — no redundant cache save when data hasn't changed
+        _configCache.DidNotReceive().SaveAsync(Arg.Any<CachedConfiguration>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Load_CachedLastEventId_RestoredToSseClient()
+    {
+        // Arrange
+        var cachedConfig = new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
+            ETag = "\"v5\"",
+            LastEventId = "snapshot-guid-123"
+        };
+
+        _configCache.LoadAsync(Arg.Any<CancellationToken>())
+            .Returns(cachedConfig);
+
+        var configJson = CreateConfigJson(("Key1", "Value1"));
+        var events = new[] { new SseEvent { EventType = "config", Data = configJson, Id = "snapshot-guid-456" } };
+
+        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
+            .Returns(callInfo => CreateSseStream(events, callInfo.Arg<CancellationToken>()));
+
+        _provider = CreateProvider();
+
+        // Act
+        _provider.Load();
+
+        // Assert — SSE client was seeded with the cached last event ID
+        _sseClient.LastEventId.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Load_PollingMode_CachedETagUsedForInitialFetch()
+    {
+        // Arrange
+        var cachedConfig = new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
+            ETag = "\"v3\""
+        };
+
+        _configCache.LoadAsync(Arg.Any<CancellationToken>())
+            .Returns(cachedConfig);
+
+        var fetchResult = new FetchResult
+        {
+            Status = FetchStatus.Success,
+            Config = new Dictionary<string, string> { ["Key1"] = "FromServer" },
+            ETag = "\"v4\""
+        };
+
+        _configFetcher.FetchAsync("\"v3\"", Arg.Any<CancellationToken>())
+            .Returns(fetchResult);
+
+        _provider = CreateProvider(connectionMode: ConnectionMode.Polling);
+
+        // Act
+        _provider.Load();
+
+        // Assert — server data replaces cached data
+        _provider.TryGet("Key1", out var value).ShouldBeTrue();
+        value.ShouldBe("FromServer");
+        _configFetcher.Received().FetchAsync("\"v3\"", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Load_SseDeliversConfig_SavesLastEventIdToCache()
+    {
+        // Arrange
+        var configJson = CreateConfigJson(("Key1", "Value1"));
+        var events = new[] { new SseEvent { EventType = "config", Data = configJson, Id = "snapshot-abc" } };
+
+        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
+            .Returns(callInfo => CreateSseStream(events, callInfo.Arg<CancellationToken>()));
+
+        _provider = CreateProvider();
+
+        // Act
+        _provider.Load();
+
+        // Assert — give background cache save a moment
+        Thread.Sleep(100);
+        _configCache.Received().SaveAsync(
+            Arg.Is<CachedConfiguration>(c => c.LastEventId == "snapshot-abc"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void ParseConfigDataWithVersion_ValidJson_ReturnsEntriesAndVersion()
     {
         // Arrange
