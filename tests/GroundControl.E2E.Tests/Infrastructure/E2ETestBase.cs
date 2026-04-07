@@ -7,7 +7,6 @@ using GroundControl.Link;
 using GroundControl.Link.Internals;
 using Microsoft.Extensions.Logging.Abstractions;
 using DefaultConfigFetcher = GroundControl.Link.Internals.DefaultConfigFetcher;
-using DefaultSseClient = GroundControl.Link.Internals.DefaultSseClient;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -53,7 +52,7 @@ public abstract class E2ETestBase : IDisposable
     /// Creates a Link SDK configuration provider wired to the fixture's API server.
     /// The caller owns the returned provider and must dispose it.
     /// </summary>
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Ownership transfers to the returned GroundControlConfigurationProvider which disposes the SSE client")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Ownership transfers to the returned GroundControlConfigurationProvider")]
     internal GroundControlConfigurationProvider CreateLinkProvider(Guid clientId, string clientSecret)
     {
         var httpClient = new HttpClient { BaseAddress = new Uri(Fixture.ApiBaseUrl) };
@@ -71,16 +70,10 @@ public abstract class E2ETestBase : IDisposable
             EnableLocalCache = false,
         };
 
-        var sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
+        var store = new GroundControlStore(options);
         var configFetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
 
-        return new GroundControlConfigurationProvider(
-            httpClient,
-            options,
-            sseClient,
-            configFetcher,
-            NullConfigCache.Instance,
-            NullLogger<GroundControlConfigurationProvider>.Instance);
+        return new GroundControlConfigurationProvider(store, NullConfigCache.Instance, configFetcher);
     }
 
     /// <summary>

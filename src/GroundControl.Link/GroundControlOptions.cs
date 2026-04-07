@@ -82,12 +82,6 @@ public sealed partial class GroundControlOptions : IValidatableObject
     /// <remarks>Defaults to <c>1.0</c>.</remarks>
     public string ApiVersion { get; set; } = "1.0";
 
-    /// <summary>
-    /// Gets or sets the logger factory for SDK diagnostics.
-    /// </summary>
-    /// <remarks>If not set, logging is disabled.</remarks>
-    public ILoggerFactory? LoggerFactory { get; set; }
-
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

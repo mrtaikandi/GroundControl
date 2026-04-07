@@ -1,509 +1,286 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
 using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests;
 
-public sealed class GroundControlConfigurationProviderTests : IAsyncDisposable
+public sealed class GroundControlConfigurationProviderTests : IDisposable
 {
-    private readonly ISseClient _sseClient = Substitute.For<ISseClient>();
     private readonly IConfigFetcher _configFetcher = Substitute.For<IConfigFetcher>();
     private readonly IConfigCache _configCache = Substitute.For<IConfigCache>();
+    private readonly GroundControlStore _store;
     private GroundControlConfigurationProvider? _provider;
 
-    public ValueTask DisposeAsync()
+    public GroundControlConfigurationProviderTests()
+    {
+        _store = new GroundControlStore(new GroundControlOptions
+        {
+            ServerUrl = "http://localhost",
+            ClientId = "test",
+            ClientSecret = "secret"
+        });
+    }
+
+    public void Dispose()
     {
         _provider?.Dispose();
         _configCache.Dispose();
+    }
 
-        return ValueTask.CompletedTask;
+    private GroundControlConfigurationProvider CreateProvider()
+    {
+        _provider = new GroundControlConfigurationProvider(_store, _configCache, _configFetcher);
+        return _provider;
     }
 
     [Fact]
-    public void Load_SseDeliversConfig_SetsData()
+    public void Load_NoCacheAndServerReturnsConfig_SetsData()
     {
         // Arrange
-        var configJson = CreateConfigJson(("Logging:LogLevel:Default", "Warning"), ("Database:Host", "localhost"));
-        var events = new[] { new SseEvent { EventType = "config", Data = configJson, Id = "1" } };
-
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateSseStream(events, callInfo.Arg<CancellationToken>()));
-
-        _provider = CreateProvider();
-
-        // Act
-        _provider.Load();
-
-        // Assert
-        _provider.TryGet("Logging:LogLevel:Default", out var logLevel).ShouldBeTrue();
-        logLevel.ShouldBe("Warning");
-        _provider.TryGet("Database:Host", out var host).ShouldBeTrue();
-        host.ShouldBe("localhost");
-    }
-
-    [Fact]
-    public void Load_SseTimesOut_FallsBackToFetcher()
-    {
-        // Arrange
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
-
-        var fetchResult = new FetchResult
-        {
-            Status = FetchStatus.Success,
-            Config = new Dictionary<string, string> { ["Key1"] = "FromRest" },
-            ETag = "\"v1\""
-        };
-
+        _configCache.Load().Returns((CachedConfiguration?)null);
         _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
-            .Returns(fetchResult);
-
-        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200));
-
-        // Act
-        _provider.Load();
-
-        // Assert
-        _provider.TryGet("Key1", out var value).ShouldBeTrue();
-        value.ShouldBe("FromRest");
-    }
-
-    [Fact]
-    public void Load_SseAndFetcherFail_FallsBackToCache()
-    {
-        // Arrange
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
-
-        _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(new FetchResult { Status = FetchStatus.TransientError });
-
-        var cachedConfig = new CachedConfiguration
-        {
-            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" }
-        };
-
-        _configCache.LoadAsync(Arg.Any<CancellationToken>())
-            .Returns(cachedConfig);
-
-        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200));
+            .Returns(new FetchResult
+            {
+                Status = FetchStatus.Success,
+                Config = new Dictionary<string, string> { ["Key1"] = "Value1" },
+                ETag = "\"1\""
+            });
+        var provider = CreateProvider();
 
         // Act
-        _provider.Load();
+        provider.Load();
 
         // Assert
-        _provider.TryGet("Key1", out var value).ShouldBeTrue();
-        value.ShouldBe("FromCache");
-    }
-
-    [Fact]
-    public void Load_FetcherThrows_FallsBackToCache()
-    {
-        // Arrange
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
-
-        _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("Network error"));
-
-        var cachedConfig = new CachedConfiguration
-        {
-            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" }
-        };
-
-        _configCache.LoadAsync(Arg.Any<CancellationToken>())
-            .Returns(cachedConfig);
-
-        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200));
-
-        // Act
-        _provider.Load();
-
-        // Assert
-        _provider.TryGet("Key1", out var value).ShouldBeTrue();
-        value.ShouldBe("FromCache");
-    }
-
-    [Fact]
-    public async Task Load_SseEventAfterStartup_TriggersOnReload()
-    {
-        // Arrange
-        var initialConfig = CreateConfigJson(("Key1", "Value1"));
-        var updatedConfig = CreateConfigJson(("Key1", "UpdatedValue"));
-
-        var eventChannel = Channel.CreateUnbounded<SseEvent>();
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => eventChannel.Reader.ReadAllAsync(callInfo.Arg<CancellationToken>()));
-
-        eventChannel.Writer.TryWrite(new SseEvent { EventType = "config", Data = initialConfig, Id = "1" });
-
-        _provider = CreateProvider();
-        _provider.Load();
-
-        // Act — send second config event and wait for OnReload
-        var reloadTriggered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var changeToken = _provider.GetReloadToken();
-        changeToken.RegisterChangeCallback(_ => reloadTriggered.TrySetResult(true), null);
-
-        eventChannel.Writer.TryWrite(new SseEvent { EventType = "config", Data = updatedConfig, Id = "2" });
-
-        // Assert
-        var completed = await Task.WhenAny(reloadTriggered.Task, Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-        completed.ShouldBe(reloadTriggered.Task, "OnReload should have been triggered");
-
-        _provider.TryGet("Key1", out var value).ShouldBeTrue();
-        value.ShouldBe("UpdatedValue");
-    }
-
-    [Fact]
-    public void Load_SseDeliversConfig_SavesConfigToCache()
-    {
-        // Arrange
-        var configJson = CreateConfigJson(("Key1", "Value1"));
-        var events = new[] { new SseEvent { EventType = "config", Data = configJson, Id = "1" } };
-
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateSseStream(events, callInfo.Arg<CancellationToken>()));
-
-        _provider = CreateProvider();
-
-        // Act
-        _provider.Load();
-
-        // Assert — give background task a moment to save cache
-        Thread.Sleep(100);
-        _configCache.Received().SaveAsync(
-            Arg.Is<CachedConfiguration>(c => c.Entries.ContainsKey("Key1")),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public void Load_PollingMode_SkipsSse()
-    {
-        // Arrange
-        var fetchResult = new FetchResult
-        {
-            Status = FetchStatus.Success,
-            Config = new Dictionary<string, string> { ["Key1"] = "FromRest" },
-            ETag = "\"v1\""
-        };
-
-        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
-            .Returns(fetchResult);
-
-        _provider = CreateProvider(connectionMode: ConnectionMode.Polling);
-
-        // Act
-        _provider.Load();
-
-        // Assert
-        _sseClient.DidNotReceive().StreamAsync(Arg.Any<CancellationToken>());
-        _provider.TryGet("Key1", out var value).ShouldBeTrue();
-        value.ShouldBe("FromRest");
-    }
-
-    [Fact]
-    public void Load_SseSkipsHeartbeatEvents_WaitsForConfig()
-    {
-        // Arrange
-        var configJson = CreateConfigJson(("Key1", "Value1"));
-        SseEvent[] events =
-        [
-            new() { EventType = "heartbeat", Data = "{}", Id = null },
-            new() { EventType = "config", Data = configJson, Id = "1" }
-        ];
-
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateSseStream(events, callInfo.Arg<CancellationToken>()));
-
-        _provider = CreateProvider();
-
-        // Act
-        _provider.Load();
-
-        // Assert
-        _provider.TryGet("Key1", out var value).ShouldBeTrue();
+        provider.TryGet("Key1", out var value).ShouldBeTrue();
         value.ShouldBe("Value1");
+        _store.HealthStatus.ShouldBe(StoreHealthStatus.Healthy);
     }
 
     [Fact]
-    public void Load_ConfigKeysCaseInsensitive()
+    public void Load_CacheExistsAndServerReturns304_UsesCachedData()
     {
         // Arrange
-        var configJson = CreateConfigJson(("MySection:MyKey", "MyValue"));
-        var events = new[] { new SseEvent { EventType = "config", Data = configJson, Id = "1" } };
-
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateSseStream(events, callInfo.Arg<CancellationToken>()));
-
-        _provider = CreateProvider();
+        _configCache.Load().Returns(new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Cached"] = "Data" },
+            ETag = "\"5\"",
+            LastEventId = "evt-1"
+        });
+        _configFetcher.FetchAsync("\"5\"", Arg.Any<CancellationToken>())
+            .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"5\"" });
+        var provider = CreateProvider();
 
         // Act
-        _provider.Load();
+        provider.Load();
 
-        // Assert — case-insensitive key lookup
-        _provider.TryGet("mysection:mykey", out var value).ShouldBeTrue();
+        // Assert
+        provider.TryGet("Cached", out var value).ShouldBeTrue();
+        value.ShouldBe("Data");
+        _store.HealthStatus.ShouldBe(StoreHealthStatus.Healthy);
+    }
+
+    [Fact]
+    public void Load_CacheExistsAndServerReturnsNewConfig_UsesServerData()
+    {
+        // Arrange
+        _configCache.Load().Returns(new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Old"] = "Stale" },
+            ETag = "\"1\""
+        });
+        _configFetcher.FetchAsync("\"1\"", Arg.Any<CancellationToken>())
+            .Returns(new FetchResult
+            {
+                Status = FetchStatus.Success,
+                Config = new Dictionary<string, string> { ["New"] = "Fresh" },
+                ETag = "\"2\""
+            });
+        var provider = CreateProvider();
+
+        // Act
+        provider.Load();
+
+        // Assert
+        provider.TryGet("New", out var value).ShouldBeTrue();
+        value.ShouldBe("Fresh");
+        provider.TryGet("Old", out _).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Load_CacheExistsAndServerFails_UsesCachedDataAndMarksDegraded()
+    {
+        // Arrange
+        _configCache.Load().Returns(new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Cached"] = "Fallback" },
+            ETag = "\"3\""
+        });
+        _configFetcher.FetchAsync("\"3\"", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Network error"));
+        var provider = CreateProvider();
+
+        // Act
+        provider.Load();
+
+        // Assert
+        provider.TryGet("Cached", out var value).ShouldBeTrue();
+        value.ShouldBe("Fallback");
+        _store.HealthStatus.ShouldBe(StoreHealthStatus.Degraded);
+    }
+
+    [Fact]
+    public void Load_NoCacheAndServerFails_EmptyDataAndMarksUnhealthy()
+    {
+        // Arrange
+        _configCache.Load().Returns((CachedConfiguration?)null);
+        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Network error"));
+        var provider = CreateProvider();
+
+        // Act
+        provider.Load();
+
+        // Assert
+        provider.TryGet("anything", out _).ShouldBeFalse();
+        _store.HealthStatus.ShouldBe(StoreHealthStatus.Unhealthy);
+    }
+
+    [Fact]
+    public void Load_ServerSuccess_SavesNewDataToCache()
+    {
+        // Arrange
+        _configCache.Load().Returns((CachedConfiguration?)null);
+        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+            .Returns(new FetchResult
+            {
+                Status = FetchStatus.Success,
+                Config = new Dictionary<string, string> { ["K"] = "V" },
+                ETag = "\"10\""
+            });
+        var provider = CreateProvider();
+
+        // Act
+        provider.Load();
+
+        // Assert
+        _configCache.Received(1).Save(Arg.Is<CachedConfiguration>(c =>
+            c.Entries.ContainsKey("K") && c.ETag == "\"10\""));
+    }
+
+    [Fact]
+    public void Load_Server304_DoesNotSaveToCache()
+    {
+        // Arrange
+        _configCache.Load().Returns(new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["K"] = "V" },
+            ETag = "\"5\""
+        });
+        _configFetcher.FetchAsync("\"5\"", Arg.Any<CancellationToken>())
+            .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"5\"" });
+        var provider = CreateProvider();
+
+        // Act
+        provider.Load();
+
+        // Assert
+        _configCache.DidNotReceive().Save(Arg.Any<CachedConfiguration>());
+    }
+
+    [Fact]
+    public void Load_CaseInsensitiveKeyAccess()
+    {
+        // Arrange
+        _configCache.Load().Returns((CachedConfiguration?)null);
+        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+            .Returns(new FetchResult
+            {
+                Status = FetchStatus.Success,
+                Config = new Dictionary<string, string> { ["MyKey"] = "MyValue" },
+                ETag = "\"1\""
+            });
+        var provider = CreateProvider();
+
+        // Act
+        provider.Load();
+
+        // Assert
+        provider.TryGet("mykey", out var value).ShouldBeTrue();
         value.ShouldBe("MyValue");
     }
 
     [Fact]
-    public void Load_CachedETag_SentToFetcherAsConditionalRequest()
+    public void OnDataChanged_TriggersReloadAndUpdatesData()
     {
         // Arrange
-        var cachedConfig = new CachedConfiguration
-        {
-            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
-            ETag = "\"v5\""
-        };
+        _configCache.Load().Returns((CachedConfiguration?)null);
+        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+            .Returns(new FetchResult
+            {
+                Status = FetchStatus.Success,
+                Config = new Dictionary<string, string> { ["Initial"] = "1" },
+                ETag = "\"1\""
+            });
+        var provider = CreateProvider();
+        provider.Load();
 
-        _configCache.LoadAsync(Arg.Any<CancellationToken>())
-            .Returns(cachedConfig);
+        var reloadTriggered = false;
+        provider.GetReloadToken().RegisterChangeCallback(_ => reloadTriggered = true, null);
 
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
-
-        _configFetcher.FetchAsync("\"v5\"", Arg.Any<CancellationToken>())
-            .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"v5\"" });
-
-        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200));
-
-        // Act
-        _provider.Load();
-
-        // Assert — fetcher received the cached ETag
-        _configFetcher.Received().FetchAsync("\"v5\"", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public void Load_FetcherReturns304_UsesCachedData()
-    {
-        // Arrange
-        var cachedConfig = new CachedConfiguration
-        {
-            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
-            ETag = "\"v5\""
-        };
-
-        _configCache.LoadAsync(Arg.Any<CancellationToken>())
-            .Returns(cachedConfig);
-
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
-
-        _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"v5\"" });
-
-        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200));
-
-        // Act
-        _provider.Load();
-
-        // Assert — cached data is used when server says not modified
-        _provider.TryGet("Key1", out var value).ShouldBeTrue();
-        value.ShouldBe("FromCache");
-    }
-
-    [Fact]
-    public void Load_FetcherReturns304_DoesNotSaveToCache()
-    {
-        // Arrange
-        var cachedConfig = new CachedConfiguration
-        {
-            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
-            ETag = "\"v5\""
-        };
-
-        _configCache.LoadAsync(Arg.Any<CancellationToken>())
-            .Returns(cachedConfig);
-
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateBlockingSseStream(callInfo.Arg<CancellationToken>()));
-
-        _configFetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"v5\"" });
-
-        _provider = CreateProvider(startupTimeout: TimeSpan.FromMilliseconds(200), connectionMode: ConnectionMode.Polling);
-
-        // Act
-        _provider.Load();
-
-        // Assert — no redundant cache save when data hasn't changed
-        _configCache.DidNotReceive().SaveAsync(Arg.Any<CachedConfiguration>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public void Load_CachedLastEventId_RestoredToSseClient()
-    {
-        // Arrange
-        var cachedConfig = new CachedConfiguration
-        {
-            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
-            ETag = "\"v5\"",
-            LastEventId = "snapshot-guid-123"
-        };
-
-        _configCache.LoadAsync(Arg.Any<CancellationToken>())
-            .Returns(cachedConfig);
-
-        var configJson = CreateConfigJson(("Key1", "Value1"));
-        var events = new[] { new SseEvent { EventType = "config", Data = configJson, Id = "snapshot-guid-456" } };
-
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateSseStream(events, callInfo.Arg<CancellationToken>()));
-
-        _provider = CreateProvider();
-
-        // Act
-        _provider.Load();
-
-        // Assert — SSE client was seeded with the cached last event ID
-        _sseClient.LastEventId.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void Load_PollingMode_CachedETagUsedForInitialFetch()
-    {
-        // Arrange
-        var cachedConfig = new CachedConfiguration
-        {
-            Entries = new Dictionary<string, string> { ["Key1"] = "FromCache" },
-            ETag = "\"v3\""
-        };
-
-        _configCache.LoadAsync(Arg.Any<CancellationToken>())
-            .Returns(cachedConfig);
-
-        var fetchResult = new FetchResult
-        {
-            Status = FetchStatus.Success,
-            Config = new Dictionary<string, string> { ["Key1"] = "FromServer" },
-            ETag = "\"v4\""
-        };
-
-        _configFetcher.FetchAsync("\"v3\"", Arg.Any<CancellationToken>())
-            .Returns(fetchResult);
-
-        _provider = CreateProvider(connectionMode: ConnectionMode.Polling);
-
-        // Act
-        _provider.Load();
-
-        // Assert — server data replaces cached data
-        _provider.TryGet("Key1", out var value).ShouldBeTrue();
-        value.ShouldBe("FromServer");
-        _configFetcher.Received().FetchAsync("\"v3\"", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public void Load_SseDeliversConfig_SavesLastEventIdToCache()
-    {
-        // Arrange
-        var configJson = CreateConfigJson(("Key1", "Value1"));
-        var events = new[] { new SseEvent { EventType = "config", Data = configJson, Id = "snapshot-abc" } };
-
-        _sseClient.StreamAsync(Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateSseStream(events, callInfo.Arg<CancellationToken>()));
-
-        _provider = CreateProvider();
-
-        // Act
-        _provider.Load();
-
-        // Assert — give background cache save a moment
-        Thread.Sleep(100);
-        _configCache.Received().SaveAsync(
-            Arg.Is<CachedConfiguration>(c => c.LastEventId == "snapshot-abc"),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public void ParseConfigDataWithVersion_ValidJson_ReturnsEntriesAndVersion()
-    {
-        // Arrange
-        var json = CreateConfigJson(("Key1", "Value1"), ("Key2", "Value2"));
-
-        // Act
-        var (config, snapshotVersion) = GroundControlConfigurationProvider.ParseConfigDataWithVersion(json);
+        // Act — simulate Phase 2 background service pushing new data
+        _store.Update(
+            new Dictionary<string, string> { ["Updated"] = "2" },
+            "\"2\"",
+            "evt-1");
 
         // Assert
-        config.Count.ShouldBe(2);
-        config["Key1"].ShouldBe("Value1");
-        config["Key2"].ShouldBe("Value2");
-        snapshotVersion.ShouldBe("1");
+        provider.TryGet("Updated", out var value).ShouldBeTrue();
+        value.ShouldBe("2");
+        provider.TryGet("Initial", out _).ShouldBeFalse();
+        reloadTriggered.ShouldBeTrue();
     }
 
     [Fact]
-    public void ParseConfigDataWithVersion_NoEntriesProperty_ReturnsEmpty()
+    public void Dispose_UnsubscribesFromStoreEvents()
     {
         // Arrange
-        var json = "{}";
+        _configCache.Load().Returns((CachedConfiguration?)null);
+        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+            .Returns(new FetchResult
+            {
+                Status = FetchStatus.Success,
+                Config = new Dictionary<string, string> { ["K"] = "V" },
+                ETag = "\"1\""
+            });
+        var provider = CreateProvider();
+        provider.Load();
 
         // Act
-        var (config, snapshotVersion) = GroundControlConfigurationProvider.ParseConfigDataWithVersion(json);
+        provider.Dispose();
+        _store.Update(new Dictionary<string, string> { ["After"] = "Dispose" }, "\"2\"", null);
+
+        // Assert — Data should NOT have been updated after disposal
+        provider.TryGet("After", out _).ShouldBeFalse();
+        provider.TryGet("K", out _).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Load_ServerTransientError_UsesCachedDataAndMarksDegraded()
+    {
+        // Arrange
+        _configCache.Load().Returns(new CachedConfiguration
+        {
+            Entries = new Dictionary<string, string> { ["Cached"] = "Value" },
+            ETag = "\"1\""
+        });
+        _configFetcher.FetchAsync("\"1\"", Arg.Any<CancellationToken>())
+            .Returns(new FetchResult { Status = FetchStatus.TransientError });
+        var provider = CreateProvider();
+
+        // Act
+        provider.Load();
 
         // Assert
-        config.Count.ShouldBe(0);
-        snapshotVersion.ShouldBeNull();
-    }
-
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
-    private GroundControlConfigurationProvider CreateProvider(TimeSpan? startupTimeout = null, ConnectionMode connectionMode = ConnectionMode.SseWithPollingFallback)
-    {
-        var options = new GroundControlOptions
-        {
-            ServerUrl = "https://test.example.com",
-            ClientId = "test-client",
-            ClientSecret = "test-secret",
-            StartupTimeout = startupTimeout ?? TimeSpan.FromSeconds(5),
-            ConnectionMode = connectionMode,
-            PollingInterval = TimeSpan.FromHours(1)
-        };
-
-        var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost") };
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
-        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
-
-        return new GroundControlConfigurationProvider(
-            httpClient,
-            options,
-            _sseClient,
-            _configFetcher,
-            _configCache,
-            NullLogger<GroundControlConfigurationProvider>.Instance);
-    }
-
-    private static string CreateConfigJson(params (string Key, string Value)[] entries)
-    {
-        var data = entries.ToDictionary(e => e.Key, e => e.Value);
-        return JsonSerializer.Serialize(new { data, snapshotId = Guid.Empty, snapshotVersion = 1 });
-    }
-
-    private static async IAsyncEnumerable<SseEvent> CreateSseStream(
-        SseEvent[] events,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        foreach (var evt in events)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            yield return evt;
-        }
-
-        await Task.CompletedTask.ConfigureAwait(false);
-    }
-
-    private static async IAsyncEnumerable<SseEvent> CreateBlockingSseStream(
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected — stream cancelled by timeout or shutdown
-        }
-
-        yield break;
+        provider.TryGet("Cached", out var value).ShouldBeTrue();
+        value.ShouldBe("Value");
+        _store.HealthStatus.ShouldBe(StoreHealthStatus.Degraded);
     }
 }

@@ -13,42 +13,31 @@ internal sealed class GroundControlConfigurationSource : IConfigurationSource
 {
     private readonly GroundControlOptions _options;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="GroundControlConfigurationSource"/> class.
-    /// </summary>
-    /// <param name="options">The validated SDK options.</param>
     public GroundControlConfigurationSource(GroundControlOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
     /// <inheritdoc />
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient is owned by the provider")]
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient ownership: disposed after Load() via provider")]
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
-        var loggerFactory = _options.LoggerFactory ?? NullLoggerFactory.Instance;
+        var store = new GroundControlStore(_options);
 
-        var httpClient = new HttpClient { BaseAddress = new Uri(_options.ServerUrl) };
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{_options.ClientId}:{_options.ClientSecret}");
-        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, _options.ApiVersion);
-
-        ISseClient sseClient = _options.ConnectionMode == ConnectionMode.Polling
-            ? NoOpSseClient.Instance
-            : new DefaultSseClient(httpClient, _options, loggerFactory.CreateLogger<DefaultSseClient>());
-
-        IConfigFetcher configFetcher = new DefaultConfigFetcher(
-            httpClient, loggerFactory.CreateLogger<DefaultConfigFetcher>());
-
-        IConfigCache configCache = _options.EnableLocalCache
-            ? new FileConfigCache(_options, loggerFactory.CreateLogger<FileConfigCache>())
+        IConfigCache cache = _options.EnableLocalCache
+            ? new FileConfigCache(_options, NullLogger<FileConfigCache>.Instance)
             : NullConfigCache.Instance;
 
-        return new GroundControlConfigurationProvider(
-            httpClient,
-            _options,
-            sseClient,
-            configFetcher,
-            configCache,
-            loggerFactory.CreateLogger<GroundControlConfigurationProvider>());
+        // Short-lived HttpClient for the Phase 1 conditional GET in Load().
+        // Phase 2 will use IHttpClientFactory for long-lived connections.
+        var httpClient = new HttpClient { BaseAddress = new Uri(_options.ServerUrl) };
+        httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("ApiKey", $"{_options.ClientId}:{_options.ClientSecret}");
+        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, _options.ApiVersion);
+
+        IConfigFetcher fetcher = new DefaultConfigFetcher(
+            httpClient, NullLogger<DefaultConfigFetcher>.Instance);
+
+        return new GroundControlConfigurationProvider(store, cache, fetcher);
     }
 }
