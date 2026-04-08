@@ -54,21 +54,28 @@ internal sealed class GroundControlStore
 
         LastSuccessfulUpdate = _snapshot.Timestamp;
         HealthStatus = StoreHealthStatus.Healthy;
+        LastErrorReason = null;
         LastError = null;
         OnDataChanged?.Invoke();
     }
 
     /// <summary>
-    /// Gets the last error that caused a non-healthy status.
+    /// Gets the reason for the current non-healthy status.
+    /// </summary>
+    public string? LastErrorReason { get; private set; }
+
+    /// <summary>
+    /// Gets the last exception that caused a non-healthy status.
     /// </summary>
     public Exception? LastError { get; private set; }
 
     /// <summary>
     /// Explicitly sets the health status without changing data.
     /// </summary>
-    public void SetHealth(StoreHealthStatus status, Exception? error = null)
+    public void SetHealth(StoreHealthStatus status, string? reason = null, Exception? error = null)
     {
         HealthStatus = status;
+        LastErrorReason = reason;
         LastError = error;
     }
 }
