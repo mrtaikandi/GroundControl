@@ -60,8 +60,7 @@ public static class ServiceCollectionExtensions
         var httpBuilder = services.AddHttpClient(HttpClientName, httpClient =>
             {
                 httpClient.BaseAddress = new Uri(store.Options.ServerUrl);
-                httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("ApiKey", $"{store.Options.ClientId}:{store.Options.ClientSecret}");
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(HeaderNames.ApiKey, $"{store.Options.ClientId}:{store.Options.ClientSecret}");
                 httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, store.Options.ApiVersion);
             })
             .UseSocketsHttpHandler((handler, _) =>
