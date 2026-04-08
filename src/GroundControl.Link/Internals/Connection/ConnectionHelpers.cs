@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Connection;
 
 /// <summary>
 /// Shared static helpers used by connection strategies and the configuration provider.

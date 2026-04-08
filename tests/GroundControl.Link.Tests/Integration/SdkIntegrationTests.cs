@@ -6,7 +6,6 @@ using GroundControl.Api.Features.Clients.Contracts;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Features.Snapshots.Contracts;
-using GroundControl.Link.Internals;
 using GroundControl.Link.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,5 +1,4 @@
 using System.Diagnostics.Metrics;
-using GroundControl.Link.Internals;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GroundControl.Link.Tests.Internals;

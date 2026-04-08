@@ -1,4 +1,3 @@
-using GroundControl.Link.Internals;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 

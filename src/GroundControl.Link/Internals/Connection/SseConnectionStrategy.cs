@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Connection;
 
 /// <summary>
 /// SSE-only connection strategy with exponential backoff reconnection.

@@ -1,5 +1,3 @@
-using GroundControl.Link.Internals;
-
 namespace GroundControl.Link.Tests.Internals;
 
 public sealed class ConnectionHelpersTests

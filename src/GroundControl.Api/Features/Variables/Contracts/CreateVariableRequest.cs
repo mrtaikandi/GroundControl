@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
-using ValidationContext = System.ComponentModel.DataAnnotations.ValidationContext;
 using GroundControl.Persistence.Contracts;
+using ValidationContext = System.ComponentModel.DataAnnotations.ValidationContext;
 
 namespace GroundControl.Api.Features.Variables.Contracts;
 

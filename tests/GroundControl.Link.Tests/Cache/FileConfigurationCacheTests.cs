@@ -1,4 +1,3 @@
-using GroundControl.Link.Internals;
 using Microsoft.AspNetCore.DataProtection;
 
 namespace GroundControl.Link.Tests.Cache;

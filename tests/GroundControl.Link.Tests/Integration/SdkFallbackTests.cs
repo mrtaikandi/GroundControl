@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests.Integration;
 

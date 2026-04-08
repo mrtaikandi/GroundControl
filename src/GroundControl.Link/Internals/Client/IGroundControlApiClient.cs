@@ -1,4 +1,4 @@
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Client;
 
 /// <summary>
 /// Client for the GroundControl API, providing both REST config fetch and SSE stream access.

@@ -1,5 +1,5 @@
-using GroundControl.Api.Features.ClientApi;
 using GroundControl.Api.Core.ChangeNotification;
+using GroundControl.Api.Features.ClientApi;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.Extensions.Logging.Abstractions;

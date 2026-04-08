@@ -1,4 +1,4 @@
-﻿namespace GroundControl.Host.Cli;
+namespace GroundControl.Host.Cli;
 
 /// <summary>
 /// The exception that is thrown when a required set of choices is empty.

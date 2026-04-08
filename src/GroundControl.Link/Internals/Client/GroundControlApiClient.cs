@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text.Json;
 
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Client;
 
 /// <summary>
 /// Default implementation of <see cref="IGroundControlApiClient"/>.

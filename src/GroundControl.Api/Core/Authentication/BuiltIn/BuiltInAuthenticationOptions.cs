@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using GroundControl.Host.Api;
-using ValidationContext = System.ComponentModel.DataAnnotations.ValidationContext;
 using Microsoft.Extensions.Options;
+using ValidationContext = System.ComponentModel.DataAnnotations.ValidationContext;
 
 namespace GroundControl.Api.Core.Authentication.BuiltIn;
 
