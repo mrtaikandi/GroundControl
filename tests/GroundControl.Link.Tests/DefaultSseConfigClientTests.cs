@@ -171,7 +171,8 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
 
         _handler = handler;
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        _sut = new DefaultSseConfigClient(_httpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
+        var gcHttpClient = new GroundControlHttpClient(_httpClient);
+        _sut = new DefaultSseConfigClient(gcHttpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
 
         // Act — first stream
         await foreach (var _ in _sut.StreamAsync(TestContext.Current.CancellationToken)) { }
@@ -195,7 +196,8 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
 
         _handler = handler;
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        _sut = new DefaultSseConfigClient(_httpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
+        var gcHttpClient = new GroundControlHttpClient(_httpClient);
+        _sut = new DefaultSseConfigClient(gcHttpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
 
         // Act
         var events = await CollectEventsAsync();
@@ -246,7 +248,8 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
             options.Value.SseHeartbeatTimeout = heartbeatTimeout.Value;
         }
 
-        _sut = new DefaultSseConfigClient(_httpClient, options, NullLogger<DefaultSseConfigClient>.Instance);
+        var gcHttpClient = new GroundControlHttpClient(_httpClient);
+        _sut = new DefaultSseConfigClient(gcHttpClient, options, NullLogger<DefaultSseConfigClient>.Instance);
     }
 
     private async Task<List<SseEvent>> CollectEventsAsync()

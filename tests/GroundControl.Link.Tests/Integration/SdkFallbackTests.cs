@@ -103,7 +103,8 @@ public sealed class SdkFallbackTests : IDisposable
     {
         var store = new GroundControlStore(options);
         var httpClient = new HttpClient { BaseAddress = options.ServerUrl, Timeout = TimeSpan.FromSeconds(1) };
-        var fetcher = new DefaultRestConfigClient(httpClient, NullLogger<DefaultRestConfigClient>.Instance);
+        var gcHttpClient = new GroundControlHttpClient(httpClient);
+        var fetcher = new DefaultRestConfigClient(gcHttpClient, NullLogger<DefaultRestConfigClient>.Instance);
         return new GroundControlConfigurationProvider(store, cache, fetcher);
     }
 }

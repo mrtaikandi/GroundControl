@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace GroundControl.Link.Internals;
@@ -9,15 +8,15 @@ namespace GroundControl.Link.Internals;
 /// </summary>
 internal sealed class DefaultRestConfigClient : IRestConfigClient
 {
-    private readonly HttpClient _httpClient;
+    private readonly GroundControlHttpClient _httpClient;
     private readonly ILogger<DefaultRestConfigClient> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultRestConfigClient"/> class.
     /// </summary>
-    /// <param name="httpClient">The HTTP client configured with the server base address.</param>
+    /// <param name="httpClient">The typed HTTP client for the GroundControl API.</param>
     /// <param name="logger">The logger instance.</param>
-    public DefaultRestConfigClient(HttpClient httpClient, ILogger<DefaultRestConfigClient> logger)
+    public DefaultRestConfigClient(GroundControlHttpClient httpClient, ILogger<DefaultRestConfigClient> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -26,14 +25,7 @@ internal sealed class DefaultRestConfigClient : IRestConfigClient
     /// <inheritdoc />
     public async Task<FetchResult> FetchAsync(string? etag, CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, GroundControlApiEndpoints.ClientConfig);
-
-        if (etag is not null)
-        {
-            request.Headers.IfNoneMatch.Add(new EntityTagHeaderValue($"\"{etag}\""));
-        }
-
-        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        using var response = await _httpClient.GetConfigAsync(etag, cancellationToken).ConfigureAwait(false);
         switch (response.StatusCode)
         {
             case HttpStatusCode.NotModified:

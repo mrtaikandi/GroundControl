@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Net.ServerSentEvents;
 using Microsoft.Extensions.Options;
 
@@ -12,14 +10,14 @@ namespace GroundControl.Link.Internals;
 /// </summary>
 internal sealed partial class DefaultSseConfigClient : ISseConfigClient
 {
-    private readonly HttpClient _httpClient;
+    private readonly GroundControlHttpClient _httpClient;
     private readonly GroundControlOptions _options;
     private readonly ILogger<DefaultSseConfigClient> _logger;
 
     /// <inheritdoc />
     public string? LastEventId { get; set; }
 
-    public DefaultSseConfigClient(HttpClient httpClient, IOptions<GroundControlOptions> options, ILogger<DefaultSseConfigClient> logger)
+    public DefaultSseConfigClient(GroundControlHttpClient httpClient, IOptions<GroundControlOptions> options, ILogger<DefaultSseConfigClient> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
@@ -32,15 +30,7 @@ internal sealed partial class DefaultSseConfigClient : ISseConfigClient
         using var heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         heartbeatCts.CancelAfter(_options.SseHeartbeatTimeout);
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, GroundControlApiEndpoints.ClientConfigStream);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Text.EventStream));
-
-        if (LastEventId is not null)
-        {
-            request.Headers.Add(HeaderNames.LastEventId, LastEventId);
-        }
-
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, heartbeatCts.Token).ConfigureAwait(false);
+        using var response = await _httpClient.GetConfigStreamAsync(LastEventId, heartbeatCts.Token).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(heartbeatCts.Token).ConfigureAwait(false);

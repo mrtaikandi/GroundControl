@@ -26,7 +26,8 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("http://localhost") };
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{TestOptions.ClientId}:{TestOptions.ClientSecret}");
         _httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, TestOptions.ApiVersion);
-        _client = new DefaultRestConfigClient(_httpClient, NullLogger<DefaultRestConfigClient>.Instance);
+        var gcHttpClient = new GroundControlHttpClient(_httpClient);
+        _client = new DefaultRestConfigClient(gcHttpClient, NullLogger<DefaultRestConfigClient>.Instance);
     }
 
     public void Dispose()

@@ -51,7 +51,8 @@ public abstract class SdkIntegrationTestBase
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
-        IRestConfigClient client = new DefaultRestConfigClient(httpClient, NullLogger<DefaultRestConfigClient>.Instance);
+        var gcHttpClient = new GroundControlHttpClient(httpClient);
+        IRestConfigClient client = new DefaultRestConfigClient(gcHttpClient, NullLogger<DefaultRestConfigClient>.Instance);
 
         IConfigCache cache = options.EnableLocalCache
             ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
@@ -86,9 +87,10 @@ public abstract class SdkIntegrationTestBase
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
-        IRestConfigClient client = new DefaultRestConfigClient(httpClient, NullLogger<DefaultRestConfigClient>.Instance);
+        var gcHttpClient = new GroundControlHttpClient(httpClient);
+        IRestConfigClient client = new DefaultRestConfigClient(gcHttpClient, NullLogger<DefaultRestConfigClient>.Instance);
         IConfigCache cache = NullConfigCache.Instance;
-        ISseConfigClient sseClient = new DefaultSseConfigClient(httpClient, Options.Create(options), NullLogger<DefaultSseConfigClient>.Instance);
+        ISseConfigClient sseClient = new DefaultSseConfigClient(gcHttpClient, Options.Create(options), NullLogger<DefaultSseConfigClient>.Instance);
 
         var provider = new GroundControlConfigurationProvider(store, cache, client);
 
