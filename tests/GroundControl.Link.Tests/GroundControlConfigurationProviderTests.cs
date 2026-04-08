@@ -5,7 +5,7 @@ namespace GroundControl.Link.Tests;
 
 public sealed class GroundControlConfigurationProviderTests : IDisposable
 {
-    private readonly IConfigFetcher _configFetcher = Substitute.For<IConfigFetcher>();
+    private readonly IRestConfigClient _restConfigClient = Substitute.For<IRestConfigClient>();
     private readonly IConfigCache _configCache = Substitute.For<IConfigCache>();
     private readonly GroundControlStore _store;
     private GroundControlConfigurationProvider? _provider;
@@ -28,7 +28,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
 
     private GroundControlConfigurationProvider CreateProvider()
     {
-        _provider = new GroundControlConfigurationProvider(_store, _configCache, _configFetcher);
+        _provider = new GroundControlConfigurationProvider(_store, _configCache, _restConfigClient);
         return _provider;
     }
 
@@ -37,7 +37,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
     {
         // Arrange
         _configCache.Load().Returns((CachedConfiguration?)null);
-        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync(null, Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
@@ -65,7 +65,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             ETag = "\"5\"",
             LastEventId = "evt-1"
         });
-        _configFetcher.FetchAsync("\"5\"", Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync("\"5\"", Arg.Any<CancellationToken>())
             .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"5\"" });
         var provider = CreateProvider();
 
@@ -87,7 +87,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             Entries = new Dictionary<string, string> { ["Old"] = "Stale" },
             ETag = "\"1\""
         });
-        _configFetcher.FetchAsync("\"1\"", Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync("\"1\"", Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
@@ -114,7 +114,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             Entries = new Dictionary<string, string> { ["Cached"] = "Fallback" },
             ETag = "\"3\""
         });
-        _configFetcher.FetchAsync("\"3\"", Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync("\"3\"", Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
         var provider = CreateProvider();
 
@@ -132,7 +132,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
     {
         // Arrange
         _configCache.Load().Returns((CachedConfiguration?)null);
-        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync(null, Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("Network error"));
         var provider = CreateProvider();
 
@@ -149,7 +149,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
     {
         // Arrange
         _configCache.Load().Returns((CachedConfiguration?)null);
-        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync(null, Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
@@ -175,7 +175,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             Entries = new Dictionary<string, string> { ["K"] = "V" },
             ETag = "\"5\""
         });
-        _configFetcher.FetchAsync("\"5\"", Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync("\"5\"", Arg.Any<CancellationToken>())
             .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"5\"" });
         var provider = CreateProvider();
 
@@ -191,7 +191,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
     {
         // Arrange
         _configCache.Load().Returns((CachedConfiguration?)null);
-        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync(null, Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
@@ -213,7 +213,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
     {
         // Arrange
         _configCache.Load().Returns((CachedConfiguration?)null);
-        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync(null, Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
@@ -244,7 +244,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
     {
         // Arrange
         _configCache.Load().Returns((CachedConfiguration?)null);
-        _configFetcher.FetchAsync(null, Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync(null, Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
@@ -272,7 +272,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             Entries = new Dictionary<string, string> { ["Cached"] = "Value" },
             ETag = "\"1\""
         });
-        _configFetcher.FetchAsync("\"1\"", Arg.Any<CancellationToken>())
+        _restConfigClient.FetchAsync("\"1\"", Arg.Any<CancellationToken>())
             .Returns(new FetchResult { Status = FetchStatus.TransientError });
         var provider = CreateProvider();
 

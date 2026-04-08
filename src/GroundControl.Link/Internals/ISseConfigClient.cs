@@ -4,7 +4,7 @@ namespace GroundControl.Link.Internals;
 /// Abstraction for a Server-Sent Events client that streams configuration events
 /// from the GroundControl server.
 /// </summary>
-public interface ISseClient
+public interface ISseConfigClient
 {
     /// <summary>
     /// Gets or sets the last received SSE event ID, used to resume streams after reconnection.

@@ -39,8 +39,8 @@ public sealed class ServiceCollectionExtensionsTests
         sp.GetRequiredService<IConfigCache>().ShouldNotBeNull();
         sp.GetRequiredService<GroundControlMetrics>().ShouldNotBeNull();
         sp.GetRequiredService<IConnectionStrategy>().ShouldNotBeNull();
-        sp.GetRequiredService<ISseClient>().ShouldNotBeNull();
-        sp.GetRequiredService<IConfigFetcher>().ShouldNotBeNull();
+        sp.GetRequiredService<ISseConfigClient>().ShouldNotBeNull();
+        sp.GetRequiredService<IRestConfigClient>().ShouldNotBeNull();
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class ServiceCollectionExtensionsTests
 
         // Assert — background services NOT registered
         sp.GetService<IConnectionStrategy>().ShouldBeNull();
-        sp.GetService<ISseClient>().ShouldBeNull();
-        sp.GetService<IConfigFetcher>().ShouldBeNull();
+        sp.GetService<ISseConfigClient>().ShouldBeNull();
+        sp.GetService<IRestConfigClient>().ShouldBeNull();
     }
 }

@@ -1,8 +1,8 @@
 namespace GroundControl.Link.Internals;
 
-internal sealed class NoOpSseClient : ISseClient
+internal sealed class NoOpSseConfigClient : ISseConfigClient
 {
-    public static NoOpSseClient Instance { get; } = new();
+    public static NoOpSseConfigClient Instance { get; } = new();
 
     /// <inheritdoc />
     public string? LastEventId { get; set; }

@@ -3,7 +3,7 @@ namespace GroundControl.Link.Internals;
 /// <summary>
 /// Abstraction for fetching configuration from the GroundControl REST endpoint.
 /// </summary>
-internal interface IConfigFetcher
+internal interface IRestConfigClient
 {
     /// <summary>
     /// Fetches the current configuration from the server.

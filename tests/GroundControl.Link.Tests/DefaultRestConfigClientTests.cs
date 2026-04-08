@@ -6,11 +6,11 @@ using GroundControl.Link.Internals;
 namespace GroundControl.Link.Tests;
 
 [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
-public sealed class DefaultConfigFetcherTests : IDisposable
+public sealed class DefaultRestConfigClientTests : IDisposable
 {
     private readonly MockHandler _handler;
     private readonly HttpClient _httpClient;
-    private readonly DefaultConfigFetcher _fetcher;
+    private readonly DefaultRestConfigClient _client;
 
     private static readonly GroundControlOptions TestOptions = new()
     {
@@ -20,13 +20,13 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         ApiVersion = "1.0"
     };
 
-    public DefaultConfigFetcherTests()
+    public DefaultRestConfigClientTests()
     {
         _handler = new MockHandler();
         _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("http://localhost") };
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{TestOptions.ClientId}:{TestOptions.ClientSecret}");
         _httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, TestOptions.ApiVersion);
-        _fetcher = new DefaultConfigFetcher(_httpClient, NullLogger<DefaultConfigFetcher>.Instance);
+        _client = new DefaultRestConfigClient(_httpClient, NullLogger<DefaultRestConfigClient>.Instance);
     }
 
     public void Dispose()
@@ -42,7 +42,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"Key1": "Value1", "Key2": "Value2"}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
-        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -61,7 +61,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.NotModified);
 
         // Act
-        var result = await _fetcher.FetchAsync("v1", TestContext.Current.CancellationToken);
+        var result = await _client.FetchAsync("v1", TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -76,7 +76,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.NotModified);
 
         // Act
-        await _fetcher.FetchAsync("v42", TestContext.Current.CancellationToken);
+        await _client.FetchAsync("v42", TestContext.Current.CancellationToken);
 
         // Assert
         _handler.LastRequest.ShouldNotBeNull();
@@ -90,7 +90,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"A": "1"}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
-        await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         _handler.LastRequest.ShouldNotBeNull();
@@ -104,7 +104,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"A": "1"}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
-        await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         _handler.LastRequest.ShouldNotBeNull();
@@ -119,7 +119,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"A": "1"}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
-        await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         _handler.LastRequest.ShouldNotBeNull();
@@ -134,7 +134,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.InternalServerError);
 
         // Act
-        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -148,7 +148,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.Unauthorized);
 
         // Act
-        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -162,7 +162,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.Forbidden);
 
         // Act
-        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -176,7 +176,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.NotFound);
 
         // Act
-        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -190,7 +190,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"Key": "Val"}, "snapshotVersion": 3}""", "\"snapshot-3\"");
 
         // Act
-        var result = await _fetcher.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -204,7 +204,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {"Db": {"Host": "localhost", "Port": "5432"}}}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -219,7 +219,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {"A": {"B": {"C": "deep"}}}}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(1);
@@ -233,7 +233,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {"Hosts": ["alpha", "beta", "gamma"]}}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(3);
@@ -249,7 +249,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {"Servers": [{"Host": "a"}, {"Host": "b"}]}}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -264,7 +264,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {"Present": "yes", "Missing": null, "Also": "here"}}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -280,7 +280,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {"Enabled": true, "Count": 42, "Rate": 3.14}}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(3);
@@ -296,7 +296,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {}, "snapshotVersion": 1}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.ShouldBeEmpty();
@@ -309,7 +309,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"snapshotVersion": 1}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.ShouldBeEmpty();
@@ -322,7 +322,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {"Simple": "value", "Another": "one"}}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -337,7 +337,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
         var json = """{"data": {"MyKey": "value"}}""";
 
         // Act
-        var result = DefaultConfigFetcher.FlattenJson(json);
+        var result = DefaultRestConfigClient.FlattenJson(json);
 
         // Assert
         result["mykey"].ShouldBe("value");

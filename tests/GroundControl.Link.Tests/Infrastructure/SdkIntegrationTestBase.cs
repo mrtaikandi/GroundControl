@@ -51,20 +51,20 @@ public abstract class SdkIntegrationTestBase
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
-        IConfigFetcher fetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
+        IRestConfigClient client = new DefaultRestConfigClient(httpClient, NullLogger<DefaultRestConfigClient>.Instance);
 
         IConfigCache cache = options.EnableLocalCache
             ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
             : NullConfigCache.Instance;
 
-        return new GroundControlConfigurationProvider(store, cache, fetcher);
+        return new GroundControlConfigurationProvider(store, cache, client);
     }
 
     /// <summary>
     /// Creates a provider and returns its store for wiring a background SSE/polling connection.
     /// </summary>
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; provider is disposed by test via using")]
-    internal static (GroundControlConfigurationProvider Provider, GroundControlStore Store, ISseClient SseClient) CreateProviderWithStore(
+    internal static (GroundControlConfigurationProvider Provider, GroundControlStore Store, ISseConfigClient SseClient) CreateProviderWithStore(
         HttpMessageHandler serverHandler,
         Guid clientId,
         string clientSecret,
@@ -86,11 +86,11 @@ public abstract class SdkIntegrationTestBase
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
-        IConfigFetcher fetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
+        IRestConfigClient client = new DefaultRestConfigClient(httpClient, NullLogger<DefaultRestConfigClient>.Instance);
         IConfigCache cache = NullConfigCache.Instance;
-        ISseClient sseClient = new DefaultSseClient(httpClient, Options.Create(options), NullLogger<DefaultSseClient>.Instance);
+        ISseConfigClient sseClient = new DefaultSseConfigClient(httpClient, Options.Create(options), NullLogger<DefaultSseConfigClient>.Instance);
 
-        var provider = new GroundControlConfigurationProvider(store, cache, fetcher);
+        var provider = new GroundControlConfigurationProvider(store, cache, client);
 
         return (provider, store, sseClient);
     }

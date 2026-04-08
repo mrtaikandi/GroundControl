@@ -10,8 +10,8 @@ namespace GroundControl.Link.Tests.Internals;
 
 public sealed class SseWithPollingFallbackStrategyTests : IDisposable
 {
-    private readonly ISseClient _sseClient = Substitute.For<ISseClient>();
-    private readonly IConfigFetcher _fetcher = Substitute.For<IConfigFetcher>();
+    private readonly ISseConfigClient _sseClient = Substitute.For<ISseConfigClient>();
+    private readonly IRestConfigClient _client = Substitute.For<IRestConfigClient>();
     private readonly IConfigCache _cache = Substitute.For<IConfigCache>();
     private readonly ServiceProvider _serviceProvider;
     private readonly GroundControlMetrics _metrics;
@@ -61,7 +61,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
 
         // Assert -- data delivered via SSE, no polling occurred
         _store.GetSnapshot().Data.ShouldContainKeyAndValue("K", "V");
-        await _fetcher.DidNotReceive().FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        await _client.DidNotReceive().FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
         _sseClient.StreamAsync(Arg.Any<CancellationToken>())
             .Returns(CreateThrowingStream());
 
-        _fetcher.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        _client.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
@@ -87,11 +87,11 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
         await strategy.ExecuteAsync(_store, cts.Token);
 
         // Assert -- fetcher was called as fallback
-        await _fetcher.Received().FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        await _client.Received().FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     private SseWithPollingFallbackStrategy CreateStrategy() =>
-        new(_sseClient, _fetcher, _cache,
+        new(_sseClient, _client, _cache,
             NullLogger<SseWithPollingFallbackStrategy>.Instance, _metrics);
 
     /// <summary>

@@ -6,7 +6,6 @@ using GroundControl.Api.Client;
 using GroundControl.Link;
 using GroundControl.Link.Internals;
 using Microsoft.Extensions.Logging.Abstractions;
-using DefaultConfigFetcher = GroundControl.Link.Internals.DefaultConfigFetcher;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -71,7 +70,7 @@ public abstract class E2ETestBase : IDisposable
         };
 
         var store = new GroundControlStore(options);
-        var configFetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
+        var configFetcher = new DefaultRestConfigClient(httpClient, NullLogger<DefaultRestConfigClient>.Instance);
 
         return new GroundControlConfigurationProvider(store, NullConfigCache.Instance, configFetcher);
     }
