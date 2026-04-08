@@ -16,7 +16,7 @@ public sealed class PollingConnectionStrategyTests : IDisposable
     {
         _store = new GroundControlStore(new GroundControlOptions
         {
-            ServerUrl = "http://localhost",
+            ServerUrl = new Uri("http://localhost"),
             ClientId = "test",
             ClientSecret = "secret",
             PollingInterval = TimeSpan.FromMilliseconds(50)

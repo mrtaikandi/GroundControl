@@ -61,7 +61,7 @@ public abstract class E2ETestBase : IDisposable
 
         var options = new GroundControlOptions
         {
-            ServerUrl = Fixture.ApiBaseUrl,
+            ServerUrl = new Uri(Fixture.ApiBaseUrl),
             ClientId = clientId.ToString(),
             ClientSecret = clientSecret,
             StartupTimeout = TimeSpan.FromSeconds(15),

@@ -7,7 +7,7 @@ public sealed class GroundControlStoreTests
 {
     private static GroundControlOptions CreateOptions() => new()
     {
-        ServerUrl = "http://localhost",
+        ServerUrl = new Uri("http://localhost"),
         ClientId = "test",
         ClientSecret = "secret"
     };

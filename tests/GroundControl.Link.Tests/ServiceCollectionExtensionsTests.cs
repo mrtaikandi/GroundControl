@@ -12,7 +12,7 @@ public sealed class ServiceCollectionExtensionsTests
         var builder = new ConfigurationBuilder();
         builder.AddGroundControl(opts =>
         {
-            opts.ServerUrl = "http://localhost:9999";
+            opts.ServerUrl = new Uri("http://localhost:9999");
             opts.ClientId = "test";
             opts.ClientSecret = "secret";
             opts.EnableLocalCache = false;

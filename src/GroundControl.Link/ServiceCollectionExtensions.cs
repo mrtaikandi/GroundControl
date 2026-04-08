@@ -59,7 +59,7 @@ public static class ServiceCollectionExtensions
         // Named HttpClient for background services
         var httpBuilder = services.AddHttpClient(HttpClientName, httpClient =>
             {
-                httpClient.BaseAddress = new Uri(store.Options.ServerUrl);
+                httpClient.BaseAddress = store.Options.ServerUrl;
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(HeaderNames.ApiKey, $"{store.Options.ClientId}:{store.Options.ClientSecret}");
                 httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, store.Options.ApiVersion);
             })

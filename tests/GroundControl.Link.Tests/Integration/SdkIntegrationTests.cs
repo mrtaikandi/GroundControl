@@ -64,7 +64,7 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
         using var sdkHandler = factory.Server.CreateHandler();
         var options = new GroundControlOptions
         {
-            ServerUrl = "http://localhost",
+            ServerUrl = new Uri("http://localhost"),
             ClientId = client.Id.ToString(),
             ClientSecret = client.ClientSecret,
             StartupTimeout = TimeSpan.FromSeconds(10),
@@ -210,7 +210,7 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
         using var sdkHandler = factory.Server.CreateHandler();
         var options = new GroundControlOptions
         {
-            ServerUrl = "http://localhost",
+            ServerUrl = new Uri("http://localhost"),
             ClientId = client.Id.ToString(),
             ClientSecret = client.ClientSecret,
             StartupTimeout = TimeSpan.FromSeconds(2),

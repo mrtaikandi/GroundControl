@@ -88,7 +88,7 @@ public sealed class SdkFallbackTests : IDisposable
 
     private GroundControlOptions CreateOptions(bool enableCache) => new()
     {
-        ServerUrl = "http://localhost:1",
+        ServerUrl = new Uri("http://localhost:1"),
         ClientId = "test-client",
         ClientSecret = "test-secret",
         EnableLocalCache = enableCache,
@@ -102,7 +102,7 @@ public sealed class SdkFallbackTests : IDisposable
         IConfigCache cache)
     {
         var store = new GroundControlStore(options);
-        var httpClient = new HttpClient { BaseAddress = new Uri(options.ServerUrl), Timeout = TimeSpan.FromSeconds(1) };
+        var httpClient = new HttpClient { BaseAddress = options.ServerUrl, Timeout = TimeSpan.FromSeconds(1) };
         var fetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
         return new GroundControlConfigurationProvider(store, cache, fetcher);
     }

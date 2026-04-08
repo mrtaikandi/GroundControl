@@ -336,7 +336,7 @@ public sealed class FileConfigCacheTests : IDisposable
         new(
             new GroundControlOptions
             {
-                ServerUrl = "http://localhost",
+                ServerUrl = new Uri("http://localhost"),
                 ClientId = "test-client",
                 ClientSecret = "test-secret",
                 CacheFilePath = cachePath ?? _cachePath
