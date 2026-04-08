@@ -69,13 +69,15 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
                 case FetchStatus.AuthenticationError:
                 case FetchStatus.NotFound:
                 default:
-                    ApplyCacheOrMarkUnhealthy(cached);
+                    ApplyCache(cached);
+                    MarkAsUnhealthy(cached, result.Status);
                     break;
             }
         }
         catch (Exception ex)
         {
-            ApplyCacheOrMarkUnhealthy(cached, ex);
+            ApplyCache(cached);
+            MarkAsUnhealthy(cached, error: ex);
         }
 
         SetDataFromStore();
@@ -102,25 +104,28 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
         Data = data;
     }
 
-    private void ApplyCache(CachedConfiguration cached)
+    private void ApplyCache(CachedConfiguration? cache)
     {
-        Store.Update(
-            new Dictionary<string, string>(cached.Entries, StringComparer.OrdinalIgnoreCase),
-            cached.ETag,
-            cached.LastEventId);
+        if (cache is null)
+        {
+            return;
+        }
+
+        Store.Update(new Dictionary<string, string>(cache.Entries, StringComparer.OrdinalIgnoreCase), cache.ETag, cache.LastEventId);
     }
 
-    private void ApplyCacheOrMarkUnhealthy(CachedConfiguration? cached, Exception? error = null)
+    private void MarkAsUnhealthy(CachedConfiguration? cached, FetchStatus? fetchStatus = null, Exception? error = null)
     {
-        if (cached is not null)
+        var reason = fetchStatus switch
         {
-            ApplyCache(cached);
-            Store.SetHealth(StoreHealthStatus.Degraded, error);
-        }
-        else
-        {
-            Store.SetHealth(StoreHealthStatus.Unhealthy, error);
-        }
+            FetchStatus.AuthenticationError => "Authentication failed (401/403). Check ClientId and ClientSecret.",
+            FetchStatus.NotFound => "No active snapshot found on the server (404).",
+            FetchStatus.TransientError => "Server returned a transient error.",
+            _ when error is not null => error.Message,
+            _ => null
+        };
+
+        Store.SetHealth(cached is not null ? StoreHealthStatus.Degraded : StoreHealthStatus.Unhealthy, reason, error);
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cache save is best-effort; failures are non-fatal")]

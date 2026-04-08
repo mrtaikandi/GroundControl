@@ -41,11 +41,11 @@ public sealed class GroundControlHealthCheckTests
     }
 
     [Fact]
-    public async Task CheckHealthAsync_Degraded_IncludesException()
+    public async Task CheckHealthAsync_Degraded_IncludesReasonAndException()
     {
         // Arrange
         var error = new HttpRequestException("Connection refused");
-        _store.SetHealth(StoreHealthStatus.Degraded, error);
+        _store.SetHealth(StoreHealthStatus.Degraded, "Server returned a transient error.", error);
         var check = new GroundControlHealthCheck(_store);
 
         // Act
@@ -53,6 +53,7 @@ public sealed class GroundControlHealthCheckTests
 
         // Assert
         result.Status.ShouldBe(HealthStatus.Degraded);
+        result.Description.ShouldBe("Server returned a transient error.");
         result.Exception.ShouldBeSameAs(error);
     }
 
@@ -70,11 +71,11 @@ public sealed class GroundControlHealthCheckTests
     }
 
     [Fact]
-    public async Task CheckHealthAsync_Unhealthy_IncludesException()
+    public async Task CheckHealthAsync_Unhealthy_IncludesReasonAndException()
     {
         // Arrange
         var error = new HttpRequestException("DNS resolution failed");
-        _store.SetHealth(StoreHealthStatus.Unhealthy, error);
+        _store.SetHealth(StoreHealthStatus.Unhealthy, "Authentication failed (401/403). Check ClientId and ClientSecret.", error);
         var check = new GroundControlHealthCheck(_store);
 
         // Act
@@ -82,6 +83,7 @@ public sealed class GroundControlHealthCheckTests
 
         // Assert
         result.Status.ShouldBe(HealthStatus.Unhealthy);
+        result.Description.ShouldBe("Authentication failed (401/403). Check ClientId and ClientSecret.");
         result.Exception.ShouldBeSameAs(error);
     }
 }
