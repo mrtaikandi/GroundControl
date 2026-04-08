@@ -29,7 +29,7 @@ internal static class ConnectionHelpers
 
         if (doc.RootElement.TryGetProperty("data", out var data))
         {
-            DefaultRestConfigClient.FlattenElement(data, string.Empty, config);
+            GroundControlApiClient.FlattenElement(data, string.Empty, config);
         }
 
         string? snapshotVersion = null;

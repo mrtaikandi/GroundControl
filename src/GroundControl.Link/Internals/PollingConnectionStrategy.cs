@@ -9,13 +9,13 @@ namespace GroundControl.Link.Internals;
 /// </summary>
 internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
 {
-    private readonly IRestConfigClient _client;
+    private readonly IGroundControlApiClient _client;
     private readonly IConfigCache _cache;
     private readonly ILogger<PollingConnectionStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
 
     public PollingConnectionStrategy(
-        IRestConfigClient client,
+        IGroundControlApiClient client,
         IConfigCache cache,
         ILogger<PollingConnectionStrategy> logger,
         GroundControlMetrics metrics)
@@ -38,7 +38,7 @@ internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
                     stoppingToken).ConfigureAwait(false);
 
                 var sw = Stopwatch.StartNew();
-                var result = await _client.FetchAsync(
+                var result = await _client.FetchConfigAsync(
                     store.GetSnapshot().ETag, stoppingToken).ConfigureAwait(false);
                 sw.Stop();
                 _metrics.RecordFetchDuration(sw.Elapsed.TotalSeconds);

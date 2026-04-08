@@ -6,7 +6,7 @@ namespace GroundControl.Link.Tests.Internals;
 
 public sealed class PollingConnectionStrategyTests : IDisposable
 {
-    private readonly IRestConfigClient _client = Substitute.For<IRestConfigClient>();
+    private readonly IGroundControlApiClient _client = Substitute.For<IGroundControlApiClient>();
     private readonly IConfigCache _cache = Substitute.For<IConfigCache>();
     private readonly ServiceProvider _serviceProvider;
     private readonly GroundControlMetrics _metrics;
@@ -41,7 +41,7 @@ public sealed class PollingConnectionStrategyTests : IDisposable
     {
         // Arrange
         var callCount = 0;
-        _client.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        _client.FetchConfigAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
                 callCount++;
@@ -70,7 +70,7 @@ public sealed class PollingConnectionStrategyTests : IDisposable
     {
         // Arrange
         _store.Update(new Dictionary<string, string> { ["Existing"] = "Data" }, "\"1\"", null);
-        _client.FetchAsync("\"1\"", Arg.Any<CancellationToken>())
+        _client.FetchConfigAsync("\"1\"", Arg.Any<CancellationToken>())
             .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"1\"" });
 
         var strategy = CreateStrategy();
@@ -89,7 +89,7 @@ public sealed class PollingConnectionStrategyTests : IDisposable
     {
         // Arrange
         var callCount = 0;
-        _client.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        _client.FetchConfigAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
                 callCount++;

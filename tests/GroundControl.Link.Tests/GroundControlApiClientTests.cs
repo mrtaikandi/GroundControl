@@ -6,11 +6,11 @@ using GroundControl.Link.Internals;
 namespace GroundControl.Link.Tests;
 
 [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
-public sealed class DefaultRestConfigClientTests : IDisposable
+public sealed class GroundControlApiClientTests : IDisposable
 {
     private readonly MockHandler _handler;
     private readonly HttpClient _httpClient;
-    private readonly DefaultRestConfigClient _client;
+    private readonly GroundControlApiClient _client;
 
     private static readonly GroundControlOptions TestOptions = new()
     {
@@ -20,14 +20,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         ApiVersion = "1.0"
     };
 
-    public DefaultRestConfigClientTests()
+    public GroundControlApiClientTests()
     {
         _handler = new MockHandler();
         _httpClient = new HttpClient(_handler) { BaseAddress = new Uri("http://localhost") };
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{TestOptions.ClientId}:{TestOptions.ClientSecret}");
         _httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, TestOptions.ApiVersion);
-        var gcHttpClient = new GroundControlHttpClient(_httpClient);
-        _client = new DefaultRestConfigClient(gcHttpClient, NullLogger<DefaultRestConfigClient>.Instance);
+        _client = new GroundControlApiClient(_httpClient, NullLogger<GroundControlApiClient>.Instance);
     }
 
     public void Dispose()
@@ -37,13 +36,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_200_ReturnsFlatDictionaryAndETag()
+    public async Task FetchConfigAsync_200_ReturnsFlatDictionaryAndETag()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"Key1": "Value1", "Key2": "Value2"}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
-        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -56,13 +55,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_304_ReturnsNotModified()
+    public async Task FetchConfigAsync_304_ReturnsNotModified()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.NotModified);
 
         // Act
-        var result = await _client.FetchAsync("v1", TestContext.Current.CancellationToken);
+        var result = await _client.FetchConfigAsync("v1", TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -71,13 +70,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_SendsIfNoneMatchHeader_WhenETagProvided()
+    public async Task FetchConfigAsync_SendsIfNoneMatchHeader_WhenETagProvided()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.NotModified);
 
         // Act
-        await _client.FetchAsync("v42", TestContext.Current.CancellationToken);
+        await _client.FetchConfigAsync("v42", TestContext.Current.CancellationToken);
 
         // Assert
         _handler.LastRequest.ShouldNotBeNull();
@@ -85,13 +84,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_DoesNotSendIfNoneMatch_WhenETagIsNull()
+    public async Task FetchConfigAsync_DoesNotSendIfNoneMatch_WhenETagIsNull()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"A": "1"}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
-        await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         _handler.LastRequest.ShouldNotBeNull();
@@ -99,13 +98,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_SendsApiVersionHeader()
+    public async Task FetchConfigAsync_SendsApiVersionHeader()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"A": "1"}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
-        await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         _handler.LastRequest.ShouldNotBeNull();
@@ -114,13 +113,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_SendsAuthorizationHeader()
+    public async Task FetchConfigAsync_SendsAuthorizationHeader()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"A": "1"}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
-        await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         _handler.LastRequest.ShouldNotBeNull();
@@ -129,13 +128,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_NonSuccessStatusCode_ReturnsTransientError()
+    public async Task FetchConfigAsync_NonSuccessStatusCode_ReturnsTransientError()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.InternalServerError);
 
         // Act
-        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -143,13 +142,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_Unauthorized_ReturnsAuthenticationError()
+    public async Task FetchConfigAsync_Unauthorized_ReturnsAuthenticationError()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.Unauthorized);
 
         // Act
-        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -157,13 +156,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_Forbidden_ReturnsAuthenticationError()
+    public async Task FetchConfigAsync_Forbidden_ReturnsAuthenticationError()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.Forbidden);
 
         // Act
-        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -171,13 +170,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_NotFound_ReturnsNotFound()
+    public async Task FetchConfigAsync_NotFound_ReturnsNotFound()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.NotFound);
 
         // Act
-        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -185,13 +184,13 @@ public sealed class DefaultRestConfigClientTests : IDisposable
     }
 
     [Fact]
-    public async Task FetchAsync_ETagFromResponseHeaderIsReturned()
+    public async Task FetchConfigAsync_ETagFromResponseHeaderIsReturned()
     {
         // Arrange
         _handler.SetResponse(HttpStatusCode.OK, """{"data": {"Key": "Val"}, "snapshotVersion": 3}""", "\"snapshot-3\"");
 
         // Act
-        var result = await _client.FetchAsync(null, TestContext.Current.CancellationToken);
+        var result = await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
@@ -205,7 +204,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {"Db": {"Host": "localhost", "Port": "5432"}}}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -220,7 +219,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {"A": {"B": {"C": "deep"}}}}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(1);
@@ -234,7 +233,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {"Hosts": ["alpha", "beta", "gamma"]}}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(3);
@@ -250,7 +249,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {"Servers": [{"Host": "a"}, {"Host": "b"}]}}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -265,7 +264,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {"Present": "yes", "Missing": null, "Also": "here"}}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -281,7 +280,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {"Enabled": true, "Count": 42, "Rate": 3.14}}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(3);
@@ -297,7 +296,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {}, "snapshotVersion": 1}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.ShouldBeEmpty();
@@ -310,7 +309,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"snapshotVersion": 1}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.ShouldBeEmpty();
@@ -323,7 +322,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {"Simple": "value", "Another": "one"}}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -338,7 +337,7 @@ public sealed class DefaultRestConfigClientTests : IDisposable
         var json = """{"data": {"MyKey": "value"}}""";
 
         // Act
-        var result = DefaultRestConfigClient.FlattenJson(json);
+        var result = GroundControlApiClient.FlattenJson(json);
 
         // Assert
         result["mykey"].ShouldBe("value");

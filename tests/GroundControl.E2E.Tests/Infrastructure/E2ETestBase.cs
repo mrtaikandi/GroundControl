@@ -70,10 +70,9 @@ public abstract class E2ETestBase : IDisposable
         };
 
         var store = new GroundControlStore(options);
-        var gcHttpClient = new GroundControlHttpClient(httpClient);
-        var configFetcher = new DefaultRestConfigClient(gcHttpClient, NullLogger<DefaultRestConfigClient>.Instance);
+        var apiClient = new GroundControlApiClient(httpClient, NullLogger<GroundControlApiClient>.Instance);
 
-        return new GroundControlConfigurationProvider(store, NullConfigCache.Instance, configFetcher);
+        return new GroundControlConfigurationProvider(store, NullConfigCache.Instance, apiClient);
     }
 
     /// <summary>

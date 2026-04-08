@@ -40,7 +40,7 @@ public sealed class ServiceCollectionExtensionsTests
         sp.GetRequiredService<GroundControlMetrics>().ShouldNotBeNull();
         sp.GetRequiredService<IConnectionStrategy>().ShouldNotBeNull();
         sp.GetRequiredService<ISseConfigClient>().ShouldNotBeNull();
-        sp.GetRequiredService<IRestConfigClient>().ShouldNotBeNull();
+        sp.GetRequiredService<IGroundControlApiClient>().ShouldNotBeNull();
     }
 
     [Fact]
@@ -110,6 +110,6 @@ public sealed class ServiceCollectionExtensionsTests
         // Assert — background services NOT registered
         sp.GetService<IConnectionStrategy>().ShouldBeNull();
         sp.GetService<ISseConfigClient>().ShouldBeNull();
-        sp.GetService<IRestConfigClient>().ShouldBeNull();
+        sp.GetService<IGroundControlApiClient>().ShouldBeNull();
     }
 }

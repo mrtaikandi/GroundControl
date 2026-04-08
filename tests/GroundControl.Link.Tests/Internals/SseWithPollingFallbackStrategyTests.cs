@@ -11,7 +11,7 @@ namespace GroundControl.Link.Tests.Internals;
 public sealed class SseWithPollingFallbackStrategyTests : IDisposable
 {
     private readonly ISseConfigClient _sseClient = Substitute.For<ISseConfigClient>();
-    private readonly IRestConfigClient _client = Substitute.For<IRestConfigClient>();
+    private readonly IGroundControlApiClient _client = Substitute.For<IGroundControlApiClient>();
     private readonly IConfigCache _cache = Substitute.For<IConfigCache>();
     private readonly ServiceProvider _serviceProvider;
     private readonly GroundControlMetrics _metrics;
@@ -61,7 +61,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
 
         // Assert -- data delivered via SSE, no polling occurred
         _store.GetSnapshot().Data.ShouldContainKeyAndValue("K", "V");
-        await _client.DidNotReceive().FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        await _client.DidNotReceive().FetchConfigAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
         _sseClient.StreamAsync(Arg.Any<CancellationToken>())
             .Returns(CreateThrowingStream());
 
-        _client.FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
+        _client.FetchConfigAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
@@ -87,7 +87,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
         await strategy.ExecuteAsync(_store, cts.Token);
 
         // Assert -- fetcher was called as fallback
-        await _client.Received().FetchAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        await _client.Received().FetchConfigAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     private SseWithPollingFallbackStrategy CreateStrategy() =>
