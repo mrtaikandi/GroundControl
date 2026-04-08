@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using GroundControl.Link.Internals;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Link.Tests.Infrastructure;
 
@@ -87,7 +88,7 @@ public abstract class SdkIntegrationTestBase
 
         IConfigFetcher fetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
         IConfigCache cache = NullConfigCache.Instance;
-        ISseClient sseClient = new DefaultSseClient(httpClient, options, NullLogger<DefaultSseClient>.Instance);
+        ISseClient sseClient = new DefaultSseClient(httpClient, Options.Create(options), NullLogger<DefaultSseClient>.Instance);
 
         var provider = new GroundControlConfigurationProvider(store, cache, fetcher);
 

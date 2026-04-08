@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using GroundControl.Link.Internals;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Link.Tests;
 
@@ -156,9 +157,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
         // Act & Assert
         await Should.ThrowAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var _ in _sut!.StreamAsync())
-            {
-            }
+            await foreach (var _ in _sut!.StreamAsync()) { }
         });
     }
 
@@ -175,14 +174,10 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
         _sut = new DefaultSseClient(_httpClient, CreateOptions(), NullLogger<DefaultSseClient>.Instance);
 
         // Act — first stream
-        await foreach (var _ in _sut.StreamAsync(TestContext.Current.CancellationToken))
-        {
-        }
+        await foreach (var _ in _sut.StreamAsync(TestContext.Current.CancellationToken)) { }
 
         // Act — second stream (reconnect)
-        await foreach (var _ in _sut.StreamAsync(TestContext.Current.CancellationToken))
-        {
-        }
+        await foreach (var _ in _sut.StreamAsync(TestContext.Current.CancellationToken)) { }
 
         // Assert
         handler.CapturedLastEventIds.Count.ShouldBe(2);
@@ -248,7 +243,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
         var options = CreateOptions();
         if (heartbeatTimeout.HasValue)
         {
-            options.SseHeartbeatTimeout = heartbeatTimeout.Value;
+            options.Value.SseHeartbeatTimeout = heartbeatTimeout.Value;
         }
 
         _sut = new DefaultSseClient(_httpClient, options, NullLogger<DefaultSseClient>.Instance);
@@ -266,14 +261,13 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
         return events;
     }
 
-    private static GroundControlOptions CreateOptions() =>
-        new()
-        {
-            ServerUrl = new Uri("http://localhost"),
-            ClientId = "test-client",
-            ClientSecret = "test-secret",
-            SseHeartbeatTimeout = TimeSpan.FromMinutes(2),
-        };
+    private static IOptions<GroundControlOptions> CreateOptions() => Options.Create(new GroundControlOptions
+    {
+        ServerUrl = new Uri("http://localhost"),
+        ClientId = "test-client",
+        ClientSecret = "test-secret",
+        SseHeartbeatTimeout = TimeSpan.FromMinutes(2),
+    });
 
     private sealed class FakeHandler : HttpMessageHandler
     {
@@ -333,8 +327,11 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
         }
 
         public override bool CanRead => true;
+
         public override bool CanSeek => false;
+
         public override bool CanWrite => false;
+
         public override long Length => _data.Length;
 
         public override long Position
@@ -372,9 +369,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
             return 0;
         }
 
-        public override void Flush()
-        {
-        }
+        public override void Flush() { }
 
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
@@ -399,8 +394,11 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
         }
 
         public override bool CanRead => true;
+
         public override bool CanSeek => false;
+
         public override bool CanWrite => false;
+
         public override long Length => _data.Length;
 
         public override long Position
@@ -435,9 +433,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
             return ValueTask.FromResult(available);
         }
 
-        public override void Flush()
-        {
-        }
+        public override void Flush() { }
 
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
