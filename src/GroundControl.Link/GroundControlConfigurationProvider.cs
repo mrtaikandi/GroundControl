@@ -10,19 +10,15 @@ namespace GroundControl.Link;
 /// </summary>
 internal sealed class GroundControlConfigurationProvider : ConfigurationProvider, IDisposable
 {
-    private readonly IConfigCache _cache;
     private readonly IConfigFetcher _fetcher;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundControlConfigurationProvider"/> class.
     /// </summary>
-    public GroundControlConfigurationProvider(
-        GroundControlStore store,
-        IConfigCache cache,
-        IConfigFetcher fetcher)
+    public GroundControlConfigurationProvider(GroundControlStore store, IConfigCache cache, IConfigFetcher fetcher)
     {
         Store = store ?? throw new ArgumentNullException(nameof(store));
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        Cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _fetcher = fetcher ?? throw new ArgumentNullException(nameof(fetcher));
 
         Store.OnDataChanged += OnStoreDataChanged;
@@ -36,17 +32,17 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
     /// <summary>
     /// Gets the cache instance for Phase 2 extraction.
     /// </summary>
-    internal IConfigCache Cache => _cache;
+    internal IConfigCache Cache { get; }
 
     /// <inheritdoc />
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Phase 1 startup must not crash the app — degrade gracefully")]
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Startup must not crash the app. Degrade gracefully")]
     public override void Load()
     {
-        // Step 1: Synchronous cache read
         CachedConfiguration? cached = null;
+
         try
         {
-            cached = _cache.Load();
+            cached = Cache.Load();
         }
         catch
         {
@@ -55,40 +51,33 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
 
         var etag = cached?.ETag;
 
-        // Step 2: Conditional GET (sync-over-async — unavoidable per IConfigurationProvider contract)
         try
         {
-            var result = _fetcher.FetchAsync(etag, CancellationToken.None)
-                .ConfigureAwait(false).GetAwaiter().GetResult();
-
+            var result = _fetcher.FetchAsync(etag, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
             switch (result.Status)
             {
                 case FetchStatus.Success when result.Config is not null:
-                    Store.Update(
-                        new Dictionary<string, string>(result.Config, StringComparer.OrdinalIgnoreCase),
-                        result.ETag,
-                        null);
+                    Store.Update(new Dictionary<string, string>(result.Config, StringComparer.OrdinalIgnoreCase), result.ETag, null);
                     TrySaveToCache(result.Config, result.ETag, null);
                     break;
 
                 case FetchStatus.NotModified when cached is not null:
-                    Store.Update(
-                        new Dictionary<string, string>(cached.Entries, StringComparer.OrdinalIgnoreCase),
-                        cached.ETag,
-                        cached.LastEventId);
+                    Store.Update(new Dictionary<string, string>(cached.Entries, StringComparer.OrdinalIgnoreCase), cached.ETag, cached.LastEventId);
                     break;
 
+                case FetchStatus.TransientError:
+                case FetchStatus.AuthenticationError:
+                case FetchStatus.NotFound:
                 default:
                     ApplyCacheOrMarkUnhealthy(cached);
                     break;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            ApplyCacheOrMarkUnhealthy(cached);
+            ApplyCacheOrMarkUnhealthy(cached, ex);
         }
 
-        // Step 3: Populate ConfigurationProvider.Data from store snapshot
         SetDataFromStore();
     }
 
@@ -113,7 +102,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
         Data = data;
     }
 
-    private void ApplyCacheOrMarkUnhealthy(CachedConfiguration? cached)
+    private void ApplyCacheOrMarkUnhealthy(CachedConfiguration? cached, Exception? error = null)
     {
         if (cached is not null)
         {
@@ -121,11 +110,11 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
                 new Dictionary<string, string>(cached.Entries, StringComparer.OrdinalIgnoreCase),
                 cached.ETag,
                 cached.LastEventId);
-            Store.SetHealth(StoreHealthStatus.Degraded);
+            Store.SetHealth(StoreHealthStatus.Degraded, error);
         }
         else
         {
-            Store.SetHealth(StoreHealthStatus.Unhealthy);
+            Store.SetHealth(StoreHealthStatus.Unhealthy, error);
         }
     }
 
@@ -135,7 +124,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
         try
         {
             var entries = new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase);
-            _cache.Save(new CachedConfiguration { Entries = entries, ETag = etag, LastEventId = lastEventId });
+            Cache.Save(new CachedConfiguration { Entries = entries, ETag = etag, LastEventId = lastEventId });
         }
         catch
         {

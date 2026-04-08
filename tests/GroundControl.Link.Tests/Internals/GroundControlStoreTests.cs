@@ -107,6 +107,34 @@ public sealed class GroundControlStoreTests
     }
 
     [Fact]
+    public void SetHealth_WithError_StoresException()
+    {
+        // Arrange
+        var store = new GroundControlStore(CreateOptions());
+        var error = new HttpRequestException("Connection refused");
+
+        // Act
+        store.SetHealth(StoreHealthStatus.Unhealthy, error);
+
+        // Assert
+        store.LastError.ShouldBeSameAs(error);
+    }
+
+    [Fact]
+    public void Update_ClearsLastError()
+    {
+        // Arrange
+        var store = new GroundControlStore(CreateOptions());
+        store.SetHealth(StoreHealthStatus.Unhealthy, new HttpRequestException("fail"));
+
+        // Act
+        store.Update(new Dictionary<string, string> { ["K"] = "V" }, "\"1\"", null);
+
+        // Assert
+        store.LastError.ShouldBeNull();
+    }
+
+    [Fact]
     public void Update_OverwritesPreviousSnapshot()
     {
         // Arrange

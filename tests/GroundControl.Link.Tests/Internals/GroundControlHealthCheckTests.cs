@@ -41,6 +41,22 @@ public sealed class GroundControlHealthCheckTests
     }
 
     [Fact]
+    public async Task CheckHealthAsync_Degraded_IncludesException()
+    {
+        // Arrange
+        var error = new HttpRequestException("Connection refused");
+        _store.SetHealth(StoreHealthStatus.Degraded, error);
+        var check = new GroundControlHealthCheck(_store);
+
+        // Act
+        var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Status.ShouldBe(HealthStatus.Degraded);
+        result.Exception.ShouldBeSameAs(error);
+    }
+
+    [Fact]
     public async Task CheckHealthAsync_Unhealthy_ReturnsUnhealthy()
     {
         // Arrange — store starts Unhealthy by default
@@ -51,5 +67,21 @@ public sealed class GroundControlHealthCheckTests
 
         // Assert
         result.Status.ShouldBe(HealthStatus.Unhealthy);
+    }
+
+    [Fact]
+    public async Task CheckHealthAsync_Unhealthy_IncludesException()
+    {
+        // Arrange
+        var error = new HttpRequestException("DNS resolution failed");
+        _store.SetHealth(StoreHealthStatus.Unhealthy, error);
+        var check = new GroundControlHealthCheck(_store);
+
+        // Act
+        var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Status.ShouldBe(HealthStatus.Unhealthy);
+        result.Exception.ShouldBeSameAs(error);
     }
 }
