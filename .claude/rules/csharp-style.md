@@ -131,8 +131,8 @@ public MyClass(string name)
 
 ## Wrapping
 
-- Chop arguments **if long** (not always)
-- Chop parameters **if long**
+- Chop arguments **only when the line exceeds max line length** (not always)
+- Chop parameters **only when the line exceeds max line length**
 - Wrap chained method calls **if long**
 - Wrap before ternary operator signs
 - Do not wrap before binary operator signs
