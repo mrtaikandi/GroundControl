@@ -1,4 +1,4 @@
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Client;
 
 /// <summary>
 /// Abstraction for a Server-Sent Events client that streams configuration events

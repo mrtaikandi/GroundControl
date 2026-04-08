@@ -1,6 +1,5 @@
 using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
-using GroundControl.Link.Internals;
 using Microsoft.Extensions.DependencyInjection;
 
 // Cancellation tokens flow through IAsyncEnumerable.GetAsyncEnumerator via [EnumeratorCancellation]

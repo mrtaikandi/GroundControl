@@ -1,4 +1,4 @@
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Cache;
 
 /// <summary>
 /// A no-op cache implementation used when local caching is disabled.

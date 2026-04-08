@@ -1,4 +1,4 @@
-﻿using System.CodeDom.Compiler;
+using System.CodeDom.Compiler;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace GroundControl.Host.Api.Generators.Internals.Generators;

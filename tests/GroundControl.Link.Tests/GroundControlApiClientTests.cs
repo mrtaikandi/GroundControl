@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
-using GroundControl.Link.Internals;
 
 namespace GroundControl.Link.Tests;
 

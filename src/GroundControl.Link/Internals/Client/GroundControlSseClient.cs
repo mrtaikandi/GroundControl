@@ -1,7 +1,7 @@
 using System.Net.ServerSentEvents;
 using Microsoft.Extensions.Options;
 
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Client;
 
 /// <summary>
 /// An SSE client that connects to the GroundControl server and streams configuration events.

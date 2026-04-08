@@ -1,4 +1,4 @@
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Cache;
 
 /// <summary>
 /// Abstraction for local caching of configuration data.

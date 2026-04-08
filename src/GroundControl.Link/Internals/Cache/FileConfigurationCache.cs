@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Cache;
 
 /// <summary>
 /// A file-based <see cref="IConfigurationCache"/> implementation that persists configuration to disk

@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Connection;
 
 /// <summary>
 /// Hybrid strategy: attempts SSE first, falls back to polling on failure,

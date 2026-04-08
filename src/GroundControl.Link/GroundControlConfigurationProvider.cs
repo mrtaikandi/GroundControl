@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using GroundControl.Link.Internals;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link;

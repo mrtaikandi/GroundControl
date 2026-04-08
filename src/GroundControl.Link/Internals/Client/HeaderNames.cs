@@ -1,4 +1,4 @@
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Client;
 
 internal static class HeaderNames
 {

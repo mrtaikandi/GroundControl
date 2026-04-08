@@ -4,7 +4,6 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using GroundControl.Api.Client;
 using GroundControl.Link;
-using GroundControl.Link.Internals;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GroundControl.E2E.Tests.Infrastructure;

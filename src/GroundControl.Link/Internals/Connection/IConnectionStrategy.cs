@@ -1,4 +1,4 @@
-namespace GroundControl.Link.Internals;
+namespace GroundControl.Link.Internals.Connection;
 
 /// <summary>
 /// Strategy for background configuration refresh based on <see cref="ConnectionMode"/>.

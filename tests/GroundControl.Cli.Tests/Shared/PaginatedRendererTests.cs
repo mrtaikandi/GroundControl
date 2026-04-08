@@ -1,5 +1,5 @@
-using GroundControl.Host.Cli;
 using GroundControl.Cli.Shared.Pagination;
+using GroundControl.Host.Cli;
 
 namespace GroundControl.Cli.Tests.Shared;
 

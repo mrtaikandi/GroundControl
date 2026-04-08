@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
-using GroundControl.Link.Internals;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GroundControl.Link;

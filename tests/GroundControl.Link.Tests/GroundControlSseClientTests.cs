@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using GroundControl.Link.Internals;
 using Microsoft.Extensions.Options;
 
 namespace GroundControl.Link.Tests;
