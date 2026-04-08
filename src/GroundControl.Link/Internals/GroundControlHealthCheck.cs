@@ -30,10 +30,12 @@ internal sealed class GroundControlHealthCheck : IHealthCheck
                 }),
 
             StoreHealthStatus.Degraded => HealthCheckResult.Degraded(
-                "GroundControl server unreachable. Serving from cache."),
+                "GroundControl server unreachable. Serving from cache.",
+                _store.LastError),
 
             _ => HealthCheckResult.Unhealthy(
-                "No GroundControl configuration data available.")
+                "No GroundControl configuration data available.",
+                _store.LastError)
         };
 
         return Task.FromResult(result);
