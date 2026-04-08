@@ -6,8 +6,7 @@ namespace GroundControl.Link.Tests;
 
 public sealed class ServiceCollectionExtensionsTests
 {
-    private static IConfigurationRoot BuildConfigWithGroundControl(
-        ConnectionMode connectionMode = ConnectionMode.Polling)
+    private static IConfigurationRoot BuildConfigWithGroundControl(ConnectionMode connectionMode = ConnectionMode.Polling)
     {
         var builder = new ConfigurationBuilder();
         builder.AddGroundControl(opts =>
@@ -75,7 +74,7 @@ public sealed class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddGroundControl_WithCustomOptions_AppliesOptions()
+    public void AddGroundControl_WithConfigureHttpClient_InvokesDelegate()
     {
         // Arrange
         var config = BuildConfigWithGroundControl();
@@ -85,18 +84,14 @@ public sealed class ServiceCollectionExtensionsTests
         var httpBuilderCustomized = false;
 
         // Act
-        services.AddGroundControl(config, opts =>
-        {
-            opts.HealthCheckTags = ["custom"];
-            opts.ConfigureHttpClient = _ => httpBuilderCustomized = true;
-        });
+        services.AddGroundControl(config, _ => httpBuilderCustomized = true);
 
         // Assert
         httpBuilderCustomized.ShouldBeTrue();
     }
 
     [Fact]
-    public void AddGroundControl_OnlyOnStartup_SkipsBackgroundServices()
+    public void AddGroundControl_StartupOnly_SkipsBackgroundServices()
     {
         // Arrange
         var config = BuildConfigWithGroundControl(ConnectionMode.StartupOnly);
@@ -108,11 +103,11 @@ public sealed class ServiceCollectionExtensionsTests
         services.AddGroundControl(config);
         using var sp = services.BuildServiceProvider();
 
-        // Assert -- core services registered
+        // Assert — core services registered
         sp.GetRequiredService<GroundControlStore>().ShouldNotBeNull();
         sp.GetRequiredService<GroundControlMetrics>().ShouldNotBeNull();
 
-        // Assert -- background services NOT registered
+        // Assert — background services NOT registered
         sp.GetService<IConnectionStrategy>().ShouldBeNull();
         sp.GetService<ISseClient>().ShouldBeNull();
         sp.GetService<IConfigFetcher>().ShouldBeNull();
