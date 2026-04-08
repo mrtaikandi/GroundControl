@@ -62,7 +62,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
                     break;
 
                 case FetchStatus.NotModified when cached is not null:
-                    Store.Update(new Dictionary<string, string>(cached.Entries, StringComparer.OrdinalIgnoreCase), cached.ETag, cached.LastEventId);
+                    ApplyCache(cached);
                     break;
 
                 case FetchStatus.TransientError:
@@ -102,14 +102,19 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
         Data = data;
     }
 
+    private void ApplyCache(CachedConfiguration cached)
+    {
+        Store.Update(
+            new Dictionary<string, string>(cached.Entries, StringComparer.OrdinalIgnoreCase),
+            cached.ETag,
+            cached.LastEventId);
+    }
+
     private void ApplyCacheOrMarkUnhealthy(CachedConfiguration? cached, Exception? error = null)
     {
         if (cached is not null)
         {
-            Store.Update(
-                new Dictionary<string, string>(cached.Entries, StringComparer.OrdinalIgnoreCase),
-                cached.ETag,
-                cached.LastEventId);
+            ApplyCache(cached);
             Store.SetHealth(StoreHealthStatus.Degraded, error);
         }
         else
