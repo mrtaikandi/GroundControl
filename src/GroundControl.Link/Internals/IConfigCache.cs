@@ -6,12 +6,12 @@ namespace GroundControl.Link.Internals;
 internal interface IConfigCache : IDisposable
 {
     /// <summary>
-    /// Loads cached configuration synchronously. Used during Phase 1 startup.
+    /// Loads cached configuration synchronously. Used during startup.
     /// </summary>
     CachedConfiguration? Load();
 
     /// <summary>
-    /// Saves configuration synchronously. Used during Phase 1 startup.
+    /// Saves configuration synchronously. Used during startup.
     /// </summary>
     void Save(CachedConfiguration config);
 

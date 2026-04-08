@@ -28,8 +28,8 @@ internal sealed class GroundControlConfigurationSource : IConfigurationSource
             ? new FileConfigCache(_options, NullLogger<FileConfigCache>.Instance)
             : NullConfigCache.Instance;
 
-        // Short-lived HttpClient for the Phase 1 conditional GET in Load().
-        // Phase 2 will use IHttpClientFactory for long-lived connections.
+        // Short-lived HttpClient for the conditional GET in Load().
+        // Background services use IHttpClientFactory for long-lived connections.
         var httpClient = new HttpClient { BaseAddress = new Uri(_options.ServerUrl) };
         httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("ApiKey", $"{_options.ClientId}:{_options.ClientSecret}");
