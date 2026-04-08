@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 namespace GroundControl.Link.Internals;
 
 /// <summary>
@@ -22,7 +24,7 @@ internal sealed class GroundControlStore
     /// <summary>
     /// Gets the current health status.
     /// </summary>
-    public StoreHealthStatus HealthStatus { get; private set; } = StoreHealthStatus.Unhealthy;
+    public HealthStatus HealthStatus { get; private set; } = HealthStatus.Unhealthy;
 
     /// <summary>
     /// Gets the timestamp of the last successful update.
@@ -53,7 +55,7 @@ internal sealed class GroundControlStore
         };
 
         LastSuccessfulUpdate = _snapshot.Timestamp;
-        HealthStatus = StoreHealthStatus.Healthy;
+        HealthStatus = HealthStatus.Healthy;
         LastErrorReason = null;
         LastError = null;
         OnDataChanged?.Invoke();
@@ -72,7 +74,7 @@ internal sealed class GroundControlStore
     /// <summary>
     /// Explicitly sets the health status without changing data.
     /// </summary>
-    public void SetHealth(StoreHealthStatus status, string? reason = null, Exception? error = null)
+    public void SetHealth(HealthStatus status, string? reason = null, Exception? error = null)
     {
         HealthStatus = status;
         LastErrorReason = reason;
@@ -85,10 +87,7 @@ internal sealed class GroundControlStore
 /// </summary>
 internal sealed record StoreSnapshot
 {
-    public static readonly StoreSnapshot Empty = new()
-    {
-        Data = new Dictionary<string, string>()
-    };
+    public static readonly StoreSnapshot Empty = new() { Data = [] };
 
     public required Dictionary<string, string> Data { get; init; }
 
@@ -97,14 +96,4 @@ internal sealed record StoreSnapshot
     public string? LastEventId { get; init; }
 
     public DateTimeOffset Timestamp { get; init; }
-}
-
-/// <summary>
-/// Health status of the GroundControl store.
-/// </summary>
-internal enum StoreHealthStatus
-{
-    Healthy,
-    Degraded,
-    Unhealthy
 }
