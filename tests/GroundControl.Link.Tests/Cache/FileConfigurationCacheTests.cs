@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace GroundControl.Link.Tests.Cache;
 
-public sealed class FileConfigCacheTests : IDisposable
+public sealed class FileConfigurationCacheTests : IDisposable
 {
     private readonly string _cacheDir;
     private readonly string _cachePath;
 
-    public FileConfigCacheTests()
+    public FileConfigurationCacheTests()
     {
         _cacheDir = Path.Combine(Path.GetTempPath(), "groundcontrol-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_cacheDir);
@@ -332,7 +332,7 @@ public sealed class FileConfigCacheTests : IDisposable
         result.ShouldBeNull();
     }
 
-    private FileConfigCache CreateCache(string? cachePath = null, IDataProtectionProvider? dataProtection = null) =>
+    private FileConfigurationCache CreateCache(string? cachePath = null, IDataProtectionProvider? dataProtection = null) =>
         new(
             new GroundControlOptions
             {
@@ -341,7 +341,7 @@ public sealed class FileConfigCacheTests : IDisposable
                 ClientSecret = "test-secret",
                 CacheFilePath = cachePath ?? _cachePath
             },
-            NullLogger<FileConfigCache>.Instance,
+            NullLogger<FileConfigurationCache>.Instance,
             dataProtection);
 
     // Mocks the byte[] overloads — the string Protect/Unprotect extension methods

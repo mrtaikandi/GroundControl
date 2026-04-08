@@ -3,12 +3,12 @@ namespace GroundControl.Link.Internals;
 /// <summary>
 /// A no-op cache implementation used when local caching is disabled.
 /// </summary>
-internal sealed class NullConfigCache : IConfigCache
+internal sealed class NullConfigurationCache : IConfigurationCache
 {
     /// <summary>
     /// Gets the singleton instance.
     /// </summary>
-    public static NullConfigCache Instance { get; } = new();
+    public static NullConfigurationCache Instance { get; } = new();
 
     /// <inheritdoc />
     public CachedConfiguration? Load() => null;

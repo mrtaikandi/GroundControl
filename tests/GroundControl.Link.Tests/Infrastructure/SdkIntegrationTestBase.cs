@@ -53,9 +53,9 @@ public abstract class SdkIntegrationTestBase
 
         IGroundControlApiClient client = new GroundControlApiClient(httpClient, NullLogger<GroundControlApiClient>.Instance);
 
-        IConfigCache cache = options.EnableLocalCache
-            ? new FileConfigCache(options, NullLogger<FileConfigCache>.Instance)
-            : NullConfigCache.Instance;
+        IConfigurationCache cache = options.EnableLocalCache
+            ? new FileConfigurationCache(options, NullLogger<FileConfigurationCache>.Instance)
+            : NullConfigurationCache.Instance;
 
         return new GroundControlConfigurationProvider(store, cache, client);
     }
@@ -64,7 +64,7 @@ public abstract class SdkIntegrationTestBase
     /// Creates a provider and returns its store for wiring a background SSE/polling connection.
     /// </summary>
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; provider is disposed by test via using")]
-    internal static (GroundControlConfigurationProvider Provider, GroundControlStore Store, ISseConfigClient SseClient) CreateProviderWithStore(
+    internal static (GroundControlConfigurationProvider Provider, GroundControlStore Store, IGroundControlSseClient SseClient) CreateProviderWithStore(
         HttpMessageHandler serverHandler,
         Guid clientId,
         string clientSecret,
@@ -87,8 +87,8 @@ public abstract class SdkIntegrationTestBase
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
         IGroundControlApiClient apiClient = new GroundControlApiClient(httpClient, NullLogger<GroundControlApiClient>.Instance);
-        IConfigCache cache = NullConfigCache.Instance;
-        ISseConfigClient sseClient = new DefaultSseConfigClient(apiClient, Options.Create(options), NullLogger<DefaultSseConfigClient>.Instance);
+        IConfigurationCache cache = NullConfigurationCache.Instance;
+        IGroundControlSseClient sseClient = new GroundControlSseClient(apiClient, Options.Create(options), NullLogger<GroundControlSseClient>.Instance);
 
         var provider = new GroundControlConfigurationProvider(store, cache, apiClient);
 

@@ -5,15 +5,15 @@ using Microsoft.AspNetCore.DataProtection;
 namespace GroundControl.Link.Internals;
 
 /// <summary>
-/// A file-based <see cref="IConfigCache"/> implementation that persists configuration to disk
+/// A file-based <see cref="IConfigurationCache"/> implementation that persists configuration to disk
 /// using atomic writes, with optional encryption of values via ASP.NET Data Protection.
 /// </summary>
 /// <remarks>
 /// When a <see cref="IDataProtectionProvider"/> is supplied, all values are encrypted in the cache file.
-/// The current <see cref="IConfigCache"/> interface does not carry per-key sensitivity metadata, so selective
+/// The current <see cref="IConfigurationCache"/> interface does not carry per-key sensitivity metadata, so selective
 /// encryption (encrypting only sensitive keys) will be added when the interface is extended with that information.
 /// </remarks>
-internal sealed class FileConfigCache : IConfigCache
+internal sealed class FileConfigurationCache : IConfigurationCache
 {
     private const string EncryptedPrefix = "***ENCRYPTED:";
     private const string ProtectorPurpose = "GroundControl.Link.ConfigCache";
@@ -23,15 +23,15 @@ internal sealed class FileConfigCache : IConfigCache
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly string _cachePath;
     private readonly IDataProtector? _protector;
-    private readonly ILogger<FileConfigCache> _logger;
+    private readonly ILogger<FileConfigurationCache> _logger;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FileConfigCache"/> class.
+    /// Initializes a new instance of the <see cref="FileConfigurationCache"/> class.
     /// </summary>
     /// <param name="options">The SDK options containing the cache file path.</param>
     /// <param name="logger">The logger instance.</param>
     /// <param name="dataProtection">Optional data protection provider for encrypting cached values.</param>
-    public FileConfigCache(GroundControlOptions options, ILogger<FileConfigCache> logger, IDataProtectionProvider? dataProtection = null)
+    public FileConfigurationCache(GroundControlOptions options, ILogger<FileConfigurationCache> logger, IDataProtectionProvider? dataProtection = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
@@ -250,14 +250,14 @@ internal sealed class FileConfigCache : IConfigCache
 internal static partial class FileConfigCacheLogs
 {
     [LoggerMessage(1, LogLevel.Information, "Data protection is not available. Cache values will be stored unencrypted.")]
-    public static partial void LogDataProtectionUnavailable(this ILogger<FileConfigCache> logger);
+    public static partial void LogDataProtectionUnavailable(this ILogger<FileConfigurationCache> logger);
 
     [LoggerMessage(2, LogLevel.Information, "Configuration loaded from local cache.")]
-    public static partial void LogCacheLoaded(this ILogger<FileConfigCache> logger);
+    public static partial void LogCacheLoaded(this ILogger<FileConfigurationCache> logger);
 
     [LoggerMessage(3, LogLevel.Warning, "Failed to read local cache file.")]
-    public static partial void LogCacheReadFailed(this ILogger<FileConfigCache> logger, Exception exception);
+    public static partial void LogCacheReadFailed(this ILogger<FileConfigurationCache> logger, Exception exception);
 
     [LoggerMessage(4, LogLevel.Warning, "Cache contains encrypted values but data protection is not available. Treating as cache miss.")]
-    public static partial void LogCannotDecryptWithoutDataProtection(this ILogger<FileConfigCache> logger);
+    public static partial void LogCannotDecryptWithoutDataProtection(this ILogger<FileConfigurationCache> logger);
 }

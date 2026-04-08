@@ -23,7 +23,7 @@ internal sealed class GroundControlApiClient : IGroundControlApiClient
     /// <inheritdoc />
     public async Task<FetchResult> FetchConfigAsync(string? etag, CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, GroundControlApiEndpoints.ClientConfig);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/client/config");
 
         if (etag is not null)
         {
@@ -69,7 +69,7 @@ internal sealed class GroundControlApiClient : IGroundControlApiClient
     /// <inheritdoc />
     public async Task<HttpResponseMessage> GetConfigStreamAsync(string? lastEventId, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, GroundControlApiEndpoints.ClientConfigStream);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/client/config/stream");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Text.EventStream));
 
         if (lastEventId is not null)

@@ -7,7 +7,7 @@ namespace GroundControl.Link.Tests.Internals;
 public sealed class PollingConnectionStrategyTests : IDisposable
 {
     private readonly IGroundControlApiClient _client = Substitute.For<IGroundControlApiClient>();
-    private readonly IConfigCache _cache = Substitute.For<IConfigCache>();
+    private readonly IConfigurationCache _cache = Substitute.For<IConfigurationCache>();
     private readonly ServiceProvider _serviceProvider;
     private readonly GroundControlMetrics _metrics;
     private readonly GroundControlStore _store;

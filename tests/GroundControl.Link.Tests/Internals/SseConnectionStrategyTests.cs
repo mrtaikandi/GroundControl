@@ -10,8 +10,8 @@ namespace GroundControl.Link.Tests.Internals;
 
 public sealed class SseConnectionStrategyTests : IDisposable
 {
-    private readonly ISseConfigClient _sseClient = Substitute.For<ISseConfigClient>();
-    private readonly IConfigCache _cache = Substitute.For<IConfigCache>();
+    private readonly IGroundControlSseClient _sseClient = Substitute.For<IGroundControlSseClient>();
+    private readonly IConfigurationCache _cache = Substitute.For<IConfigurationCache>();
     private readonly ServiceProvider _serviceProvider;
     private readonly GroundControlMetrics _metrics;
     private readonly GroundControlStore _store;

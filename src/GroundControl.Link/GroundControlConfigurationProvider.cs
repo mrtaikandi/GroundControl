@@ -14,7 +14,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundControlConfigurationProvider"/> class.
     /// </summary>
-    public GroundControlConfigurationProvider(GroundControlStore store, IConfigCache cache, IGroundControlApiClient client)
+    public GroundControlConfigurationProvider(GroundControlStore store, IConfigurationCache cache, IGroundControlApiClient client)
     {
         Store = store ?? throw new ArgumentNullException(nameof(store));
         Cache = cache ?? throw new ArgumentNullException(nameof(cache));
@@ -31,7 +31,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
     /// <summary>
     /// Gets the cache instance, discovered via <c>IConfigurationRoot.Providers</c> traversal.
     /// </summary>
-    internal IConfigCache Cache { get; }
+    internal IConfigurationCache Cache { get; }
 
     /// <inheritdoc />
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Startup must not crash the app. Degrade gracefully")]

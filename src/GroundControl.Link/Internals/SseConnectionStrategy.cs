@@ -8,14 +8,14 @@ namespace GroundControl.Link.Internals;
 /// </summary>
 internal sealed partial class SseConnectionStrategy : IConnectionStrategy
 {
-    private readonly ISseConfigClient _sseClient;
-    private readonly IConfigCache _cache;
+    private readonly IGroundControlSseClient _sseClient;
+    private readonly IConfigurationCache _cache;
     private readonly ILogger<SseConnectionStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
 
     public SseConnectionStrategy(
-        ISseConfigClient sseClient,
-        IConfigCache cache,
+        IGroundControlSseClient sseClient,
+        IConfigurationCache cache,
         ILogger<SseConnectionStrategy> logger,
         GroundControlMetrics metrics)
     {

@@ -24,9 +24,9 @@ internal sealed class GroundControlConfigurationSource : IConfigurationSource
     {
         var store = new GroundControlStore(_options);
 
-        IConfigCache cache = _options.EnableLocalCache
-            ? new FileConfigCache(_options, NullLogger<FileConfigCache>.Instance)
-            : NullConfigCache.Instance;
+        IConfigurationCache cache = _options.EnableLocalCache
+            ? new FileConfigurationCache(_options, NullLogger<FileConfigurationCache>.Instance)
+            : NullConfigurationCache.Instance;
 
         // Short-lived HttpClient for the conditional GET in Load().
         // Background services use IHttpClientFactory for long-lived connections.

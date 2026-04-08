@@ -40,20 +40,15 @@ internal sealed class GroundControlMetrics : IDisposable
             description: "1 when SSE connected, 0 when disconnected");
     }
 
-    public void RecordFetch(string status) =>
-        _fetchCount.Add(1, new KeyValuePair<string, object?>("status", status));
+    public void RecordFetch(string status) => _fetchCount.Add(1, new KeyValuePair<string, object?>("status", status));
 
-    public void RecordFetchDuration(double seconds) =>
-        _fetchDuration.Record(seconds);
+    public void RecordFetchDuration(double seconds) => _fetchDuration.Record(seconds);
 
-    public void RecordReload(string source) =>
-        _reloadCount.Add(1, new KeyValuePair<string, object?>("source", source));
+    public void RecordReload(string source) => _reloadCount.Add(1, new KeyValuePair<string, object?>("source", source));
 
-    public void RecordSseReconnect() =>
-        _sseReconnectCount.Add(1);
+    public void RecordSseReconnect() => _sseReconnectCount.Add(1);
 
-    public void SetSseConnected(bool connected) =>
-        _sseConnected.Add(connected ? 1 : -1);
+    public void SetSseConnected(bool connected) => _sseConnected.Add(connected ? 1 : -1);
 
     public void Dispose() => _meter.Dispose();
 }

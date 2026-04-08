@@ -72,7 +72,7 @@ public abstract class E2ETestBase : IDisposable
         var store = new GroundControlStore(options);
         var apiClient = new GroundControlApiClient(httpClient, NullLogger<GroundControlApiClient>.Instance);
 
-        return new GroundControlConfigurationProvider(store, NullConfigCache.Instance, apiClient);
+        return new GroundControlConfigurationProvider(store, NullConfigurationCache.Instance, apiClient);
     }
 
     /// <summary>

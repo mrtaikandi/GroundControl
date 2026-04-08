@@ -5,11 +5,11 @@ using Microsoft.Extensions.Options;
 
 namespace GroundControl.Link.Tests;
 
-public sealed class DefaultSseConfigClientTests : IAsyncDisposable
+public sealed class GroundControlSseClientTests : IAsyncDisposable
 {
     private FakeHandler? _handler;
     private HttpClient? _httpClient;
-    private DefaultSseConfigClient? _sut;
+    private GroundControlSseClient? _sut;
 
     public ValueTask DisposeAsync()
     {
@@ -172,7 +172,7 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
         _handler = handler;
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var gcHttpClient = new GroundControlApiClient(_httpClient, NullLogger<GroundControlApiClient>.Instance);
-        _sut = new DefaultSseConfigClient(gcHttpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
+        _sut = new GroundControlSseClient(gcHttpClient, CreateOptions(), NullLogger<GroundControlSseClient>.Instance);
 
         // Act — first stream
         await foreach (var _ in _sut.StreamAsync(TestContext.Current.CancellationToken)) { }
@@ -197,7 +197,7 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
         _handler = handler;
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var gcHttpClient = new GroundControlApiClient(_httpClient, NullLogger<GroundControlApiClient>.Instance);
-        _sut = new DefaultSseConfigClient(gcHttpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
+        _sut = new GroundControlSseClient(gcHttpClient, CreateOptions(), NullLogger<GroundControlSseClient>.Instance);
 
         // Act
         var events = await CollectEventsAsync();
@@ -249,7 +249,7 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
         }
 
         var gcHttpClient = new GroundControlApiClient(_httpClient, NullLogger<GroundControlApiClient>.Instance);
-        _sut = new DefaultSseConfigClient(gcHttpClient, options, NullLogger<DefaultSseConfigClient>.Instance);
+        _sut = new GroundControlSseClient(gcHttpClient, options, NullLogger<GroundControlSseClient>.Instance);
     }
 
     private async Task<List<SseEvent>> CollectEventsAsync()
