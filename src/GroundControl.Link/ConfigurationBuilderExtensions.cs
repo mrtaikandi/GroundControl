@@ -15,9 +15,7 @@ public static class ConfigurationBuilderExtensions
     /// <returns>The configuration builder for chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="configure"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Thrown when required options (ServerUrl, ClientId, ClientSecret) are missing.</exception>
-    public static IConfigurationBuilder AddGroundControl(
-        this IConfigurationBuilder builder,
-        Action<GroundControlOptions> configure)
+    public static IConfigurationBuilder AddGroundControl(this IConfigurationBuilder builder, Action<GroundControlOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
