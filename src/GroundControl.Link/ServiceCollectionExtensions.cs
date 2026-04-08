@@ -51,7 +51,7 @@ public static class ServiceCollectionExtensions
         services.AddHealthChecks()
             .AddCheck<GroundControlHealthCheck>("GroundControl", tags: options.HealthCheckTags);
 
-        if (store.Options.ConnectionMode == ConnectionMode.OnlyOnStartup)
+        if (store.Options.ConnectionMode == ConnectionMode.StartupOnly)
         {
             return services;
         }

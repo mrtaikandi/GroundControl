@@ -99,7 +99,7 @@ public sealed class ServiceCollectionExtensionsTests
     public void AddGroundControl_OnlyOnStartup_SkipsBackgroundServices()
     {
         // Arrange
-        var config = BuildConfigWithGroundControl(ConnectionMode.OnlyOnStartup);
+        var config = BuildConfigWithGroundControl(ConnectionMode.StartupOnly);
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
