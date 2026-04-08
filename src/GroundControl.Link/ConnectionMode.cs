@@ -23,5 +23,5 @@ public enum ConnectionMode
     /// <summary>
     /// Fetches configuration only during startup (Phase 1). No background service is registered.
     /// </summary>
-    OnlyOnStartup
+    StartupOnly
 }
