@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Net.ServerSentEvents;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Link.Internals;
 
@@ -18,11 +19,11 @@ internal sealed partial class DefaultSseClient : ISseClient
     /// <inheritdoc />
     public string? LastEventId { get; set; }
 
-    public DefaultSseClient(HttpClient httpClient, GroundControlOptions options, ILogger<DefaultSseClient> logger)
+    public DefaultSseClient(HttpClient httpClient, IOptions<GroundControlOptions> options, ILogger<DefaultSseClient> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _httpClient = httpClient;
+        _options = options.Value;
+        _logger = logger;
     }
 
     /// <inheritdoc />

@@ -1,7 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using GroundControl.Link.Internals;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Link;
 
@@ -19,57 +19,60 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">The built configuration root containing the GroundControl provider.</param>
     /// <param name="configureHttpClient">An optional delegate to customize the named "GroundControl" <see cref="HttpClient"/>.</param>
+    /// <param name="configureOptions">
+    /// An optional delegate to further configure <see cref="GroundControlOptions"/> after loading from configuration.
+    /// Note that options are already applied when the configuration provider is created, so this is only for additional settings that don't affect the core provider services.
+    /// </param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when no <see cref="GroundControlConfigurationProvider"/> is found in the configuration.
     /// Call <see cref="ConfigurationBuilderExtensions.AddGroundControl"/> first.
     /// </exception>
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Singletons are owned by the DI container and disposed at shutdown")]
-    public static IServiceCollection AddGroundControl(this IServiceCollection services, IConfigurationRoot configuration, Action<IHttpClientBuilder>? configureHttpClient = null)
+    public static IServiceCollection AddGroundControl(
+        this IServiceCollection services,
+        IConfigurationRoot configuration,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<GroundControlOptions>? configureOptions = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
         var provider = FindProvider(configuration);
-        var store = provider.Store;
-        var cache = provider.Cache;
+        services.AddSingleton(provider.Store);
+        services.AddSingleton(provider.Cache);
 
-        // Core singletons extracted from the configuration provider
-        services.AddSingleton(store);
-        services.AddSingleton(cache);
+        var options = provider.Store.Options;
+        configureOptions?.Invoke(options);
+        services.AddSingleton(Options.Create(options));
 
-        // Metrics
         services.AddMetrics();
         services.AddSingleton<GroundControlMetrics>();
 
-        // Health check
-        services.AddHealthChecks()
-            .AddCheck<GroundControlHealthCheck>("GroundControl", tags: store.Options.HealthCheckTags);
+        services.AddHealthChecks().AddCheck<GroundControlHealthCheck>("GroundControl", tags: options.HealthCheckTags);
 
-        if (store.Options.ConnectionMode == ConnectionMode.StartupOnly)
+        if (options.ConnectionMode == ConnectionMode.StartupOnly)
         {
             return services;
         }
 
-        // Named HttpClient for background services
-        var httpBuilder = services.AddHttpClient(HttpClientName, httpClient =>
-            {
-                httpClient.BaseAddress = store.Options.ServerUrl;
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(HeaderNames.ApiKey, $"{store.Options.ClientId}:{store.Options.ClientSecret}");
-                httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, store.Options.ApiVersion);
-            })
-            .UseSocketsHttpHandler((handler, _) =>
-            {
-                handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
-            })
+        var httpBuilder = services.AddHttpClient(
+                HttpClientName,
+                httpClient =>
+                {
+                    httpClient.BaseAddress = options.ServerUrl;
+                    httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
+                    httpClient.DefaultRequestHeaders.Authorization =
+                        new AuthenticationHeaderValue(HeaderNames.ApiKey, $"{options.ClientId}:{options.ClientSecret}");
+                })
+            .UseSocketsHttpHandler((handler, _) => handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2))
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
 
         configureHttpClient?.Invoke(httpBuilder);
 
-        // ISseClient: NoOp for Polling mode, DefaultSseClient otherwise
         services.AddSingleton<ISseClient>(sp =>
         {
-            if (store.Options.ConnectionMode == ConnectionMode.Polling)
+            var groundControlOptions = sp.GetRequiredService<IOptions<GroundControlOptions>>();
+            if (groundControlOptions.Value.ConnectionMode == ConnectionMode.Polling)
             {
                 return NoOpSseClient.Instance;
             }
@@ -77,25 +80,27 @@ public static class ServiceCollectionExtensions
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
             var httpClient = httpClientFactory.CreateClient(HttpClientName);
             var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultSseClient>();
-            return new DefaultSseClient(httpClient, store.Options, logger);
+
+            return new DefaultSseClient(httpClient, groundControlOptions, logger);
         });
 
-        // IConfigFetcher
         services.AddSingleton<IConfigFetcher>(sp =>
         {
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
             var httpClient = httpClientFactory.CreateClient(HttpClientName);
             var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultConfigFetcher>();
+
             return new DefaultConfigFetcher(httpClient, logger);
         });
 
         // IConnectionStrategy
-        services.AddSingleton<IConnectionStrategy>(sp => store.Options.ConnectionMode switch
+        services.AddSingleton<IConnectionStrategy>(sp => options.ConnectionMode switch
         {
             ConnectionMode.Polling => ActivatorUtilities.CreateInstance<PollingConnectionStrategy>(sp),
             ConnectionMode.Sse => ActivatorUtilities.CreateInstance<SseConnectionStrategy>(sp),
             ConnectionMode.SseWithPollingFallback => ActivatorUtilities.CreateInstance<SseWithPollingFallbackStrategy>(sp),
-            _ => throw new InvalidOperationException($"Unsupported connection mode: {store.Options.ConnectionMode}")
+            ConnectionMode.StartupOnly => throw new InvalidOperationException($"Connection strategy should not be registered for {nameof(ConnectionMode.StartupOnly)} mode."),
+            _ => throw new InvalidOperationException($"Unsupported connection mode: {options.ConnectionMode}")
         });
 
         // Background service
