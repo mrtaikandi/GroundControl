@@ -3,7 +3,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace GroundControl.Link.Internals;
 
 /// <summary>
-/// Pure state container bridging Phase 1 (pre-DI) and Phase 2 (post-DI).
+/// Pure state container shared between the configuration provider and background services.
 /// Holds configuration data, health status, and options. Raises <see cref="OnDataChanged"/>
 /// when the snapshot is swapped by the background service.
 /// </summary>

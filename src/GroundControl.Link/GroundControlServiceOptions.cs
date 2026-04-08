@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GroundControl.Link;
 
 /// <summary>
-/// Options for Phase 2 DI service registration.
+/// Options for GroundControl DI service registration.
 /// </summary>
 public sealed class GroundControlServiceOptions
 {

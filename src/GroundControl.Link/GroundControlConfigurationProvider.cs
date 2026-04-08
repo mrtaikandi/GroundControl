@@ -24,12 +24,12 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
     }
 
     /// <summary>
-    /// Gets the shared store for Phase 2 extraction via <c>IConfigurationRoot.Providers</c> traversal.
+    /// Gets the shared store, discovered via <c>IConfigurationRoot.Providers</c> traversal.
     /// </summary>
     internal GroundControlStore Store { get; }
 
     /// <summary>
-    /// Gets the cache instance for Phase 2 extraction.
+    /// Gets the cache instance, discovered via <c>IConfigurationRoot.Providers</c> traversal.
     /// </summary>
     internal IConfigCache Cache { get; }
 

@@ -21,7 +21,7 @@ public enum ConnectionMode
     Polling,
 
     /// <summary>
-    /// Fetches configuration only during startup (Phase 1). No background service is registered.
+    /// Fetches configuration only during startup. No background service is registered.
     /// </summary>
     StartupOnly
 }

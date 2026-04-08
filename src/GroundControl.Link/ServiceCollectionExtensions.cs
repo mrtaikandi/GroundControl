@@ -6,15 +6,15 @@ using Microsoft.Extensions.DependencyInjection;
 namespace GroundControl.Link;
 
 /// <summary>
-/// Extension methods for <see cref="IServiceCollection"/> to register Phase 2 GroundControl services.
+/// Extension methods for <see cref="IServiceCollection"/> to register GroundControl background services.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     private const string HttpClientName = "GroundControl";
 
     /// <summary>
-    /// Registers GroundControl Phase 2 services: background refresh, health check, and metrics.
-    /// Requires Phase 1 to have been configured via <see cref="ConfigurationBuilderExtensions.AddGroundControl"/>.
+    /// Registers GroundControl background services: connection strategy, health check, and metrics.
+    /// Requires configuration to have been set up via <see cref="ConfigurationBuilderExtensions.AddGroundControl"/>.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">The built configuration root containing the GroundControl provider.</param>
@@ -39,7 +39,7 @@ public static class ServiceCollectionExtensions
         var options = new GroundControlServiceOptions();
         configure?.Invoke(options);
 
-        // Core singletons extracted from Phase 1
+        // Core singletons extracted from the configuration provider
         services.AddSingleton(store);
         services.AddSingleton(cache);
 
