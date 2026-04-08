@@ -9,16 +9,16 @@ namespace GroundControl.Link.Internals;
 /// </summary>
 internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrategy
 {
-    private readonly ISseConfigClient _sseClient;
+    private readonly IGroundControlSseClient _sseClient;
     private readonly IGroundControlApiClient _client;
-    private readonly IConfigCache _cache;
+    private readonly IConfigurationCache _cache;
     private readonly ILogger<SseWithPollingFallbackStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
 
     public SseWithPollingFallbackStrategy(
-        ISseConfigClient sseClient,
+        IGroundControlSseClient sseClient,
         IGroundControlApiClient client,
-        IConfigCache cache,
+        IConfigurationCache cache,
         ILogger<SseWithPollingFallbackStrategy> logger,
         GroundControlMetrics metrics)
     {

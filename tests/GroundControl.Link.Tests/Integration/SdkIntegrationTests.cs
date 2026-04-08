@@ -111,7 +111,7 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
             services.AddMetrics();
             using var sp = services.BuildServiceProvider();
             var metrics = new GroundControlMetrics(sp.GetRequiredService<IMeterFactory>());
-            var strategy = new SseConnectionStrategy(sseClient, NullConfigCache.Instance, NullLogger<SseConnectionStrategy>.Instance, metrics);
+            var strategy = new SseConnectionStrategy(sseClient, NullConfigurationCache.Instance, NullLogger<SseConnectionStrategy>.Instance, metrics);
             using var bgCts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
             var bgTask = Task.Run(() => strategy.StreamEventsAsync(store, bgCts.Token), bgCts.Token);
 

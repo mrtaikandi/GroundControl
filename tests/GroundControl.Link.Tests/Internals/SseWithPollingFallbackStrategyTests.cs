@@ -10,9 +10,9 @@ namespace GroundControl.Link.Tests.Internals;
 
 public sealed class SseWithPollingFallbackStrategyTests : IDisposable
 {
-    private readonly ISseConfigClient _sseClient = Substitute.For<ISseConfigClient>();
+    private readonly IGroundControlSseClient _sseClient = Substitute.For<IGroundControlSseClient>();
     private readonly IGroundControlApiClient _client = Substitute.For<IGroundControlApiClient>();
-    private readonly IConfigCache _cache = Substitute.For<IConfigCache>();
+    private readonly IConfigurationCache _cache = Substitute.For<IConfigurationCache>();
     private readonly ServiceProvider _serviceProvider;
     private readonly GroundControlMetrics _metrics;
     private readonly GroundControlStore _store;

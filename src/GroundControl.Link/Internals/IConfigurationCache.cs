@@ -3,7 +3,7 @@ namespace GroundControl.Link.Internals;
 /// <summary>
 /// Abstraction for local caching of configuration data.
 /// </summary>
-internal interface IConfigCache : IDisposable
+internal interface IConfigurationCache : IDisposable
 {
     /// <summary>
     /// Loads cached configuration synchronously. Used during startup.

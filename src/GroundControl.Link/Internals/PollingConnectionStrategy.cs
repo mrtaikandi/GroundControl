@@ -10,13 +10,13 @@ namespace GroundControl.Link.Internals;
 internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
 {
     private readonly IGroundControlApiClient _client;
-    private readonly IConfigCache _cache;
+    private readonly IConfigurationCache _cache;
     private readonly ILogger<PollingConnectionStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
 
     public PollingConnectionStrategy(
         IGroundControlApiClient client,
-        IConfigCache cache,
+        IConfigurationCache cache,
         ILogger<PollingConnectionStrategy> logger,
         GroundControlMetrics metrics)
     {

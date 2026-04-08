@@ -6,7 +6,7 @@ namespace GroundControl.Link.Tests;
 public sealed class GroundControlConfigurationProviderTests : IDisposable
 {
     private readonly IGroundControlApiClient _restConfigClient = Substitute.For<IGroundControlApiClient>();
-    private readonly IConfigCache _configCache = Substitute.For<IConfigCache>();
+    private readonly IConfigurationCache _configCache = Substitute.For<IConfigurationCache>();
     private readonly GroundControlStore _store;
     private GroundControlConfigurationProvider? _provider;
 

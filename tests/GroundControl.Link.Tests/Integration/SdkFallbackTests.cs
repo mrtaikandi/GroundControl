@@ -29,7 +29,7 @@ public sealed class SdkFallbackTests : IDisposable
     {
         // Arrange — write cache, then create provider pointing at unreachable server
         var options = CreateOptions(enableCache: true);
-        var cache = new FileConfigCache(options, NullLogger<FileConfigCache>.Instance);
+        var cache = new FileConfigurationCache(options, NullLogger<FileConfigurationCache>.Instance);
         cache.Save(new CachedConfiguration
         {
             Entries = new Dictionary<string, string> { ["Cached:Key"] = "CachedValue" },
@@ -51,7 +51,7 @@ public sealed class SdkFallbackTests : IDisposable
     {
         // Arrange
         var options = CreateOptions(enableCache: false);
-        using var provider = CreateProviderWithUnreachableServer(options, NullConfigCache.Instance);
+        using var provider = CreateProviderWithUnreachableServer(options, NullConfigurationCache.Instance);
 
         // Act
         provider.Load();
@@ -69,7 +69,7 @@ public sealed class SdkFallbackTests : IDisposable
         // Arrange
         var options = CreateOptions(enableCache: true);
         options.ConnectionMode = mode;
-        var cache = new FileConfigCache(options, NullLogger<FileConfigCache>.Instance);
+        var cache = new FileConfigurationCache(options, NullLogger<FileConfigurationCache>.Instance);
         cache.Save(new CachedConfiguration
         {
             Entries = new Dictionary<string, string> { ["Mode"] = mode.ToString() },
@@ -99,7 +99,7 @@ public sealed class SdkFallbackTests : IDisposable
 
     private static GroundControlConfigurationProvider CreateProviderWithUnreachableServer(
         GroundControlOptions options,
-        IConfigCache cache)
+        IConfigurationCache cache)
     {
         var store = new GroundControlStore(options);
         var httpClient = new HttpClient { BaseAddress = options.ServerUrl, Timeout = TimeSpan.FromSeconds(1) };

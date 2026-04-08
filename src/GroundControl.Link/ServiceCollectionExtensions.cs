@@ -65,18 +65,18 @@ public static class ServiceCollectionExtensions
 
         configureHttpClient?.Invoke(httpBuilder);
 
-        services.AddSingleton<ISseConfigClient>(sp =>
+        services.AddSingleton<IGroundControlSseClient>(sp =>
         {
             var groundControlOptions = sp.GetRequiredService<IOptions<GroundControlOptions>>();
             if (groundControlOptions.Value.ConnectionMode == ConnectionMode.Polling)
             {
-                return NoOpSseConfigClient.Instance;
+                return NoOpGroundControlSseClient.Instance;
             }
 
             var apiClient = sp.GetRequiredService<IGroundControlApiClient>();
-            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultSseConfigClient>();
+            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<GroundControlSseClient>();
 
-            return new DefaultSseConfigClient(apiClient, groundControlOptions, logger);
+            return new GroundControlSseClient(apiClient, groundControlOptions, logger);
         });
 
         // IConnectionStrategy
