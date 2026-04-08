@@ -14,7 +14,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
     {
         _store = new GroundControlStore(new GroundControlOptions
         {
-            ServerUrl = "http://localhost",
+            ServerUrl = new Uri("http://localhost"),
             ClientId = "test",
             ClientSecret = "secret"
         });

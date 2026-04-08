@@ -20,7 +20,7 @@ public sealed class SseConnectionStrategyTests : IDisposable
     {
         _store = new GroundControlStore(new GroundControlOptions
         {
-            ServerUrl = "http://localhost",
+            ServerUrl = new Uri("http://localhost"),
             ClientId = "test",
             ClientSecret = "secret",
             SseReconnectDelay = TimeSpan.FromMilliseconds(50),

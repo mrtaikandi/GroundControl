@@ -269,7 +269,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
     private static GroundControlOptions CreateOptions() =>
         new()
         {
-            ServerUrl = "http://localhost",
+            ServerUrl = new Uri("http://localhost"),
             ClientId = "test-client",
             ClientSecret = "test-secret",
             SseHeartbeatTimeout = TimeSpan.FromMinutes(2),

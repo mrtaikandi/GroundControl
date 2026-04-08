@@ -35,7 +35,7 @@ public abstract class SdkIntegrationTestBase
     {
         var options = optionsOverride ?? new GroundControlOptions
         {
-            ServerUrl = "http://localhost",
+            ServerUrl = new Uri("http://localhost"),
             ClientId = clientId.ToString(),
             ClientSecret = clientSecret,
             StartupTimeout = TimeSpan.FromSeconds(10),
@@ -46,7 +46,7 @@ public abstract class SdkIntegrationTestBase
 
         var store = new GroundControlStore(options);
 
-        var httpClient = new HttpClient(serverHandler, disposeHandler: false) { BaseAddress = new Uri(options.ServerUrl) };
+        var httpClient = new HttpClient(serverHandler, disposeHandler: false) { BaseAddress = options.ServerUrl };
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 
@@ -71,7 +71,7 @@ public abstract class SdkIntegrationTestBase
     {
         var options = optionsOverride ?? new GroundControlOptions
         {
-            ServerUrl = "http://localhost",
+            ServerUrl = new Uri("http://localhost"),
             ClientId = clientId.ToString(),
             ClientSecret = clientSecret,
             StartupTimeout = TimeSpan.FromSeconds(10),
@@ -81,7 +81,7 @@ public abstract class SdkIntegrationTestBase
 
         var store = new GroundControlStore(options);
 
-        var httpClient = new HttpClient(serverHandler, disposeHandler: false) { BaseAddress = new Uri(options.ServerUrl) };
+        var httpClient = new HttpClient(serverHandler, disposeHandler: false) { BaseAddress = options.ServerUrl };
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{options.ClientId}:{options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
 

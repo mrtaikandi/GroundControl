@@ -13,7 +13,7 @@ public sealed class ConfigurationBuilderExtensionsTests
         // Act
         builder.AddGroundControl(options =>
         {
-            options.ServerUrl = "https://test.example.com";
+            options.ServerUrl = new Uri("https://test.example.com");
             options.ClientId = "test-client";
             options.ClientSecret = "test-secret";
         });
@@ -49,7 +49,7 @@ public sealed class ConfigurationBuilderExtensionsTests
         var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
-                options.ServerUrl = "https://test.example.com";
+                options.ServerUrl = new Uri("https://test.example.com");
                 options.ClientSecret = "test-secret";
             }));
 
@@ -66,27 +66,11 @@ public sealed class ConfigurationBuilderExtensionsTests
         var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
-                options.ServerUrl = "https://test.example.com";
+                options.ServerUrl = new Uri("https://test.example.com");
                 options.ClientId = "test-client";
             }));
 
         ex.Failures.ShouldContain(f => f.Contains("ClientSecret"));
-    }
-
-    [Fact]
-    public void AddGroundControl_WhitespaceServerUrl_ThrowsOptionsValidationException()
-    {
-        // Arrange
-        var builder = new ConfigurationBuilder();
-
-        // Act & Assert
-        Should.Throw<OptionsValidationException>(() =>
-            builder.AddGroundControl(options =>
-            {
-                options.ServerUrl = "   ";
-                options.ClientId = "test-client";
-                options.ClientSecret = "test-secret";
-            }));
     }
 
     [Fact]
@@ -107,7 +91,7 @@ public sealed class ConfigurationBuilderExtensionsTests
         var builder = new ConfigurationBuilder();
         builder.AddGroundControl(options =>
         {
-            options.ServerUrl = "https://test.example.com";
+            options.ServerUrl = new Uri("https://test.example.com");
             options.ClientId = "test-client";
             options.ClientSecret = "test-secret";
         });
@@ -131,7 +115,7 @@ public sealed class ConfigurationBuilderExtensionsTests
         var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
-                options.ServerUrl = "https://test.example.com";
+                options.ServerUrl = new Uri("https://test.example.com");
                 options.ClientId = "test-client";
                 options.ClientSecret = "test-secret";
                 typeof(GroundControlOptions).GetProperty(propertyName)!.SetValue(options, TimeSpan.Zero);
@@ -150,7 +134,7 @@ public sealed class ConfigurationBuilderExtensionsTests
         var ex = Should.Throw<OptionsValidationException>(() =>
             builder.AddGroundControl(options =>
             {
-                options.ServerUrl = "https://test.example.com";
+                options.ServerUrl = new Uri("https://test.example.com");
                 options.ClientId = "test-client";
                 options.ClientSecret = "test-secret";
                 options.SseReconnectDelay = TimeSpan.FromSeconds(10);

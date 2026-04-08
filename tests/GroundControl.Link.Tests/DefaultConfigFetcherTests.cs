@@ -14,7 +14,7 @@ public sealed class DefaultConfigFetcherTests : IDisposable
 
     private static readonly GroundControlOptions TestOptions = new()
     {
-        ServerUrl = "http://localhost",
+        ServerUrl = new Uri("http://localhost"),
         ClientId = "test-client",
         ClientSecret = "test-secret",
         ApiVersion = "1.0"

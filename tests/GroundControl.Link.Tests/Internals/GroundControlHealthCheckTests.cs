@@ -7,7 +7,7 @@ public sealed class GroundControlHealthCheckTests
 {
     private readonly GroundControlStore _store = new(new GroundControlOptions
     {
-        ServerUrl = "http://localhost",
+        ServerUrl = new Uri("http://localhost"),
         ClientId = "test",
         ClientSecret = "secret"
     });
