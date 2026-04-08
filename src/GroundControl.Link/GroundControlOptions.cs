@@ -80,6 +80,12 @@ public sealed partial class GroundControlOptions : IValidatableObject
     /// <remarks>Defaults to <c>1.0</c>.</remarks>
     public string ApiVersion { get; set; } = "1.0";
 
+    /// <summary>
+    /// Gets or sets the health check tags used when registering the GroundControl health check.
+    /// </summary>
+    /// <remarks>Defaults to <c>["ready"]</c>.</remarks>
+    public IList<string> HealthCheckTags { get; } = ["ready"];
+
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

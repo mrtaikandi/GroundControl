@@ -18,17 +18,14 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">The built configuration root containing the GroundControl provider.</param>
-    /// <param name="configure">An optional delegate to customize <see cref="GroundControlServiceOptions"/>.</param>
+    /// <param name="configureHttpClient">An optional delegate to customize the named "GroundControl" <see cref="HttpClient"/>.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when no <see cref="GroundControlConfigurationProvider"/> is found in the configuration.
     /// Call <see cref="ConfigurationBuilderExtensions.AddGroundControl"/> first.
     /// </exception>
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Singletons are owned by the DI container and disposed at shutdown")]
-    public static IServiceCollection AddGroundControl(
-        this IServiceCollection services,
-        IConfigurationRoot configuration,
-        Action<GroundControlServiceOptions>? configure = null)
+    public static IServiceCollection AddGroundControl(this IServiceCollection services, IConfigurationRoot configuration, Action<IHttpClientBuilder>? configureHttpClient = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -36,8 +33,6 @@ public static class ServiceCollectionExtensions
         var provider = FindProvider(configuration);
         var store = provider.Store;
         var cache = provider.Cache;
-        var options = new GroundControlServiceOptions();
-        configure?.Invoke(options);
 
         // Core singletons extracted from the configuration provider
         services.AddSingleton(store);
@@ -49,7 +44,7 @@ public static class ServiceCollectionExtensions
 
         // Health check
         services.AddHealthChecks()
-            .AddCheck<GroundControlHealthCheck>("GroundControl", tags: options.HealthCheckTags);
+            .AddCheck<GroundControlHealthCheck>("GroundControl", tags: store.Options.HealthCheckTags);
 
         if (store.Options.ConnectionMode == ConnectionMode.StartupOnly)
         {
@@ -69,7 +64,7 @@ public static class ServiceCollectionExtensions
             })
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
 
-        options.ConfigureHttpClient?.Invoke(httpBuilder);
+        configureHttpClient?.Invoke(httpBuilder);
 
         // ISseClient: NoOp for Polling mode, DefaultSseClient otherwise
         services.AddSingleton<ISseClient>(sp =>
@@ -100,8 +95,7 @@ public static class ServiceCollectionExtensions
             ConnectionMode.Polling => ActivatorUtilities.CreateInstance<PollingConnectionStrategy>(sp),
             ConnectionMode.Sse => ActivatorUtilities.CreateInstance<SseConnectionStrategy>(sp),
             ConnectionMode.SseWithPollingFallback => ActivatorUtilities.CreateInstance<SseWithPollingFallbackStrategy>(sp),
-            _ => throw new InvalidOperationException(
-                $"Unsupported connection mode: {store.Options.ConnectionMode}")
+            _ => throw new InvalidOperationException($"Unsupported connection mode: {store.Options.ConnectionMode}")
         });
 
         // Background service
