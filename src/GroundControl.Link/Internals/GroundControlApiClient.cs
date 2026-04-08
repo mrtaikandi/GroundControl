@@ -1,31 +1,36 @@
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Text.Json;
 
 namespace GroundControl.Link.Internals;
 
 /// <summary>
-/// Fetches configuration from the GroundControl REST endpoint with ETag-based conditional requests.
+/// Default implementation of <see cref="IGroundControlApiClient"/>.
+/// Handles REST config fetching with status mapping and SSE stream connection.
 /// </summary>
-internal sealed class DefaultRestConfigClient : IRestConfigClient
+internal sealed class GroundControlApiClient : IGroundControlApiClient
 {
-    private readonly GroundControlHttpClient _httpClient;
-    private readonly ILogger<DefaultRestConfigClient> _logger;
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<GroundControlApiClient> _logger;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultRestConfigClient"/> class.
-    /// </summary>
-    /// <param name="httpClient">The typed HTTP client for the GroundControl API.</param>
-    /// <param name="logger">The logger instance.</param>
-    public DefaultRestConfigClient(GroundControlHttpClient httpClient, ILogger<DefaultRestConfigClient> logger)
+    public GroundControlApiClient(HttpClient httpClient, ILogger<GroundControlApiClient> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _httpClient = httpClient;
+        _logger = logger;
     }
 
     /// <inheritdoc />
-    public async Task<FetchResult> FetchAsync(string? etag, CancellationToken cancellationToken = default)
+    public async Task<FetchResult> FetchConfigAsync(string? etag, CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetConfigAsync(etag, cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Get, GroundControlApiEndpoints.ClientConfig);
+
+        if (etag is not null)
+        {
+            request.Headers.IfNoneMatch.Add(new EntityTagHeaderValue($"\"{etag}\""));
+        }
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
         switch (response.StatusCode)
         {
             case HttpStatusCode.NotModified:
@@ -59,6 +64,20 @@ internal sealed class DefaultRestConfigClient : IRestConfigClient
             Config = config,
             ETag = newEtag
         };
+    }
+
+    /// <inheritdoc />
+    public async Task<HttpResponseMessage> GetConfigStreamAsync(string? lastEventId, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, GroundControlApiEndpoints.ClientConfigStream);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Text.EventStream));
+
+        if (lastEventId is not null)
+        {
+            request.Headers.Add(HeaderNames.LastEventId, lastEventId);
+        }
+
+        return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
     }
 
     internal static Dictionary<string, string> FlattenJson(string json)
@@ -111,20 +130,20 @@ internal sealed class DefaultRestConfigClient : IRestConfigClient
     }
 }
 
-internal static partial class DefaultConfigFetcherLogs
+internal static partial class GroundControlApiClientLogs
 {
     [LoggerMessage(1, LogLevel.Debug, "REST fetch: 304 Not Modified.")]
-    public static partial void LogNotModified(this ILogger<DefaultRestConfigClient> logger);
+    public static partial void LogNotModified(this ILogger<GroundControlApiClient> logger);
 
     [LoggerMessage(2, LogLevel.Debug, "REST fetch: configuration loaded. E-Tag: {etag}")]
-    public static partial void LogFetched(this ILogger<DefaultRestConfigClient> logger, string? etag);
+    public static partial void LogFetched(this ILogger<GroundControlApiClient> logger, string? etag);
 
     [LoggerMessage(3, LogLevel.Warning, "REST fetch: non-success status code {StatusCode}.")]
-    public static partial void LogNonSuccessStatus(this ILogger<DefaultRestConfigClient> logger, int statusCode);
+    public static partial void LogNonSuccessStatus(this ILogger<GroundControlApiClient> logger, int statusCode);
 
     [LoggerMessage(4, LogLevel.Error, "REST fetch: authentication failed with status code {StatusCode}.")]
-    public static partial void LogAuthenticationFailed(this ILogger<DefaultRestConfigClient> logger, int statusCode);
+    public static partial void LogAuthenticationFailed(this ILogger<GroundControlApiClient> logger, int statusCode);
 
     [LoggerMessage(5, LogLevel.Warning, "REST fetch: no active snapshot found (404).")]
-    public static partial void LogNotFound(this ILogger<DefaultRestConfigClient> logger);
+    public static partial void LogNotFound(this ILogger<GroundControlApiClient> logger);
 }

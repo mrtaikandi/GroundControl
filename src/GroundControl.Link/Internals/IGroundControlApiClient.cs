@@ -1,17 +1,25 @@
 namespace GroundControl.Link.Internals;
 
 /// <summary>
-/// Abstraction for fetching configuration from the GroundControl REST endpoint.
+/// Client for the GroundControl API, providing both REST config fetch and SSE stream access.
 /// </summary>
-internal interface IRestConfigClient
+internal interface IGroundControlApiClient
 {
     /// <summary>
-    /// Fetches the current configuration from the server.
+    /// Fetches the current configuration from the server with ETag-based conditional requests.
     /// </summary>
     /// <param name="etag">The ETag from a previous fetch for conditional requests, or <c>null</c> for an unconditional fetch.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>The fetch result containing the status and optional configuration data.</returns>
-    Task<FetchResult> FetchAsync(string? etag, CancellationToken cancellationToken = default);
+    Task<FetchResult> FetchConfigAsync(string? etag, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Opens a streaming SSE connection to the configuration stream endpoint.
+    /// </summary>
+    /// <param name="lastEventId">An optional Last-Event-ID for resuming from a prior position.</param>
+    /// <param name="cancellationToken">A token to cancel the request.</param>
+    /// <returns>The HTTP response message with headers-only completion. The caller owns and must dispose this response.</returns>
+    Task<HttpResponseMessage> GetConfigStreamAsync(string? lastEventId, CancellationToken cancellationToken);
 }
 
 /// <summary>

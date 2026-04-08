@@ -171,7 +171,7 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
 
         _handler = handler;
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        var gcHttpClient = new GroundControlHttpClient(_httpClient);
+        var gcHttpClient = new GroundControlApiClient(_httpClient, NullLogger<GroundControlApiClient>.Instance);
         _sut = new DefaultSseConfigClient(gcHttpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
 
         // Act — first stream
@@ -196,7 +196,7 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
 
         _handler = handler;
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        var gcHttpClient = new GroundControlHttpClient(_httpClient);
+        var gcHttpClient = new GroundControlApiClient(_httpClient, NullLogger<GroundControlApiClient>.Instance);
         _sut = new DefaultSseConfigClient(gcHttpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
 
         // Act
@@ -248,7 +248,7 @@ public sealed class DefaultSseConfigClientTests : IAsyncDisposable
             options.Value.SseHeartbeatTimeout = heartbeatTimeout.Value;
         }
 
-        var gcHttpClient = new GroundControlHttpClient(_httpClient);
+        var gcHttpClient = new GroundControlApiClient(_httpClient, NullLogger<GroundControlApiClient>.Instance);
         _sut = new DefaultSseConfigClient(gcHttpClient, options, NullLogger<DefaultSseConfigClient>.Instance);
     }
 

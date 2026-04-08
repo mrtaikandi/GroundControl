@@ -10,16 +10,16 @@ namespace GroundControl.Link.Internals;
 /// </summary>
 internal sealed partial class DefaultSseConfigClient : ISseConfigClient
 {
-    private readonly GroundControlHttpClient _httpClient;
+    private readonly IGroundControlApiClient _apiClient;
     private readonly GroundControlOptions _options;
     private readonly ILogger<DefaultSseConfigClient> _logger;
 
     /// <inheritdoc />
     public string? LastEventId { get; set; }
 
-    public DefaultSseConfigClient(GroundControlHttpClient httpClient, IOptions<GroundControlOptions> options, ILogger<DefaultSseConfigClient> logger)
+    public DefaultSseConfigClient(IGroundControlApiClient apiClient, IOptions<GroundControlOptions> options, ILogger<DefaultSseConfigClient> logger)
     {
-        _httpClient = httpClient;
+        _apiClient = apiClient;
         _options = options.Value;
         _logger = logger;
     }
@@ -30,7 +30,7 @@ internal sealed partial class DefaultSseConfigClient : ISseConfigClient
         using var heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         heartbeatCts.CancelAfter(_options.SseHeartbeatTimeout);
 
-        using var response = await _httpClient.GetConfigStreamAsync(LastEventId, heartbeatCts.Token).ConfigureAwait(false);
+        using var response = await _apiClient.GetConfigStreamAsync(LastEventId, heartbeatCts.Token).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(heartbeatCts.Token).ConfigureAwait(false);

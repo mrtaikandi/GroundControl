@@ -53,7 +53,7 @@ public static class ServiceCollectionExtensions
             return services;
         }
 
-        var httpBuilder = services.AddHttpClient<GroundControlHttpClient>(httpClient =>
+        var httpBuilder = services.AddHttpClient<IGroundControlApiClient, GroundControlApiClient>(httpClient =>
             {
                 httpClient.BaseAddress = options.ServerUrl;
                 httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
@@ -73,18 +73,10 @@ public static class ServiceCollectionExtensions
                 return NoOpSseConfigClient.Instance;
             }
 
-            var httpClient = sp.GetRequiredService<GroundControlHttpClient>();
+            var apiClient = sp.GetRequiredService<IGroundControlApiClient>();
             var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultSseConfigClient>();
 
-            return new DefaultSseConfigClient(httpClient, groundControlOptions, logger);
-        });
-
-        services.AddSingleton<IRestConfigClient>(sp =>
-        {
-            var httpClient = sp.GetRequiredService<GroundControlHttpClient>();
-            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultRestConfigClient>();
-
-            return new DefaultRestConfigClient(httpClient, logger);
+            return new DefaultSseConfigClient(apiClient, groundControlOptions, logger);
         });
 
         // IConnectionStrategy
