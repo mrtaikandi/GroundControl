@@ -34,7 +34,7 @@ internal sealed class GroundControlConfigurationSource : IConfigurationSource
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(HeaderNames.ApiKey, $"{_options.ClientId}:{_options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, _options.ApiVersion);
 
-        IConfigFetcher fetcher = new DefaultConfigFetcher(httpClient, NullLogger<DefaultConfigFetcher>.Instance);
-        return new GroundControlConfigurationProvider(store, cache, fetcher);
+        IRestConfigClient client = new DefaultRestConfigClient(httpClient, NullLogger<DefaultRestConfigClient>.Instance);
+        return new GroundControlConfigurationProvider(store, cache, client);
     }
 }

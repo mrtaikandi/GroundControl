@@ -7,17 +7,17 @@ namespace GroundControl.Link.Internals;
 /// <summary>
 /// Fetches configuration from the GroundControl REST endpoint with ETag-based conditional requests.
 /// </summary>
-internal sealed class DefaultConfigFetcher : IConfigFetcher
+internal sealed class DefaultRestConfigClient : IRestConfigClient
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<DefaultConfigFetcher> _logger;
+    private readonly ILogger<DefaultRestConfigClient> _logger;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultConfigFetcher"/> class.
+    /// Initializes a new instance of the <see cref="DefaultRestConfigClient"/> class.
     /// </summary>
     /// <param name="httpClient">The HTTP client configured with the server base address.</param>
     /// <param name="logger">The logger instance.</param>
-    public DefaultConfigFetcher(HttpClient httpClient, ILogger<DefaultConfigFetcher> logger)
+    public DefaultRestConfigClient(HttpClient httpClient, ILogger<DefaultRestConfigClient> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -122,17 +122,17 @@ internal sealed class DefaultConfigFetcher : IConfigFetcher
 internal static partial class DefaultConfigFetcherLogs
 {
     [LoggerMessage(1, LogLevel.Debug, "REST fetch: 304 Not Modified.")]
-    public static partial void LogNotModified(this ILogger<DefaultConfigFetcher> logger);
+    public static partial void LogNotModified(this ILogger<DefaultRestConfigClient> logger);
 
     [LoggerMessage(2, LogLevel.Debug, "REST fetch: configuration loaded. E-Tag: {etag}")]
-    public static partial void LogFetched(this ILogger<DefaultConfigFetcher> logger, string? etag);
+    public static partial void LogFetched(this ILogger<DefaultRestConfigClient> logger, string? etag);
 
     [LoggerMessage(3, LogLevel.Warning, "REST fetch: non-success status code {StatusCode}.")]
-    public static partial void LogNonSuccessStatus(this ILogger<DefaultConfigFetcher> logger, int statusCode);
+    public static partial void LogNonSuccessStatus(this ILogger<DefaultRestConfigClient> logger, int statusCode);
 
     [LoggerMessage(4, LogLevel.Error, "REST fetch: authentication failed with status code {StatusCode}.")]
-    public static partial void LogAuthenticationFailed(this ILogger<DefaultConfigFetcher> logger, int statusCode);
+    public static partial void LogAuthenticationFailed(this ILogger<DefaultRestConfigClient> logger, int statusCode);
 
     [LoggerMessage(5, LogLevel.Warning, "REST fetch: no active snapshot found (404).")]
-    public static partial void LogNotFound(this ILogger<DefaultConfigFetcher> logger);
+    public static partial void LogNotFound(this ILogger<DefaultRestConfigClient> logger);
 }

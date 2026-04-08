@@ -69,28 +69,28 @@ public static class ServiceCollectionExtensions
 
         configureHttpClient?.Invoke(httpBuilder);
 
-        services.AddSingleton<ISseClient>(sp =>
+        services.AddSingleton<ISseConfigClient>(sp =>
         {
             var groundControlOptions = sp.GetRequiredService<IOptions<GroundControlOptions>>();
             if (groundControlOptions.Value.ConnectionMode == ConnectionMode.Polling)
             {
-                return NoOpSseClient.Instance;
+                return NoOpSseConfigClient.Instance;
             }
 
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
             var httpClient = httpClientFactory.CreateClient(HttpClientName);
-            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultSseClient>();
+            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultSseConfigClient>();
 
-            return new DefaultSseClient(httpClient, groundControlOptions, logger);
+            return new DefaultSseConfigClient(httpClient, groundControlOptions, logger);
         });
 
-        services.AddSingleton<IConfigFetcher>(sp =>
+        services.AddSingleton<IRestConfigClient>(sp =>
         {
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
             var httpClient = httpClientFactory.CreateClient(HttpClientName);
-            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultConfigFetcher>();
+            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<DefaultRestConfigClient>();
 
-            return new DefaultConfigFetcher(httpClient, logger);
+            return new DefaultRestConfigClient(httpClient, logger);
         });
 
         // IConnectionStrategy

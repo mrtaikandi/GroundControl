@@ -10,16 +10,16 @@ namespace GroundControl.Link.Internals;
 /// Uses <see cref="SseParser"/> for W3C-compliant parsing including empty <c>id:</c> handling,
 /// multi-line <c>data:</c> concatenation, and <c>retry:</c> field support.
 /// </summary>
-internal sealed partial class DefaultSseClient : ISseClient
+internal sealed partial class DefaultSseConfigClient : ISseConfigClient
 {
     private readonly HttpClient _httpClient;
     private readonly GroundControlOptions _options;
-    private readonly ILogger<DefaultSseClient> _logger;
+    private readonly ILogger<DefaultSseConfigClient> _logger;
 
     /// <inheritdoc />
     public string? LastEventId { get; set; }
 
-    public DefaultSseClient(HttpClient httpClient, IOptions<GroundControlOptions> options, ILogger<DefaultSseClient> logger)
+    public DefaultSseConfigClient(HttpClient httpClient, IOptions<GroundControlOptions> options, ILogger<DefaultSseConfigClient> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;

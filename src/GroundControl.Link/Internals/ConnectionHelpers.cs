@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text.Json;
 
 namespace GroundControl.Link.Internals;
@@ -28,13 +29,13 @@ internal static class ConnectionHelpers
 
         if (doc.RootElement.TryGetProperty("data", out var data))
         {
-            DefaultConfigFetcher.FlattenElement(data, string.Empty, config);
+            DefaultRestConfigClient.FlattenElement(data, string.Empty, config);
         }
 
         string? snapshotVersion = null;
         if (doc.RootElement.TryGetProperty("snapshotVersion", out var version))
         {
-            snapshotVersion = version.GetInt64().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            snapshotVersion = version.GetInt64().ToString(CultureInfo.InvariantCulture);
         }
 
         return (config, snapshotVersion);

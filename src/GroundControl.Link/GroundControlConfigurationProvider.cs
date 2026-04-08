@@ -9,16 +9,16 @@ namespace GroundControl.Link;
 /// </summary>
 internal sealed class GroundControlConfigurationProvider : ConfigurationProvider, IDisposable
 {
-    private readonly IConfigFetcher _fetcher;
+    private readonly IRestConfigClient _client;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundControlConfigurationProvider"/> class.
     /// </summary>
-    public GroundControlConfigurationProvider(GroundControlStore store, IConfigCache cache, IConfigFetcher fetcher)
+    public GroundControlConfigurationProvider(GroundControlStore store, IConfigCache cache, IRestConfigClient client)
     {
         Store = store ?? throw new ArgumentNullException(nameof(store));
         Cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _fetcher = fetcher ?? throw new ArgumentNullException(nameof(fetcher));
+        _client = client ?? throw new ArgumentNullException(nameof(client));
 
         Store.OnDataChanged += OnStoreDataChanged;
     }
@@ -52,7 +52,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
 
         try
         {
-            var result = _fetcher.FetchAsync(etag, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
+            var result = _client.FetchAsync(etag, CancellationToken.None).ConfigureAwait(false).GetAwaiter().GetResult();
             switch (result.Status)
             {
                 case FetchStatus.Success when result.Config is not null:

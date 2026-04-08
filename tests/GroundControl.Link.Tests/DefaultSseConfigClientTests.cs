@@ -5,11 +5,11 @@ using Microsoft.Extensions.Options;
 
 namespace GroundControl.Link.Tests;
 
-public sealed class DefaultSseClientTests : IAsyncDisposable
+public sealed class DefaultSseConfigClientTests : IAsyncDisposable
 {
     private FakeHandler? _handler;
     private HttpClient? _httpClient;
-    private DefaultSseClient? _sut;
+    private DefaultSseConfigClient? _sut;
 
     public ValueTask DisposeAsync()
     {
@@ -171,7 +171,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
 
         _handler = handler;
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        _sut = new DefaultSseClient(_httpClient, CreateOptions(), NullLogger<DefaultSseClient>.Instance);
+        _sut = new DefaultSseConfigClient(_httpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
 
         // Act — first stream
         await foreach (var _ in _sut.StreamAsync(TestContext.Current.CancellationToken)) { }
@@ -195,7 +195,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
 
         _handler = handler;
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
-        _sut = new DefaultSseClient(_httpClient, CreateOptions(), NullLogger<DefaultSseClient>.Instance);
+        _sut = new DefaultSseConfigClient(_httpClient, CreateOptions(), NullLogger<DefaultSseConfigClient>.Instance);
 
         // Act
         var events = await CollectEventsAsync();
@@ -246,7 +246,7 @@ public sealed class DefaultSseClientTests : IAsyncDisposable
             options.Value.SseHeartbeatTimeout = heartbeatTimeout.Value;
         }
 
-        _sut = new DefaultSseClient(_httpClient, options, NullLogger<DefaultSseClient>.Instance);
+        _sut = new DefaultSseConfigClient(_httpClient, options, NullLogger<DefaultSseConfigClient>.Instance);
     }
 
     private async Task<List<SseEvent>> CollectEventsAsync()

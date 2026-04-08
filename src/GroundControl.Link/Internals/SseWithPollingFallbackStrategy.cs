@@ -9,21 +9,21 @@ namespace GroundControl.Link.Internals;
 /// </summary>
 internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrategy
 {
-    private readonly ISseClient _sseClient;
-    private readonly IConfigFetcher _fetcher;
+    private readonly ISseConfigClient _sseClient;
+    private readonly IRestConfigClient _client;
     private readonly IConfigCache _cache;
     private readonly ILogger<SseWithPollingFallbackStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
 
     public SseWithPollingFallbackStrategy(
-        ISseClient sseClient,
-        IConfigFetcher fetcher,
+        ISseConfigClient sseClient,
+        IRestConfigClient client,
         IConfigCache cache,
         ILogger<SseWithPollingFallbackStrategy> logger,
         GroundControlMetrics metrics)
     {
         _sseClient = sseClient;
-        _fetcher = fetcher;
+        _client = client;
         _cache = cache;
         _logger = logger;
         _metrics = metrics;
@@ -89,7 +89,7 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
     {
         using var pollingCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         var pollingStrategy = new PollingConnectionStrategy(
-            _fetcher, _cache, NullLoggerFactory.Instance.CreateLogger<PollingConnectionStrategy>(), _metrics);
+            _client, _cache, NullLoggerFactory.Instance.CreateLogger<PollingConnectionStrategy>(), _metrics);
         var pollingTask = Task.Run(() => pollingStrategy.ExecuteAsync(store, pollingCts.Token), pollingCts.Token);
 
         var delay = store.Options.SseReconnectDelay;
