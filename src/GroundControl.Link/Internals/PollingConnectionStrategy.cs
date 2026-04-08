@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link.Internals;
 
@@ -65,7 +66,7 @@ internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
 
                     default:
                         _metrics.RecordFetch("error");
-                        store.SetHealth(StoreHealthStatus.Degraded);
+                        store.SetHealth(HealthStatus.Degraded);
                         break;
                 }
             }
@@ -77,7 +78,7 @@ internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
             {
                 LogPollFailed(_logger, ex);
                 _metrics.RecordFetch("error");
-                store.SetHealth(StoreHealthStatus.Degraded);
+                store.SetHealth(HealthStatus.Degraded);
             }
         }
     }

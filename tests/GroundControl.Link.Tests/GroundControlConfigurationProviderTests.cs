@@ -1,4 +1,5 @@
 using GroundControl.Link.Internals;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link.Tests;
 
@@ -51,7 +52,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Assert
         provider.TryGet("Key1", out var value).ShouldBeTrue();
         value.ShouldBe("Value1");
-        _store.HealthStatus.ShouldBe(StoreHealthStatus.Healthy);
+        _store.HealthStatus.ShouldBe(HealthStatus.Healthy);
     }
 
     [Fact]
@@ -74,7 +75,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Assert
         provider.TryGet("Cached", out var value).ShouldBeTrue();
         value.ShouldBe("Data");
-        _store.HealthStatus.ShouldBe(StoreHealthStatus.Healthy);
+        _store.HealthStatus.ShouldBe(HealthStatus.Healthy);
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Assert
         provider.TryGet("Cached", out var value).ShouldBeTrue();
         value.ShouldBe("Fallback");
-        _store.HealthStatus.ShouldBe(StoreHealthStatus.Degraded);
+        _store.HealthStatus.ShouldBe(HealthStatus.Degraded);
     }
 
     [Fact]
@@ -140,7 +141,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
 
         // Assert
         provider.TryGet("anything", out _).ShouldBeFalse();
-        _store.HealthStatus.ShouldBe(StoreHealthStatus.Unhealthy);
+        _store.HealthStatus.ShouldBe(HealthStatus.Unhealthy);
     }
 
     [Fact]
@@ -281,6 +282,6 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Assert
         provider.TryGet("Cached", out var value).ShouldBeTrue();
         value.ShouldBe("Value");
-        _store.HealthStatus.ShouldBe(StoreHealthStatus.Degraded);
+        _store.HealthStatus.ShouldBe(HealthStatus.Degraded);
     }
 }

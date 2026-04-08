@@ -1,4 +1,5 @@
 using GroundControl.Link.Internals;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link.Tests.Internals;
 
@@ -46,7 +47,7 @@ public sealed class GroundControlStoreTests
         var store = new GroundControlStore(CreateOptions());
 
         // Assert
-        store.HealthStatus.ShouldBe(StoreHealthStatus.Unhealthy);
+        store.HealthStatus.ShouldBe(HealthStatus.Unhealthy);
     }
 
     [Fact]
@@ -64,7 +65,7 @@ public sealed class GroundControlStoreTests
         snapshot.Data.ShouldContainKeyAndValue("Key1", "Value1");
         snapshot.ETag.ShouldBe("etag-1");
         snapshot.LastEventId.ShouldBe("event-1");
-        store.HealthStatus.ShouldBe(StoreHealthStatus.Healthy);
+        store.HealthStatus.ShouldBe(HealthStatus.Healthy);
         store.LastSuccessfulUpdate.ShouldNotBeNull();
     }
 
@@ -100,10 +101,10 @@ public sealed class GroundControlStoreTests
         var store = new GroundControlStore(CreateOptions());
 
         // Act
-        store.SetHealth(StoreHealthStatus.Degraded);
+        store.SetHealth(HealthStatus.Degraded);
 
         // Assert
-        store.HealthStatus.ShouldBe(StoreHealthStatus.Degraded);
+        store.HealthStatus.ShouldBe(HealthStatus.Degraded);
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public sealed class GroundControlStoreTests
         var error = new HttpRequestException("Connection refused");
 
         // Act
-        store.SetHealth(StoreHealthStatus.Unhealthy, "Server unreachable", error);
+        store.SetHealth(HealthStatus.Unhealthy, "Server unreachable", error);
 
         // Assert
         store.LastErrorReason.ShouldBe("Server unreachable");
@@ -126,7 +127,7 @@ public sealed class GroundControlStoreTests
     {
         // Arrange
         var store = new GroundControlStore(CreateOptions());
-        store.SetHealth(StoreHealthStatus.Unhealthy, "fail", new HttpRequestException("fail"));
+        store.SetHealth(HealthStatus.Unhealthy, "fail", new HttpRequestException("fail"));
 
         // Act
         store.Update(new Dictionary<string, string> { ["K"] = "V" }, "\"1\"", null);

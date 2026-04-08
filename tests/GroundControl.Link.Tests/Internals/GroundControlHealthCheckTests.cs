@@ -30,7 +30,7 @@ public sealed class GroundControlHealthCheckTests
     public async Task CheckHealthAsync_Degraded_ReturnsDegraded()
     {
         // Arrange
-        _store.SetHealth(StoreHealthStatus.Degraded);
+        _store.SetHealth(HealthStatus.Degraded);
         var check = new GroundControlHealthCheck(_store);
 
         // Act
@@ -45,7 +45,7 @@ public sealed class GroundControlHealthCheckTests
     {
         // Arrange
         var error = new HttpRequestException("Connection refused");
-        _store.SetHealth(StoreHealthStatus.Degraded, "Server returned a transient error.", error);
+        _store.SetHealth(HealthStatus.Degraded, "Server returned a transient error.", error);
         var check = new GroundControlHealthCheck(_store);
 
         // Act
@@ -75,7 +75,7 @@ public sealed class GroundControlHealthCheckTests
     {
         // Arrange
         var error = new HttpRequestException("DNS resolution failed");
-        _store.SetHealth(StoreHealthStatus.Unhealthy, "Authentication failed (401/403). Check ClientId and ClientSecret.", error);
+        _store.SetHealth(HealthStatus.Unhealthy, "Authentication failed (401/403). Check ClientId and ClientSecret.", error);
         var check = new GroundControlHealthCheck(_store);
 
         // Act

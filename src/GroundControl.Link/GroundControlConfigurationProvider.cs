@@ -1,12 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using GroundControl.Link.Internals;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link;
 
 /// <summary>
 /// A configuration provider that loads configuration from a GroundControl server.
-/// Phase 1: Synchronous cache read + conditional REST fetch during <see cref="Load"/>.
-/// Phase 2: Background service pushes live updates via <see cref="GroundControlStore.OnDataChanged"/>.
 /// </summary>
 internal sealed class GroundControlConfigurationProvider : ConfigurationProvider, IDisposable
 {
@@ -125,7 +124,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
             _ => null
         };
 
-        Store.SetHealth(cached is not null ? StoreHealthStatus.Degraded : StoreHealthStatus.Unhealthy, reason, error);
+        Store.SetHealth(cached is not null ? HealthStatus.Degraded : HealthStatus.Unhealthy, reason, error);
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cache save is best-effort; failures are non-fatal")]

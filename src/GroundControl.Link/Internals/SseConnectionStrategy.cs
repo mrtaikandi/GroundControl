@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link.Internals;
 
@@ -53,7 +54,7 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
             {
                 firstAttempt = false;
                 LogStreamError(_logger, ex);
-                store.SetHealth(StoreHealthStatus.Degraded);
+                store.SetHealth(HealthStatus.Degraded);
             }
 
             delay = TimeSpan.FromTicks(

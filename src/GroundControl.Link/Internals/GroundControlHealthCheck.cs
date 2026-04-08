@@ -20,7 +20,7 @@ internal sealed class GroundControlHealthCheck : IHealthCheck
     {
         var result = _store.HealthStatus switch
         {
-            StoreHealthStatus.Healthy => HealthCheckResult.Healthy(
+            HealthStatus.Healthy => HealthCheckResult.Healthy(
                 "GroundControl configuration is up to date.",
                 new Dictionary<string, object>
                 {
@@ -29,7 +29,7 @@ internal sealed class GroundControlHealthCheck : IHealthCheck
                     ["etag"] = _store.GetSnapshot().ETag ?? "none"
                 }),
 
-            StoreHealthStatus.Degraded => HealthCheckResult.Degraded(
+            HealthStatus.Degraded => HealthCheckResult.Degraded(
                 _store.LastErrorReason ?? "GroundControl server unreachable. Serving from cache.",
                 _store.LastError),
 
