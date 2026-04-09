@@ -1,6 +1,7 @@
 using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 // Cancellation tokens flow through IAsyncEnumerable.GetAsyncEnumerator via [EnumeratorCancellation]
 #pragma warning disable xUnit1051
@@ -122,12 +123,48 @@ public sealed class SseConnectionStrategyTests : IDisposable
         await strategy.ExecuteAsync(_store, cts.Token);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_StreamError_SetsHealthDegradedWithException()
+    {
+        // Arrange
+        var expectedException = new InvalidOperationException("SSE connection failed");
+        _sseClient.StreamAsync(Arg.Any<CancellationToken>()).Returns(_ => throw expectedException);
+
+        var strategy = CreateStrategy();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(2));
+
+        // Act
+        await strategy.ExecuteAsync(_store, cts.Token);
+
+        // Assert
+        _store.HealthStatus.ShouldBe(HealthStatus.Degraded);
+        _store.LastError.ShouldBe(expectedException);
+        _store.LastErrorReason.ShouldBe("SSE connection failed");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_StreamEndsWithoutConfigEvents_SetsHealthDegraded()
+    {
+        // Arrange
+        var events = new[] { new SseEvent { EventType = "heartbeat", Data = "" } };
+        _sseClient.StreamAsync(Arg.Any<CancellationToken>()).Returns(ToAsyncEnumerable(events));
+
+        var strategy = CreateStrategy();
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(2));
+
+        // Act
+        await strategy.ExecuteAsync(_store, cts.Token);
+
+        // Assert
+        _store.HealthStatus.ShouldBe(HealthStatus.Degraded);
+    }
+
     private SseConnectionStrategy CreateStrategy() =>
         new(_sseClient, _cache, NullLogger<SseConnectionStrategy>.Instance, _metrics);
 
-    private static async IAsyncEnumerable<SseEvent> ToAsyncEnumerable(
-        SseEvent[] events,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    private static async IAsyncEnumerable<SseEvent> ToAsyncEnumerable(SseEvent[] events, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         foreach (var evt in events)
         {
