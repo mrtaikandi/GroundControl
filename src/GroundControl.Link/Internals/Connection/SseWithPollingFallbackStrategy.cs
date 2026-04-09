@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link.Internals.Connection;
 
@@ -10,7 +11,6 @@ namespace GroundControl.Link.Internals.Connection;
 internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrategy
 {
     private readonly IGroundControlSseClient _sseClient;
-    private readonly IGroundControlApiClient _client;
     private readonly IConfigurationCache _cache;
     private readonly ILogger<SseWithPollingFallbackStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
@@ -18,14 +18,12 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
 
     public SseWithPollingFallbackStrategy(
         IGroundControlSseClient sseClient,
-        IGroundControlApiClient client,
         IConfigurationCache cache,
         ILogger<SseWithPollingFallbackStrategy> logger,
         GroundControlMetrics metrics,
         IServiceProvider serviceProvider)
     {
         _sseClient = sseClient;
-        _client = client;
         _cache = cache;
         _logger = logger;
         _metrics = metrics;
@@ -37,7 +35,6 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
     {
         try
         {
-            _metrics.SetSseConnected(true);
             await StreamSseEventsAsync(store, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -47,10 +44,7 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
         catch (Exception ex)
         {
             LogSseStreamError(_logger, ex);
-        }
-        finally
-        {
-            _metrics.SetSseConnected(false);
+            store.SetHealth(HealthStatus.Degraded);
         }
 
         LogSwitchingToPolling(_logger);
@@ -58,37 +52,51 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cache save is best-effort")]
-    private async Task StreamSseEventsAsync(GroundControlStore store, CancellationToken cancellationToken)
+    private async Task<bool> StreamSseEventsAsync(GroundControlStore store, CancellationToken cancellationToken)
     {
-        await foreach (var sseEvent in _sseClient.StreamAsync(cancellationToken).ConfigureAwait(false))
+        var receivedEvents = false;
+        _metrics.SetSseConnected(true);
+
+        try
         {
-            if (sseEvent.EventType != SseEventType.Config)
+            await foreach (var sseEvent in _sseClient.StreamAsync(cancellationToken).WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                continue;
-            }
+                if (sseEvent.EventType != SseEventType.Config)
+                {
+                    continue;
+                }
 
-            var (config, snapshotVersion) = ConnectionHelpers.ParseConfigDataWithVersion(sseEvent.Data);
-            store.Update(config, snapshotVersion, sseEvent.Id);
-            _sseClient.LastEventId = sseEvent.Id;
-            _metrics.RecordReload("sse");
+                var (config, snapshotVersion) = ConnectionHelpers.ParseConfigDataWithVersion(sseEvent.Data);
+                store.Update(config, snapshotVersion, sseEvent.Id);
 
-            try
-            {
-                await _cache.SaveAsync(
-                        new CachedConfiguration
-                        {
-                            Entries = config,
-                            ETag = snapshotVersion,
-                            LastEventId = sseEvent.Id
-                        },
-                        cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            catch
-            {
-                // Best-effort
+                _sseClient.LastEventId = sseEvent.Id;
+                _metrics.RecordReload("sse");
+                receivedEvents = true;
+
+                try
+                {
+                    await _cache.SaveAsync(
+                            new CachedConfiguration
+                            {
+                                Entries = config,
+                                ETag = snapshotVersion,
+                                LastEventId = sseEvent.Id
+                            },
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Best-effort
+                }
             }
         }
+        finally
+        {
+            _metrics.SetSseConnected(false);
+        }
+
+        return receivedEvents;
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Resilience: SSE retry errors are logged; polling continues")]
@@ -96,6 +104,9 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
     {
         using var pollingCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         var pollingStrategy = _serviceProvider.GetRequiredService<PollingConnectionStrategy>();
+
+        // Justification: pollingTask is awaited in the finally block before pollingCts is disposed
+        // ReSharper disable once AccessToDisposedClosure
         var pollingTask = Task.Run(() => pollingStrategy.ExecuteAsync(store, pollingCts.Token), pollingCts.Token);
 
         var delay = store.Options.SseReconnectDelay;
@@ -109,9 +120,11 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
                     await Task.Delay(ConnectionHelpers.AddJitter(delay), stoppingToken).ConfigureAwait(false);
 
                     _metrics.RecordSseReconnect();
-                    _metrics.SetSseConnected(true);
+                    var receivedEvents = await StreamSseEventsAsync(store, stoppingToken).ConfigureAwait(false);
 
-                    await StreamSseEventsAsync(store, stoppingToken).ConfigureAwait(false);
+                    delay = receivedEvents
+                        ? store.Options.SseReconnectDelay
+                        : TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, store.Options.SseMaxReconnectDelay.Ticks));
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -120,19 +133,22 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
                 catch (Exception ex)
                 {
                     LogSseRetryFailed(_logger, ex);
+                    delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, store.Options.SseMaxReconnectDelay.Ticks));
                 }
-                finally
-                {
-                    _metrics.SetSseConnected(false);
-                }
-
-                delay = TimeSpan.FromTicks(
-                    Math.Min(delay.Ticks * 2, store.Options.SseMaxReconnectDelay.Ticks));
             }
         }
         finally
         {
             await pollingCts.CancelAsync().ConfigureAwait(false);
+
+            try
+            {
+                await pollingTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected during shutdown
+            }
         }
     }
 

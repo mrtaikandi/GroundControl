@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,9 +29,14 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
 
         _serviceProvider = new ServiceCollection()
             .AddMetrics()
+            .AddSingleton(_client)
+            .AddSingleton(_cache)
+            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+            .AddSingleton<GroundControlMetrics>()
+            .AddTransient<PollingConnectionStrategy>()
             .BuildServiceProvider();
 
-        _metrics = new GroundControlMetrics(_serviceProvider.GetRequiredService<IMeterFactory>());
+        _metrics = _serviceProvider.GetRequiredService<GroundControlMetrics>();
     }
 
     public void Dispose()
@@ -90,8 +94,8 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
     }
 
     private SseWithPollingFallbackStrategy CreateStrategy() =>
-        new(_sseClient, _client, _cache,
-            NullLogger<SseWithPollingFallbackStrategy>.Instance, _metrics);
+        new(_sseClient, _cache,
+            NullLogger<SseWithPollingFallbackStrategy>.Instance, _metrics, _serviceProvider);
 
     /// <summary>
     /// Yields the given events then blocks until cancellation, simulating a persistent SSE connection.
