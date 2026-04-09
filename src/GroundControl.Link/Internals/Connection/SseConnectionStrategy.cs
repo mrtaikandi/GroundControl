@@ -41,7 +41,17 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
                 }
 
                 firstAttempt = false;
-                await StreamEventsAsync(store, cancellationToken).ConfigureAwait(false);
+                var receivedEvents = await StreamEventsAsync(store, cancellationToken).ConfigureAwait(false);
+
+                if (receivedEvents)
+                {
+                    delay = store.Options.SseReconnectDelay;
+                }
+                else
+                {
+                    store.SetHealth(HealthStatus.Degraded);
+                    delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, store.Options.SseMaxReconnectDelay.Ticks));
+                }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -49,18 +59,17 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
             }
             catch (Exception ex)
             {
-                firstAttempt = false;
                 LogStreamError(_logger, ex);
-                store.SetHealth(HealthStatus.Degraded);
+                store.SetHealth(HealthStatus.Degraded, ex.Message, ex);
+                delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, store.Options.SseMaxReconnectDelay.Ticks));
             }
-
-            delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, store.Options.SseMaxReconnectDelay.Ticks));
         }
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cache save is best-effort")]
-    internal async Task StreamEventsAsync(GroundControlStore store, CancellationToken cancellationToken)
+    internal async Task<bool> StreamEventsAsync(GroundControlStore store, CancellationToken cancellationToken)
     {
+        var receivedEvents = false;
         _metrics.SetSseConnected(true);
 
         try
@@ -77,6 +86,7 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
 
                 _sseClient.LastEventId = sseEvent.Id;
                 _metrics.RecordReload("sse");
+                receivedEvents = true;
 
                 try
                 {
@@ -99,6 +109,8 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
         {
             _metrics.SetSseConnected(false);
         }
+
+        return receivedEvents;
     }
 
     [LoggerMessage(1, LogLevel.Information, "SSE reconnecting in {Delay}.")]
