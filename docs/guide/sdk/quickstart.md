@@ -12,24 +12,31 @@
 dotnet add package GroundControl.Link
 ```
 
-## Add GroundControl to your configuration
+## Register GroundControl
 
-Call `AddGroundControl` on your configuration builder to register the SDK as a
-standard .NET configuration provider. All values from the active snapshot become
-available through `IConfiguration`.
+The SDK uses a two-phase registration model:
+
+1. **Phase 1** -- Add GroundControl as a configuration source on `IConfigurationBuilder`. This fetches the initial configuration at startup and makes it available through `IConfiguration`.
+2. **Phase 2** -- Register background services on `IServiceCollection`. This enables real-time updates (SSE/polling), health checks, and metrics.
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
+// Phase 1: Add GroundControl as a configuration provider
 builder.Configuration.AddGroundControl(options =>
 {
-    options.ServerUrl = "https://groundcontrol.example.com";
+    options.ServerUrl = new Uri("https://groundcontrol.example.com");
     options.ClientId = "your-client-id";
     options.ClientSecret = "your-client-secret";
 });
 
+// Phase 2: Register background services (SSE/polling, health checks, metrics)
+builder.Services.AddGroundControl(builder.Configuration);
+
 var app = builder.Build();
 ```
+
+> **Tip:** If you only need configuration at startup and don't need live updates, set `ConnectionMode = ConnectionMode.StartupOnly` and skip Phase 2. See [Connection Modes](connection-modes.md).
 
 ## Read configuration values
 
@@ -79,14 +86,29 @@ app.MapGet("/settings", (IOptionsMonitor<DatabaseSettings> monitor) =>
 ```csharp
 builder.Configuration.AddGroundControl(options =>
 {
-    options.ServerUrl = builder.Configuration["GroundControl:ServerUrl"]!;
+    options.ServerUrl = new Uri(builder.Configuration["GroundControl:ServerUrl"]!);
     options.ClientId = builder.Configuration["GroundControl:ClientId"]!;
     options.ClientSecret = builder.Configuration["GroundControl:ClientSecret"]!;
 });
+
+builder.Services.AddGroundControl(builder.Configuration);
+```
+
+## Customize the HTTP client
+
+Phase 2 accepts an optional delegate to configure the `HttpClient` used by the background services:
+
+```csharp
+builder.Services.AddGroundControl(
+    builder.Configuration,
+    configureHttpClient: httpBuilder =>
+    {
+        httpBuilder.AddStandardResilienceHandler();
+    });
 ```
 
 ## What's next?
 
-- [Connection Modes](connection-modes.md) -- choose between SSE, polling, or hybrid
+- [Connection Modes](connection-modes.md) -- choose between SSE, polling, hybrid, or startup-only
 - [Caching](caching.md) -- offline resilience and local file cache
 - [Options Reference](options-reference.md) -- every configuration property
