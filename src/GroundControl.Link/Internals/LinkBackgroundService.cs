@@ -5,17 +5,17 @@ namespace GroundControl.Link.Internals;
 /// <summary>
 /// Thin background service that delegates to the configured <see cref="IConnectionStrategy"/>.
 /// </summary>
-internal sealed class GroundControlBackgroundService : BackgroundService
+internal sealed class LinkBackgroundService : BackgroundService
 {
     private readonly GroundControlStore _store;
     private readonly IConnectionStrategy _strategy;
 
-    public GroundControlBackgroundService(GroundControlStore store, IConnectionStrategy strategy)
+    public LinkBackgroundService(GroundControlStore store, IConnectionStrategy strategy)
     {
         _store = store;
         _strategy = strategy;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-        _strategy.ExecuteAsync(_store, stoppingToken);
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken) =>
+        await _strategy.ExecuteAsync(_store, stoppingToken).ConfigureAwait(false);
 }

@@ -27,32 +27,23 @@ internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Polling loop must survive transient errors")]
-    public async Task ExecuteAsync(GroundControlStore store, CancellationToken stoppingToken)
+    public async Task ExecuteAsync(GroundControlStore store, CancellationToken cancellationToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                await Task.Delay(
-                    ConnectionHelpers.AddJitter(store.Options.PollingInterval),
-                    stoppingToken).ConfigureAwait(false);
-
-                var sw = Stopwatch.StartNew();
-                var result = await _client.FetchConfigAsync(
-                    store.GetSnapshot().ETag, stoppingToken).ConfigureAwait(false);
-                sw.Stop();
-                _metrics.RecordFetchDuration(sw.Elapsed.TotalSeconds);
+                var sw = Stopwatch.GetTimestamp();
+                var result = await _client.FetchConfigAsync(store.GetSnapshot().ETag, cancellationToken).ConfigureAwait(false);
+                _metrics.RecordFetchDuration(Stopwatch.GetElapsedTime(sw));
 
                 switch (result.Status)
                 {
                     case FetchStatus.Success when result.Config is not null:
-                        store.Update(
-                            new Dictionary<string, string>(result.Config, StringComparer.OrdinalIgnoreCase),
-                            result.ETag, null);
+                        store.Update(new Dictionary<string, string>(result.Config, StringComparer.OrdinalIgnoreCase), result.ETag, null);
                         _metrics.RecordFetch("success");
                         _metrics.RecordReload("polling");
-                        await TrySaveToCacheAsync(result.Config, result.ETag, stoppingToken)
-                            .ConfigureAwait(false);
+                        await TrySaveToCacheAsync(result.Config, result.ETag, cancellationToken).ConfigureAwait(false);
                         break;
 
                     case FetchStatus.NotModified:
@@ -64,13 +55,17 @@ internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
                         _metrics.RecordFetch("auth_error");
                         return;
 
+                    case FetchStatus.TransientError:
+                    case FetchStatus.NotFound:
                     default:
                         _metrics.RecordFetch("error");
                         store.SetHealth(HealthStatus.Degraded);
                         break;
                 }
+
+                await Task.Delay(ConnectionHelpers.AddJitter(store.Options.PollingInterval), cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 break;
             }
@@ -78,23 +73,25 @@ internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
             {
                 LogPollFailed(_logger, ex);
                 _metrics.RecordFetch("error");
+
                 store.SetHealth(HealthStatus.Degraded);
             }
         }
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cache save is best-effort")]
-    private async Task TrySaveToCacheAsync(
-        IReadOnlyDictionary<string, string> data, string? etag, CancellationToken ct)
+    private async Task TrySaveToCacheAsync(IReadOnlyDictionary<string, string> data, string? etag, CancellationToken cancellationToken)
     {
         try
         {
             await _cache.SaveAsync(
-                new CachedConfiguration
-                {
-                    Entries = new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase),
-                    ETag = etag
-                }, ct).ConfigureAwait(false);
+                    new CachedConfiguration
+                    {
+                        Entries = new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase),
+                        ETag = etag
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
         catch
         {

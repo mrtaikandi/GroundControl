@@ -8,5 +8,5 @@ internal interface IConnectionStrategy
     /// <summary>
     /// Runs the background connection loop until cancellation.
     /// </summary>
-    Task ExecuteAsync(GroundControlStore store, CancellationToken stoppingToken);
+    Task ExecuteAsync(GroundControlStore store, CancellationToken cancellationToken);
 }

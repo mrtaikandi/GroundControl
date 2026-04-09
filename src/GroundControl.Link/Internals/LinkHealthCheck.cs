@@ -5,11 +5,11 @@ namespace GroundControl.Link.Internals;
 /// <summary>
 /// Health check that reports the status of the GroundControl configuration store.
 /// </summary>
-internal sealed class GroundControlHealthCheck : IHealthCheck
+internal sealed class LinkHealthCheck : IHealthCheck
 {
     private readonly GroundControlStore _store;
 
-    public GroundControlHealthCheck(GroundControlStore store)
+    public LinkHealthCheck(GroundControlStore store)
     {
         _store = store;
     }

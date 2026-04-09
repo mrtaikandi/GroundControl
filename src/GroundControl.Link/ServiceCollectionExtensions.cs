@@ -45,7 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddMetrics();
         services.AddSingleton<GroundControlMetrics>();
 
-        services.AddHealthChecks().AddCheck<GroundControlHealthCheck>("GroundControl", tags: options.HealthCheckTags);
+        services.AddHealthChecks().AddCheck<LinkHealthCheck>("GroundControl", tags: options.HealthCheckTags);
 
         if (options.ConnectionMode == ConnectionMode.StartupOnly)
         {
@@ -89,7 +89,7 @@ public static class ServiceCollectionExtensions
         });
 
         // Background service
-        services.AddHostedService<GroundControlBackgroundService>();
+        services.AddHostedService<LinkBackgroundService>();
 
         return services;
     }

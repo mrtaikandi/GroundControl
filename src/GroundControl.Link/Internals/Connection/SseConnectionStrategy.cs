@@ -13,11 +13,7 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
     private readonly ILogger<SseConnectionStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
 
-    public SseConnectionStrategy(
-        IGroundControlSseClient sseClient,
-        IConfigurationCache cache,
-        ILogger<SseConnectionStrategy> logger,
-        GroundControlMetrics metrics)
+    public SseConnectionStrategy(IGroundControlSseClient sseClient, IConfigurationCache cache, ILogger<SseConnectionStrategy> logger, GroundControlMetrics metrics)
     {
         _sseClient = sseClient;
         _cache = cache;
@@ -26,12 +22,12 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Reconnect loop must survive transient errors")]
-    public async Task ExecuteAsync(GroundControlStore store, CancellationToken stoppingToken)
+    public async Task ExecuteAsync(GroundControlStore store, CancellationToken cancellationToken)
     {
         var delay = store.Options.SseReconnectDelay;
         var firstAttempt = true;
 
-        while (!stoppingToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
@@ -40,13 +36,14 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
                     var jitteredDelay = ConnectionHelpers.AddJitter(delay);
                     LogReconnecting(_logger, jitteredDelay);
                     _metrics.RecordSseReconnect();
-                    await Task.Delay(jitteredDelay, stoppingToken).ConfigureAwait(false);
+
+                    await Task.Delay(jitteredDelay, cancellationToken).ConfigureAwait(false);
                 }
 
                 firstAttempt = false;
-                await StreamEventsAsync(store, stoppingToken).ConfigureAwait(false);
+                await StreamEventsAsync(store, cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
@@ -57,8 +54,7 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
                 store.SetHealth(HealthStatus.Degraded);
             }
 
-            delay = TimeSpan.FromTicks(
-                Math.Min(delay.Ticks * 2, store.Options.SseMaxReconnectDelay.Ticks));
+            delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, store.Options.SseMaxReconnectDelay.Ticks));
         }
     }
 
@@ -69,15 +65,16 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
 
         try
         {
-            await foreach (var sseEvent in _sseClient.StreamAsync(cancellationToken).WithCancellation(cancellationToken).ConfigureAwait(false))
+            await foreach (var sseEvent in _sseClient.StreamAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (sseEvent.EventType != "config")
+                if (sseEvent.EventType != SseEventType.Config)
                 {
                     continue;
                 }
 
                 var (config, snapshotVersion) = ConnectionHelpers.ParseConfigDataWithVersion(sseEvent.Data);
                 store.Update(config, snapshotVersion, sseEvent.Id);
+
                 _sseClient.LastEventId = sseEvent.Id;
                 _metrics.RecordReload("sse");
 
@@ -89,6 +86,7 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
                         ETag = snapshotVersion,
                         LastEventId = sseEvent.Id
                     };
+
                     await _cache.SaveAsync(cached, cancellationToken).ConfigureAwait(false);
                 }
                 catch
