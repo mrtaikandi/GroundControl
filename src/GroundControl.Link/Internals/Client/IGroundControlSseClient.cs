@@ -4,7 +4,7 @@ namespace GroundControl.Link.Internals.Client;
 /// Abstraction for a Server-Sent Events client that streams configuration events
 /// from the GroundControl server.
 /// </summary>
-public interface IGroundControlSseClient
+internal interface IGroundControlSseClient
 {
     /// <summary>
     /// Gets or sets the last received SSE event ID, used to resume streams after reconnection.
@@ -26,7 +26,7 @@ public interface IGroundControlSseClient
 /// <summary>
 /// Represents a Server-Sent Event received from the GroundControl server.
 /// </summary>
-public sealed record SseEvent
+internal sealed record SseEvent
 {
     /// <summary>
     /// Gets the event type (e.g., "config", "heartbeat").
@@ -42,4 +42,12 @@ public sealed record SseEvent
     /// Gets the event ID, typically the snapshot version.
     /// </summary>
     public string? Id { get; init; }
+}
+
+internal static class SseEventType
+{
+    /// <summary>
+    /// Indicates a configuration update event containing new configuration data.
+    /// </summary>
+    public const string Config = "config";
 }

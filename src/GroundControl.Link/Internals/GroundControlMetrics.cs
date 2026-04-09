@@ -42,7 +42,7 @@ internal sealed class GroundControlMetrics : IDisposable
 
     public void RecordFetch(string status) => _fetchCount.Add(1, new KeyValuePair<string, object?>("status", status));
 
-    public void RecordFetchDuration(double seconds) => _fetchDuration.Record(seconds);
+    public void RecordFetchDuration(TimeSpan duration) => _fetchDuration.Record(duration.TotalSeconds);
 
     public void RecordReload(string source) => _reloadCount.Add(1, new KeyValuePair<string, object?>("source", source));
 

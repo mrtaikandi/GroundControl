@@ -2,7 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link.Tests.Internals;
 
-public sealed class GroundControlHealthCheckTests
+public sealed class LinkHealthCheckTests
 {
     private readonly GroundControlStore _store = new(new GroundControlOptions
     {
@@ -16,7 +16,7 @@ public sealed class GroundControlHealthCheckTests
     {
         // Arrange
         _store.Update(new Dictionary<string, string> { ["K"] = "V" }, "\"1\"", null);
-        var check = new GroundControlHealthCheck(_store);
+        var check = new LinkHealthCheck(_store);
 
         // Act
         var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
@@ -30,7 +30,7 @@ public sealed class GroundControlHealthCheckTests
     {
         // Arrange
         _store.SetHealth(HealthStatus.Degraded);
-        var check = new GroundControlHealthCheck(_store);
+        var check = new LinkHealthCheck(_store);
 
         // Act
         var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
@@ -45,7 +45,7 @@ public sealed class GroundControlHealthCheckTests
         // Arrange
         var error = new HttpRequestException("Connection refused");
         _store.SetHealth(HealthStatus.Degraded, "Server returned a transient error.", error);
-        var check = new GroundControlHealthCheck(_store);
+        var check = new LinkHealthCheck(_store);
 
         // Act
         var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
@@ -60,7 +60,7 @@ public sealed class GroundControlHealthCheckTests
     public async Task CheckHealthAsync_Unhealthy_ReturnsUnhealthy()
     {
         // Arrange — store starts Unhealthy by default
-        var check = new GroundControlHealthCheck(_store);
+        var check = new LinkHealthCheck(_store);
 
         // Act
         var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
@@ -75,7 +75,7 @@ public sealed class GroundControlHealthCheckTests
         // Arrange
         var error = new HttpRequestException("DNS resolution failed");
         _store.SetHealth(HealthStatus.Unhealthy, "Authentication failed (401/403). Check ClientId and ClientSecret.", error);
-        var check = new GroundControlHealthCheck(_store);
+        var check = new LinkHealthCheck(_store);
 
         // Act
         var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);

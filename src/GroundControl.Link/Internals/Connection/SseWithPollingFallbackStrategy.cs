@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GroundControl.Link.Internals.Connection;
 
@@ -14,31 +14,33 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
     private readonly IConfigurationCache _cache;
     private readonly ILogger<SseWithPollingFallbackStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
+    private readonly IServiceProvider _serviceProvider;
 
     public SseWithPollingFallbackStrategy(
         IGroundControlSseClient sseClient,
         IGroundControlApiClient client,
         IConfigurationCache cache,
         ILogger<SseWithPollingFallbackStrategy> logger,
-        GroundControlMetrics metrics)
+        GroundControlMetrics metrics,
+        IServiceProvider serviceProvider)
     {
         _sseClient = sseClient;
         _client = client;
         _cache = cache;
         _logger = logger;
         _metrics = metrics;
+        _serviceProvider = serviceProvider;
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Resilience: errors trigger fallback, not crash")]
-    public async Task ExecuteAsync(GroundControlStore store, CancellationToken stoppingToken)
+    public async Task ExecuteAsync(GroundControlStore store, CancellationToken cancellationToken)
     {
-        // Try SSE first
         try
         {
             _metrics.SetSseConnected(true);
-            await StreamSseEventsAsync(store, stoppingToken).ConfigureAwait(false);
+            await StreamSseEventsAsync(store, cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return;
         }
@@ -51,17 +53,16 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
             _metrics.SetSseConnected(false);
         }
 
-        // SSE failed — start polling with periodic SSE retry
         LogSwitchingToPolling(_logger);
-        await RunPollingWithSseRetryAsync(store, stoppingToken).ConfigureAwait(false);
+        await RunPollingWithSseRetryAsync(store, cancellationToken).ConfigureAwait(false);
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cache save is best-effort")]
-    private async Task StreamSseEventsAsync(GroundControlStore store, CancellationToken ct)
+    private async Task StreamSseEventsAsync(GroundControlStore store, CancellationToken cancellationToken)
     {
-        await foreach (var sseEvent in _sseClient.StreamAsync(ct).WithCancellation(ct).ConfigureAwait(false))
+        await foreach (var sseEvent in _sseClient.StreamAsync(cancellationToken).ConfigureAwait(false))
         {
-            if (sseEvent.EventType != "config")
+            if (sseEvent.EventType != SseEventType.Config)
             {
                 continue;
             }
@@ -74,8 +75,14 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
             try
             {
                 await _cache.SaveAsync(
-                    new CachedConfiguration { Entries = config, ETag = snapshotVersion, LastEventId = sseEvent.Id },
-                    ct).ConfigureAwait(false);
+                        new CachedConfiguration
+                        {
+                            Entries = config,
+                            ETag = snapshotVersion,
+                            LastEventId = sseEvent.Id
+                        },
+                        cancellationToken)
+                    .ConfigureAwait(false);
             }
             catch
             {
@@ -88,8 +95,7 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
     private async Task RunPollingWithSseRetryAsync(GroundControlStore store, CancellationToken stoppingToken)
     {
         using var pollingCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        var pollingStrategy = new PollingConnectionStrategy(
-            _client, _cache, NullLoggerFactory.Instance.CreateLogger<PollingConnectionStrategy>(), _metrics);
+        var pollingStrategy = _serviceProvider.GetRequiredService<PollingConnectionStrategy>();
         var pollingTask = Task.Run(() => pollingStrategy.ExecuteAsync(store, pollingCts.Token), pollingCts.Token);
 
         var delay = store.Options.SseReconnectDelay;
