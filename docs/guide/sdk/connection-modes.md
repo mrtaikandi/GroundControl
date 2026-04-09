@@ -1,6 +1,6 @@
 # Connection Modes
 
-The SDK supports three ways to receive configuration updates from the server. Choose the mode that fits your infrastructure.
+The SDK supports four ways to receive configuration updates from the server. Choose the mode that fits your infrastructure.
 
 ## SSE with Polling Fallback (default)
 
@@ -20,6 +20,14 @@ This mode fetches configuration via periodic REST calls at the `PollingInterval`
 
 **Best for:** Environments behind proxies or firewalls that block SSE or other long-lived connections.
 
+## Startup Only
+
+This mode fetches configuration once during Phase 1 (startup) and does not register any background services. No SSE connection or polling loop runs after the application starts. The configuration is static for the lifetime of the process.
+
+When using this mode, you can skip Phase 2 registration (`builder.Services.AddGroundControl(...)`) entirely -- though calling it is harmless (it registers health checks and metrics but no background service).
+
+**Best for:** Short-lived processes, batch jobs, or CLI tools that only need configuration at startup.
+
 ## Choosing a mode
 
 | Your situation | Recommended mode |
@@ -27,18 +35,22 @@ This mode fetches configuration via periodic REST calls at the `PollingInterval`
 | Standard deployment, want real-time updates | `SseWithPollingFallback` (default) |
 | Guaranteed SSE support, lowest latency needed | `Sse` |
 | Corporate proxy blocks SSE / long-lived connections | `Polling` |
-| Batch jobs that run briefly | `Polling` |
+| Batch jobs or CLI tools that run briefly | `StartupOnly` |
+| Long-running jobs without SSE, want periodic refresh | `Polling` |
 
 ## Setting the mode
 
 ```csharp
 builder.Configuration.AddGroundControl(options =>
 {
-    options.ServerUrl = "https://groundcontrol.example.com";
+    options.ServerUrl = new Uri("https://groundcontrol.example.com");
     options.ClientId = "your-client-id";
     options.ClientSecret = "your-client-secret";
     options.ConnectionMode = ConnectionMode.Sse;
 });
+
+// Phase 2 -- skip this for StartupOnly mode
+builder.Services.AddGroundControl(builder.Configuration);
 ```
 
 ## How SSE connections work
@@ -71,6 +83,7 @@ stateDiagram-v2
 - **SSE with Polling Fallback:** Falls back to polling. Your application continues receiving updates, just with a delay equal to the polling interval.
 - **SSE Only:** Retries SSE with exponential backoff. Between retries, the application uses the last known configuration in memory or from the local cache.
 - **Polling:** Retries at the next poll interval. Failed polls are logged but do not interrupt the application.
+- **Startup Only:** No background recovery. If the server was unreachable at startup, the SDK uses the local cache (if enabled) or falls back to other configuration providers.
 
 In all modes, the local file cache (if enabled) provides a safety net. See [Caching](caching.md) for details.
 
