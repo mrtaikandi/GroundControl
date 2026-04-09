@@ -65,7 +65,7 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
 
         try
         {
-            await foreach (var sseEvent in _sseClient.StreamAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var sseEvent in _sseClient.StreamAsync(cancellationToken).WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 if (sseEvent.EventType != SseEventType.Config)
                 {

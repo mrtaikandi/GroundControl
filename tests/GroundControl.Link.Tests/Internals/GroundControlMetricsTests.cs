@@ -48,7 +48,7 @@ public sealed class GroundControlMetricsTests : IDisposable
         using var collector = new MetricCollector<double>(_meterFactory, "GroundControl.Link", "groundcontrol.link.fetch.duration");
 
         // Act
-        _metrics.RecordFetchDuration(0.5);
+        _metrics.RecordFetchDuration(TimeSpan.FromMilliseconds(500));
 
         // Assert
         collector.GetMeasurementSnapshot().Count.ShouldBe(1);
