@@ -1,6 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Text.Json;
 
 namespace GroundControl.Link.Internals.Connection;
 
@@ -17,27 +15,5 @@ internal static class ConnectionHelpers
     {
         var jitterFactor = 0.75 + (Random.Shared.NextDouble() * 0.5);
         return TimeSpan.FromMilliseconds(Math.Max(baseDelay.TotalMilliseconds * jitterFactor, 100));
-    }
-
-    /// <summary>
-    /// Parses SSE event JSON to extract flattened config data and snapshot version.
-    /// </summary>
-    public static (Dictionary<string, string> Config, string? SnapshotVersion) ParseConfigDataWithVersion(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        var config = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        if (doc.RootElement.TryGetProperty("data", out var data))
-        {
-            GroundControlApiClient.FlattenElement(data, string.Empty, config);
-        }
-
-        string? snapshotVersion = null;
-        if (doc.RootElement.TryGetProperty("snapshotVersion", out var version))
-        {
-            snapshotVersion = version.GetInt64().ToString(CultureInfo.InvariantCulture);
-        }
-
-        return (config, snapshotVersion);
     }
 }

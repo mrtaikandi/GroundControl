@@ -81,8 +81,8 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
                     continue;
                 }
 
-                var (config, snapshotVersion) = ConnectionHelpers.ParseConfigDataWithVersion(sseEvent.Data);
-                store.Update(config, snapshotVersion, sseEvent.Id);
+                var parsed = ConfigurationParser.Parse(sseEvent.Data);
+                store.Update(parsed.Config, parsed.SnapshotVersion, sseEvent.Id);
 
                 _sseClient.LastEventId = sseEvent.Id;
                 _metrics.RecordReload("sse");
@@ -92,8 +92,8 @@ internal sealed partial class SseConnectionStrategy : IConnectionStrategy
                 {
                     var cached = new CachedConfiguration
                     {
-                        Entries = config,
-                        ETag = snapshotVersion,
+                        Entries = parsed.Config,
+                        ETag = parsed.SnapshotVersion,
                         LastEventId = sseEvent.Id
                     };
 

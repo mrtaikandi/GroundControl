@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Mime;
-using System.Text.Json;
 
 namespace GroundControl.Link.Internals.Client;
 
@@ -53,7 +52,7 @@ internal sealed class GroundControlApiClient : IGroundControlApiClient
         }
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        var config = FlattenJson(json);
+        var config = ConfigurationParser.Parse(json).Config;
         var newEtag = response.Headers.ETag?.Tag.Trim('"');
 
         _logger.LogFetched(newEtag);
@@ -80,54 +79,6 @@ internal sealed class GroundControlApiClient : IGroundControlApiClient
         return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
     }
 
-    internal static Dictionary<string, string> FlattenJson(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        if (doc.RootElement.TryGetProperty("data", out var data))
-        {
-            FlattenElement(data, string.Empty, result);
-        }
-
-        return result;
-    }
-
-    internal static void FlattenElement(JsonElement element, string prefix, Dictionary<string, string> result)
-    {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.Object:
-                foreach (var prop in element.EnumerateObject())
-                {
-                    var key = prefix.Length > 0 ? $"{prefix}:{prop.Name}" : prop.Name;
-                    FlattenElement(prop.Value, key, result);
-                }
-
-                break;
-
-            case JsonValueKind.Array:
-                var index = 0;
-                foreach (var item in element.EnumerateArray())
-                {
-                    FlattenElement(item, $"{prefix}:{index++}", result);
-                }
-
-                break;
-
-            case JsonValueKind.Null:
-                break;
-
-            case JsonValueKind.Undefined:
-            case JsonValueKind.String:
-            case JsonValueKind.Number:
-            case JsonValueKind.True:
-            case JsonValueKind.False:
-            default:
-                result[prefix] = element.ToString();
-                break;
-        }
-    }
 }
 
 internal static partial class GroundControlApiClientLogs
