@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <PropertyGroup Label="OpenAPI spec generation">
+        <OpenApiGenerateDocuments Condition="'$(OpenApiGenerateDocuments)' == ''">false</OpenApiGenerateDocuments>
         <OpenApiDocumentsDirectory>.</OpenApiDocumentsDirectory>
         <OpenApiGenerateDocumentsOptions>--file-name OpenApi</OpenApiGenerateDocumentsOptions>
     </PropertyGroup>
