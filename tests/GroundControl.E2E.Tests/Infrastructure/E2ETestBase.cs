@@ -27,7 +27,7 @@ public abstract class E2ETestBase : IDisposable
     private readonly HttpClient _apiHttpClient;
     private bool _disposed;
 
-    protected E2ETestBase(DockerComposeFixture fixture)
+    protected E2ETestBase(AspireFixture fixture)
     {
         Fixture = fixture;
 
@@ -36,7 +36,7 @@ public abstract class E2ETestBase : IDisposable
         Cli = new CliRunner(fixture.ApiBaseUrl);
     }
 
-    protected DockerComposeFixture Fixture { get; }
+    protected AspireFixture Fixture { get; }
 
     protected CliRunner Cli { get; }
 

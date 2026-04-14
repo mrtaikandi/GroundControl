@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Sdk Name="Aspire.AppHost.Sdk" Version="13.2.0" />
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsAspireHost>true</IsAspireHost>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\GroundControl.Api\GroundControl.Api.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="mongo-init.js" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>

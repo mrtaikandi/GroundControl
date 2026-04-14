@@ -14,6 +14,7 @@
         <Project Path="tests/GroundControl.Persistence.MongoDb.Tests/GroundControl.Persistence.MongoDb.Tests.csproj" />
         <Project Path="tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj" />
         <Project Path="tests/GroundControl.E2E.Tests/GroundControl.E2E.Tests.csproj" />
+        <Project Path="tests/GroundControl.E2E.Tests.AppHost/GroundControl.E2E.Tests.AppHost.csproj" />
         <Project Path="tests/GroundControl.Host.Api.Generators.Tests/GroundControl.Host.Api.Generators.Tests.csproj" />
         <Project Path="tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj" />
         <Project Path="tests/GroundControl.Api.Client.Tests/GroundControl.Api.Client.Tests.csproj" />
