@@ -8,6 +8,7 @@
     <GlobalPackageReference Include="Nerdbank.GitVersioning" Version="3.9.50" />
   </ItemGroup>
   <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.MongoDB" Version="13.2.0" />
     <PackageVersion Include="Asp.Versioning.Http" Version="8.1.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />

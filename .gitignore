@@ -493,6 +493,9 @@ docs/superpowers/
 # Verify snapshot failures
 *.received.*
 
+# Aspire
+.modules/
+
 # Project specific files and folders
 planning/
 appsettings.local.json
