@@ -487,6 +487,7 @@ $RECYCLE.BIN/
 # Agents files and folders
 .claude/settings.local.json
 .claude/worktrees/
+.memory/
 docs/superpowers/
 
 # Verify snapshot failures
