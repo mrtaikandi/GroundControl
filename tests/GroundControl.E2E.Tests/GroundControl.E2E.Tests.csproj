@@ -5,13 +5,16 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.Testing" />
         <PackageReference Include="Shouldly" />
         <PackageReference Include="xunit.v3" />
-        <PackageReference Include="xunit.v3.extensibility.core" />    </ItemGroup>
+        <PackageReference Include="xunit.v3.extensibility.core" />
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\GroundControl.Api.Client\GroundControl.Api.Client.csproj" />
         <ProjectReference Include="..\..\src\GroundControl.Link\GroundControl.Link.csproj" />
+        <ProjectReference Include="..\GroundControl.E2E.Tests.AppHost\GroundControl.E2E.Tests.AppHost.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -19,11 +22,6 @@
             <_Parameter1>RepositoryRoot</_Parameter1>
             <_Parameter2>$(RepositoryRoot)</_Parameter2>
         </AssemblyAttribute>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Content Include="docker-compose.yml" CopyToOutputDirectory="PreserveNewest" />
-        <Content Include="build\mongo-init.js" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

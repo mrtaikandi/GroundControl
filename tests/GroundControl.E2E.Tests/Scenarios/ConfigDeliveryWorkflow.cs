@@ -14,7 +14,7 @@ public sealed class ConfigDeliveryWorkflow : E2ETestBase
     private const string ClientIdKey = "ClientId";
     private const string ClientSecretKey = "ClientSecret";
 
-    public ConfigDeliveryWorkflow(DockerComposeFixture fixture)
+    public ConfigDeliveryWorkflow(AspireFixture fixture)
         : base(fixture) { }
 
     [Fact, Step(1)]
