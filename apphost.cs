@@ -1,4 +1,4 @@
-#:sdk Aspire.AppHost.Sdk@13.2.0
+#:sdk Aspire.AppHost.Sdk@13.2.2
 #:package Aspire.Hosting.MongoDB
 #:project src/GroundControl.Api/GroundControl.Api.csproj
 
