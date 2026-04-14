@@ -8,12 +8,11 @@ using Xunit;
 namespace GroundControl.Persistence.MongoDb.Tests.Infrastructure;
 
 /// <summary>
-/// Shared test fixture that starts a MongoDB replica set container via Testcontainers.
+/// Shared test fixture that starts a MongoDB container via Testcontainers.
 /// </summary>
 public sealed class MongoFixture : IAsyncLifetime
 {
     private readonly MongoDbContainer _container = new MongoDbBuilder("mongo:8")
-        .WithReplicaSet()
         .Build();
 
     private readonly ConcurrentBag<MongoClient> _clients = [];
