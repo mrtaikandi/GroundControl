@@ -8,11 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\GroundControl.Api\GroundControl.Api.csproj" />
+        <PackageReference Include="Aspire.Hosting.MongoDB" />
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="mongo-init.js" CopyToOutputDirectory="PreserveNewest" />
+        <ProjectReference Include="..\..\src\GroundControl.Api\GroundControl.Api.csproj" />
     </ItemGroup>
 
 </Project>
