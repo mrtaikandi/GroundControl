@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -18,7 +17,6 @@ internal sealed class GroundControlConfigurationSource : IConfigurationSource
     }
 
     /// <inheritdoc />
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient ownership: disposed after Load() via provider")]
     public IConfigurationProvider Build(IConfigurationBuilder builder)
     {
         var store = new GroundControlStore(_options);
