@@ -42,7 +42,20 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
 
         var version = resolved.Version;
 
-        List<ScopedValueRequest>? scopedValues = null;
+        var existing = resolved.Entity;
+        if (existing is null)
+        {
+            var (exitCode, fetched) = await _shell.TryCallAsync(ct => _client.GetConfigEntryHandlerAsync(_options.Id, decrypt: null, ct), cancellationToken);
+
+            if (exitCode != 0)
+            {
+                return exitCode;
+            }
+
+            existing = fetched!;
+        }
+
+        List<ScopedValueRequest> scopedValues;
         if (_options.Values is not null || _options.ValuesJson is not null)
         {
             List<ScopedValueParser.ParsedScopedValue> parsedValues;
@@ -62,13 +75,19 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
                 Value = v.Value
             }).ToList();
         }
+        else
+        {
+            scopedValues = existing.Values.Select(v => new ScopedValueRequest
+            {
+                Scopes = v.Scopes is { Count: > 0 } ? new Dictionary<string, string>(v.Scopes) : null,
+                Value = v.Value
+            }).ToList();
+        }
 
-        // WhenWritingNull serializer policy omits null fields from the JSON body,
-        // so only fields the user explicitly provided are sent to the API.
         var request = new UpdateConfigEntryRequest
         {
-            ValueType = _options.ValueType!,
-            Values = scopedValues!,
+            ValueType = _options.ValueType ?? existing.ValueType,
+            Values = scopedValues,
             IsSensitive = _options.Sensitive,
             Description = _options.Description
         };
@@ -81,6 +100,7 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
                 var entry = await _client.UpdateConfigEntryHandlerAsync(_options.Id, request, ct);
                 _shell.DisplaySuccess(entry, _hostOptions.OutputFormat,
                     e => $"Config entry '{e.Key}' updated (version: {e.Version}).");
+
                 return 0;
             },
             async ct =>
@@ -93,14 +113,11 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
                     diffs.Add(new FieldDiff("Value Type", _options.ValueType, current.ValueType));
                 }
 
-                if (scopedValues is not null)
+                var currentValuesStr = FormatScopedValues(current.Values);
+                var requestedValuesStr = FormatScopedValueRequests(scopedValues);
+                if (requestedValuesStr != currentValuesStr)
                 {
-                    var currentValuesStr = FormatScopedValues(current.Values);
-                    var requestedValuesStr = FormatScopedValueRequests(scopedValues);
-                    if (requestedValuesStr != currentValuesStr)
-                    {
-                        diffs.Add(new FieldDiff("Values", requestedValuesStr, currentValuesStr));
-                    }
+                    diffs.Add(new FieldDiff("Values", requestedValuesStr, currentValuesStr));
                 }
 
                 if (_options.Description is not null && _options.Description != (current.Description ?? string.Empty))
@@ -126,6 +143,7 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
             var scope = v.Scopes is { Count: > 0 }
                 ? string.Join(",", v.Scopes.Select(s => $"{s.Key}:{s.Value}"))
                 : "default";
+
             return $"{scope}={v.Value}";
         }));
 
@@ -135,6 +153,7 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
             var scope = v.Scopes is { Count: > 0 }
                 ? string.Join(",", v.Scopes.Select(s => $"{s.Key}:{s.Value}"))
                 : "default";
+
             return $"{scope}={v.Value}";
         }));
 }
