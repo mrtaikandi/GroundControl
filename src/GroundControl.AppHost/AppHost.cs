@@ -1,7 +1,3 @@
-#:sdk Aspire.AppHost.Sdk@13.2.2
-#:package Aspire.Hosting.MongoDB
-#:project src/GroundControl.Api/GroundControl.Api.csproj
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 var mongo = builder.AddMongoDB("mongo")
