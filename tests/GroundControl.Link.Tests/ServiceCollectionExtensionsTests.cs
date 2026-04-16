@@ -90,6 +90,35 @@ public sealed class ServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public void AddGroundControl_WithScopes_RegistersSuccessfully()
+    {
+        // Arrange
+        var builder = new ConfigurationBuilder();
+        builder.AddGroundControl(opts =>
+        {
+            opts.ServerUrl = new Uri("http://localhost:9999");
+            opts.ClientId = "test";
+            opts.ClientSecret = "secret";
+            opts.EnableLocalCache = false;
+            opts.ConnectionMode = ConnectionMode.Polling;
+            opts.Scopes["environment"] = "production";
+            opts.Scopes["region"] = "us-east-1";
+        });
+
+        var config = (IConfigurationRoot)builder.Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
+        services.AddLogging();
+
+        // Act
+        services.AddGroundControl(config);
+        using var sp = services.BuildServiceProvider();
+
+        // Assert
+        sp.GetRequiredService<IGroundControlApiClient>().ShouldNotBeNull();
+    }
+
+    [Fact]
     public void AddGroundControl_StartupOnly_SkipsBackgroundServices()
     {
         // Arrange

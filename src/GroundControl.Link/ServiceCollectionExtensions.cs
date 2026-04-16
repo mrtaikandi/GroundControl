@@ -58,6 +58,12 @@ public static class ServiceCollectionExtensions
                 httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
                 httpClient.DefaultRequestHeaders.Authorization =
                     new AuthenticationHeaderValue(HeaderNames.ApiKey, $"{options.ClientId}:{options.ClientSecret}");
+
+                if (options.Scopes.Count > 0)
+                {
+                    var scopeValue = string.Join(",", options.Scopes.Select(s => $"{Uri.EscapeDataString(s.Key)}:{Uri.EscapeDataString(s.Value)}"));
+                    httpClient.DefaultRequestHeaders.Add(HeaderNames.GroundControlScopes, scopeValue);
+                }
             })
             .UseSocketsHttpHandler((handler, _) => handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2))
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
