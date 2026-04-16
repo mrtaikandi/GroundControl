@@ -21,10 +21,15 @@ internal sealed partial class ConfigurationMonitorService : BackgroundService
     {
         LogCurrentSettings("Initial configuration loaded");
 
-        _settingsMonitor.OnChange(settings =>
+        var subscription = _settingsMonitor.OnChange(_ =>
         {
             LogCurrentSettings("Configuration updated");
         });
+
+        if (subscription is not null)
+        {
+            stoppingToken.Register(subscription.Dispose);
+        }
 
         return Task.CompletedTask;
     }
