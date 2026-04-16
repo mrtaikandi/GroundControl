@@ -13,4 +13,10 @@
         <ProjectReference Include="..\..\src\GroundControl.Link\GroundControl.Link.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="appsettings.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

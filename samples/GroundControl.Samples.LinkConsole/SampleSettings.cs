@@ -9,18 +9,9 @@ namespace GroundControl.Samples.LinkConsole;
 /// </remarks>
 internal sealed class SampleSettings
 {
-    /// <summary>
-    /// Gets or sets the application name.
-    /// </summary>
     public string AppName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Gets or sets the maximum number of retries.
-    /// </summary>
     public int MaxRetries { get; set; }
 
-    /// <summary>
-    /// Gets or sets a value indicating whether dark mode is enabled.
-    /// </summary>
     public bool DarkMode { get; set; }
 }
