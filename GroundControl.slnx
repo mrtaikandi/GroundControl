@@ -6,6 +6,7 @@
     <Project Path="src/GroundControl.Api/GroundControl.Api.csproj" />
     <Project Path="src/GroundControl.Api.Client/GroundControl.Api.Client.csproj" />
     <Project Path="src/GroundControl.Host.Cli/GroundControl.Host.Cli.csproj" />
+    <Project Path="src/GroundControl.AppHost/GroundControl.AppHost.csproj" />
     <Project Path="src/GroundControl.Cli/GroundControl.Cli.csproj" />
     <Project Path="src/GroundControl.Link/GroundControl.Link.csproj" />
     <Folder Name="/Tests/">
@@ -14,7 +15,6 @@
         <Project Path="tests/GroundControl.Persistence.MongoDb.Tests/GroundControl.Persistence.MongoDb.Tests.csproj" />
         <Project Path="tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj" />
         <Project Path="tests/GroundControl.E2E.Tests/GroundControl.E2E.Tests.csproj" />
-        <Project Path="tests/GroundControl.E2E.Tests.AppHost/GroundControl.E2E.Tests.AppHost.csproj" />
         <Project Path="tests/GroundControl.Host.Api.Generators.Tests/GroundControl.Host.Api.Generators.Tests.csproj" />
         <Project Path="tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj" />
         <Project Path="tests/GroundControl.Api.Client.Tests/GroundControl.Api.Client.Tests.csproj" />
