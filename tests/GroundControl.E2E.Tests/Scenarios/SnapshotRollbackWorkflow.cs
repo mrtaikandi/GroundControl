@@ -180,29 +180,48 @@ public sealed class SnapshotRollbackWorkflow : EndToEndTestBase
     });
 
     [Fact, Step(8)]
-    public Task Step08_LinkSdkReceivesRolledBackValue() => RunStep(8, () =>
+    public Task Step08_LinkSdkReceivesRolledBackValue() => RunStep(8, async () =>
     {
         // Arrange
         var clientId = Get<Guid>(ClientIdKey);
         var clientSecret = Get<string>(ClientSecretKey);
 
-        var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddGroundControl(opts =>
+        // Act — ActivateSnapshotHandler dispatches cache invalidation via an async channel,
+        // so the /client/config endpoint may briefly serve the stale snapshot. Poll until the
+        // rolled-back value is observed (or timeout).
+        string? value = null;
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (DateTime.UtcNow < deadline)
         {
-            opts.ServerUrl = new Uri(Fixture.ApiBaseUrl);
-            opts.ClientId = clientId.ToString();
-            opts.ClientSecret = clientSecret;
-            opts.StartupTimeout = TimeSpan.FromSeconds(15);
-            opts.ConnectionMode = ConnectionMode.StartupOnly;
-            opts.EnableLocalCache = false;
-        });
+            var configBuilder = new ConfigurationBuilder();
+            configBuilder.AddGroundControl(opts =>
+            {
+                opts.ServerUrl = new Uri(Fixture.ApiBaseUrl);
+                opts.ClientId = clientId.ToString();
+                opts.ClientSecret = clientSecret;
+                opts.StartupTimeout = TimeSpan.FromSeconds(15);
+                opts.ConnectionMode = ConnectionMode.StartupOnly;
+                opts.EnableLocalCache = false;
+            });
 
-        // Act
-        var configuration = configBuilder.Build();
+            var configuration = configBuilder.Build();
+            try
+            {
+                value = configuration["app:version"];
+                if (value == "1.0.0")
+                {
+                    break;
+                }
+            }
+            finally
+            {
+                (configuration as IDisposable)?.Dispose();
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(250), TestCancellationToken);
+        }
 
         // Assert
-        configuration["app:version"].ShouldBe("1.0.0");
-
-        return Task.CompletedTask;
+        value.ShouldBe("1.0.0");
     });
 }
