@@ -1,4 +1,5 @@
 using GroundControl.Api.Core.HealthChecks;
+using GroundControl.Api.Shared.Observability;
 using GroundControl.Host.Api;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
@@ -23,7 +24,8 @@ internal sealed class ObservabilityModule : IWebApiModule
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    .AddMeter(GroundControlMetrics.MeterName);
             })
             .WithTracing(tracing =>
             {
