@@ -74,7 +74,7 @@ public sealed class CascadingDeletionPrevention : EndToEndTestBase
         var template = await ApiClient.GetTemplateHandlerAsync(templateId, TestCancellationToken);
 
         // Act
-        GroundControlClient.SetIfMatch(template.Version);
+        using var ifMatch = GroundControlClient.BeginIfMatchScope(template.Version);
         var ex = await Should.ThrowAsync<GroundControlApiClientException>(async () =>
             await ApiClient.DeleteTemplateHandlerAsync(templateId, TestCancellationToken));
 
@@ -106,7 +106,7 @@ public sealed class CascadingDeletionPrevention : EndToEndTestBase
         var template = await ApiClient.GetTemplateHandlerAsync(templateId, TestCancellationToken);
 
         // Act
-        GroundControlClient.SetIfMatch(template.Version);
+        using var ifMatch = GroundControlClient.BeginIfMatchScope(template.Version);
         await ApiClient.DeleteTemplateHandlerAsync(templateId, TestCancellationToken);
 
         // Assert (no exception)

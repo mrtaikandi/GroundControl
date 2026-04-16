@@ -27,9 +27,8 @@ public sealed class ClientExpirationRejection : EndToEndTestBase
         var projectResult = await Cli.RunAsync(TestCancellationToken,
             "project", "create",
             "--name", "Client Expiration Project");
-        projectResult.ShouldSucceed();
+
         var project = projectResult.ParseOutput<ProjectResponse>();
-        Set(ProjectIdKey, project.Id);
 
         var entryResult = await Cli.RunAsync(TestCancellationToken,
             "config-entry", "create",
@@ -45,8 +44,11 @@ public sealed class ClientExpirationRejection : EndToEndTestBase
             "--description", "Snapshot for expiration test");
 
         // Assert
+        projectResult.ShouldSucceed();
         entryResult.ShouldSucceed();
         snapResult.ShouldSucceed();
+
+        Set(ProjectIdKey, project.Id);
     });
 
     [Fact, Step(2)]

@@ -109,7 +109,7 @@ public sealed class DeactivatedClientRejection : EndToEndTestBase
         current.IsActive.ShouldBeTrue();
 
         // Act
-        GroundControlClient.SetIfMatch(current.Version);
+        using var ifMatch = GroundControlClient.BeginIfMatchScope(current.Version);
         var updated = await ApiClient.UpdateClientHandlerAsync(
             projectId,
             clientId,
@@ -163,7 +163,7 @@ public sealed class DeactivatedClientRejection : EndToEndTestBase
         current.IsActive.ShouldBeFalse();
 
         // Act
-        GroundControlClient.SetIfMatch(current.Version);
+        using var ifMatch = GroundControlClient.BeginIfMatchScope(current.Version);
         var reactivated = await ApiClient.UpdateClientHandlerAsync(
             projectId,
             clientId,
