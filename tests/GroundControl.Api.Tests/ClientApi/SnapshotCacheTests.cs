@@ -12,11 +12,14 @@ public sealed class SnapshotCacheTests
     private static CancellationToken TestCancellationToken => TestContext.Current.CancellationToken;
 
     private readonly ISnapshotStore _snapshotStore = Substitute.For<ISnapshotStore>();
+    private readonly IProjectStore _projectStore = Substitute.For<IProjectStore>();
     private readonly SnapshotCache _sut;
 
     public SnapshotCacheTests()
     {
-        _sut = new SnapshotCache(_snapshotStore);
+        _projectStore.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((Project?)null);
+        _sut = new SnapshotCache(_snapshotStore, _projectStore);
     }
 
     [Fact]

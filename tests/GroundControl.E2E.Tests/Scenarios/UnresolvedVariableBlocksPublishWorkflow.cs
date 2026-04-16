@@ -1,4 +1,3 @@
-using GroundControl.Api.Client;
 using GroundControl.Api.Client.Contracts;
 using GroundControl.E2E.Tests.Infrastructure;
 using GroundControl.Link;
@@ -63,7 +62,7 @@ public sealed class UnresolvedVariableBlocksPublishWorkflow : EndToEndTestBase
         var projectId = Get<Guid>(ProjectIdKey);
 
         // Act
-        var exception = await Should.ThrowAsync<GroundControlApiClientException>(async () =>
+        var exception = await Should.ThrowAsync<GroundControlApiClientException<ProblemDetails>>(async () =>
             await ApiClient.PublishSnapshotHandlerAsync(
                 projectId,
                 new PublishSnapshotRequest { Description = "Should fail - unresolved var" },
@@ -71,8 +70,9 @@ public sealed class UnresolvedVariableBlocksPublishWorkflow : EndToEndTestBase
 
         // Assert
         exception.StatusCode.ShouldBe(422);
-        exception.Response.ShouldNotBeNull();
-        exception.Response.ShouldContain("undefined_host");
+        exception.Result.ShouldNotBeNull();
+        exception.Result.Detail.ShouldNotBeNull();
+        exception.Result.Detail.ShouldContain("undefined_host");
     });
 
     [Fact, Step(4)]

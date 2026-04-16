@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http;
 using GroundControl.Api.Client.Contracts;
 using GroundControl.E2E.Tests.Infrastructure;
 using GroundControl.Link;
