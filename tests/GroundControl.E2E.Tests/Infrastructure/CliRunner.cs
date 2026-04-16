@@ -23,7 +23,7 @@ public sealed class CliRunner
     /// Builds the CLI project once so that subsequent RunAsync calls can use --no-build.
     /// Call this from an assembly-level fixture before any tests execute.
     /// </summary>
-    public static async Task BuildAsync(CancellationToken cancellationToken = default)
+    public static async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         var options = new ProcessRunOptions
         {

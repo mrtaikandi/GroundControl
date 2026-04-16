@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -27,33 +28,31 @@ public sealed class AspireFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        await CliRunner.BuildAsync().ConfigureAwait(false);
+        await CliRunner.InitializeAsync().ConfigureAwait(false);
 
         var appHost = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.GroundControl_AppHost>().ConfigureAwait(false);
 
         appHost.Services.AddLogging(logging =>
         {
+            logging.ClearProviders();
+            logging.AddFakeLogging(c => c.OutputSink = message => TestContext.Current.TestOutputHelper?.WriteLine(message));
+
             logging.SetMinimumLevel(LogLevel.Debug);
             logging.AddFilter(appHost.Environment.ApplicationName, LogLevel.Debug);
             logging.AddFilter("Aspire.", LogLevel.Debug);
-        });
-
-        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
-        {
-            clientBuilder.AddStandardResilienceHandler();
+            logging.AddFilter<FakeLoggerProvider>(l => l >= LogLevel.Debug);
         });
 
         _app = await appHost.BuildAsync().ConfigureAwait(false);
         await _app.StartAsync().ConfigureAwait(false);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
-        await _app.ResourceNotifications
-            .WaitForResourceHealthyAsync("api", cts.Token).ConfigureAwait(false);
+        await _app.ResourceNotifications.WaitForResourceHealthyAsync("api", cts.Token).ConfigureAwait(false);
 
         // Extract URL for CliRunner (needs string URL for environment variable)
         using var httpClient = _app.CreateHttpClient("api");
-        ApiBaseUrl = httpClient.BaseAddress!.GetLeftPart(UriPartial.Authority);
+        ApiBaseUrl = httpClient.BaseAddress?.GetLeftPart(UriPartial.Authority) ?? throw new InvalidOperationException("API base URL is null");
     }
 
     public async ValueTask DisposeAsync()

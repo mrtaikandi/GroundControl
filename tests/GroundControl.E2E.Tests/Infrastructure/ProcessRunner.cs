@@ -85,11 +85,7 @@ public static class ProcessRunner
         return new ProcessResult(process.ExitCode, stdoutBuilder.ToString().TrimEnd(), stderrBuilder.ToString().TrimEnd());
     }
 
-    private static async Task ReadLinesAsync(
-        StreamReader reader,
-        StringBuilder accumulator,
-        TestOutputWriter writer,
-        CancellationToken cancellationToken)
+    private static async Task ReadLinesAsync(StreamReader reader, StringBuilder accumulator, TestOutputWriter writer, CancellationToken cancellationToken)
     {
         try
         {
