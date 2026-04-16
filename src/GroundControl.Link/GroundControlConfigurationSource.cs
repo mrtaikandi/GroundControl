@@ -33,6 +33,12 @@ internal sealed class GroundControlConfigurationSource : IConfigurationSource
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(HeaderNames.ApiKey, $"{_options.ClientId}:{_options.ClientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, _options.ApiVersion);
 
+        if (_options.Scopes.Count > 0)
+        {
+            var scopeValue = string.Join(",", _options.Scopes.Select(s => $"{Uri.EscapeDataString(s.Key)}:{Uri.EscapeDataString(s.Value)}"));
+            httpClient.DefaultRequestHeaders.Add(HeaderNames.GroundControlScopes, scopeValue);
+        }
+
         IGroundControlApiClient client = new GroundControlApiClient(httpClient, NullLogger<GroundControlApiClient>.Instance);
         return new GroundControlConfigurationProvider(store, cache, client);
     }
