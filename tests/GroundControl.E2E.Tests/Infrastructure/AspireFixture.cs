@@ -46,6 +46,10 @@ public sealed class AspireFixture : IAsyncLifetime
             mongo.Annotations.Remove(annotation);
         }
 
+        var api = appHost.Resources.Single(r => r.Name == "api");
+        api.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+            context.EnvironmentVariables["Snapshots__RetentionCount"] = "3"));
+
         appHost.Services.AddLogging(logging =>
         {
             logging.ClearProviders();
