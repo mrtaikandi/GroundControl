@@ -76,12 +76,12 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IProjectStore, ProjectStore>();
         services.TryAddSingleton<IVariableStore, VariableStore>();
         services.TryAddSingleton<ITemplateStore, TemplateStore>();
-        services.TryAddSingleton<ISnapshotStore, MongoSnapshotStore>();
+        services.TryAddSingleton<ISnapshotStore, SnapshotStore>();
         services.TryAddSingleton<IConfigEntryStore, ConfigEntryStore>();
         services.TryAddSingleton<IUserStore, UserStore>();
         services.TryAddSingleton<IRefreshTokenStore, RefreshTokenStore>();
         services.TryAddSingleton<IPersonalAccessTokenStore, PersonalAccessTokenStore>();
-        services.TryAddSingleton<IAuditStore, MongoAuditStore>();
+        services.TryAddSingleton<IAuditStore, AuditStore>();
 
         return services;
     }
