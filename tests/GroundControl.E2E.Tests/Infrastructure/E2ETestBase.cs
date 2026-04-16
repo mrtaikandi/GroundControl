@@ -31,7 +31,7 @@ public abstract class E2ETestBase : IDisposable
     {
         Fixture = fixture;
 
-        _apiHttpClient = new HttpClient { BaseAddress = new Uri(fixture.ApiBaseUrl) };
+        _apiHttpClient = fixture.App.CreateHttpClient("api");
         ApiClient = new GroundControlClient(_apiHttpClient);
         Cli = new CliRunner(fixture.ApiBaseUrl);
     }
@@ -53,13 +53,13 @@ public abstract class E2ETestBase : IDisposable
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Ownership transfers to the returned GroundControlConfigurationProvider")]
     internal GroundControlConfigurationProvider CreateLinkProvider(Guid clientId, string clientSecret)
     {
-        var httpClient = new HttpClient { BaseAddress = new Uri(Fixture.ApiBaseUrl) };
+        var httpClient = Fixture.App.CreateHttpClient("api");
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{clientId}:{clientSecret}");
         httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, "1.0");
 
         var options = new GroundControlOptions
         {
-            ServerUrl = new Uri(Fixture.ApiBaseUrl),
+            ServerUrl = httpClient.BaseAddress!,
             ClientId = clientId.ToString(),
             ClientSecret = clientSecret,
             StartupTimeout = TimeSpan.FromSeconds(15),
