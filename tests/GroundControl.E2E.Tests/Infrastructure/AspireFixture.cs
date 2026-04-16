@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -32,6 +33,18 @@ public sealed class AspireFixture : IAsyncLifetime
 
         var appHost = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.GroundControl_AppHost>().ConfigureAwait(false);
+
+        // Remove data volume and persistent lifetime from MongoDB so each test run starts clean
+        var mongo = appHost.Resources.Single(r => r.Name == "mongo");
+        foreach (var annotation in mongo.Annotations.OfType<ContainerMountAnnotation>().ToList())
+        {
+            mongo.Annotations.Remove(annotation);
+        }
+
+        foreach (var annotation in mongo.Annotations.OfType<ContainerLifetimeAnnotation>().ToList())
+        {
+            mongo.Annotations.Remove(annotation);
+        }
 
         appHost.Services.AddLogging(logging =>
         {
