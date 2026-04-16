@@ -12,7 +12,7 @@ namespace GroundControl.E2E.Tests.Infrastructure;
 /// Base class for E2E scenario tests. Provides CLI runner, API client, and Link SDK helpers.
 /// </summary>
 [TestCaseOrderer(typeof(StepOrderer))]
-public abstract class E2ETestBase : IDisposable
+public abstract class EndToEndTestBase : IDisposable
 {
     /// <summary>
     /// Tracks which steps have failed per scenario class, enabling skip-on-failure.
@@ -27,7 +27,7 @@ public abstract class E2ETestBase : IDisposable
     private readonly HttpClient _apiHttpClient;
     private bool _disposed;
 
-    protected E2ETestBase(AspireFixture fixture)
+    protected EndToEndTestBase(AspireFixture fixture)
     {
         Fixture = fixture;
 

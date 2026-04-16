@@ -8,7 +8,7 @@ namespace GroundControl.E2E.Tests.Scenarios;
 /// End-to-end workflow: CLI creates a project, adds config entries, publishes a snapshot,
 /// creates a client, and the Link SDK receives the configuration.
 /// </summary>
-public sealed class ConfigDeliveryWorkflow : E2ETestBase
+public sealed class ConfigDeliveryWorkflow : EndToEndTestBase
 {
     private const string ProjectIdKey = "ProjectId";
     private const string ClientIdKey = "ClientId";
