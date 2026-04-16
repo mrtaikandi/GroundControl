@@ -1,6 +1,6 @@
 # GroundControl.Link
 
-.NET client SDK for [GroundControl](../../README.md) — plugs directly into `Microsoft.Extensions.Configuration` so your app receives real-time configuration updates with zero custom plumbing.
+.NET client SDK for [GroundControl](https://github.com/mrtaikandi/GroundControl) — plugs directly into `Microsoft.Extensions.Configuration` so your app receives real-time configuration updates with zero custom plumbing.
 
 ## Installation
 
@@ -112,4 +112,4 @@ The SDK emits OpenTelemetry metrics under the `GroundControl.Link` meter:
 
 ## Documentation
 
-See the full [SDK documentation](../../docs/guide/sdk/quickstart.md) for detailed guides on connection modes, caching, and configuration patterns.
+See the full [SDK documentation](https://github.com/mrtaikandi/GroundControl/blob/main/docs/guide/sdk/quickstart.md) for detailed guides on connection modes, caching, and configuration patterns.
