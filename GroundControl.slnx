@@ -9,6 +9,10 @@
     <Project Path="src/GroundControl.AppHost/GroundControl.AppHost.csproj" />
     <Project Path="src/GroundControl.Cli/GroundControl.Cli.csproj" />
     <Project Path="src/GroundControl.Link/GroundControl.Link.csproj" />
+    <Folder Name="/Samples/">
+        <Project Path="samples/GroundControl.Samples.LinkConsole/GroundControl.Samples.LinkConsole.csproj" />
+    </Folder>
+
     <Folder Name="/Tests/">
         <Project Path="tests/GroundControl.Api.Tests/GroundControl.Api.Tests.csproj" />
         <Project Path="tests/GroundControl.Api.Tests.Infrastructure/GroundControl.Api.Tests.Infrastructure.csproj" />

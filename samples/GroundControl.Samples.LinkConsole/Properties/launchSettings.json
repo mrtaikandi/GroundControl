@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "GroundControl.Samples.LinkConsole": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
