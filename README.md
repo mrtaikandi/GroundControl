@@ -39,6 +39,7 @@ GroundControl is built on **.NET 10** with **ASP.NET Core Minimal APIs** and **M
 | Observability | OpenTelemetry (metrics, tracing, logging) + OTLP exporter |
 | CLI | System.CommandLine 2.0, Spectre.Console, Terminal.Gui |
 | Client SDK | `GroundControl.Link` — plugs into `Microsoft.Extensions.Configuration` |
+| Local orchestration | .NET Aspire (`GroundControl.AppHost`) |
 | Generated API client | NSwag (`GroundControl.Api.Client`) used by the CLI |
 
 ## Project Structure
@@ -53,21 +54,23 @@ GroundControl is built on **.NET 10** with **ASP.NET Core Minimal APIs** and **M
 | `GroundControl.Cli` | `groundcontrol` CLI executable, packaged as a .NET global tool |
 | `GroundControl.Host.Cli` | Reusable CLI framework (System.CommandLine + Spectre.Console) |
 | `GroundControl.Host.Api.Generators` | Roslyn source generator for API module infrastructure |
+| `GroundControl.AppHost` | .NET Aspire orchestration — local dev with MongoDB replica set |
 
 ## Quick Start
 
 ### Prerequisites
 
 - [.NET 10 SDK](https://dot.net)
-- Docker and Docker Compose
+- [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/dotnet-aspire-cli)
+- Docker (used by Aspire for MongoDB)
 
 ### 1. Start the server
 
 ```bash
-docker compose up -d
+aspire start src/GroundControl.AppHost
 ```
 
-The API is available at `http://localhost:8080`. The default `docker-compose.yml` sets `Authentication__AuthenticationMode` to `None` (all endpoints open) — suitable for local development only. Switch to `BuiltIn` or `External` before exposing the server on a network. See [Server — Authentication](docs/guide/server/authentication.md) for details.
+The Aspire dashboard opens automatically for monitoring. The API is available at the URL shown in the dashboard output. The AppHost configures `Authentication__AuthenticationMode` to `None` (all endpoints open) — suitable for local development only. Switch to `BuiltIn` or `External` before exposing the server on a network. See [Server — Authentication](docs/guide/server/authentication.md) for details.
 
 ### 2. Install and use the CLI
 
@@ -153,7 +156,7 @@ For a full walkthrough, see the [Getting Started guide](docs/guide/getting-start
 ### Prerequisites
 
 - [.NET 10 SDK](https://dot.net) (version pinned in `global.json`)
-- Docker (integration tests use Testcontainers to manage a real MongoDB replica set)
+- Docker (integration tests use Testcontainers for MongoDB; Aspire uses it for local dev)
 
 ### Build
 
