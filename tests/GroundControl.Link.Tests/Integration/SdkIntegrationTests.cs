@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using GroundControl.Api.Features.Clients.Contracts;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
+using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Features.Snapshots.Contracts;
 using GroundControl.Link.Tests.Infrastructure;
 using GroundControl.Persistence.Contracts;
@@ -197,6 +198,50 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
     }
 
     [Fact]
+    public async Task Load_WithSdkAndServerScopes_ResolvesUsingMergedScopes()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var adminClient = factory.CreateClient();
+
+        await CreateScopeAsync(adminClient, "environment", ["dev", "prod"]);
+        await CreateScopeAsync(adminClient, "region", ["us-east", "eu-west"]);
+
+        var project = await CreateProjectAsync(adminClient);
+
+        await CreateScopedConfigEntryAsync(adminClient, "db.host", project.Id,
+        [
+            new ScopedValueRequest { Value = "db-default" },
+            new ScopedValueRequest { Value = "db-prod", Scopes = new Dictionary<string, string> { ["environment"] = "prod" } },
+            new ScopedValueRequest { Value = "db-prod-east", Scopes = new Dictionary<string, string> { ["environment"] = "prod", ["region"] = "us-east" } },
+        ]);
+
+        var client = await CreateApiClientWithScopesAsync(
+            adminClient,
+            project.Id,
+            "scoped-e2e-client",
+            new Dictionary<string, string> { ["environment"] = "prod" });
+
+        await PublishSnapshotAsync(adminClient, project.Id);
+
+        var sdkScopes = new Dictionary<string, string>
+        {
+            ["environment"] = "dev",
+            ["region"] = "us-east",
+        };
+
+        using var sdkHandler = factory.Server.CreateHandler();
+        using var provider = CreateSdkProviderWithScopes(sdkHandler, client.Id, client.ClientSecret, sdkScopes);
+
+        // Act
+        provider.Load();
+
+        // Assert
+        provider.TryGet("db.host", out var value).ShouldBeTrue();
+        value.ShouldBe("db-prod-east");
+    }
+
+    [Fact]
     public async Task Sdk_NoActiveSnapshot_StartsWithEmptyConfig()
     {
         // Arrange
@@ -257,6 +302,47 @@ public sealed class SdkIntegrationTests : SdkIntegrationTestBase
         client.ShouldNotBeNull();
 
         return client;
+    }
+
+    private static async Task<CreateClientResponse> CreateApiClientWithScopesAsync(
+        HttpClient httpClient, Guid projectId, string name, Dictionary<string, string> scopes)
+    {
+        var request = new CreateClientRequest { Name = name, Scopes = scopes };
+
+        var response = await httpClient.PostAsJsonAsync(
+            $"/api/projects/{projectId}/clients", request, WebJsonSerializerOptions, TestCancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        var client = await response.Content.ReadFromJsonAsync<CreateClientResponse>(WebJsonSerializerOptions, TestCancellationToken);
+        client.ShouldNotBeNull();
+
+        return client;
+    }
+
+    private static async Task CreateScopeAsync(HttpClient httpClient, string dimension, List<string> allowedValues)
+    {
+        var request = new CreateScopeRequest { Dimension = dimension, AllowedValues = allowedValues };
+
+        var response = await httpClient.PostAsJsonAsync("/api/scopes", request, WebJsonSerializerOptions, TestCancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private static async Task CreateScopedConfigEntryAsync(
+        HttpClient httpClient, string key, Guid projectId, List<ScopedValueRequest> values)
+    {
+        var request = new CreateConfigEntryRequest
+        {
+            Key = key,
+            OwnerId = projectId,
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            Values = values,
+            IsSensitive = false,
+        };
+
+        var response = await httpClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
     private static async Task PublishSnapshotAsync(HttpClient httpClient, Guid projectId)

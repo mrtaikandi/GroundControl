@@ -60,6 +60,50 @@ public abstract class SdkIntegrationTestBase
     }
 
     /// <summary>
+    /// Creates an SDK provider with SDK-declared scopes attached via the GroundControl-Scopes header.
+    /// </summary>
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; provider is disposed by test via using")]
+    internal static GroundControlConfigurationProvider CreateSdkProviderWithScopes(
+        HttpMessageHandler serverHandler,
+        Guid clientId,
+        string clientSecret,
+        Dictionary<string, string> scopes)
+    {
+        var options = new GroundControlOptions
+        {
+            ServerUrl = new Uri("http://localhost"),
+            ClientId = clientId.ToString(),
+            ClientSecret = clientSecret,
+            StartupTimeout = TimeSpan.FromSeconds(10),
+            ConnectionMode = ConnectionMode.SseWithPollingFallback,
+            PollingInterval = TimeSpan.FromHours(1),
+            EnableLocalCache = false,
+        };
+
+        foreach (var scope in scopes)
+        {
+            options.Scopes[scope.Key] = scope.Value;
+        }
+
+        var store = new GroundControlStore(options);
+
+        var httpClient = new HttpClient(serverHandler, disposeHandler: false) { BaseAddress = options.ServerUrl };
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(HeaderNames.ApiKey, $"{options.ClientId}:{options.ClientSecret}");
+        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, options.ApiVersion);
+
+        if (options.Scopes.Count > 0)
+        {
+            var scopeValue = string.Join(",", options.Scopes.Select(s => $"{Uri.EscapeDataString(s.Key)}:{Uri.EscapeDataString(s.Value)}"));
+            httpClient.DefaultRequestHeaders.Add(HeaderNames.GroundControlScopes, scopeValue);
+        }
+
+        IGroundControlApiClient client = new GroundControlApiClient(httpClient, NullLogger<GroundControlApiClient>.Instance);
+        IConfigurationCache cache = NullConfigurationCache.Instance;
+
+        return new GroundControlConfigurationProvider(store, cache, client);
+    }
+
+    /// <summary>
     /// Creates a provider and returns its store for wiring a background SSE/polling connection.
     /// </summary>
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Caller owns serverHttpClient; provider is disposed by test via using")]
