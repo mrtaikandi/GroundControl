@@ -95,7 +95,15 @@ internal sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<Authen
             new("projectId", client.ProjectId.ToString()),
         };
 
+        var mergedScopes = ParseScopesHeader(Request.Headers["GroundControl-Scopes"]);
+
+        // Server-defined scopes override SDK-provided ones on key conflict.
         foreach (var scope in client.Scopes)
+        {
+            mergedScopes[scope.Key] = scope.Value;
+        }
+
+        foreach (var scope in mergedScopes)
         {
             claims.Add(new Claim("clientScope", $"{scope.Key}:{scope.Value}"));
         }
@@ -105,5 +113,28 @@ internal sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<Authen
         var ticket = new AuthenticationTicket(principal, SchemeName);
 
         return AuthenticateResult.Success(ticket);
+    }
+
+    private static Dictionary<string, string> ParseScopesHeader(string? headerValue)
+    {
+        var scopes = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        if (string.IsNullOrEmpty(headerValue))
+        {
+            return scopes;
+        }
+
+        foreach (var entry in headerValue.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var separatorIndex = entry.IndexOf(':', StringComparison.Ordinal);
+            if (separatorIndex > 0)
+            {
+                var key = Uri.UnescapeDataString(entry[..separatorIndex]);
+                var value = Uri.UnescapeDataString(entry[(separatorIndex + 1)..]);
+                scopes[key] = value;
+            }
+        }
+
+        return scopes;
     }
 }
