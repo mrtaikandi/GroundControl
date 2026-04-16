@@ -1,6 +1,9 @@
 using GroundControl.Link;
 using GroundControl.Samples.LinkConsole;
 using Microsoft.Extensions.Configuration;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -21,6 +24,29 @@ builder.Services.AddGroundControl(builder.Configuration);
 // Register the configuration monitor that logs changes to the console.
 builder.Services.Configure<SampleSettings>(builder.Configuration.GetSection("Sample"));
 builder.Services.AddHostedService<ConfigurationMonitorService>();
+
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+});
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics =>
+    {
+        metrics.AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddMeter("GroundControl.Link");
+    })
+    .WithTracing(tracing =>
+    {
+        tracing.AddHttpClientInstrumentation();
+    });
+
+if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+{
+    builder.Services.AddOpenTelemetry().UseOtlpExporter();
+}
 
 var app = builder.Build();
 app.Run();
