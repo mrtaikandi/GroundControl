@@ -15,6 +15,20 @@ public sealed class UpdateConfigEntryHandlerTests
         var entryId = Guid.CreateVersion7();
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
+        client.GetConfigEntryHandlerAsync(entryId, Arg.Any<bool?>(), Arg.Any<CancellationToken>())
+            .Returns(new ConfigEntryResponse
+            {
+                Id = entryId,
+                Key = "Database:ConnectionString",
+                OwnerId = Guid.CreateVersion7(),
+                OwnerType = ConfigEntryOwnerType.Template,
+                ValueType = "String",
+                Values = [new ScopedValue { Scopes = null, Value = "old-value" }],
+                Version = 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
         client.UpdateConfigEntryHandlerAsync(entryId, Arg.Any<UpdateConfigEntryRequest>(), Arg.Any<CancellationToken>())
             .Returns(new ConfigEntryResponse
             {
