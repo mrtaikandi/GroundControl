@@ -14,4 +14,6 @@ builder.AddProject<Projects.GroundControl_Api>("api")
     .WithEnvironment("DataProtection__Mode", "FileSystem")
     .WithHttpHealthCheck("/healthz/ready");
 
+builder.AddProject<Projects.GroundControl_Samples_LinkConsole>("link-console");
+
 builder.Build().Run();

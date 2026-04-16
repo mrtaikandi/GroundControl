@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\samples\GroundControl.Samples.LinkConsole\GroundControl.Samples.LinkConsole.csproj" />
       <ProjectReference Include="..\GroundControl.Api\GroundControl.Api.csproj" />
     </ItemGroup>
 
