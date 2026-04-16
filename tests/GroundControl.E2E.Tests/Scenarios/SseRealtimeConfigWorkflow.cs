@@ -134,18 +134,24 @@ public sealed class SseRealtimeConfigWorkflow : EndToEndTestBase
             var configuration = host.Services.GetRequiredService<IConfiguration>();
             configuration["app:version"].ShouldBe("1.0");
 
-            GroundControlClient.SetIfMatch(configEntryVersion);
-            await ApiClient.UpdateConfigEntryHandlerAsync(
-                configEntryId,
-                new UpdateConfigEntryRequest
-                {
-                    ValueType = "String",
-                    Values =
+            // LinkBackgroundService establishes the SSE connection asynchronously after StartAsync returns.
+            // Give it a short window to connect so the publish below does not race the subscription.
+            await Task.Delay(TimeSpan.FromSeconds(1), TestCancellationToken);
+
+            using (GroundControlClient.BeginIfMatchScope(configEntryVersion))
+            {
+                await ApiClient.UpdateConfigEntryHandlerAsync(
+                    configEntryId,
+                    new UpdateConfigEntryRequest
                     {
-                        new ScopedValueRequest { Scopes = null, Value = "2.0" }
-                    }
-                },
-                TestCancellationToken);
+                        ValueType = "String",
+                        Values =
+                        {
+                            new ScopedValueRequest { Scopes = null, Value = "2.0" }
+                        }
+                    },
+                    TestCancellationToken);
+            }
 
             await ApiClient.PublishSnapshotHandlerAsync(
                 projectId,

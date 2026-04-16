@@ -138,12 +138,11 @@ public sealed class MultiClientScopeIsolationWorkflow : EndToEndTestBase
     [Fact, Step(6)]
     public Task Step06_ProdUsClientGetsExactMatch() => RunStep(6, () =>
     {
-        // Arrange
-        var configuration = BuildClientConfiguration(
-            Get<Guid>(ProdUsClientIdKey), Get<string>(ProdUsClientSecretKey));
-
-        // Assert
-        configuration["db:host"].ShouldBe("db-prod-us.internal");
+        // Arrange & Act & Assert — exact match on env:prod + region:us wins
+        WithClientConfiguration(
+            Get<Guid>(ProdUsClientIdKey),
+            Get<string>(ProdUsClientSecretKey),
+            configuration => configuration["db:host"].ShouldBe("db-prod-us.internal"));
 
         return Task.CompletedTask;
     });
@@ -151,12 +150,11 @@ public sealed class MultiClientScopeIsolationWorkflow : EndToEndTestBase
     [Fact, Step(7)]
     public Task Step07_ProdEuClientFallsBackToEnvProd() => RunStep(7, () =>
     {
-        // Arrange
-        var configuration = BuildClientConfiguration(
-            Get<Guid>(ProdEuClientIdKey), Get<string>(ProdEuClientSecretKey));
-
-        // Assert
-        configuration["db:host"].ShouldBe("db-prod.internal");
+        // Arrange & Act & Assert — falls back to env:prod when region:eu has no override
+        WithClientConfiguration(
+            Get<Guid>(ProdEuClientIdKey),
+            Get<string>(ProdEuClientSecretKey),
+            configuration => configuration["db:host"].ShouldBe("db-prod.internal"));
 
         return Task.CompletedTask;
     });
@@ -164,17 +162,16 @@ public sealed class MultiClientScopeIsolationWorkflow : EndToEndTestBase
     [Fact, Step(8)]
     public Task Step08_StagingClientGetsEnvStaging() => RunStep(8, () =>
     {
-        // Arrange
-        var configuration = BuildClientConfiguration(
-            Get<Guid>(StagingClientIdKey), Get<string>(StagingClientSecretKey));
-
-        // Assert
-        configuration["db:host"].ShouldBe("db-staging.internal");
+        // Arrange & Act & Assert — env:staging match
+        WithClientConfiguration(
+            Get<Guid>(StagingClientIdKey),
+            Get<string>(StagingClientSecretKey),
+            configuration => configuration["db:host"].ShouldBe("db-staging.internal"));
 
         return Task.CompletedTask;
     });
 
-    private IConfiguration BuildClientConfiguration(Guid clientId, string clientSecret)
+    private void WithClientConfiguration(Guid clientId, string clientSecret, Action<IConfiguration> assert)
     {
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddGroundControl(opts =>
@@ -187,6 +184,14 @@ public sealed class MultiClientScopeIsolationWorkflow : EndToEndTestBase
             opts.EnableLocalCache = false;
         });
 
-        return configBuilder.Build();
+        var configuration = configBuilder.Build();
+        try
+        {
+            assert(configuration);
+        }
+        finally
+        {
+            (configuration as IDisposable)?.Dispose();
+        }
     }
 }

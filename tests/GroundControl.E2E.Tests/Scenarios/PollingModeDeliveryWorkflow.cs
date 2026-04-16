@@ -134,18 +134,20 @@ public sealed class PollingModeDeliveryWorkflow : EndToEndTestBase
             var configuration = host.Services.GetRequiredService<IConfiguration>();
             configuration["app:version"].ShouldBe("1.0");
 
-            GroundControlClient.SetIfMatch(configEntryVersion);
-            await ApiClient.UpdateConfigEntryHandlerAsync(
-                configEntryId,
-                new UpdateConfigEntryRequest
-                {
-                    ValueType = "String",
-                    Values =
+            using (GroundControlClient.BeginIfMatchScope(configEntryVersion))
+            {
+                await ApiClient.UpdateConfigEntryHandlerAsync(
+                    configEntryId,
+                    new UpdateConfigEntryRequest
                     {
-                        new ScopedValueRequest { Scopes = null, Value = "2.0" }
-                    }
-                },
-                TestCancellationToken);
+                        ValueType = "String",
+                        Values =
+                        {
+                            new ScopedValueRequest { Scopes = null, Value = "2.0" }
+                        }
+                    },
+                    TestCancellationToken);
+            }
 
             await ApiClient.PublishSnapshotHandlerAsync(
                 projectId,

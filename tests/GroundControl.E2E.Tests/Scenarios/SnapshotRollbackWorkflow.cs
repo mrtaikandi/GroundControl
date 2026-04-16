@@ -102,7 +102,7 @@ public sealed class SnapshotRollbackWorkflow : EndToEndTestBase
         };
 
         // Act
-        GroundControlClient.SetIfMatch(version);
+        using var ifMatch = GroundControlClient.BeginIfMatchScope(version);
         var updatedEntry = await ApiClient.UpdateConfigEntryHandlerAsync(
             entryId, updateRequest, TestCancellationToken);
 

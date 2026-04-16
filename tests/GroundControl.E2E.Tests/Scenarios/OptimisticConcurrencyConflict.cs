@@ -65,7 +65,7 @@ public sealed class OptimisticConcurrencyConflict : EndToEndTestBase
         };
 
         // Act
-        GroundControlClient.SetIfMatch(initialVersion);
+        using var ifMatch = GroundControlClient.BeginIfMatchScope(initialVersion);
         var updated = await ApiClient.UpdateProjectHandlerAsync(projectId, request, TestCancellationToken);
 
         // Assert
@@ -89,7 +89,7 @@ public sealed class OptimisticConcurrencyConflict : EndToEndTestBase
         };
 
         // Act
-        GroundControlClient.SetIfMatch(staleVersion);
+        using var ifMatch = GroundControlClient.BeginIfMatchScope(staleVersion);
         var ex = await Should.ThrowAsync<GroundControlApiClientException>(async () =>
             await ApiClient.UpdateProjectHandlerAsync(projectId, request, TestCancellationToken));
 
