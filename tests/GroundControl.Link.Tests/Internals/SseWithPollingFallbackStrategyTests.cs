@@ -94,8 +94,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
     }
 
     private SseWithPollingFallbackStrategy CreateStrategy() =>
-        new(_sseClient, _cache,
-            NullLogger<SseWithPollingFallbackStrategy>.Instance, _metrics, _serviceProvider);
+        new(_sseClient, _cache, NullLogger<SseWithPollingFallbackStrategy>.Instance, _metrics, _serviceProvider.GetRequiredService<PollingConnectionStrategy>());
 
     /// <summary>
     /// Yields the given events then blocks until cancellation, simulating a persistent SSE connection.

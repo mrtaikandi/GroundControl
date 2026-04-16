@@ -78,12 +78,15 @@ public static class ServiceCollectionExtensions
             return new GroundControlSseClient(apiClient, groundControlOptions, logger);
         });
 
-        // IConnectionStrategy
+        // Connection Strategy
+        services.AddSingleton<PollingConnectionStrategy>();
+        services.AddSingleton<SseConnectionStrategy>();
+        services.AddSingleton<SseWithPollingFallbackStrategy>();
         services.AddSingleton<IConnectionStrategy>(sp => options.ConnectionMode switch
         {
-            ConnectionMode.Polling => ActivatorUtilities.CreateInstance<PollingConnectionStrategy>(sp),
-            ConnectionMode.Sse => ActivatorUtilities.CreateInstance<SseConnectionStrategy>(sp),
-            ConnectionMode.SseWithPollingFallback => ActivatorUtilities.CreateInstance<SseWithPollingFallbackStrategy>(sp),
+            ConnectionMode.Polling => sp.GetRequiredService<PollingConnectionStrategy>(),
+            ConnectionMode.Sse => sp.GetRequiredService<SseConnectionStrategy>(),
+            ConnectionMode.SseWithPollingFallback => sp.GetRequiredService<SseWithPollingFallbackStrategy>(),
             ConnectionMode.StartupOnly => throw new InvalidOperationException($"Connection strategy should not be registered for {nameof(ConnectionMode.StartupOnly)} mode."),
             _ => throw new InvalidOperationException($"Unsupported connection mode: {options.ConnectionMode}")
         });

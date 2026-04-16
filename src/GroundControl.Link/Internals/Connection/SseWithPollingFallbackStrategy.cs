@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace GroundControl.Link.Internals.Connection;
@@ -14,20 +13,20 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
     private readonly IConfigurationCache _cache;
     private readonly ILogger<SseWithPollingFallbackStrategy> _logger;
     private readonly GroundControlMetrics _metrics;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly PollingConnectionStrategy _pollingStrategy;
 
     public SseWithPollingFallbackStrategy(
         IGroundControlSseClient sseClient,
         IConfigurationCache cache,
         ILogger<SseWithPollingFallbackStrategy> logger,
         GroundControlMetrics metrics,
-        IServiceProvider serviceProvider)
+        PollingConnectionStrategy pollingStrategy)
     {
         _sseClient = sseClient;
         _cache = cache;
         _logger = logger;
         _metrics = metrics;
-        _serviceProvider = serviceProvider;
+        _pollingStrategy = pollingStrategy;
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Resilience: errors trigger fallback, not crash")]
@@ -103,11 +102,10 @@ internal sealed partial class SseWithPollingFallbackStrategy : IConnectionStrate
     private async Task RunPollingWithSseRetryAsync(GroundControlStore store, CancellationToken stoppingToken)
     {
         using var pollingCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        var pollingStrategy = _serviceProvider.GetRequiredService<PollingConnectionStrategy>();
 
         // Justification: pollingTask is awaited in the finally block before pollingCts is disposed
         // ReSharper disable once AccessToDisposedClosure
-        var pollingTask = Task.Run(() => pollingStrategy.ExecuteAsync(store, pollingCts.Token), pollingCts.Token);
+        var pollingTask = Task.Run(() => _pollingStrategy.ExecuteAsync(store, pollingCts.Token), pollingCts.Token);
 
         var delay = store.Options.SseReconnectDelay;
 
