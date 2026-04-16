@@ -34,74 +34,11 @@ dotnet format --verify-no-changes
 
 **Vertical Slice Architecture** — each feature is a self-contained handler class, not layered by technical concern.
 
-### Project Structure (4 src + 3 test projects)
-
-```
-src/
-  GroundControl.Persistence.Abstractions/  # Store interfaces + entity types (no external deps)
-  GroundControl.Persistence.MongoDb/       # MongoDB store implementations
-  GroundControl.Api/                       # Features + shared infra (composition root)
-  GroundControl.Link/                      # Client SDK (NuGet package)
-tests/
-  GroundControl.Api.Tests/
-  GroundControl.Persistence.MongoDb.Tests/
-  GroundControl.Link.Tests/
-```
-
-**Dependency flow:** `Api -> Persistence.Abstractions <- Persistence.MongoDb`. Feature code depends only on abstractions. MongoDb is referenced by Api only for DI registration.
-
-### Api Internal Structure
-
-```
-src/GroundControl.Api/
-  Core/         — Building blocks of the API: modules, filters, conventions,
-                  helpers that extend ASP.NET and provide pipeline setup and
-                  convenient methods to run the application and build endpoints.
-  Shared/       — Cross-cutting business logic consumed by multiple features.
-  Extensions/   — Extension methods on third-party/framework types.
-  Features/     — Vertical slices, one per business domain.
-```
-
-**Placement rules:**
-- **Core/** — extends ASP.NET, provides pipeline infrastructure, or defines contracts that handlers implement (*how* the API runs). Contains both module-based subsystems (Authentication, DataProtection, ChangeNotification) and standalone types (IEndpointHandler, EntityTagHeaders, validation framework).
-- **Shared/** — reusable business logic consumed across features (*what* the API does): security constants, pagination, resolvers, audit, metrics.
-- **Extensions/** — extension methods on types the project does not own (Task, IServiceCollection, RouteValueDictionary).
-- **Features/** — one folder per business domain, fully self-contained. Features never depend on each other; they share data through store interfaces in `Persistence.Abstractions`.
+**Dependency flow:** `Api -> Persistence.Abstractions <- Persistence.MongoDb`. Feature code depends only on abstractions. MongoDb is referenced by Api only for DI registration. `Cli -> Api.Client -> Api` (for NSwag generation). `Host.Cli` is a standalone framework referenced by `Cli`.
 
 ### Module System
 
 Each feature and core concern is an `IWebApiModule` with `OnServiceConfiguration` and `OnApplicationConfiguration`. Modules declare ordering via `[RunsAfter<T>]` attributes. `Program.cs` delegates to `BuildWebApiModules()`.
-
-### Feature Slice Pattern
-
-Each feature folder under `Api/Features/{FeatureName}/` has:
-- **`XxxModule.cs`** — implements `IWebApiModule`, registers handlers/validators in DI and maps routes via `MapGroup("/api/xxx").WithTags("Xxx")`
-- **Handler classes** — sealed internal, one per endpoint, implementing `IEndpointHandler` with `static abstract void Endpoint(IEndpointRouteBuilder)` for route mapping and private `HandleAsync(...)` for logic
-- **`Contracts/`** subfolder with request/response DTOs
-- Handlers registered as `Transient`, resolved via `[FromServices]`
-
-**DI lifetime conventions:** Handlers and validators as `Transient`. Stores, `IMongoDbContext`, `IChangeNotifier`, and `IValueProtector` as `Singleton`. `IDocumentConfiguration` implementations as singletons via `TryAddEnumerable`.
-
-**Request DTOs:** Sealed internal records with `init` properties and Data Annotations (`[Required]`, `[MaxLength]`, etc.).
-
-**Response DTOs:** Sealed internal records with `required init` properties and a static `From(Entity)` factory method for mapping.
-
-**Adding a new feature:** Create a `XxxModule : IWebApiModule`, register handlers and validators in `OnServiceConfiguration`, map routes in `OnApplicationConfiguration`.
-
-### Data Access — Store Pattern
-
-One specific store interface per entity (no generic base). Methods capture business semantics (e.g., `GetByDimensionAsync`, `HasDependentsAsync`). Optimistic concurrency via `expectedVersion` parameter — updates/deletes filter on both ID and expected version, increment version on success. List operations use `ListQuery` with cursor-based pagination via `MongoCursorPagination` helpers.
-
-MongoDB used directly via `IMongoCollection<T>` with LINQ/Builders — no ORM layer. Per-collection index setup via `DocumentConfiguration<T>` (implements `IDocumentConfiguration`), registered as singleton via `TryAddEnumerable` and run on startup by `MongoIndexSetupService`. Case-insensitive collation from `IMongoDbContext.DefaultCollation` applied to string sorts and unique indexes.
-
-**ETag/Concurrency flow:** GET returns `ETag` header (version). PUT/DELETE require `If-Match` header, parsed via `EntityTagHeaders.TryParseIfMatch()`. Version mismatch → 409 Conflict. Missing header → 428 Precondition Required.
-
-### Validation & Error Handling
-
-- **Input validation:** .NET 10 built-in minimal API validation with Data Annotations on request DTOs
-- **Async business validation:** `IAsyncValidator<TRequest>` implementations registered in DI, applied via `.WithContractValidation<T>()` endpoint filter. `IEndpointValidator` + `.WithEndpointValidation<T>()` for non-body validation (route values, headers). Validators return `ValidatorResult.Success`, `ValidatorResult.Fail(error, memberNames)` (→ 400), or `ValidatorResult.Problem(detail, statusCode)` (→ ProblemDetails)
-- **Business failures:** `TypedResults.Problem()` returning RFC 9457 ProblemDetails — no custom error types or Result pattern
-- **HTTP status conventions:** 400 (validation), 404 (not found), 409 (version conflict / duplicate / has dependents), 422 (semantic business errors, e.g. unresolved variables), 428 (missing If-Match header)
 
 ### Cross-Cutting Infrastructure
 
@@ -120,21 +57,10 @@ MongoDB used directly via `IMongoCollection<T>` with LINQ/Builders — no ORM la
 - **Usings:** Project-specific global usings in `Properties/Usings.cs`
 - **Entities:** Classes (not records) with get/set properties, include `Version` (long), `CreatedAt`/`UpdatedAt` (DateTimeOffset), `CreatedBy`/`UpdatedBy` (Guid)
 
-## Testing
-
-- **Framework:** xUnit v3 with Shouldly (assertions) and NSubstitute (mocking)
-- **Integration tests:** Testcontainers for real MongoDB replica set; `GroundControlApiFactory` (WebApplicationFactory) for API tests
-- **Test isolation:** `[Collection("MongoDB")]` shares a single `MongoFixture` container; each test gets its own database via `MongoFixture.CreateDatabase()`
-- **Base class:** API handler tests extend `ApiHandlerTestBase`, which provides `CreateFactory()`, `ReadRequiredJsonAsync<T>()`, and `TestCancellationToken`. Each test creates its own `GroundControlApiFactory` instance via `CreateFactory()` for full isolation
-- **Structure:** Unit and integration tests coexist in the same test project. Test folders mirror src feature names without the `Features/` prefix (e.g., `tests/.../Scopes/` not `tests/.../Features/Scopes/`)
-- **AAA comments:** Use `// Arrange`, `// Act`, `// Assert` in all tests
-
 ## Build Infrastructure
 
-- **Versioning:** Nerdbank.GitVersioning (`version.json`), version 1.0
 - **Package management:** Central Package Management (`Directory.Packages.props`)
-- **Artifacts output:** `UseArtifactsOutput` enabled, output to `artifacts/` at repo root
-- **Warnings as errors:** Enabled globally
+- **Versioning:** Nerdbank.GitVersioning (`version.json`)
 - **Auto-formatting hook:** `.claude/hooks/format-csharp.cs` runs `dotnet format` on every .cs file after Write/Edit
 
 ## Commit Convention
