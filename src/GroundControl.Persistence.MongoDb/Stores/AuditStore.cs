@@ -5,7 +5,7 @@ using MongoDB.Driver;
 
 namespace GroundControl.Persistence.MongoDb.Stores;
 
-internal sealed class MongoAuditStore : IAuditStore
+internal sealed class AuditStore : IAuditStore
 {
     private static readonly SortFieldMap<AuditRecord> SortFields = SortFieldMap<AuditRecord>.Build("performedAt", b => b
         .Field("performedAt", "performedAt", r => r.PerformedAt)
@@ -14,7 +14,7 @@ internal sealed class MongoAuditStore : IAuditStore
     private readonly IMongoDbContext _context;
     private readonly IMongoCollection<AuditRecord> _collection;
 
-    public MongoAuditStore(IMongoDbContext context)
+    public AuditStore(IMongoDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 

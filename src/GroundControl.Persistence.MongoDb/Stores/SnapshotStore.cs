@@ -5,7 +5,7 @@ using MongoDB.Driver;
 
 namespace GroundControl.Persistence.MongoDb.Stores;
 
-internal sealed class MongoSnapshotStore : ISnapshotStore
+internal sealed class SnapshotStore : ISnapshotStore
 {
     private static readonly SortFieldMap<Snapshot> SortFields = SortFieldMap<Snapshot>.Build("snapshotVersion", b => b
         .Field("snapshotVersion", "snapshotVersion", s => s.SnapshotVersion)
@@ -16,7 +16,7 @@ internal sealed class MongoSnapshotStore : ISnapshotStore
     private readonly IMongoCollection<Snapshot> _collection;
     private readonly IMongoCollection<Project> _projects;
 
-    public MongoSnapshotStore(IMongoDbContext context)
+    public SnapshotStore(IMongoDbContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 

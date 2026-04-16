@@ -10,11 +10,11 @@ using Xunit;
 namespace GroundControl.Persistence.MongoDb.Tests.Audit;
 
 [Collection("MongoDB")]
-public sealed class MongoAuditStoreTests
+public sealed class AuditStoreTests
 {
     private readonly MongoFixture _mongoFixture;
 
-    public MongoAuditStoreTests(MongoFixture mongoFixture)
+    public AuditStoreTests(MongoFixture mongoFixture)
     {
         _mongoFixture = mongoFixture;
     }
@@ -363,7 +363,7 @@ public sealed class MongoAuditStoreTests
         retrieved.Metadata["source"].ShouldBe("api");
     }
 
-    private async Task<(MongoAuditStore Store, IMongoDatabase Database)> CreateStoreAsync(CancellationToken cancellationToken)
+    private async Task<(AuditStore Store, IMongoDatabase Database)> CreateStoreAsync(CancellationToken cancellationToken)
     {
         var database = _mongoFixture.CreateDatabase();
         var context = _mongoFixture.CreateContext(database);
@@ -371,7 +371,7 @@ public sealed class MongoAuditStoreTests
 
         await configuration.ConfigureAsync(cancellationToken).ConfigureAwait(false);
 
-        return (new MongoAuditStore(context), database);
+        return (new AuditStore(context), database);
     }
 
     private static AuditRecord CreateAuditRecord(
