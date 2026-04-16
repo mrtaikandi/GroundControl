@@ -39,7 +39,7 @@ public sealed class SnapshotCacheWarmupServiceTests
         _snapshotStore.GetActiveForProjectAsync(project3.Id, Arg.Any<CancellationToken>())
             .Returns(snapshot3);
 
-        var cache = new SnapshotCache(_snapshotStore, _projectStore);
+        var cache = new SnapshotCache(_snapshotStore);
         var sut = new SnapshotCacheWarmupService(cache, _projectStore, NullLogger<SnapshotCacheWarmupService>.Instance);
 
         // Act
@@ -83,7 +83,7 @@ public sealed class SnapshotCacheWarmupServiceTests
         _snapshotStore.GetActiveForProjectAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(ci => CreateSnapshot((Guid)ci[0]));
 
-        var cache = new SnapshotCache(_snapshotStore, _projectStore);
+        var cache = new SnapshotCache(_snapshotStore);
         var sut = new SnapshotCacheWarmupService(cache, _projectStore, NullLogger<SnapshotCacheWarmupService>.Instance);
 
         // Act
@@ -107,7 +107,7 @@ public sealed class SnapshotCacheWarmupServiceTests
                 NextCursor = null,
             });
 
-        var cache = new SnapshotCache(_snapshotStore, _projectStore);
+        var cache = new SnapshotCache(_snapshotStore);
         var sut = new SnapshotCacheWarmupService(cache, _projectStore, NullLogger<SnapshotCacheWarmupService>.Instance);
 
         // Act & Assert — should not throw

@@ -13,13 +13,6 @@ public sealed class SnapshotCacheInvalidatorTests
     private static CancellationToken TestCancellationToken => TestContext.Current.CancellationToken;
 
     private readonly ISnapshotStore _snapshotStore = Substitute.For<ISnapshotStore>();
-    private readonly IProjectStore _projectStore = Substitute.For<IProjectStore>();
-
-    public SnapshotCacheInvalidatorTests()
-    {
-        _projectStore.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns((Project?)null);
-    }
 
     [Fact]
     public async Task ExecuteAsync_ChangeNotification_InvalidatesCache()
@@ -40,7 +33,7 @@ public sealed class SnapshotCacheInvalidatorTests
         _snapshotStore.GetActiveForProjectAsync(projectId, Arg.Any<CancellationToken>())
             .Returns(snapshot);
 
-        var cache = new SnapshotCache(_snapshotStore, _projectStore);
+        var cache = new SnapshotCache(_snapshotStore);
         await using var notifier = new InProcessChangeNotifier();
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
@@ -80,7 +73,7 @@ public sealed class SnapshotCacheInvalidatorTests
     public async Task ExecuteAsync_StoppingToken_StopsGracefully()
     {
         // Arrange
-        var cache = new SnapshotCache(_snapshotStore, _projectStore);
+        var cache = new SnapshotCache(_snapshotStore);
         await using var notifier = new InProcessChangeNotifier();
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
