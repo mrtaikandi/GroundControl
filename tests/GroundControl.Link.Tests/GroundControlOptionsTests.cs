@@ -30,7 +30,7 @@ public sealed class GroundControlOptionsTests
     }
 
     [Fact]
-    public void Scopes_UsesOrdinalComparison()
+    public void Scopes_UsesCaseInsensitiveComparison()
     {
         // Arrange
         var options = new GroundControlOptions();
@@ -40,6 +40,6 @@ public sealed class GroundControlOptionsTests
 
         // Assert
         options.Scopes.ContainsKey("Environment").ShouldBeTrue();
-        options.Scopes.ContainsKey("environment").ShouldBeFalse();
+        options.Scopes.ContainsKey("environment").ShouldBeTrue();
     }
 }
