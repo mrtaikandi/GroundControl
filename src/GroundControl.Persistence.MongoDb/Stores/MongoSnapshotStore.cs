@@ -14,6 +14,7 @@ internal sealed class MongoSnapshotStore : ISnapshotStore
 
     private readonly IMongoDbContext _context;
     private readonly IMongoCollection<Snapshot> _collection;
+    private readonly IMongoCollection<Project> _projects;
 
     public MongoSnapshotStore(IMongoDbContext context)
     {
@@ -21,6 +22,7 @@ internal sealed class MongoSnapshotStore : ISnapshotStore
 
         _context = context;
         _collection = context.GetCollection<Snapshot>(CollectionNames.Snapshots);
+        _projects = context.GetCollection<Project>(CollectionNames.Projects);
     }
 
     public async Task<Snapshot?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -45,6 +47,20 @@ internal sealed class MongoSnapshotStore : ISnapshotStore
 
     public async Task<Snapshot?> GetActiveForProjectAsync(Guid projectId, CancellationToken cancellationToken = default)
     {
+        var activeSnapshotId = await _projects
+            .Find(p => p.Id == projectId)
+            .Project(p => p.ActiveSnapshotId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (activeSnapshotId is { } id)
+        {
+            return await _collection
+                .Find(s => s.Id == id)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return await _collection
             .Find(s => s.ProjectId == projectId)
             .SortByDescending(s => s.SnapshotVersion)

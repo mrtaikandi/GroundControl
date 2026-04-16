@@ -12,13 +12,11 @@ namespace GroundControl.Api.Features.ClientApi;
 internal sealed class SnapshotCache
 {
     private readonly ISnapshotStore _snapshotStore;
-    private readonly IProjectStore _projectStore;
     private readonly ConcurrentDictionary<Guid, Snapshot?> _cache = new();
 
-    public SnapshotCache(ISnapshotStore snapshotStore, IProjectStore projectStore)
+    public SnapshotCache(ISnapshotStore snapshotStore)
     {
         _snapshotStore = snapshotStore ?? throw new ArgumentNullException(nameof(snapshotStore));
-        _projectStore = projectStore ?? throw new ArgumentNullException(nameof(projectStore));
     }
 
     /// <summary>
@@ -33,7 +31,7 @@ internal sealed class SnapshotCache
         }
 
         GroundControlMetrics.CacheMisses.Add(1);
-        var snapshot = await LoadActiveAsync(projectId, cancellationToken).ConfigureAwait(false);
+        var snapshot = await _snapshotStore.GetActiveForProjectAsync(projectId, cancellationToken).ConfigureAwait(false);
         _cache[projectId] = snapshot;
         return snapshot;
     }
@@ -44,20 +42,9 @@ internal sealed class SnapshotCache
     public async Task<Snapshot?> InvalidateAsync(Guid projectId, CancellationToken cancellationToken = default)
     {
         _cache.TryRemove(projectId, out _);
-        var snapshot = await LoadActiveAsync(projectId, cancellationToken).ConfigureAwait(false);
+        var snapshot = await _snapshotStore.GetActiveForProjectAsync(projectId, cancellationToken).ConfigureAwait(false);
         _cache[projectId] = snapshot;
 
         return snapshot;
-    }
-
-    private async Task<Snapshot?> LoadActiveAsync(Guid projectId, CancellationToken cancellationToken)
-    {
-        var project = await _projectStore.GetByIdAsync(projectId, cancellationToken).ConfigureAwait(false);
-        if (project?.ActiveSnapshotId is { } activeId)
-        {
-            return await _snapshotStore.GetByIdAsync(activeId, cancellationToken).ConfigureAwait(false);
-        }
-
-        return await _snapshotStore.GetActiveForProjectAsync(projectId, cancellationToken).ConfigureAwait(false);
     }
 }
