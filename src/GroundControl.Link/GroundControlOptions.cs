@@ -86,6 +86,12 @@ public sealed partial class GroundControlOptions : IValidatableObject
     /// <remarks>Defaults to <c>["ready"]</c>.</remarks>
     public IList<string> HealthCheckTags { get; } = ["ready"];
 
+    /// <summary>
+    /// Gets the scope dimensions to send with configuration requests.
+    /// Server-defined scopes on the Client entity take priority over these on key conflict.
+    /// </summary>
+    public Dictionary<string, string> Scopes { get; } = new(StringComparer.Ordinal);
+
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
