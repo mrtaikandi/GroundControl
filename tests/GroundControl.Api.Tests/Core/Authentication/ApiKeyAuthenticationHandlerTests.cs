@@ -39,6 +39,153 @@ public sealed class ApiKeyAuthenticationHandlerTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task Authenticate_WithSdkScopesHeader_IncludesSdkScopesAsClaims()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var httpClient = factory.CreateClient();
+        var project = await CreateProjectAsync(httpClient, "SDK Scopes Project");
+        var created = await CreateClientAsync(httpClient, project.Id, "sdk-scoped-client");
+
+        // Act
+        var result = await AuthenticateWithScopesHeaderAsync(
+            factory,
+            $"ApiKey {created.Id}:{created.ClientSecret}",
+            "environment:staging,region:us-west-2");
+
+        // Assert
+        result.Succeeded.ShouldBeTrue();
+        var scopeClaims = result.Principal!.FindAll("clientScope").Select(c => c.Value).ToList();
+        scopeClaims.ShouldContain("environment:staging");
+        scopeClaims.ShouldContain("region:us-west-2");
+    }
+
+    [Fact]
+    public async Task Authenticate_WithSdkAndServerScopes_ServerScopesWinOnConflict()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var httpClient = factory.CreateClient();
+        var project = await CreateProjectAsync(httpClient, "Merge Scopes Project");
+        await CreateScopeAsync(httpClient, "environment", ["dev", "prod"]);
+
+        var created = await CreateClientWithScopesAsync(
+            httpClient,
+            project.Id,
+            "merge-client",
+            new Dictionary<string, string> { ["environment"] = "prod" });
+
+        // Act
+        var result = await AuthenticateWithScopesHeaderAsync(
+            factory,
+            $"ApiKey {created.Id}:{created.ClientSecret}",
+            "environment:staging,region:us-west-2");
+
+        // Assert
+        result.Succeeded.ShouldBeTrue();
+        var scopeClaims = result.Principal!.FindAll("clientScope").Select(c => c.Value).ToList();
+        scopeClaims.ShouldContain("environment:prod");
+        scopeClaims.ShouldContain("region:us-west-2");
+        scopeClaims.ShouldNotContain("environment:staging");
+    }
+
+    [Fact]
+    public async Task Authenticate_WithNonOverlappingScopes_UnionOfBoth()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var httpClient = factory.CreateClient();
+        var project = await CreateProjectAsync(httpClient, "Union Scopes Project");
+        await CreateScopeAsync(httpClient, "environment", ["prod"]);
+
+        var created = await CreateClientWithScopesAsync(
+            httpClient,
+            project.Id,
+            "union-client",
+            new Dictionary<string, string> { ["environment"] = "prod" });
+
+        // Act
+        var result = await AuthenticateWithScopesHeaderAsync(
+            factory,
+            $"ApiKey {created.Id}:{created.ClientSecret}",
+            "region:us-east-1");
+
+        // Assert
+        result.Succeeded.ShouldBeTrue();
+        var scopeClaims = result.Principal!.FindAll("clientScope").Select(c => c.Value).ToList();
+        scopeClaims.ShouldContain("environment:prod");
+        scopeClaims.ShouldContain("region:us-east-1");
+    }
+
+    [Fact]
+    public async Task Authenticate_WithNoScopesHeader_UsesOnlyServerScopes()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var httpClient = factory.CreateClient();
+        var project = await CreateProjectAsync(httpClient, "No Header Scopes Project");
+        await CreateScopeAsync(httpClient, "environment", ["prod"]);
+
+        var created = await CreateClientWithScopesAsync(
+            httpClient,
+            project.Id,
+            "no-header-client",
+            new Dictionary<string, string> { ["environment"] = "prod" });
+
+        // Act
+        var result = await AuthenticateAsync(factory, $"ApiKey {created.Id}:{created.ClientSecret}");
+
+        // Assert
+        result.Succeeded.ShouldBeTrue();
+        var scopeClaims = result.Principal!.FindAll("clientScope").Select(c => c.Value).ToList();
+        scopeClaims.ShouldContain("environment:prod");
+        scopeClaims.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Authenticate_WithMalformedScopesHeader_SkipsBadEntries()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var httpClient = factory.CreateClient();
+        var project = await CreateProjectAsync(httpClient, "Malformed Scopes Project");
+        var created = await CreateClientAsync(httpClient, project.Id, "malformed-scopes-client");
+
+        // Act
+        var result = await AuthenticateWithScopesHeaderAsync(
+            factory,
+            $"ApiKey {created.Id}:{created.ClientSecret}",
+            "badentry,region:eu-west");
+
+        // Assert
+        result.Succeeded.ShouldBeTrue();
+        var scopeClaims = result.Principal!.FindAll("clientScope").Select(c => c.Value).ToList();
+        scopeClaims.ShouldContain("region:eu-west");
+        scopeClaims.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Authenticate_WithUrlEncodedScopesHeader_DecodesValues()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var httpClient = factory.CreateClient();
+        var project = await CreateProjectAsync(httpClient, "Encoded Scopes Project");
+        var created = await CreateClientAsync(httpClient, project.Id, "encoded-scopes-client");
+
+        // Act
+        var result = await AuthenticateWithScopesHeaderAsync(
+            factory,
+            $"ApiKey {created.Id}:{created.ClientSecret}",
+            "tag:prod%3Aus-east");
+
+        // Assert
+        result.Succeeded.ShouldBeTrue();
+        var scopeClaims = result.Principal!.FindAll("clientScope").Select(c => c.Value).ToList();
+        scopeClaims.ShouldContain("tag:prod:us-east");
+    }
+
+    [Fact]
     public async Task Authenticate_WithValidApiKey_IncludesScopeClaims()
     {
         // Arrange
@@ -205,6 +352,19 @@ public sealed class ApiKeyAuthenticationHandlerTests : ApiHandlerTestBase
         {
             httpContext.Request.Headers.Authorization = authorizationHeader;
         }
+
+        return await authService.AuthenticateAsync(httpContext, ApiKeyAuthenticationHandler.SchemeName);
+    }
+
+    private static async Task<AuthenticateResult> AuthenticateWithScopesHeaderAsync(
+        GroundControlApiFactory factory, string authorizationHeader, string scopesHeader)
+    {
+        using var scope = factory.Services.CreateScope();
+        var authService = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
+
+        var httpContext = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        httpContext.Request.Headers.Authorization = authorizationHeader;
+        httpContext.Request.Headers["GroundControl-Scopes"] = scopesHeader;
 
         return await authService.AuthenticateAsync(httpContext, ApiKeyAuthenticationHandler.SchemeName);
     }
