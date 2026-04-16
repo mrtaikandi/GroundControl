@@ -152,8 +152,8 @@ public sealed class PollingModeDeliveryWorkflow : EndToEndTestBase
                 new PublishSnapshotRequest { Description = "Polling test update" },
                 TestCancellationToken);
 
-            // Assert — poll for update via polling strategy
-            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            // Assert — poll for update via polling strategy (2s interval + jitter, allow up to ~7 cycles)
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
             var updated = false;
             while (DateTime.UtcNow < deadline)
             {
@@ -166,7 +166,7 @@ public sealed class PollingModeDeliveryWorkflow : EndToEndTestBase
                 await Task.Delay(TimeSpan.FromMilliseconds(250), TestCancellationToken);
             }
 
-            updated.ShouldBeTrue($"Configuration was not updated via polling within 10s. Current value: {configuration["app:version"]}");
+            updated.ShouldBeTrue($"Configuration was not updated via polling within 15s. Current value: {configuration["app:version"]}");
             configuration["app:version"].ShouldBe("2.0");
         }
         finally

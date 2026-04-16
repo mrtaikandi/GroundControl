@@ -28,18 +28,18 @@ public sealed class ScopedValueResolutionWorkflow : EndToEndTestBase
         // Arrange & Act
         var result = await Cli.RunAsync(TestCancellationToken,
             "scope", "create",
-            "--dimension", "env",
+            "--dimension", "tier",
             "--values", "prod,staging");
 
         // Assert
         result.ShouldSucceed();
 
         var scope = result.ParseOutput<ScopeResponse>();
-        scope.Dimension.ShouldBe("env");
+        scope.Dimension.ShouldBe("tier");
 
         var scopes = await ApiClient.ListScopesHandlerAsync(cancellationToken: TestCancellationToken);
         scopes.Data.ShouldNotBeNull();
-        scopes.Data.ShouldContain(s => s.Dimension == "env");
+        scopes.Data.ShouldContain(s => s.Dimension == "tier");
 
         Set(ScopeIdKey, scope.Id);
     });
@@ -75,8 +75,8 @@ public sealed class ScopedValueResolutionWorkflow : EndToEndTestBase
             "--owner-type", "Project",
             "--value-type", "String",
             "--value", "default=base-url",
-            "--value", "env:prod=prod-url",
-            "--value", "env:staging=staging-url");
+            "--value", "tier:prod=prod-url",
+            "--value", "tier:staging=staging-url");
 
         // Assert
         result.ShouldSucceed();
@@ -124,7 +124,7 @@ public sealed class ScopedValueResolutionWorkflow : EndToEndTestBase
             "client", "create",
             "--project-id", projectId.ToString(),
             "--name", "e2e-scoped-client-prod",
-            "--scopes", "env=prod");
+            "--scopes", "tier=prod");
 
         // Assert
         result.ShouldSucceed();
@@ -146,7 +146,7 @@ public sealed class ScopedValueResolutionWorkflow : EndToEndTestBase
             "client", "create",
             "--project-id", projectId.ToString(),
             "--name", "e2e-scoped-client-staging",
-            "--scopes", "env=staging");
+            "--scopes", "tier=staging");
 
         // Assert
         result.ShouldSucceed();
