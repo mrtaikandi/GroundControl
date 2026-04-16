@@ -1,6 +1,6 @@
 # GroundControl CLI
 
-Command-line tool for managing a [GroundControl](../../README.md) configuration server. Packaged as a .NET global tool.
+Command-line tool for managing a [GroundControl](https://github.com/mrtaikandi/GroundControl) configuration server. Packaged as a .NET global tool.
 
 ## Installation
 
@@ -69,4 +69,4 @@ The CLI reads configuration from these sources (in order of precedence):
 
 ## Documentation
 
-See the full [CLI reference](../../docs/cli/README.md) for detailed command documentation.
+See the full [CLI reference](https://github.com/mrtaikandi/GroundControl/blob/main/docs/cli/README.md) for detailed command documentation.
