@@ -1,10 +1,6 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using GroundControl.Api.Client;
-using GroundControl.Link;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GroundControl.E2E.Tests.Infrastructure;
 
@@ -45,34 +41,6 @@ public abstract class EndToEndTestBase : IDisposable
     protected static CancellationToken TestCancellationToken => TestContext.Current.CancellationToken;
 
     protected static JsonSerializerOptions WebJsonSerializerOptions { get; } = new(JsonSerializerDefaults.Web);
-
-    /// <summary>
-    /// Creates a Link SDK configuration provider wired to the fixture's API server.
-    /// The caller owns the returned provider and must dispose it.
-    /// </summary>
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Ownership transfers to the returned GroundControlConfigurationProvider")]
-    internal GroundControlConfigurationProvider CreateLinkProvider(Guid clientId, string clientSecret)
-    {
-        var httpClient = Fixture.App.CreateHttpClient("api");
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("ApiKey", $"{clientId}:{clientSecret}");
-        httpClient.DefaultRequestHeaders.Add(HeaderNames.ApiVersion, "1.0");
-
-        var options = new GroundControlOptions
-        {
-            ServerUrl = httpClient.BaseAddress!,
-            ClientId = clientId.ToString(),
-            ClientSecret = clientSecret,
-            StartupTimeout = TimeSpan.FromSeconds(15),
-            ConnectionMode = ConnectionMode.Polling,
-            PollingInterval = TimeSpan.FromHours(1),
-            EnableLocalCache = false,
-        };
-
-        var store = new GroundControlStore(options);
-        var apiClient = new GroundControlApiClient(httpClient, NullLogger<GroundControlApiClient>.Instance);
-
-        return new GroundControlConfigurationProvider(store, NullConfigurationCache.Instance, apiClient);
-    }
 
     /// <summary>
     /// Stores a value in shared state for the current scenario class.

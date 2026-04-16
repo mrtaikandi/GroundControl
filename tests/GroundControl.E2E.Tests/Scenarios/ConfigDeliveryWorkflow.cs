@@ -1,5 +1,6 @@
 using GroundControl.Api.Client.Contracts;
 using GroundControl.E2E.Tests.Infrastructure;
+using GroundControl.Link;
 using Shouldly;
 
 namespace GroundControl.E2E.Tests.Scenarios;
@@ -145,16 +146,23 @@ public sealed class ConfigDeliveryWorkflow : EndToEndTestBase
         var clientId = Get<Guid>(ClientIdKey);
         var clientSecret = Get<string>(ClientSecretKey);
 
-        // Act
-        using var provider = CreateLinkProvider(clientId, clientSecret);
-        provider.Load();
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddGroundControl(opts =>
+        {
+            opts.ServerUrl = new Uri(Fixture.ApiBaseUrl);
+            opts.ClientId = clientId.ToString();
+            opts.ClientSecret = clientSecret;
+            opts.StartupTimeout = TimeSpan.FromSeconds(15);
+            opts.ConnectionMode = ConnectionMode.StartupOnly;
+            opts.EnableLocalCache = false;
+        });
+
+        // Act — Build() triggers Load() on the provider
+        var configuration = configBuilder.Build();
 
         // Assert
-        provider.TryGet("app:name", out var appName).ShouldBeTrue("Expected 'app:name' to be present in configuration");
-        appName.ShouldBe("MyApp");
-
-        provider.TryGet("app:version", out var appVersion).ShouldBeTrue("Expected 'app:version' to be present in configuration");
-        appVersion.ShouldBe("1.0.0");
+        configuration["app:name"].ShouldBe("MyApp");
+        configuration["app:version"].ShouldBe("1.0.0");
 
         return Task.CompletedTask;
     });
