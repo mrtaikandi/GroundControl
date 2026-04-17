@@ -9,6 +9,8 @@ namespace GroundControl.Link;
 internal sealed class GroundControlConfigurationProvider : ConfigurationProvider, IDisposable
 {
     private readonly IGroundControlApiClient _client;
+    private readonly Lock _applyLock = new();
+    private string? _appliedEtag;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GroundControlConfigurationProvider"/> class.
@@ -78,7 +80,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
             MarkAsUnhealthy(cached, error: ex);
         }
 
-        SetDataFromStore();
+        SetDataFromStore(Store.GetSnapshot());
     }
 
     /// <inheritdoc />
@@ -86,13 +88,30 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
 
     private void OnStoreDataChanged()
     {
-        SetDataFromStore();
+        // Gate on the snapshot's etag (server-assigned snapshot version) so that a replay
+        // of the already-applied snapshot — e.g. the initial frame an SSE stream delivers
+        // on connect, right after Load() just fetched the same snapshot via REST — does
+        // not fire a spurious OnReload. Without this gate, a consumer that registered a
+        // reload callback between Load() and the SSE replay arriving would be notified
+        // with stale Data: the callback fires on the replay event, but Data still reflects
+        // the REST-fetched snapshot which is identical to the replay, not any later change.
+        lock (_applyLock)
+        {
+            var snapshot = Store.GetSnapshot();
+            if (string.Equals(snapshot.ETag, _appliedEtag, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _appliedEtag = snapshot.ETag;
+            SetDataFromStore(snapshot);
+        }
+
         OnReload();
     }
 
-    private void SetDataFromStore()
+    private void SetDataFromStore(StoreSnapshot snapshot)
     {
-        var snapshot = Store.GetSnapshot();
         var data = new Dictionary<string, string?>(snapshot.Data.Count, StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in snapshot.Data)
         {
