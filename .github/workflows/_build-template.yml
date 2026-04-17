@@ -104,9 +104,21 @@ jobs:
       - name: Tool-install smoke test
         if: ${{ inputs.is-tool }}
         run: |
-          NUPKG=$(ls artifacts/package/*.nupkg | head -n1)
-          TOOL_ID=$(basename "${NUPKG}" | sed -E 's|^(.+)\.([0-9].+)\.nupkg$|\1|')
-          TOOL_VERSION=$(basename "${NUPKG}" | sed -E 's|^(.+)\.([0-9].+)\.nupkg$|\2|')
+          # Derive the tool id from the pack-project csproj basename (the default
+          # PackageId when no <PackageId> override is set). Parsing it out of the
+          # nupkg filename with a regex is ambiguous because SemVer versions also
+          # contain dots (e.g. GroundControl.Cli.1.0.1-preview.nupkg has two
+          # plausible split points).
+          TOOL_ID=$(basename "${{ inputs.pack-project }}" .csproj)
+          NUPKG=$(ls artifacts/package/${TOOL_ID}.*.nupkg | head -n1)
+          if [ -z "${NUPKG}" ]; then
+            echo "::error::No nupkg found for ${TOOL_ID} in artifacts/package"
+            exit 1
+          fi
+          FILENAME=$(basename "${NUPKG}")
+          # Strip the "<TOOL_ID>." prefix and ".nupkg" suffix to recover the version.
+          TOOL_VERSION=${FILENAME#${TOOL_ID}.}
+          TOOL_VERSION=${TOOL_VERSION%.nupkg}
           echo "Installing ${TOOL_ID} ${TOOL_VERSION} from the packed artifact only..."
           # --source (not --add-source) restricts resolution to the local feed, so a
           # collision with a same-versioned package already on nuget.org can't silently
