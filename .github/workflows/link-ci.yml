@@ -38,6 +38,7 @@ concurrency:
 
 permissions:
   contents: read
+  checks: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -80,6 +81,15 @@ jobs:
           name: link-test-results
           path: artifacts/test-results/**/*.trx
           if-no-files-found: warn
+
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Link tests
+          path: artifacts/test-results/**/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false
 
       - name: Pack
         run: dotnet pack src/GroundControl.Link/GroundControl.Link.csproj --configuration Release --no-build --output artifacts/package
