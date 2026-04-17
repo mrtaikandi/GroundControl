@@ -1,0 +1,91 @@
+# GroundControl.Link — continuous integration.
+#
+# Runs on every pull request and on pushes to main and release branches (v*).
+# Restores, builds, tests, and packs the GroundControl.Link library; uploads
+# the produced .nupkg/.snupkg and .trx test results as workflow artifacts for
+# inspection. Does NOT publish to any package feed — publishing is handled
+# exclusively by link-publish.yml on GitHub Release events.
+
+name: link-ci
+
+on:
+  pull_request:
+    paths:
+      - 'src/GroundControl.Link/**'
+      - 'tests/GroundControl.Link.Tests/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - 'version.json'
+      - '.github/workflows/link-ci.yml'
+  push:
+    branches:
+      - main
+      - 'v[0-9]+'
+      - 'v[0-9]+.[0-9]+'
+    paths:
+      - 'src/GroundControl.Link/**'
+      - 'tests/GroundControl.Link.Tests/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - 'version.json'
+      - '.github/workflows/link-ci.yml'
+
+concurrency:
+  group: link-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build, test & pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
+
+      - name: Build
+        run: dotnet build tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=test_results.trx" --results-directory artifacts/test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-test-results
+          path: artifacts/test-results/**/*.trx
+          if-no-files-found: warn
+
+      - name: Pack
+        run: dotnet pack src/GroundControl.Link/GroundControl.Link.csproj --configuration Release --no-build --output artifacts/package
+
+      - name: Upload NuGet package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-nupkg
+          path: |
+            artifacts/package/*.nupkg
+            artifacts/package/*.snupkg
+          if-no-files-found: error

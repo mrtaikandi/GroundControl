@@ -1,0 +1,108 @@
+# GroundControl.Link — cut a preview (prerelease) release.
+#
+# Manual workflow (workflow_dispatch) that publishes a preview package from
+# main while the component is still pre-1.0. It derives the tag from the
+# current NBGV SemVer2 on main (e.g. v1.0.0-preview.17), generates a changelog
+# from Conventional Commits with git-cliff, and creates a PRERELEASE GitHub
+# Release. Publishing that release fires link-publish.yml, which pushes the
+# package to nuget.org via OIDC trusted publishing — the same publish path
+# used for stable releases.
+#
+# Use link-prepare-release.yml instead when cutting a STABLE release (it cuts
+# a v{Major.Minor} release branch and strips the prerelease tag).
+
+name: link-publish-preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: 'Compute version and generate changelog, but do not tag or create the release.'
+        type: boolean
+        default: false
+
+concurrency:
+  group: link-publish-preview
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  preview:
+    name: Cut preview release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+
+      - name: Install nbgv
+        run: dotnet tool install -g nbgv
+
+      - name: Compute preview version from NBGV
+        id: version
+        run: |
+          VERSION=$(nbgv get-version -v SemVer2)
+          echo "NBGV SemVer2: ${VERSION}"
+          case "${VERSION}" in
+            *-preview*) ;;
+            *)
+              echo "::error::NBGV SemVer2 '${VERSION}' is not a prerelease. Ensure src/GroundControl.Link/version.json keeps a '-preview' tag on main, or use link-prepare-release for stable cuts."
+              exit 1
+              ;;
+          esac
+          echo "release_version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure tag does not already exist
+        run: |
+          TAG='${{ steps.version.outputs.release_tag }}'
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::Tag ${TAG} already exists locally."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "${TAG}" >/dev/null; then
+            echo "::error::Tag ${TAG} already exists on origin. Push a new commit to main to bump the git height."
+            exit 1
+          fi
+
+      - name: Generate changelog from Conventional Commits
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --unreleased --tag ${{ steps.version.outputs.release_tag }} --strip header
+        env:
+          OUTPUT: CHANGES.md
+
+      - name: Dry-run summary
+        if: ${{ inputs.dryRun }}
+        run: |
+          {
+            echo "## Dry run — link preview release"
+            echo ""
+            echo "- Tag: \`${{ steps.version.outputs.release_tag }}\`"
+            echo "- Target: \`${{ github.sha }}\`"
+            echo ""
+            echo "### Changelog preview"
+            echo ""
+            cat CHANGES.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create prerelease GitHub Release
+        if: ${{ !inputs.dryRun }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.release_tag }}" \
+            --target "${{ github.sha }}" \
+            --prerelease \
+            --title "${{ steps.version.outputs.release_tag }}" \
+            --notes-file CHANGES.md
