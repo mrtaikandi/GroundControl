@@ -68,7 +68,7 @@ jobs:
         run: dotnet build tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=test_results.trx" --results-directory artifacts/test-results
+        run: dotnet test tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-build -- --report-trx --report-trx-filename test_results.trx --results-directory artifacts/test-results
 
       - name: Upload test results
         if: always()
