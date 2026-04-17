@@ -7,6 +7,14 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
+    <PropertyGroup Label="Package Metadata">
+        <PackageId>GroundControl.Link</PackageId>
+        <Id>GroundControl.Link</Id>
+        <Title>GroundControl Link</Title>
+        <Description>.NET client SDK for the GroundControl configuration server. Plugs into Microsoft.Extensions.Configuration to deliver real-time, scoped configuration updates over REST and SSE.</Description>
+        <PackageTags>groundcontrol;configuration;configuration-management;microsoft-extensions-configuration;sse;client;sdk</PackageTags>
+    </PropertyGroup>
+
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
