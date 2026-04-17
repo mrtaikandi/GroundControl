@@ -2,7 +2,21 @@
 
     <PropertyGroup>
         <NoWarn>$(NoWarn);CA2007</NoWarn>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <!-- GetBuildVersion is Nerdbank.GitVersioning's target that populates $(Version). -->
+    <Target Name="SetPackageReleaseNotesFromVersion" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
+        <PropertyGroup>
+            <PackageReleaseNotes>$(RepositoryUrl)/releases/tag/v$(Version)</PackageReleaseNotes>
+        </PropertyGroup>
+    </Target>
 
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />

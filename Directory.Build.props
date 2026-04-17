@@ -36,7 +36,6 @@
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageLicenseUrl>https://github.com/mrtaikandi/Hutmesh.GroundControl/blob/main/LICENSE</PackageLicenseUrl>
     </PropertyGroup>
 
     <ItemGroup>
