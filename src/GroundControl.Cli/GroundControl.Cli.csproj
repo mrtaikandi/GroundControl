@@ -5,14 +5,29 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>groundcontrol</ToolCommandName>
         <NoWarn>$(NoWarn);CA2007;CA1008;CA1031</NoWarn>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <PropertyGroup Label="Package Metadata">
         <PackageId>GroundControl.Cli</PackageId>
         <Id>GroundControl.Cli</Id>
         <Title>GroundControl CLI</Title>
-        <Description>Command-line tool for managing GroundControl configuration server.</Description>
+        <Description>Cross-platform .NET global tool for managing a GroundControl configuration server. Administer scopes, groups, projects, configuration entries, templates, variables, and snapshots from the command line.</Description>
+        <PackageTags>groundcontrol;cli;dotnet-tool;configuration;configuration-management;devops</PackageTags>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <!-- GetBuildVersion is Nerdbank.GitVersioning's target that populates $(Version). -->
+    <Target Name="SetPackageReleaseNotesFromVersion" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
+        <PropertyGroup>
+            <PackageReleaseNotes>$(RepositoryUrl)/releases/tag/v$(Version)</PackageReleaseNotes>
+        </PropertyGroup>
+    </Target>
 
     <ItemGroup>
         <InternalsVisibleTo Include="$(AssemblyName).Tests" />
