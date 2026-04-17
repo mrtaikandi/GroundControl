@@ -1,0 +1,202 @@
+# GroundControl.Link — cut a release (preview or stable).
+#
+# Single, manual workflow for the linear-main release model: main is the
+# only release line, hotfixes move forward. No release branches.
+#
+# Intent is driven by src/GroundControl.Link/version.json:
+#   - version contains "-preview"  → publish a prerelease from main.
+#   - version has no prerelease tag → publish a stable release from main,
+#                                     then open a PR bumping main to the
+#                                     next "-preview" development version.
+#
+# In both cases, the tag is derived from `nbgv get-version -v SemVer2`, a
+# changelog is generated with git-cliff, and a GitHub Release is created.
+# Publishing that release fires link-publish.yml, which pushes the package
+# to nuget.org via OIDC trusted publishing.
+
+name: link-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionIncrement:
+        description: 'STABLE path only: component to bump on main after the release (default: minor).'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: minor
+      dryRun:
+        description: 'Compute tag and generate changelog, but do not tag, release, or open the bump PR.'
+        type: boolean
+        default: false
+
+concurrency:
+  group: link-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Cut release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+
+      - name: Install nbgv
+        run: dotnet tool install -g nbgv
+
+      - name: Configure git identity
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Determine release type from version.json
+        id: type
+        run: |
+          VERSION_FIELD=$(jq -r .version src/GroundControl.Link/version.json)
+          echo "version.json version: ${VERSION_FIELD}"
+          case "${VERSION_FIELD}" in
+            *-preview*) RELEASE_TYPE=preview ;;
+            *)          RELEASE_TYPE=stable ;;
+          esac
+          echo "release_type=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "version_field=${VERSION_FIELD}" >> "$GITHUB_OUTPUT"
+          echo "Release type: ${RELEASE_TYPE}"
+
+      - name: Compute release version from NBGV
+        id: version
+        run: |
+          VERSION=$(nbgv get-version -p src/GroundControl.Link -v SemVer2)
+          echo "NBGV SemVer2: ${VERSION}"
+
+          # Sanity-check: NBGV's output must agree with the release type we
+          # inferred from version.json. A preview run must produce a
+          # prerelease version, a stable run must not.
+          case "${{ steps.type.outputs.release_type }}/${VERSION}" in
+            preview/*-preview*) ;;
+            preview/*)
+              echo "::error::Release type is 'preview' but NBGV produced '${VERSION}' (no prerelease tag). Check publicReleaseRefSpec in version.json."
+              exit 1
+              ;;
+            stable/*-*)
+              echo "::error::Release type is 'stable' but NBGV produced '${VERSION}' (has prerelease/metadata). Ensure main is on a publicReleaseRefSpec ref and version.json has no '-preview' tag."
+              exit 1
+              ;;
+            stable/*) ;;
+          esac
+
+          echo "release_version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure tag does not already exist
+        run: |
+          TAG='${{ steps.version.outputs.release_tag }}'
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::Tag ${TAG} already exists locally."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "${TAG}" >/dev/null; then
+            echo "::error::Tag ${TAG} already exists on origin. Push a new commit to main (preview) or merge the post-release bump PR (stable) before re-running."
+            exit 1
+          fi
+
+      - name: Generate changelog from Conventional Commits
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --unreleased --tag ${{ steps.version.outputs.release_tag }} --strip header
+        env:
+          OUTPUT: CHANGES.md
+
+      - name: Require non-empty changelog for stable releases
+        if: ${{ steps.type.outputs.release_type == 'stable' }}
+        run: |
+          if [ ! -s CHANGES.md ] || ! grep -q '[^[:space:]]' CHANGES.md; then
+            echo "::error::No conventional commits since the last stable release — nothing to ship."
+            exit 1
+          fi
+
+      - name: Dry-run summary
+        if: ${{ inputs.dryRun }}
+        run: |
+          {
+            echo "## Dry run — link ${{ steps.type.outputs.release_type }} release"
+            echo ""
+            echo "- Tag: \`${{ steps.version.outputs.release_tag }}\`"
+            echo "- Target: \`${{ github.sha }}\`"
+            echo ""
+            echo "### Changelog"
+            echo ""
+            if [ -s CHANGES.md ]; then cat CHANGES.md; else echo "_(empty)_"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dryRun }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE_FLAG: ${{ steps.type.outputs.release_type == 'preview' && '--prerelease' || '' }}
+        run: |
+          gh release create "${{ steps.version.outputs.release_tag }}" \
+            --target "${{ github.sha }}" \
+            ${PRERELEASE_FLAG} \
+            --title "${{ steps.version.outputs.release_tag }}" \
+            --notes-file CHANGES.md
+
+      - name: Compute next development version (stable path)
+        id: next
+        if: ${{ !inputs.dryRun && steps.type.outputs.release_type == 'stable' }}
+        run: |
+          CURRENT='${{ steps.type.outputs.version_field }}'
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT}"
+          PATCH=${PATCH:-0}
+
+          case '${{ inputs.versionIncrement }}' in
+            patch) PATCH=$((PATCH + 1)) ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+          esac
+
+          if [ "${PATCH}" = "0" ]; then
+            NEXT="${MAJOR}.${MINOR}-preview"
+          else
+            NEXT="${MAJOR}.${MINOR}.${PATCH}-preview"
+          fi
+
+          echo "next_version=${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "bump_branch=chore/link-bump-to-${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "Next development version: ${NEXT}"
+
+      - name: Open post-release bump PR (stable path)
+        if: ${{ !inputs.dryRun && steps.type.outputs.release_type == 'stable' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH='${{ steps.next.outputs.bump_branch }}'
+          NEXT='${{ steps.next.outputs.next_version }}'
+          TAG='${{ steps.version.outputs.release_tag }}'
+
+          git checkout -b "${BRANCH}"
+          nbgv set-version "${NEXT}" -p src/GroundControl.Link
+          git add src/GroundControl.Link/version.json
+          git commit -m "chore(link): bump to ${NEXT}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "chore(link): bump to ${NEXT}" \
+            --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`link-release\` again, or preview builds will collide with the just-published tag."
