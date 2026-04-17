@@ -10,7 +10,7 @@ var mongodb = mongo.AddDatabase("Storage", databaseName: "GroundControl");
 builder.AddProject<Projects.GroundControl_Api>("api")
     .WaitFor(mongodb)
     .WithReference(mongodb)
-    .WithEnvironment("Authentication__AuthenticationMode", "None")
+    .WithEnvironment("Authentication__Mode", "None")
     .WithEnvironment("DataProtection__Mode", "FileSystem")
     .WithHttpHealthCheck("/healthz/ready");
 
