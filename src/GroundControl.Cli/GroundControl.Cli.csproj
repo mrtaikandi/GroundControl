@@ -25,7 +25,7 @@
     <!-- GetBuildVersion is Nerdbank.GitVersioning's target that populates $(Version). -->
     <Target Name="SetPackageReleaseNotesFromVersion" BeforeTargets="GenerateNuspec" DependsOnTargets="GetBuildVersion">
         <PropertyGroup>
-            <PackageReleaseNotes>$(RepositoryUrl)/releases/tag/v$(Version)</PackageReleaseNotes>
+            <PackageReleaseNotes>$(RepositoryUrl)/releases/tag/cli/v$(Version)</PackageReleaseNotes>
         </PropertyGroup>
     </Target>
 

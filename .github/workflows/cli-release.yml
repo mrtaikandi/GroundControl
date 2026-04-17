@@ -1,21 +1,22 @@
-# GroundControl.Link — cut a release and publish to nuget.org.
+# GroundControl.Cli — cut a release and publish to nuget.org.
 #
 # Single, manual workflow for the linear-main release model: main is the
 # only release line, hotfixes move forward. No release branches.
 #
-# Intent is driven by src/GroundControl.Link/version.json:
+# Intent is driven by src/GroundControl.Cli/version.json:
 #   - version contains "-preview"  → publish a prerelease from main.
 #   - version has no prerelease tag → publish a stable release from main,
 #                                     then open a PR bumping main to the
 #                                     next "-preview" development version.
 #
-# In both cases the tag is derived from `nbgv get-version -v SemVer2`, a
-# changelog is generated with git-cliff, a GitHub Release is created, and
-# then the 'publish' job pushes the package to nuget.org via OIDC trusted
-# publishing. The publish job runs in the 'nuget' environment so it can
-# be gated by required reviewers.
+# In both cases the tag is derived from `nbgv get-version -v SemVer2` and
+# prefixed with "cli/" so it doesn't collide with other components' tags.
+# A changelog is generated with git-cliff, a GitHub Release is created,
+# and then the 'publish' job pushes the package to nuget.org via OIDC
+# trusted publishing. The publish job runs in the 'nuget' environment so
+# it can be gated by required reviewers.
 
-name: link-release
+name: cli-release
 
 on:
   workflow_dispatch:
@@ -34,7 +35,7 @@ on:
         default: false
 
 concurrency:
-  group: link-release
+  group: cli-release
   cancel-in-progress: false
 
 permissions:
@@ -78,7 +79,7 @@ jobs:
       - name: Determine release type from version.json
         id: type
         run: |
-          VERSION_FIELD=$(jq -r .version src/GroundControl.Link/version.json)
+          VERSION_FIELD=$(jq -r .version src/GroundControl.Cli/version.json)
           echo "version.json version: ${VERSION_FIELD}"
           case "${VERSION_FIELD}" in
             *-preview*) RELEASE_TYPE=preview ;;
@@ -91,7 +92,7 @@ jobs:
       - name: Compute release version from NBGV
         id: version
         run: |
-          VERSION=$(nbgv get-version -p src/GroundControl.Link -v SemVer2)
+          VERSION=$(nbgv get-version -p src/GroundControl.Cli -v SemVer2)
           echo "NBGV SemVer2: ${VERSION}"
 
           # Sanity-check: NBGV's output must agree with the release type we
@@ -111,7 +112,7 @@ jobs:
           esac
 
           echo "release_version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "release_tag=link/v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=cli/v${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Ensure tag does not already exist
         run: |
@@ -128,7 +129,7 @@ jobs:
       - name: Generate changelog from Conventional Commits
         uses: orhun/git-cliff-action@v4
         with:
-          config: .github/cliff/link.toml
+          config: .github/cliff/cli.toml
           args: --unreleased --tag ${{ steps.version.outputs.release_tag }} --strip header
         env:
           OUTPUT: CHANGES.md
@@ -145,7 +146,7 @@ jobs:
         if: ${{ inputs.dryRun }}
         run: |
           {
-            echo "## Dry run — link ${{ steps.type.outputs.release_type }} release"
+            echo "## Dry run — cli ${{ steps.type.outputs.release_type }} release"
             echo ""
             echo "- Tag: \`${{ steps.version.outputs.release_tag }}\`"
             echo "- Target: \`${{ github.sha }}\`"
@@ -190,7 +191,7 @@ jobs:
           fi
 
           echo "next_version=${NEXT}" >> "$GITHUB_OUTPUT"
-          echo "bump_branch=chore/link-bump-to-${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "bump_branch=chore/cli-bump-to-${NEXT}" >> "$GITHUB_OUTPUT"
           echo "Next development version: ${NEXT}"
 
       - name: Open post-release bump PR (stable path)
@@ -203,16 +204,16 @@ jobs:
           TAG='${{ steps.version.outputs.release_tag }}'
 
           git checkout -b "${BRANCH}"
-          nbgv set-version "${NEXT}" -p src/GroundControl.Link
-          git add src/GroundControl.Link/version.json
-          git commit -m "chore(link): bump to ${NEXT}"
+          nbgv set-version "${NEXT}" -p src/GroundControl.Cli
+          git add src/GroundControl.Cli/version.json
+          git commit -m "chore(cli): bump to ${NEXT}"
           git push origin "${BRANCH}"
 
           gh pr create \
             --base main \
             --head "${BRANCH}" \
-            --title "chore(link): bump to ${NEXT}" \
-            --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`link-release\` again, or preview builds will collide with the just-published tag."
+            --title "chore(cli): bump to ${NEXT}" \
+            --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`cli-release\` again, or preview builds will collide with the just-published tag."
 
   publish:
     name: Publish to nuget.org
@@ -239,9 +240,9 @@ jobs:
 
       - name: Verify NBGV version matches release tag
         run: |
-          NBGV_VERSION=$(nbgv get-version -p src/GroundControl.Link -v SemVer2)
+          NBGV_VERSION=$(nbgv get-version -p src/GroundControl.Cli -v SemVer2)
           TAG='${{ needs.release.outputs.release_tag }}'
-          EXPECTED="${TAG#link/v}"
+          EXPECTED="${TAG#cli/v}"
           echo "NBGV SemVer2      : ${NBGV_VERSION}"
           echo "Expected from tag : ${EXPECTED}"
           if [ "${NBGV_VERSION}" != "${EXPECTED}" ]; then
@@ -258,16 +259,24 @@ jobs:
             nuget-${{ runner.os }}-
 
       - name: Restore
-        run: dotnet restore tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
+        run: dotnet restore tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
 
       - name: Build
-        run: dotnet build tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-restore
+        run: dotnet build tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-build
+        run: dotnet test tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj --configuration Release --no-build
 
       - name: Pack
-        run: dotnet pack src/GroundControl.Link/GroundControl.Link.csproj --configuration Release --no-build --output artifacts/package
+        run: dotnet pack src/GroundControl.Cli/GroundControl.Cli.csproj --configuration Release --no-build --output artifacts/package
+
+      - name: Tool-install smoke test
+        run: |
+          TOOL_VERSION='${{ needs.release.outputs.release_version }}'
+          echo "Installing GroundControl.Cli ${TOOL_VERSION} from packed artifact..."
+          dotnet tool install -g --add-source "${{ github.workspace }}/artifacts/package" GroundControl.Cli --version "${TOOL_VERSION}" --ignore-failed-sources
+          groundcontrol --version
+          dotnet tool uninstall -g GroundControl.Cli
 
       - name: Login to nuget.org via trusted publishing (OIDC)
         id: nuget_login

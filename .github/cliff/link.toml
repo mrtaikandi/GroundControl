@@ -1,5 +1,9 @@
-# git-cliff configuration for GroundControl
+# git-cliff configuration for GroundControl.Link
 # https://git-cliff.org/docs/configuration
+#
+# Used by link-release.yml to generate per-component changelogs. The shared
+# [changelog] template and commit parsers are duplicated between this file
+# and cli.toml — git-cliff does not support config inheritance.
 
 [changelog]
 header = ""
@@ -21,10 +25,11 @@ filter_unconventional = true
 split_commits = false
 protect_breaking_commits = true
 filter_commits = true
-# Only stable tags anchor "last release". Prerelease tags (e.g. v1.0.0-preview.3)
-# are intentionally excluded so each release — preview or stable — shows the
-# cumulative commit set since the last stable release.
-tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+$"
+# Anchor only on stable Link tags so each release (preview or stable) shows
+# the cumulative commit set since the last stable Link release.
+tag_pattern = "link/v[0-9]+\\.[0-9]+\\.[0-9]+$"
+# Only include commits that touched the Link component's source tree.
+include_path = ["src/GroundControl.Link/**", "tests/GroundControl.Link.Tests/**"]
 topo_order = false
 sort_commits = "oldest"
 
