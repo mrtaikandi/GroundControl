@@ -41,7 +41,6 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
-  id-token: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -222,6 +221,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: nuget
+    permissions:
+      contents: write  # gh release upload
+      id-token: write  # OIDC trusted publishing to nuget.org
     steps:
       - name: Checkout released commit
         uses: actions/checkout@v4
@@ -270,12 +272,19 @@ jobs:
       - name: Pack
         run: dotnet pack src/GroundControl.Cli/GroundControl.Cli.csproj --configuration Release --no-build --output artifacts/package
 
+      - name: Put dotnet tools on PATH
+        run: echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
       - name: Tool-install smoke test
         run: |
           TOOL_VERSION='${{ needs.release.outputs.release_version }}'
-          echo "Installing GroundControl.Cli ${TOOL_VERSION} from packed artifact..."
-          dotnet tool install -g --add-source "${{ github.workspace }}/artifacts/package" GroundControl.Cli --version "${TOOL_VERSION}" --ignore-failed-sources
+          echo "Installing GroundControl.Cli ${TOOL_VERSION} from the packed artifact only..."
+          # --source (not --add-source) restricts resolution to the local feed, so a
+          # collision with a same-versioned package already on nuget.org can't silently
+          # pass this test.
+          dotnet tool install -g --source "${{ github.workspace }}/artifacts/package" GroundControl.Cli --version "${TOOL_VERSION}"
           groundcontrol --version
+          groundcontrol --help > /dev/null
           dotnet tool uninstall -g GroundControl.Cli
 
       - name: Login to nuget.org via trusted publishing (OIDC)
