@@ -1,4 +1,4 @@
-# GroundControl.Link — cut a release (preview or stable).
+# GroundControl.Link — cut a release and publish to nuget.org.
 #
 # Single, manual workflow for the linear-main release model: main is the
 # only release line, hotfixes move forward. No release branches.
@@ -9,10 +9,11 @@
 #                                     then open a PR bumping main to the
 #                                     next "-preview" development version.
 #
-# In both cases, the tag is derived from `nbgv get-version -v SemVer2`, a
-# changelog is generated with git-cliff, and a GitHub Release is created.
-# Publishing that release fires link-publish.yml, which pushes the package
-# to nuget.org via OIDC trusted publishing.
+# In both cases the tag is derived from `nbgv get-version -v SemVer2`, a
+# changelog is generated with git-cliff, a GitHub Release is created, and
+# then the 'publish' job pushes the package to nuget.org via OIDC trusted
+# publishing. The publish job runs in the 'nuget' environment so it can
+# be gated by required reviewers.
 
 name: link-release
 
@@ -28,7 +29,7 @@ on:
           - major
         default: minor
       dryRun:
-        description: 'Compute tag and generate changelog, but do not tag, release, or open the bump PR.'
+        description: 'Compute tag and generate changelog, but do not tag, release, publish, or open the bump PR.'
         type: boolean
         default: false
 
@@ -39,12 +40,19 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 
 jobs:
   release:
     name: Cut release
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_version: ${{ steps.version.outputs.release_version }}
+      release_type: ${{ steps.type.outputs.release_type }}
+      release_sha: ${{ github.sha }}
+      release_created: ${{ steps.create_release.outputs.created }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -145,6 +153,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub Release
+        id: create_release
         if: ${{ !inputs.dryRun }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -155,6 +164,7 @@ jobs:
             ${PRERELEASE_FLAG} \
             --title "${{ steps.version.outputs.release_tag }}" \
             --notes-file CHANGES.md
+          echo "created=true" >> "$GITHUB_OUTPUT"
 
       - name: Compute next development version (stable path)
         id: next
@@ -200,3 +210,80 @@ jobs:
             --head "${BRANCH}" \
             --title "chore(link): bump to ${NEXT}" \
             --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`link-release\` again, or preview builds will collide with the just-published tag."
+
+  publish:
+    name: Publish to nuget.org
+    needs: release
+    if: ${{ needs.release.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: nuget
+    steps:
+      - name: Checkout released commit
+        uses: actions/checkout@v4
+        with:
+          # Pin to the exact SHA the release job tagged, so the package we
+          # push matches the GitHub Release byte-for-byte even if main has
+          # moved on (e.g. the post-release bump PR was merged quickly).
+          ref: ${{ needs.release.outputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+
+      - name: Install nbgv
+        run: dotnet tool install -g nbgv
+
+      - name: Verify NBGV version matches release tag
+        run: |
+          NBGV_VERSION=$(nbgv get-version -p src/GroundControl.Link -v SemVer2)
+          TAG='${{ needs.release.outputs.release_tag }}'
+          EXPECTED="${TAG#v}"
+          echo "NBGV SemVer2      : ${NBGV_VERSION}"
+          echo "Expected from tag : ${EXPECTED}"
+          if [ "${NBGV_VERSION}" != "${EXPECTED}" ]; then
+            echo "::error::NBGV version ${NBGV_VERSION} does not match release tag ${TAG} (expected ${EXPECTED})"
+            exit 1
+          fi
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
+
+      - name: Build
+        run: dotnet build tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-build
+
+      - name: Pack
+        run: dotnet pack src/GroundControl.Link/GroundControl.Link.csproj --configuration Release --no-build --output artifacts/package
+
+      - name: Login to nuget.org via trusted publishing (OIDC)
+        id: nuget_login
+        uses: NuGet/login@v1
+        with:
+          user: mrtaikandi
+
+      - name: Push to nuget.org
+        run: |
+          dotnet nuget push 'artifacts/package/*.nupkg' \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key '${{ steps.nuget_login.outputs.NUGET_API_KEY }}' \
+            --skip-duplicate
+
+      - name: Attach package to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload '${{ needs.release.outputs.release_tag }}' \
+            artifacts/package/*.nupkg \
+            artifacts/package/*.snupkg \
+            --clobber
