@@ -68,14 +68,16 @@ jobs:
         run: dotnet build tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-build -- --report-trx --report-trx-filename test_results.trx --results-directory artifacts/test-results
+        run: dotnet test tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj --configuration Release --no-build -- --report-trx --report-trx-filename test_results.trx --results-directory "${{ github.workspace }}/artifacts/test-results" --diagnostic --diagnostic-output-directory "${{ github.workspace }}/artifacts/test-diagnostics"
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: link-test-results
-          path: artifacts/test-results/**/*.trx
+          path: |
+            artifacts/test-results/**/*.trx
+            artifacts/test-diagnostics/**/*
           if-no-files-found: warn
 
       - name: Pack
