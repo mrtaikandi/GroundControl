@@ -1,105 +1,47 @@
 # Deploying GroundControl
 
+> **Heads up:** GroundControl is still under active development. This guide covers **local development only** — running the server on your machine for evaluation or contribution. Production-deployment guidance (multi-instance hardening, Data Protection key management, change-notifier topology, container images) will be published in a later release.
+
 ## Prerequisites
 
-- MongoDB 6+ configured as a replica set (required for change streams)
-- Docker (recommended) or .NET 10 runtime
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/dotnet-aspire-cli)
+- [Docker](https://docs.docker.com/get-docker/) (used by Aspire to run MongoDB)
 
-## Docker Compose (recommended)
+## Local development with Aspire (recommended)
 
-This is the fastest way to run GroundControl with MongoDB.
-
-Create a `docker-compose.yml`:
-
-```yaml
-name: groundcontrol
-
-services:
-  mongodb:
-    image: mongo:8
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
-    volumes:
-      - mongo_data:/data/db
-      - ./build/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "try { rs.status().ok } catch(e) { quit(1) }"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - groundcontrol_net
-
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    volumes:
-      - dp_keys:/keys
-    environment:
-      ConnectionStrings__Storage: "mongodb://mongodb:27017/?replicaSet=rs0"
-      Persistence__MongoDb__DatabaseName: "groundcontrol"
-      Authentication__Mode: "None"
-      DataProtection__Mode: "FileSystem"
-      DataProtection__KeyStorePath: "/keys"
-      ChangeNotifier__Mode: "InProcess"
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/healthz/ready || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    networks:
-      - groundcontrol_net
-
-volumes:
-  mongo_data:
-  dp_keys:
-
-networks:
-  groundcontrol_net:
-    driver: bridge
-```
-
-Start:
+The `GroundControl.AppHost` project orchestrates a standalone MongoDB container and the API via the .NET Aspire hosting integrations. A single command starts everything:
 
 ```bash
-docker compose up -d
+aspire start src/GroundControl.AppHost
 ```
 
-Verify:
+The Aspire dashboard opens automatically and lists each resource with its URL, logs, and health. The API is pre-configured with `Authentication:Mode = None` and `DataProtection:Mode = FileSystem`, which is suitable for local experimentation only.
+
+Verify the API is ready:
 
 ```bash
-curl http://localhost:8080/healthz/ready
+curl http://localhost:8080/healthz/ready   # substitute the URL from the dashboard
 ```
 
-> **Note:** The `dp_keys` volume persists Data Protection keys across container restarts. Losing these keys means encrypted values (sensitive config, auth tokens) become unreadable.
+## Running without Aspire
 
-## Running without Docker
-
-If you prefer running GroundControl directly:
+If you prefer to run the API directly against your own MongoDB instance — for example, when contributing and debugging a single project — set the required environment variables and run `dotnet run`:
 
 ```bash
-# Set environment variables
-export ConnectionStrings__Storage="mongodb://localhost:27017/?replicaSet=rs0"
+export ConnectionStrings__Storage="mongodb://localhost:27017"
 export Persistence__MongoDb__DatabaseName="groundcontrol"
 export Authentication__Mode="None"
 
-# Run the server
 dotnet run --project src/GroundControl.Api
 ```
 
-Or use `appsettings.json`:
+Or use `appsettings.Development.json`:
 
 ```json
 {
   "ConnectionStrings": {
-    "Storage": "mongodb://localhost:27017/?replicaSet=rs0"
+    "Storage": "mongodb://localhost:27017"
   },
   "Persistence": {
     "MongoDb": {
@@ -112,52 +54,22 @@ Or use `appsettings.json`:
 }
 ```
 
-## MongoDB replica set requirement
+## MongoDB topology
 
-GroundControl requires MongoDB to run as a replica set, even in single-node deployments. This is because the change notification system uses MongoDB change streams to detect snapshot activations and push updates to connected clients in real time.
+The local Aspire setup runs MongoDB as a **standalone** instance paired with the `InProcess` change notifier, so no replica set is required for development.
 
-For a single-node replica set (development or homelab):
-
-```javascript
-// Connect to mongosh and initialize
-rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "localhost:27017" }] })
-```
-
-The Docker Compose example handles this automatically with the `mongo-init.js` script.
+Switching the server to `ChangeNotifier:Mode = MongoChangeStream` (needed for running multiple API instances against a shared database) will require MongoDB to be configured as a replica set, since change streams depend on the oplog. Detailed guidance for that topology will land with the production-deployment guide.
 
 ## Health checks
 
-GroundControl exposes two health endpoints:
+GroundControl exposes two health endpoints that are useful during local development and will remain the contract for production probes:
 
 | Endpoint | Purpose | Checks |
 |---|---|---|
 | `GET /healthz/liveness` | Process is running | None (always returns 200) |
 | `GET /healthz/ready` | Ready to serve requests | MongoDB connectivity, change notifier |
 
-Use these for container orchestration:
-
-- **Liveness probe:** `/healthz/liveness` — restart the container if this fails
-- **Readiness probe:** `/healthz/ready` — remove from load balancer if this fails
-
-## Scaling to multiple instances
-
-For multi-instance deployments (Kubernetes, multiple Docker containers behind a load balancer):
-
-1. Set `ChangeNotifier__Mode` to `MongoChangeStream` — this uses MongoDB change streams so all instances detect snapshot activations, not just the one that published
-2. Use a shared Data Protection key store (Redis, Azure Blob, or a shared file system) so all instances can encrypt/decrypt consistently
-3. Point all instances at the same MongoDB replica set
-
-See [Configuration](configuration.md) for all server settings.
-
-## Deployment models
-
-| Model | Instances | Change Notifier | Data Protection | Use case |
-|---|---|---|---|---|
-| Homelab | 1 | `InProcess` | `FileSystem` | Development, personal projects |
-| Kubernetes | N | `MongoChangeStream` | `Redis` or `Azure` | Production, team use |
-| Multi-region | N per region | `MongoChangeStream` | `Azure` | Global deployments |
-
 ## What's next?
 
 - [Configuration](configuration.md) — all server settings
-- [Authentication](authentication.md) — set up auth for production
+- [Authentication](authentication.md) — authentication modes (set to `None` by the local AppHost)

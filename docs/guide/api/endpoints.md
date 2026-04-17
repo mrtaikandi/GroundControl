@@ -410,6 +410,14 @@ All values are strings. The SDK and your application handle type conversion.
 
 The GET endpoint supports conditional requests -- pass `If-None-Match: "ETAG"` to receive `304 Not Modified` when config hasn't changed.
 
+**Providing extra scopes at request time.** Clients (either `/client/config` or `/client/config/stream`) may send a `GroundControl-Scopes` header with additional scope dimensions beyond those bound to the Client entity. The value is a comma-separated list of URL-encoded `dimension:value` pairs, for example:
+
+```
+GroundControl-Scopes: Environment:prod,Region:eu-west
+```
+
+The server merges these with the Client entity's server-defined scopes. On key conflict, the server-defined scopes take priority. The `GroundControl.Link` SDK emits this header automatically when the `Scopes` option is populated.
+
 ---
 
 ## Health
