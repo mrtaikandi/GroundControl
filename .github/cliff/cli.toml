@@ -1,0 +1,60 @@
+# git-cliff configuration for GroundControl.Cli
+# https://git-cliff.org/docs/configuration
+#
+# Used by cli-release.yml to generate per-component changelogs. The shared
+# [changelog] template and commit parsers are duplicated between this file
+# and link.toml — git-cliff does not support config inheritance.
+
+[changelog]
+header = ""
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+
+{% for commit in commits -%}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/mrtaikandi/GroundControl/commit/{{ commit.id }})){% if commit.breaking %} [**breaking**]{% endif %}
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+protect_breaking_commits = true
+filter_commits = true
+# Anchor only on stable Cli tags so each release (preview or stable) shows
+# the cumulative commit set since the last stable Cli release.
+tag_pattern = "cli/v[0-9]+\\.[0-9]+\\.[0-9]+$"
+# Include Cli's source tree plus the projects it references (Api.Client,
+# Host.Cli). Changes in those are shipped inside the Cli package.
+include_path = [
+    "src/GroundControl.Cli/**",
+    "src/GroundControl.Api.Client/**",
+    "src/GroundControl.Host.Cli/**",
+    "tests/GroundControl.Cli.Tests/**",
+]
+topo_order = false
+sort_commits = "oldest"
+
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Fixes" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactors" },
+    { message = "^docs", group = "Documentation" },
+    { message = "^test", group = "Tests" },
+    { message = "^build", group = "Build" },
+    { message = "^ci", group = "CI" },
+    { message = "^chore\\(release\\)", skip = true },
+    { message = "^chore\\(deps\\)", skip = true },
+    { message = "^chore", group = "Chores" },
+    { message = "^revert", group = "Reverts" },
+    { body = ".*security", group = "Security" },
+]
+
+commit_preprocessors = [
+    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/mrtaikandi/GroundControl/issues/${2}))" },
+]

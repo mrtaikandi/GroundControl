@@ -1,0 +1,115 @@
+# GroundControl.Cli — continuous integration.
+#
+# Runs on every pull request and on pushes to main that touch the Cli or
+# the projects it bundles (Api.Client, Host.Cli). Restores, builds, tests,
+# and packs the GroundControl.Cli .NET global tool; uploads the produced
+# .nupkg/.snupkg and .trx test results as workflow artifacts for
+# inspection. Does NOT publish to any package feed — publishing is handled
+# exclusively by cli-release.yml.
+
+name: cli-ci
+
+on:
+  pull_request:
+    paths:
+      - 'src/GroundControl.Cli/**'
+      - 'src/GroundControl.Api.Client/**'
+      - 'src/GroundControl.Host.Cli/**'
+      - 'tests/GroundControl.Cli.Tests/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - 'version.json'
+      - '.github/workflows/cli-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/GroundControl.Cli/**'
+      - 'src/GroundControl.Api.Client/**'
+      - 'src/GroundControl.Host.Cli/**'
+      - 'tests/GroundControl.Cli.Tests/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - 'version.json'
+      - '.github/workflows/cli-ci.yml'
+
+concurrency:
+  group: cli-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-test:
+    name: Build, test & pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
+
+      - name: Build
+        run: dotnet build tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj --configuration Release --no-build -- --report-xunit-trx --report-xunit-trx-filename test_results.trx --results-directory "${{ github.workspace }}/artifacts/test-results"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-test-results
+          path: artifacts/test-results/**/*.trx
+          if-no-files-found: warn
+
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Cli tests
+          path: artifacts/test-results/**/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false
+
+      - name: Pack
+        run: dotnet pack src/GroundControl.Cli/GroundControl.Cli.csproj --configuration Release --no-build --output artifacts/package
+
+      - name: Tool-install smoke test
+        run: |
+          TOOL_VERSION=$(ls artifacts/package/GroundControl.Cli.*.nupkg | sed -E 's|.*/GroundControl\.Cli\.(.+)\.nupkg$|\1|' | head -n1)
+          echo "Installing GroundControl.Cli ${TOOL_VERSION} from local feed..."
+          dotnet tool install -g --add-source "${{ github.workspace }}/artifacts/package" GroundControl.Cli --version "${TOOL_VERSION}" --ignore-failed-sources
+          groundcontrol --version
+          dotnet tool uninstall -g GroundControl.Cli
+
+      - name: Upload NuGet package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-nupkg
+          path: |
+            artifacts/package/*.nupkg
+            artifacts/package/*.snupkg
+          if-no-files-found: error
