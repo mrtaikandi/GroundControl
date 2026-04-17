@@ -10,7 +10,8 @@ namespace GroundControl.Link.Internals.Cache;
 /// <remarks>
 /// When an <see cref="IConfigurationProtector"/> is supplied, every value in the cache file is encrypted
 /// and prefixed with <c>***ENCRYPTED:</c>. The marker lets the reader detect a mismatched configuration
-/// (cache written with a protector but read without one, or vice versa) and invalidate the file.
+/// (cache written with a protector but read without one, or vice versa) and treat the file as a cache miss;
+/// the next <see cref="SaveAsync"/> atomically overwrites it.
 /// </remarks>
 internal sealed class FileConfigurationCache : IConfigurationCache
 {
@@ -185,14 +186,12 @@ internal sealed class FileConfigurationCache : IConfigurationCache
             if (isEncrypted && _protector is null)
             {
                 _logger.LogCacheProtectorMissing();
-                InvalidateCacheFile();
                 return null;
             }
 
             if (!isEncrypted && _protector is not null)
             {
                 _logger.LogCacheUnexpectedPlaintext();
-                InvalidateCacheFile();
                 return null;
             }
 
@@ -206,7 +205,6 @@ internal sealed class FileConfigurationCache : IConfigurationCache
                 catch (Exception ex)
                 {
                     _logger.LogCacheDecryptFailed(ex);
-                    InvalidateCacheFile();
                     return null;
                 }
             }
@@ -247,19 +245,6 @@ internal sealed class FileConfigurationCache : IConfigurationCache
         return JsonSerializer.Serialize(cacheFile, SerializerOptions);
     }
 
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Best-effort invalidation must never throw over the caller")]
-    private void InvalidateCacheFile()
-    {
-        try
-        {
-            File.Delete(_cachePath);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogCacheInvalidationFailed(ex);
-        }
-    }
-
     internal sealed class CacheEnvelope
     {
         public string? ETag { get; init; }
@@ -280,15 +265,12 @@ internal static partial class FileConfigCacheLogs
     [LoggerMessage(2, LogLevel.Warning, "Failed to read local cache file.")]
     public static partial void LogCacheReadFailed(this ILogger<FileConfigurationCache> logger, Exception exception);
 
-    [LoggerMessage(3, LogLevel.Warning, "Cache contains encrypted values but no IConfigurationProtector is configured; invalidating local cache.")]
+    [LoggerMessage(3, LogLevel.Warning, "Cache contains encrypted values but no IConfigurationProtector is configured; treating as cache miss.")]
     public static partial void LogCacheProtectorMissing(this ILogger<FileConfigurationCache> logger);
 
-    [LoggerMessage(4, LogLevel.Warning, "Cache contains unprotected values but an IConfigurationProtector is configured; invalidating local cache to prevent a silent downgrade.")]
+    [LoggerMessage(4, LogLevel.Warning, "Cache contains unprotected values but an IConfigurationProtector is configured; treating as cache miss to prevent a silent downgrade.")]
     public static partial void LogCacheUnexpectedPlaintext(this ILogger<FileConfigurationCache> logger);
 
-    [LoggerMessage(5, LogLevel.Warning, "Failed to decrypt a cached value; invalidating local cache.")]
+    [LoggerMessage(5, LogLevel.Warning, "Failed to decrypt a cached value; treating as cache miss.")]
     public static partial void LogCacheDecryptFailed(this ILogger<FileConfigurationCache> logger, Exception exception);
-
-    [LoggerMessage(6, LogLevel.Warning, "Failed to delete invalidated cache file.")]
-    public static partial void LogCacheInvalidationFailed(this ILogger<FileConfigurationCache> logger, Exception exception);
 }

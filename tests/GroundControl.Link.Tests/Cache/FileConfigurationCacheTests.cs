@@ -191,7 +191,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadAsync_EncryptedValuesWithoutProtector_InvalidatesCacheAndReturnsNull()
+    public async Task LoadAsync_EncryptedValuesWithoutProtector_ReturnsNull()
     {
         // Arrange — write encrypted values using a protector
         using var encryptedCache = CreateCache(protector: new XorProtector());
@@ -204,11 +204,10 @@ public sealed class FileConfigurationCacheTests : IDisposable
 
         // Assert
         result.ShouldBeNull();
-        File.Exists(_cachePath).ShouldBeFalse();
     }
 
     [Fact]
-    public async Task LoadAsync_PlaintextValuesWithProtector_InvalidatesCacheAndReturnsNull()
+    public async Task LoadAsync_PlaintextValuesWithProtector_ReturnsNull()
     {
         // Arrange — write plaintext values
         using var plainCache = CreateCache();
@@ -221,11 +220,10 @@ public sealed class FileConfigurationCacheTests : IDisposable
 
         // Assert
         result.ShouldBeNull();
-        File.Exists(_cachePath).ShouldBeFalse();
     }
 
     [Fact]
-    public async Task LoadAsync_UnprotectThrows_InvalidatesCacheAndReturnsNull()
+    public async Task LoadAsync_UnprotectThrows_ReturnsNull()
     {
         // Arrange — write with one protector, read with another that rejects the ciphertext
         using var writeCache = CreateCache(protector: new XorProtector());
@@ -239,7 +237,6 @@ public sealed class FileConfigurationCacheTests : IDisposable
 
         // Assert
         result.ShouldBeNull();
-        File.Exists(_cachePath).ShouldBeFalse();
     }
 
     [Fact]
