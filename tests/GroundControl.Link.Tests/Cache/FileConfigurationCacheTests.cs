@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.DataProtection;
+using System.Text;
 
 namespace GroundControl.Link.Tests.Cache;
 
@@ -138,11 +138,10 @@ public sealed class FileConfigurationCacheTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveAsync_WithDataProtection_EncryptsValuesInFile()
+    public async Task SaveAsync_WithProtector_EncryptsValuesInFile()
     {
         // Arrange
-        var (provider, _) = CreateMockDataProtection();
-        using var cache = CreateCache(dataProtection: provider);
+        using var cache = CreateCache(protector: new XorProtector());
         var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
 
         // Act
@@ -155,11 +154,10 @@ public sealed class FileConfigurationCacheTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveAsync_ThenLoadAsync_WithDataProtection_DecryptsValues()
+    public async Task SaveAsync_ThenLoadAsync_WithProtector_DecryptsValues()
     {
         // Arrange
-        var (provider, _) = CreateMockDataProtection();
-        using var cache = CreateCache(dataProtection: provider);
+        using var cache = CreateCache(protector: new XorProtector());
         var config = new Dictionary<string, string>
         {
             ["Secret"] = "my-password",
@@ -177,7 +175,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveAsync_WithoutDataProtection_StoresPlaintext()
+    public async Task SaveAsync_WithoutProtector_StoresPlaintext()
     {
         // Arrange
         using var cache = CreateCache();
@@ -193,20 +191,55 @@ public sealed class FileConfigurationCacheTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadAsync_EncryptedValuesWithoutProtector_ReturnsNull()
+    public async Task LoadAsync_EncryptedValuesWithoutProtector_InvalidatesCacheAndReturnsNull()
     {
-        // Arrange — write encrypted values using DataProtection
-        var (provider, _) = CreateMockDataProtection();
-        using var encryptedCache = CreateCache(dataProtection: provider);
+        // Arrange — write encrypted values using a protector
+        using var encryptedCache = CreateCache(protector: new XorProtector());
         var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
         await encryptedCache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
-        // Act — read without DataProtection
+        // Act — read without a protector
         using var plainCache = CreateCache();
         var result = await plainCache.LoadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldBeNull();
+        File.Exists(_cachePath).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task LoadAsync_PlaintextValuesWithProtector_InvalidatesCacheAndReturnsNull()
+    {
+        // Arrange — write plaintext values
+        using var plainCache = CreateCache();
+        var config = new Dictionary<string, string> { ["Key1"] = "value" };
+        await plainCache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
+
+        // Act — read with a protector configured (downgrade prevention)
+        using var encryptedCache = CreateCache(protector: new XorProtector());
+        var result = await encryptedCache.LoadAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldBeNull();
+        File.Exists(_cachePath).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task LoadAsync_UnprotectThrows_InvalidatesCacheAndReturnsNull()
+    {
+        // Arrange — write with one protector, read with another that rejects the ciphertext
+        using var writeCache = CreateCache(protector: new XorProtector());
+        var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
+        await writeCache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
+
+        using var readCache = CreateCache(protector: new ThrowingProtector());
+
+        // Act
+        var result = await readCache.LoadAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldBeNull();
+        File.Exists(_cachePath).ShouldBeFalse();
     }
 
     [Fact]
@@ -331,53 +364,40 @@ public sealed class FileConfigurationCacheTests : IDisposable
         result.ShouldBeNull();
     }
 
-    private FileConfigurationCache CreateCache(string? cachePath = null, IDataProtectionProvider? dataProtection = null) =>
+    private FileConfigurationCache CreateCache(string? cachePath = null, IConfigurationProtector? protector = null) =>
         new(
             new GroundControlOptions
             {
                 ServerUrl = new Uri("http://localhost"),
                 ClientId = "test-client",
                 ClientSecret = "test-secret",
-                CacheFilePath = cachePath ?? _cachePath
+                CacheFilePath = cachePath ?? _cachePath,
+                Protector = protector
             },
-            NullLogger<FileConfigurationCache>.Instance,
-            dataProtection);
+            NullLogger<FileConfigurationCache>.Instance);
 
-    // Mocks the byte[] overloads — the string Protect/Unprotect extension methods
-    // in DataProtectionCommonExtensions delegate to these via UTF-8 + Base64Url encoding.
-    private static (IDataProtectionProvider Provider, IDataProtector Protector) CreateMockDataProtection()
+    private sealed class XorProtector : IConfigurationProtector
     {
-        var protector = Substitute.For<IDataProtector>();
+        public string Protect(string plaintext) => Convert.ToBase64String(Xor(Encoding.UTF8.GetBytes(plaintext)));
 
-        protector.Protect(Arg.Any<byte[]>())
-            .Returns(callInfo =>
+        public string Unprotect(string ciphertext) => Encoding.UTF8.GetString(Xor(Convert.FromBase64String(ciphertext)));
+
+        private static byte[] Xor(byte[] input)
+        {
+            var output = new byte[input.Length];
+            for (var i = 0; i < input.Length; i++)
             {
-                var input = callInfo.Arg<byte[]>();
-                var output = new byte[input.Length];
-                for (var i = 0; i < input.Length; i++)
-                {
-                    output[i] = (byte)(input[i] ^ 0xFF);
-                }
+                output[i] = (byte)(input[i] ^ 0xFF);
+            }
 
-                return output;
-            });
+            return output;
+        }
+    }
 
-        protector.Unprotect(Arg.Any<byte[]>())
-            .Returns(callInfo =>
-            {
-                var input = callInfo.Arg<byte[]>();
-                var output = new byte[input.Length];
-                for (var i = 0; i < input.Length; i++)
-                {
-                    output[i] = (byte)(input[i] ^ 0xFF);
-                }
+    private sealed class ThrowingProtector : IConfigurationProtector
+    {
+        public string Protect(string plaintext) => plaintext;
 
-                return output;
-            });
-
-        var provider = Substitute.For<IDataProtectionProvider>();
-        provider.CreateProtector(Arg.Any<string>()).Returns(protector);
-
-        return (provider, protector);
+        public string Unprotect(string ciphertext) => throw new InvalidOperationException("decryption failed");
     }
 }
