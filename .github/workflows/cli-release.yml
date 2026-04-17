@@ -9,16 +9,23 @@
 #                                     then open a PR bumping main to the
 #                                     next "-preview" development version.
 #
-# In both cases the tag is derived from `nbgv get-version -v SemVer2` and
-# prefixed with "cli/" so it doesn't collide with other components' tags.
-# A changelog is generated with git-cliff, a GitHub Release is created,
-# then the shared 'build' job (via _build-template.yml) packs and smoke-
-# tests the global tool at the validated main-tip SHA, and finally the
-# 'publish' job downloads that artifact and pushes it to nuget.org via
-# OIDC trusted publishing. The publish job runs in the 'nuget' environment
-# so it can be gated by required reviewers. The nupkg attached to the
-# GitHub Release is the exact artifact pushed to nuget.org (single
-# provenance path).
+# Job order (release atomicity — no side effect runs until every fallible
+# check has passed):
+#
+#   preflight → build → release → publish → bump-pr
+#
+#   preflight: validation + changelog generation (no side effects).
+#   build:     invokes _build-template.yml at the validated main-tip SHA.
+#              For the CLI this also smoke-tests the packed global tool.
+#   release:   gh release create (first reversible side effect).
+#   publish:   dotnet nuget push + gh release upload (irreversible).
+#   bump-pr:   stable path only; opens the next-dev bump PR after publish.
+#
+# Tags are prefixed with "cli/" so they don't collide with other
+# components' tags. publish runs in the 'nuget' environment so it can
+# be gated by required reviewers. The nupkg attached to the GitHub
+# Release is the exact artifact pushed to nuget.org (single provenance
+# path).
 
 name: cli-release
 
@@ -34,7 +41,7 @@ on:
           - major
         default: minor
       dryRun:
-        description: 'Compute tag and generate changelog, but do not tag, release, publish, or open the bump PR.'
+        description: 'Run preflight + build (incl. tests and smoke test) but do not tag, release, publish, or open the bump PR.'
         type: boolean
         default: false
 
@@ -42,28 +49,25 @@ concurrency:
   group: cli-release
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
-  release:
-    name: Cut release
+  preflight:
+    name: Preflight checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     outputs:
       release_tag: ${{ steps.version.outputs.release_tag }}
       release_version: ${{ steps.version.outputs.release_version }}
       release_type: ${{ steps.type.outputs.release_type }}
+      version_field: ${{ steps.type.outputs.version_field }}
       release_sha: ${{ github.sha }}
-      release_created: ${{ steps.create_release.outputs.created }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Assert dispatch is at main tip
         run: |
@@ -82,11 +86,6 @@ jobs:
 
       - name: Install nbgv
         run: dotnet tool install -g nbgv
-
-      - name: Configure git identity
-        run: |
-          git config user.name  'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
       - name: Determine release type from version.json
         id: type
@@ -154,6 +153,13 @@ jobs:
             exit 1
           fi
 
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-release-changelog
+          path: CHANGES.md
+          if-no-files-found: error
+
       - name: Dry-run summary
         if: ${{ inputs.dryRun }}
         run: |
@@ -168,69 +174,9 @@ jobs:
             if [ -s CHANGES.md ]; then cat CHANGES.md; else echo "_(empty)_"; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Create GitHub Release
-        id: create_release
-        if: ${{ !inputs.dryRun }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PRERELEASE_FLAG: ${{ steps.type.outputs.release_type == 'preview' && '--prerelease' || '' }}
-        run: |
-          gh release create "${{ steps.version.outputs.release_tag }}" \
-            --target "${{ github.sha }}" \
-            ${PRERELEASE_FLAG} \
-            --title "${{ steps.version.outputs.release_tag }}" \
-            --notes-file CHANGES.md
-          echo "created=true" >> "$GITHUB_OUTPUT"
-
-      - name: Compute next development version (stable path)
-        id: next
-        if: ${{ !inputs.dryRun && steps.type.outputs.release_type == 'stable' }}
-        run: |
-          CURRENT='${{ steps.type.outputs.version_field }}'
-          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT}"
-          PATCH=${PATCH:-0}
-
-          case '${{ inputs.versionIncrement }}' in
-            patch) PATCH=$((PATCH + 1)) ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-          esac
-
-          if [ "${PATCH}" = "0" ]; then
-            NEXT="${MAJOR}.${MINOR}-preview"
-          else
-            NEXT="${MAJOR}.${MINOR}.${PATCH}-preview"
-          fi
-
-          echo "next_version=${NEXT}" >> "$GITHUB_OUTPUT"
-          echo "bump_branch=chore/cli-bump-to-${NEXT}" >> "$GITHUB_OUTPUT"
-          echo "Next development version: ${NEXT}"
-
-      - name: Open post-release bump PR (stable path)
-        if: ${{ !inputs.dryRun && steps.type.outputs.release_type == 'stable' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          BRANCH='${{ steps.next.outputs.bump_branch }}'
-          NEXT='${{ steps.next.outputs.next_version }}'
-          TAG='${{ steps.version.outputs.release_tag }}'
-
-          git checkout -b "${BRANCH}"
-          nbgv set-version "${NEXT}" -p src/GroundControl.Cli
-          git add src/GroundControl.Cli/version.json
-          git commit -m "chore(cli): bump to ${NEXT}"
-          git push origin "${BRANCH}"
-
-          gh pr create \
-            --base main \
-            --head "${BRANCH}" \
-            --title "chore(cli): bump to ${NEXT}" \
-            --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`cli-release\` again, or preview builds will collide with the just-published tag."
-
   build:
     name: Build release artifact
-    needs: release
-    if: ${{ needs.release.outputs.release_created == 'true' }}
+    needs: preflight
     permissions:
       contents: read
       checks: write  # test-reporter check run published by _build-template.yml
@@ -242,11 +188,46 @@ jobs:
       pack-project: src/GroundControl.Cli/GroundControl.Cli.csproj
       is-tool: true
       tool-command: groundcontrol
-      ref: ${{ needs.release.outputs.release_sha }}
+      ref: ${{ needs.preflight.outputs.release_sha }}
+
+  release:
+    name: Create GitHub Release
+    needs: [preflight, build]
+    if: ${{ !inputs.dryRun }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write  # gh release create + tag
+    outputs:
+      release_created: ${{ steps.create_release.outputs.created }}
+    steps:
+      - name: Checkout released commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.preflight.outputs.release_sha }}
+          fetch-depth: 1
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-release-changelog
+
+      - name: Create GitHub Release
+        id: create_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE_FLAG: ${{ needs.preflight.outputs.release_type == 'preview' && '--prerelease' || '' }}
+        run: |
+          gh release create "${{ needs.preflight.outputs.release_tag }}" \
+            --target "${{ needs.preflight.outputs.release_sha }}" \
+            ${PRERELEASE_FLAG} \
+            --title "${{ needs.preflight.outputs.release_tag }}" \
+            --notes-file CHANGES.md
+          echo "created=true" >> "$GITHUB_OUTPUT"
 
   publish:
     name: Publish to nuget.org
-    needs: [release, build]
+    needs: [preflight, release]
     if: ${{ needs.release.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -278,7 +259,78 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload '${{ needs.release.outputs.release_tag }}' \
+          gh release upload '${{ needs.preflight.outputs.release_tag }}' \
             artifacts/package/*.nupkg \
             artifacts/package/*.snupkg \
             --clobber
+
+  bump-pr:
+    name: Open post-release bump PR
+    needs: [preflight, release, publish]
+    if: ${{ needs.release.outputs.release_created == 'true' && needs.preflight.outputs.release_type == 'stable' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write       # push bump branch
+      pull-requests: write  # gh pr create
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+
+      - name: Install nbgv
+        run: dotnet tool install -g nbgv
+
+      - name: Configure git identity
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Compute next development version
+        id: next
+        run: |
+          CURRENT='${{ needs.preflight.outputs.version_field }}'
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT}"
+          PATCH=${PATCH:-0}
+
+          case '${{ inputs.versionIncrement }}' in
+            patch) PATCH=$((PATCH + 1)) ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+          esac
+
+          if [ "${PATCH}" = "0" ]; then
+            NEXT="${MAJOR}.${MINOR}-preview"
+          else
+            NEXT="${MAJOR}.${MINOR}.${PATCH}-preview"
+          fi
+
+          echo "next_version=${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "bump_branch=chore/cli-bump-to-${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "Next development version: ${NEXT}"
+
+      - name: Open bump PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH='${{ steps.next.outputs.bump_branch }}'
+          NEXT='${{ steps.next.outputs.next_version }}'
+          TAG='${{ needs.preflight.outputs.release_tag }}'
+
+          git checkout -b "${BRANCH}"
+          nbgv set-version "${NEXT}" -p src/GroundControl.Cli
+          git add src/GroundControl.Cli/version.json
+          git commit -m "chore(cli): bump to ${NEXT}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "chore(cli): bump to ${NEXT}" \
+            --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`cli-release\` again, or preview builds will collide with the just-published tag."
