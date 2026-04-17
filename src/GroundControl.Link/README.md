@@ -66,7 +66,13 @@ options.EnableLocalCache = true;
 options.CacheFilePath    = "./groundcontrol-cache.json"; // default
 ```
 
-If ASP.NET Core Data Protection is registered, cached values are encrypted at rest automatically.
+Cached values are written in plaintext by default. To encrypt them at rest, implement `IConfigurationProtector` and assign it to `options.Protector`:
+
+```csharp
+options.Protector = new MyProtector(); // implements IConfigurationProtector
+```
+
+The SDK treats the ciphertext returned by `Protect` as opaque — key rotation and algorithm versioning are the implementation's responsibility. If `Unprotect` throws (tampering, wrong key, unrecognized format), the cache file is invalidated and the SDK refetches from the server.
 
 ## Health Checks
 
@@ -107,6 +113,7 @@ The SDK emits OpenTelemetry metrics under the `GroundControl.Link` meter:
 | `SseHeartbeatTimeout` | `TimeSpan` | 2 min | SSE stream idle timeout |
 | `EnableLocalCache` | `bool` | `true` | Enable file-based caching |
 | `CacheFilePath` | `string` | `./groundcontrol-cache.json` | Cache file path |
+| `Protector` | `IConfigurationProtector?` | `null` | Optional cipher for cache values; `null` means plaintext cache |
 | `ApiVersion` | `string` | `1.0` | API version header value |
 | `HealthCheckTags` | `IList<string>` | `["ready"]` | Health check tags |
 
