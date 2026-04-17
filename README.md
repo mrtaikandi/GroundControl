@@ -70,7 +70,7 @@ GroundControl is built on **.NET 10** with **ASP.NET Core Minimal APIs** and **M
 aspire start src/GroundControl.AppHost
 ```
 
-The Aspire dashboard opens automatically for monitoring. The API is available at the URL shown in the dashboard output. The AppHost configures `Authentication__AuthenticationMode` to `None` (all endpoints open) — suitable for local development only. Switch to `BuiltIn` or `External` before exposing the server on a network. See [Server — Authentication](docs/guide/server/authentication.md) for details.
+The Aspire dashboard opens automatically for monitoring. The API is available at the URL shown in the dashboard output. The AppHost configures `Authentication__Mode` to `None` (all endpoints open) — suitable for local development only. Switch to `BuiltIn` or `External` before exposing the server on a network. See [Server — Authentication](docs/guide/server/authentication.md) for details.
 
 ### 2. Install and use the CLI
 

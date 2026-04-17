@@ -14,78 +14,31 @@ graph LR
 
 ## Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) and Docker Compose installed
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) (for the client application)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/dotnet-aspire-cli)
+- [Docker](https://docs.docker.com/get-docker/) (used by Aspire to run MongoDB)
 
 ## Step 1: Start the server
 
-Create a `docker-compose.yml` file with the following content:
-
-```yaml
-name: groundcontrol
-
-services:
-  mongodb:
-    image: mongo:8
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
-    volumes:
-      - mongo_data:/data/db
-      - ./build/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "try { rs.status().ok } catch(e) { quit(1) }"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - groundcontrol_net
-
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    volumes:
-      - dp_keys:/keys
-    environment:
-      ConnectionStrings__Storage: "mongodb://mongodb:27017/?replicaSet=rs0"
-      Persistence__MongoDb__DatabaseName: "groundcontrol"
-      Authentication__Mode: "None"
-      DataProtection__Mode: "FileSystem"
-      DataProtection__KeyStorePath: "/keys"
-      ChangeNotifier__Mode: "InProcess"
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/healthz/ready || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    networks:
-      - groundcontrol_net
-
-volumes:
-  mongo_data:
-  dp_keys:
-
-networks:
-  groundcontrol_net:
-    driver: bridge
-```
-
-Start the server and verify it is healthy:
+Clone the repository and launch the Aspire AppHost. Aspire orchestrates a standalone MongoDB container alongside the API and opens a dashboard with the URLs of every resource.
 
 ```bash
-docker compose up -d
+git clone https://github.com/<your-fork>/GroundControl.git
+cd GroundControl
+aspire start src/GroundControl.AppHost
+```
+
+The Aspire dashboard opens in your browser. Find the `api` resource — note the HTTP URL it is bound to. The rest of this guide uses `http://localhost:8080` as a placeholder; substitute the URL from the dashboard.
+
+Verify the API is ready:
+
+```bash
 curl http://localhost:8080/healthz/ready
 ```
 
 You should receive an HTTP 200 response once the server is ready.
 
-> **Note:** Auth is set to `None` for this quickstart, which means all requests run as a built-in admin. See [Authentication](server/authentication.md) for production setup.
+> **Note:** The AppHost starts the API with authentication set to `None`, which means all requests run as a built-in admin. See [Authentication](server/authentication.md) for production setup.
 
 ## Step 2: Create a scope
 

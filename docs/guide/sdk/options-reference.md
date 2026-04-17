@@ -18,6 +18,7 @@ Required properties must be set before the SDK will start.
 | `CacheFilePath` | `string` | `./groundcontrol-cache.json` | Path to the local cache file. The directory must exist. |
 | `ApiVersion` | `string` | `1.0` | API version sent in the `api-version` header. |
 | `HealthCheckTags` | `IList<string>` | `["ready"]` | Tags applied when registering the GroundControl health check. |
+| `Scopes` | `Dictionary<string, string>` | _(empty)_ | Scope dimensions sent to the server on every request via the `GroundControl-Scopes` header. Merged with the scopes bound to the Client entity on the server; on key conflict, the server-defined scopes take priority. Uses case-insensitive key comparison. |
 
 All `TimeSpan` properties must be positive. Validation runs at startup and throws `OptionsValidationException` on failure.
 
@@ -50,6 +51,10 @@ builder.Configuration.AddGroundControl(options =>
 
     // Diagnostics
     options.ApiVersion = "1.0";
+
+    // SDK-provided scopes (merged with server-defined Client scopes)
+    options.Scopes["Environment"] = "prod";
+    options.Scopes["Region"] = "eu-west";
 });
 
 // Phase 2: Background services, health checks, metrics

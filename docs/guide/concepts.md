@@ -89,6 +89,8 @@ Each client is tied to:
 
 You can create multiple clients for the same project and scope combination to support key rotation. When you create a client, the client secret is shown only once -- store it securely.
 
+Clients can also accept extra scope dimensions supplied by the SDK at request time (see [SDK Options Reference](sdk/options-reference.md)); server-defined scopes on the Client entity win on key conflict.
+
 ## Entity Relationships
 
 The following diagram shows how the core concepts relate to each other:
