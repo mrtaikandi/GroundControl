@@ -310,7 +310,7 @@ However, there is a practical caveat: if configured via **thumbprint** (`Protect
 | Audit records | Always masked |
 | Snapshot storage | Encrypted |
 | Client API delivery (SSE/REST) | Decrypted for authorized clients (connection is TLS-encrypted in transit) |
-| Local file cache (client SDK) | Encrypted using a client-side key or DPAPI |
+| Local file cache (client SDK) | Sensitive entries are encrypted when the consumer supplies an `IConfigurationProtector`; non-sensitive entries are stored plaintext. With no protector configured, all entries are plaintext (explicit opt-out). |
 | Logs | Never logged in plaintext |
 
 ---

@@ -396,17 +396,17 @@ Response:
 ```json
 {
   "data": {
-    "App:LogLevel": "Debug",
-    "App:Name": "Backend API",
-    "Database:Host": "localhost",
-    "Database:Port": "5432"
+    "App:LogLevel": { "value": "Debug" },
+    "App:Name": { "value": "Backend API" },
+    "Database:Host": { "value": "localhost" },
+    "Database:Password": { "value": "s3cret", "isSensitive": true }
   },
   "snapshotId": "019abc34-...",
   "snapshotVersion": 3
 }
 ```
 
-All values are strings. The SDK and your application handle type conversion.
+Each entry is a `{ value, isSensitive? }` object. The `value` is always a string (the SDK and your application handle type conversion). `isSensitive` is omitted when `false`; consumers can use it to decide whether to protect the value locally (for example, encrypting it in a file-based cache).
 
 The GET endpoint supports conditional requests -- pass `If-None-Match: "ETAG"` to receive `304 Not Modified` when config hasn't changed.
 

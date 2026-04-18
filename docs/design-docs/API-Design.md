@@ -712,16 +712,16 @@ api-version: 1.0
 ```json
 {
   "data": {
-    "Logging:LogLevel:Default": "Warning",
-    "Database:ConnectionString": "Server=db-prod-eu.example.com;Database=mydb;User=svc_payment;Password=s3cret",
-    "FeatureFlags:NewCheckout": "true"
+    "Logging:LogLevel:Default": { "value": "Warning" },
+    "Database:ConnectionString": { "value": "Server=db-prod-eu.example.com;Database=mydb;User=svc_payment;Password=s3cret", "isSensitive": true },
+    "FeatureFlags:NewCheckout": { "value": "true" }
   },
   "snapshotId": "0192d4e0-7b3a-7f2e-8a1c-4d5e6f7a8b9c",
   "snapshotVersion": 12
 }
 ```
 
-The `data` field contains flat key-value pairs resolved for the client's registered scope combination. All values are strings, regardless of their declared `valueType`. Sensitive values are decrypted and included in plaintext (the connection is TLS-encrypted).
+The `data` field maps each flattened key to a `ConfigValue` object with a `value` (always a string, regardless of the declared `valueType`) and an optional `isSensitive` flag. Non-sensitive entries omit `isSensitive` to keep the payload compact; consumers should treat a missing flag as `false`. Sensitive values are decrypted and delivered as plaintext (the connection is TLS-encrypted), and clients can use the `isSensitive` marker to decide whether to protect the value locally (for example, by encrypting it in a file-based cache).
 
 > **Auth scheme rationale:** The `ApiKey` scheme is a custom HTTP authentication scheme (permitted by RFC 7235). It avoids `Basic` auth (which can trigger browser login dialogs and requires Base64 encoding) and `Bearer` (which is reserved for the Management API's JWT/PAT tokens). The scheme name is case-insensitive per HTTP spec.
 
@@ -750,14 +750,14 @@ On initial connection, the server sends the current config:
 ```
 event: config
 id: 0192d4e0-7b3a-7f2e-8a1c-4d5e6f7a8b9c
-data: {"data":{"Logging:LogLevel:Default":"Warning","Database:ConnectionString":"..."},"snapshotId":"0192d4e0-7b3a-7f2e-8a1c-4d5e6f7a8b9c","snapshotVersion":12}
+data: {"data":{"Logging:LogLevel:Default":{"value":"Warning"},"Database:ConnectionString":{"value":"...","isSensitive":true}},"snapshotId":"0192d4e0-7b3a-7f2e-8a1c-4d5e6f7a8b9c","snapshotVersion":12}
 ```
 
 On configuration change (new snapshot activated):
 ```
 event: config
 id: 0193a5f1-8c4b-7d3f-9b2d-5e6f7a8b9c0d
-data: {"data":{"Logging:LogLevel:Default":"Information",...},"snapshotId":"0193a5f1-8c4b-7d3f-9b2d-5e6f7a8b9c0d","snapshotVersion":13}
+data: {"data":{"Logging:LogLevel:Default":{"value":"Information"},...},"snapshotId":"0193a5f1-8c4b-7d3f-9b2d-5e6f7a8b9c0d","snapshotVersion":13}
 ```
 
 Periodic heartbeat to keep the connection alive:

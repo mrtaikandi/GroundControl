@@ -55,10 +55,21 @@ graph TD
 
 ## Cache file security
 
-- The cache file may contain sensitive configuration values.
-- On Windows, sensitive values are encrypted using DPAPI (tied to the machine or user account).
-- On Linux and containers, sensitive values are encrypted using ASP.NET Data Protection.
-- The cache is not portable across machines -- a cache file from one machine cannot be read by another.
+By default the cache file is written in plaintext. To encrypt sensitive values at rest, implement `IConfigurationProtector` and assign it to `options.Protector`:
+
+```csharp
+builder.Configuration.AddGroundControl(options =>
+{
+    // ...
+    options.Protector = new MyProtector(); // your IConfigurationProtector implementation
+});
+```
+
+- Only entries the server has marked as sensitive go through the protector; non-sensitive entries (feature flags, URLs, thresholds) stay plaintext and remain readable for diagnostics.
+- If the protector is not configured, every entry is cached plaintext — an explicit opt-out.
+- The SDK treats ciphertext as opaque; key rotation and algorithm versioning are your protector's responsibility.
+- If `Unprotect` throws, or if the cache was written under a different protector configuration than the one in effect now, the file is treated as a cache miss and the next save overwrites it.
+- Cache portability depends entirely on your protector (e.g., DPAPI keys are per-machine; an AES implementation with a shared key is portable).
 
 > **Warning:** Ensure the cache file directory has appropriate file system permissions. The file contains your application's configuration.
 
