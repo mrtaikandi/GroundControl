@@ -17,8 +17,7 @@
         </Compile>
     </ItemGroup>
 
-    <Target Name="GenerateApiClient" BeforeTargets="CoreCompile"
-            Condition="'$(GenerateApiClient)' == 'true'">
+    <Target Name="GenerateApiClient" BeforeTargets="CoreCompile" Condition="'$(GenerateApiClient)' == 'true'">
         <Exec Command="$(NSwagExe_Net100) run $(NSwagConfigFile)" WorkingDirectory="$(MSBuildProjectDirectory)" />
     </Target>
 

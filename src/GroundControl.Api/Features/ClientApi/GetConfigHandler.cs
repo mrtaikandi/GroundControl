@@ -67,7 +67,7 @@ internal sealed class GetConfigHandler : IEndpointHandler
             return TypedResults.StatusCode(StatusCodes.Status304NotModified);
         }
 
-        var data = new Dictionary<string, string>();
+        var data = new Dictionary<string, ConfigValue>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in snapshot.Entries)
         {
             var resolved = _scopeResolver.Resolve((IReadOnlyList<ScopedValue>)entry.Values, clientScopes);
@@ -77,7 +77,7 @@ internal sealed class GetConfigHandler : IEndpointHandler
             }
 
             var value = entry.IsSensitive ? _protector.Unprotect(resolved.Value) : resolved.Value;
-            data[entry.Key] = value;
+            data[entry.Key] = new ConfigValue { Value = value, IsSensitive = entry.IsSensitive };
         }
 
         httpContext.Response.Headers[HeaderNames.ETag] = etag;

@@ -43,8 +43,9 @@ public sealed class GetConfigHandlerTests : ApiHandlerTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var config = await ReadRequiredJsonAsync<ClientConfigResponse>(response, TestCancellationToken);
-        config.Data.ShouldContainKeyAndValue("app.name", "MyApp");
-        config.Data.ShouldContainKeyAndValue("app.version", "1.0.0");
+        config.Data["app.name"].Value.ShouldBe("MyApp");
+        config.Data["app.name"].IsSensitive.ShouldBeFalse();
+        config.Data["app.version"].Value.ShouldBe("1.0.0");
         config.SnapshotVersion.ShouldBeGreaterThan(0);
     }
 
@@ -153,7 +154,7 @@ public sealed class GetConfigHandlerTests : ApiHandlerTestBase
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var config = await ReadRequiredJsonAsync<ClientConfigResponse>(response, TestCancellationToken);
-        config.Data.ShouldContainKeyAndValue("db.host", "prod-db.example.com");
+        config.Data["db.host"].Value.ShouldBe("prod-db.example.com");
     }
 
     [Fact]
@@ -177,8 +178,10 @@ public sealed class GetConfigHandlerTests : ApiHandlerTestBase
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var config = await ReadRequiredJsonAsync<ClientConfigResponse>(response, TestCancellationToken);
-        config.Data.ShouldContainKeyAndValue("db.password", "s3cret!");
-        config.Data.ShouldContainKeyAndValue("app.name", "MyApp");
+        config.Data["db.password"].Value.ShouldBe("s3cret!");
+        config.Data["db.password"].IsSensitive.ShouldBeTrue();
+        config.Data["app.name"].Value.ShouldBe("MyApp");
+        config.Data["app.name"].IsSensitive.ShouldBeFalse();
     }
 
     [Fact]

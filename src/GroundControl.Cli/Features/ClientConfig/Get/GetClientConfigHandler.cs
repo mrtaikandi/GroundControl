@@ -76,10 +76,10 @@ internal sealed class GetClientConfigHandler : ICommandHandler
             .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        _shell.RenderTable<KeyValuePair<string, string>>(
-            items,
-            ["Key", "Value"],
-            [kv => kv.Key, kv => kv.Value],
-            _hostOptions.OutputFormat);
+        _shell.RenderTable(
+            items: items,
+            headers: ["Key", "Value", "Sensitive"],
+            valueExtractors: [kv => kv.Key, kv => kv.Value.Value, kv => (kv.Value.IsSensitive == true).ToString()],
+            outputFormat: _hostOptions.OutputFormat);
     }
 }
