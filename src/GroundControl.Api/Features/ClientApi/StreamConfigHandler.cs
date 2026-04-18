@@ -75,21 +75,27 @@ internal sealed class StreamConfigHandler : IEndpointHandler
         {
             var lastEventId = httpContext.Request.Headers["Last-Event-ID"].FirstOrDefault();
 
-            // Send initial config unless Last-Event-ID matches current snapshot
-            var snapshot = await _cache.GetOrLoadAsync(projectId, cancellationToken).ConfigureAwait(false);
-            if (snapshot is not null && !string.Equals(snapshot.Id.ToString(), lastEventId, StringComparison.Ordinal))
-            {
-                await WriteConfigEventAsync(httpContext.Response, snapshot, clientScopes, cancellationToken).ConfigureAwait(false);
-            }
-
-            var heartbeatInterval = _configuration.GetValue("ClientApi:HeartbeatIntervalSeconds", 30);
-            using var heartbeatTimer = new PeriodicTimer(TimeSpan.FromSeconds(heartbeatInterval));
-
-            // Race change notifications against heartbeat timer
+            // Subscribe to change notifications BEFORE writing the initial config event so that
+            // notifications fired in the window between the snapshot fetch and the loop are
+            // buffered on the subscriber's channel instead of being dropped. Kicking off the first
+            // MoveNextAsync here forces the iterator's setup — channel creation and subscriber
+            // registration — to run, which is what makes the subscription observable to NotifyAsync.
             var changeStream = _changeNotifier.SubscribeAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
             await using (changeStream.ConfigureAwait(false))
             {
-                Task<bool>? moveNextTask = null;
+                var moveNextTask = changeStream.MoveNextAsync().AsTask();
+
+                // Send initial config unless Last-Event-ID matches current snapshot
+                var snapshot = await _cache.GetOrLoadAsync(projectId, cancellationToken).ConfigureAwait(false);
+                if (snapshot is not null && !string.Equals(snapshot.Id.ToString(), lastEventId, StringComparison.Ordinal))
+                {
+                    await WriteConfigEventAsync(httpContext.Response, snapshot, clientScopes, cancellationToken).ConfigureAwait(false);
+                }
+
+                var heartbeatInterval = _configuration.GetValue("ClientApi:HeartbeatIntervalSeconds", 30);
+                using var heartbeatTimer = new PeriodicTimer(TimeSpan.FromSeconds(heartbeatInterval));
+
+                // Race change notifications against heartbeat timer
                 Task<bool>? heartbeatTask = null;
 
                 while (!cancellationToken.IsCancellationRequested)
