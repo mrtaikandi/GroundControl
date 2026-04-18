@@ -279,6 +279,7 @@ jobs:
           gh release upload '${{ needs.preflight.outputs.release_tag }}' \
             artifacts/package/*.nupkg \
             artifacts/package/*.snupkg \
+            --repo '${{ github.repository }}' \
             --clobber
 
   bump-pr:
