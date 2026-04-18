@@ -3987,9 +3987,9 @@
           "data": {
             "type": "object",
             "additionalProperties": {
-              "type": "string"
+              "$ref": "#/components/schemas/ConfigValue"
             },
-            "description": "Gets the flat key-value configuration data resolved for the client's scopes."
+            "description": "Gets the resolved configuration entries keyed by their flattened key path. Each entry carries the value and an optional sensitivity flag."
           },
           "snapshotId": {
             "type": "string",
@@ -4196,6 +4196,23 @@
           }
         },
         "description": "Represents the API response body for a configuration entry."
+      },
+      "ConfigValue": {
+        "required": [
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Gets the resolved configuration value as delivered to the client."
+          },
+          "isSensitive": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the entry is sensitive and should be protected at rest by the client."
+          }
+        },
+        "description": "Represents a single resolved configuration value returned to an authenticated client, including a flag that marks it as sensitive."
       },
       "CreateClientRequest": {
         "required": [

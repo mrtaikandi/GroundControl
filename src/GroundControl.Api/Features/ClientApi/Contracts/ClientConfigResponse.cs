@@ -6,9 +6,9 @@ namespace GroundControl.Api.Features.ClientApi.Contracts;
 internal sealed record ClientConfigResponse
 {
     /// <summary>
-    /// Gets the flat key-value configuration data resolved for the client's scopes.
+    /// Gets the resolved configuration entries keyed by their flattened key path. Each entry carries the value and an optional sensitivity flag.
     /// </summary>
-    public required IReadOnlyDictionary<string, string> Data { get; init; }
+    public required IReadOnlyDictionary<string, ConfigValue> Data { get; init; }
 
     /// <summary>
     /// Gets the unique identifier of the active snapshot.

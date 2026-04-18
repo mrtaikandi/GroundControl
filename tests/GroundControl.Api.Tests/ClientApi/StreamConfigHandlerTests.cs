@@ -56,8 +56,8 @@ public sealed class StreamConfigHandlerTests : ApiHandlerTestBase
 
         var config = JsonSerializer.Deserialize<ClientConfigResponse>(firstEvent.Data, JsonOptions);
         config.ShouldNotBeNull();
-        config.Data.ShouldContainKeyAndValue("app.name", "MyApp");
-        config.Data.ShouldContainKeyAndValue("app.version", "2.0.0");
+        config.Data["app.name"].Value.ShouldBe("MyApp");
+        config.Data["app.version"].Value.ShouldBe("2.0.0");
         config.SnapshotVersion.ShouldBeGreaterThan(0);
     }
 
@@ -98,8 +98,8 @@ public sealed class StreamConfigHandlerTests : ApiHandlerTestBase
 
         var config = JsonSerializer.Deserialize<ClientConfigResponse>(updateEvent.Data, JsonOptions);
         config.ShouldNotBeNull();
-        config.Data.ShouldContainKeyAndValue("app.name", "InitialValue");
-        config.Data.ShouldContainKeyAndValue("app.new-key", "NewValue");
+        config.Data["app.name"].Value.ShouldBe("InitialValue");
+        config.Data["app.new-key"].Value.ShouldBe("NewValue");
     }
 
     [Fact]

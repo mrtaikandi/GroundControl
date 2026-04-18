@@ -181,9 +181,9 @@ internal sealed class StreamConfigHandler : IEndpointHandler
         await response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private Dictionary<string, string> ResolveConfig(Snapshot snapshot, Dictionary<string, string> clientScopes)
+    private Dictionary<string, ConfigValue> ResolveConfig(Snapshot snapshot, Dictionary<string, string> clientScopes)
     {
-        var data = new Dictionary<string, string>();
+        var data = new Dictionary<string, ConfigValue>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in snapshot.Entries)
         {
             var resolved = _scopeResolver.Resolve((IReadOnlyList<ScopedValue>)entry.Values, clientScopes);
@@ -193,7 +193,7 @@ internal sealed class StreamConfigHandler : IEndpointHandler
             }
 
             var value = entry.IsSensitive ? _protector.Unprotect(resolved.Value) : resolved.Value;
-            data[entry.Key] = value;
+            data[entry.Key] = new ConfigValue { Value = value, IsSensitive = entry.IsSensitive };
         }
 
         return data;

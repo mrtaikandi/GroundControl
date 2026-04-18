@@ -24,10 +24,10 @@ public sealed class GetClientConfigHandlerTests
             {
                 SnapshotId = snapshotId,
                 SnapshotVersion = 42,
-                Data = new Dictionary<string, string>
+                Data = new Dictionary<string, ConfigValue>
                 {
-                    ["database:host"] = "localhost",
-                    ["app:name"] = "MyApp"
+                    ["database:host"] = new ConfigValue { Value = "localhost" },
+                    ["app:name"] = new ConfigValue { Value = "MyApp" }
                 }
             });
 
@@ -59,7 +59,7 @@ public sealed class GetClientConfigHandlerTests
             {
                 SnapshotId = Guid.CreateVersion7(),
                 SnapshotVersion = 1,
-                Data = new Dictionary<string, string>()
+                Data = new Dictionary<string, ConfigValue>()
             });
 
         // Act
@@ -85,7 +85,7 @@ public sealed class GetClientConfigHandlerTests
             {
                 SnapshotId = Guid.CreateVersion7(),
                 SnapshotVersion = 5,
-                Data = new Dictionary<string, string> { ["key1"] = "value1" }
+                Data = new Dictionary<string, ConfigValue> { ["key1"] = new ConfigValue { Value = "value1" } }
             });
 
         // Act
