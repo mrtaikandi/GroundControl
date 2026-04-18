@@ -40,7 +40,7 @@ internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
                 switch (result.Status)
                 {
                     case FetchStatus.Success when result.Config is not null:
-                        store.Update(new Dictionary<string, string>(result.Config, StringComparer.OrdinalIgnoreCase), result.ETag, null);
+                        store.Update(new Dictionary<string, ConfigValue>(result.Config, StringComparer.OrdinalIgnoreCase), result.ETag, null);
                         _metrics.RecordFetch("success");
                         _metrics.RecordReload("polling");
                         await TrySaveToCacheAsync(result.Config, result.ETag, cancellationToken).ConfigureAwait(false);
@@ -80,14 +80,14 @@ internal sealed partial class PollingConnectionStrategy : IConnectionStrategy
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cache save is best-effort")]
-    private async Task TrySaveToCacheAsync(IReadOnlyDictionary<string, string> data, string? etag, CancellationToken cancellationToken)
+    private async Task TrySaveToCacheAsync(IReadOnlyDictionary<string, ConfigValue> data, string? etag, CancellationToken cancellationToken)
     {
         try
         {
             await _cache.SaveAsync(
                     new CachedConfiguration
                     {
-                        Entries = new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase),
+                        Entries = new Dictionary<string, ConfigValue>(data, StringComparer.OrdinalIgnoreCase),
                         ETag = etag
                     },
                     cancellationToken)

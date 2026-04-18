@@ -38,7 +38,7 @@ public sealed class GroundControlApiClientTests : IDisposable
     public async Task FetchConfigAsync_200_ReturnsFlatDictionaryAndETag()
     {
         // Arrange
-        _handler.SetResponse(HttpStatusCode.OK, """{"data": {"Key1": "Value1", "Key2": "Value2"}, "snapshotVersion": 1}""", "\"v1\"");
+        _handler.SetResponse(HttpStatusCode.OK, """{"data": {"Key1": {"value": "Value1"}, "Key2": {"value": "Value2"}}, "snapshotVersion": 1}""", "\"v1\"");
 
         // Act
         var result = await _client.FetchConfigAsync(null, TestContext.Current.CancellationToken);
@@ -48,8 +48,8 @@ public sealed class GroundControlApiClientTests : IDisposable
         result.Status.ShouldBe(FetchStatus.Success);
         result.Config.ShouldNotBeNull();
         result.Config.Count.ShouldBe(2);
-        result.Config["Key1"].ShouldBe("Value1");
-        result.Config["Key2"].ShouldBe("Value2");
+        result.Config["Key1"].Value.ShouldBe("Value1");
+        result.Config["Key2"].Value.ShouldBe("Value2");
         result.ETag.ShouldBe("v1");
     }
 

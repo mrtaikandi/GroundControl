@@ -15,7 +15,7 @@ public sealed class LinkHealthCheckTests
     public async Task CheckHealthAsync_Healthy_ReturnsHealthy()
     {
         // Arrange
-        _store.Update(new Dictionary<string, string> { ["K"] = "V" }, "\"1\"", null);
+        _store.Update(Dict(("K", "V")), "\"1\"", null);
         var check = new LinkHealthCheck(_store);
 
         // Act

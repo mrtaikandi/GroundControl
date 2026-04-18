@@ -75,13 +75,14 @@ public sealed partial class GroundControlOptions : IValidatableObject
     public string CacheFilePath { get; set; } = "./groundcontrol-cache.json";
 
     /// <summary>
-    /// Gets or sets an optional protector used to encrypt values written to the local cache.
+    /// Gets or sets an optional protector used to encrypt sensitive values written to the local cache.
     /// </summary>
     /// <remarks>
-    /// When <c>null</c> (the default), cache values are written in plaintext. When set, every
-    /// value is passed through <see cref="IConfigurationProtector.Protect"/> on write and
-    /// <see cref="IConfigurationProtector.Unprotect"/> on read. Key rotation and algorithm
-    /// versioning are the implementation's responsibility; the SDK treats ciphertext as opaque.
+    /// When <c>null</c> (the default), all cache values are written in plaintext. When set, only
+    /// entries the server has marked as sensitive are passed through <see cref="IConfigurationProtector.Protect"/>
+    /// on write and <see cref="IConfigurationProtector.Unprotect"/> on read; non-sensitive entries stay plaintext
+    /// so they remain inspectable for diagnostics. Key rotation and algorithm versioning are the implementation's
+    /// responsibility; the SDK treats ciphertext as opaque.
     /// </remarks>
     public IConfigurationProtector? Protector { get; set; }
 

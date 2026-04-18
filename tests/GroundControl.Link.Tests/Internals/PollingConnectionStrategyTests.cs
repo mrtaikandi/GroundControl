@@ -47,7 +47,7 @@ public sealed class PollingConnectionStrategyTests : IDisposable
                 return new FetchResult
                 {
                     Status = FetchStatus.Success,
-                    Config = new Dictionary<string, string> { ["K"] = "V" },
+                    Config = Dict(("K", "V")),
                     ETag = "\"1\""
                 };
             });
@@ -60,7 +60,7 @@ public sealed class PollingConnectionStrategyTests : IDisposable
         await strategy.ExecuteAsync(_store, cts.Token);
 
         // Assert
-        _store.GetSnapshot().Data.ShouldContainKeyAndValue("K", "V");
+        _store.GetSnapshot().Data["K"].Value.ShouldBe("V");
         callCount.ShouldBeGreaterThanOrEqualTo(1);
     }
 
@@ -68,7 +68,7 @@ public sealed class PollingConnectionStrategyTests : IDisposable
     public async Task ExecuteAsync_FetchNotModified_DoesNotUpdateStore()
     {
         // Arrange
-        _store.Update(new Dictionary<string, string> { ["Existing"] = "Data" }, "\"1\"", null);
+        _store.Update(Dict(("Existing", "Data")), "\"1\"", null);
         _client.FetchConfigAsync("\"1\"", Arg.Any<CancellationToken>())
             .Returns(new FetchResult { Status = FetchStatus.NotModified, ETag = "\"1\"" });
 
@@ -80,7 +80,7 @@ public sealed class PollingConnectionStrategyTests : IDisposable
         await strategy.ExecuteAsync(_store, cts.Token);
 
         // Assert -- data unchanged, still has "Existing"
-        _store.GetSnapshot().Data.ShouldContainKeyAndValue("Existing", "Data");
+        _store.GetSnapshot().Data["Existing"].Value.ShouldBe("Data");
     }
 
     [Fact]

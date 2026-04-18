@@ -10,3 +10,4 @@ global using NSubstitute;
 global using NSubstitute.ExceptionExtensions;
 global using Shouldly;
 global using Xunit;
+global using static GroundControl.Link.Tests.ConfigValueTestData;

@@ -36,9 +36,9 @@ internal interface IConfigurationCache : IDisposable
 internal sealed record CachedConfiguration
 {
     /// <summary>
-    /// Gets the configuration entries as key-value pairs.
+    /// Gets the configuration entries keyed by flattened path, each carrying a value and a sensitivity flag.
     /// </summary>
-    public required IReadOnlyDictionary<string, string> Entries { get; init; }
+    public required IReadOnlyDictionary<string, ConfigValue> Entries { get; init; }
 
     /// <summary>
     /// Gets the REST ETag for conditional requests.

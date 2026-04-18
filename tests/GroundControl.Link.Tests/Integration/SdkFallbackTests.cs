@@ -31,7 +31,7 @@ public sealed class SdkFallbackTests : IDisposable
         var cache = new FileConfigurationCache(options, NullLogger<FileConfigurationCache>.Instance);
         cache.Save(new CachedConfiguration
         {
-            Entries = new Dictionary<string, string> { ["Cached:Key"] = "CachedValue" },
+            Entries = Dict(("Cached:Key", "CachedValue")),
             ETag = "\"1\""
         });
 
@@ -71,7 +71,7 @@ public sealed class SdkFallbackTests : IDisposable
         var cache = new FileConfigurationCache(options, NullLogger<FileConfigurationCache>.Instance);
         cache.Save(new CachedConfiguration
         {
-            Entries = new Dictionary<string, string> { ["Mode"] = mode.ToString() },
+            Entries = Dict(("Mode", mode.ToString())),
             ETag = "\"1\""
         });
 
