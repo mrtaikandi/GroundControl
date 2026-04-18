@@ -190,27 +190,31 @@ The local file cache stores the last successfully received configuration to disk
   "eTag": "\"12\"",
   "lastEventId": "evt-abc123",
   "timestamp": "2024-01-15T10:30:00+00:00",
+  "protected": true,
   "entries": {
-    "Logging:LogLevel:Default": "Warning",
-    "Database:ConnectionString": "***ENCRYPTED:<ciphertext>"
+    "Logging:LogLevel:Default": { "value": "Warning", "isSensitive": false },
+    "Database:ConnectionString": { "value": "<ciphertext>", "isSensitive": true }
   }
 }
 ```
 
-The `entries` field contains flat key-value pairs. The `eTag` enables conditional GET requests (304 Not Modified). The `lastEventId` allows SSE streams to resume from the last known position after a process restart.
-
-When an `IDataProtectionProvider` is supplied to the `FileConfigurationCache` constructor, all values are encrypted with a `***ENCRYPTED:` prefix. Without data protection, values are stored in plaintext. The standard `AddGroundControl(...)` extension methods do not currently pass a data protection provider, since `IConfigurationSource.Build()` runs before the DI container is finalized. Applications needing encrypted caches must wire the `IDataProtectionProvider` manually.
+Each entry carries its `value` and an `isSensitive` flag. The `eTag` enables conditional GET requests (304 Not Modified). The `lastEventId` allows SSE streams to resume from the last known position after a process restart. The top-level `protected` flag records whether an `IConfigurationProtector` was configured at write time so a later mismatch with the current protector state can be detected.
 
 ### Sensitive Value Protection in Cache
 
-Sensitive values in the local cache file are encrypted using the platform's data protection mechanism:
+The SDK does not ship its own cryptography. Instead, consumers supply an `IConfigurationProtector` via `GroundControlOptions.Protector`:
 
-| Platform | Protection Method |
-|----------|-----------------|
-| Windows | DPAPI (Data Protection API) - encrypted to the machine or user context |
-| Linux/Container | ASP.NET Core Data Protection with a configured key ring |
+```csharp
+public interface IConfigurationProtector
+{
+    string Protect(string plaintext);
+    string Unprotect(string ciphertext);
+}
+```
 
-The encryption key is derived from the machine identity, so the cache file is not portable between machines.
+When a protector is configured, only entries the server has marked as sensitive are passed through `Protect` on write and `Unprotect` on read; non-sensitive entries (feature flags, URLs, thresholds) are persisted as plaintext so diagnostic tooling can still read them. When no protector is configured, every entry is cached plaintext — an explicit opt-out.
+
+The envelope's `protected` flag guards against downgrade: if it does not match the current protector configuration at read time (e.g., the protector was configured when the cache was written but is absent now, or vice versa), the cache is treated as a miss and the next save atomically overwrites it. Any `Unprotect` exception is also treated as a cache miss. Key rotation and algorithm versioning are the protector implementation's responsibility; the SDK treats ciphertext as opaque.
 
 ### Cache Update Strategy
 

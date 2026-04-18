@@ -16,6 +16,7 @@ Required properties must be set before the SDK will start.
 | `SseHeartbeatTimeout` | `TimeSpan` | `2 minutes` | If no data (including heartbeats) is received for this duration, the SSE connection is considered lost. |
 | `EnableLocalCache` | `bool` | `true` | Whether to persist configuration to a local file for offline resilience. |
 | `CacheFilePath` | `string` | `./groundcontrol-cache.json` | Path to the local cache file. The directory must exist. |
+| `Protector` | `IConfigurationProtector?` | `null` | Optional consumer-supplied cipher for sensitive cache entries. When set, only entries the server marks as sensitive are passed through `Protect`/`Unprotect`; non-sensitive entries stay plaintext. When `null`, all entries are cached plaintext. See [Caching](caching.md#cache-file-security). |
 | `ApiVersion` | `string` | `1.0` | API version sent in the `api-version` header. |
 | `HealthCheckTags` | `IList<string>` | `["ready"]` | Tags applied when registering the GroundControl health check. |
 | `Scopes` | `Dictionary<string, string>` | _(empty)_ | Scope dimensions sent to the server on every request via the `GroundControl-Scopes` header. Merged with the scopes bound to the Client entity on the server; on key conflict, the server-defined scopes take priority. Uses case-insensitive key comparison. |
