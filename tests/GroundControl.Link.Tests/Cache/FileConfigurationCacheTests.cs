@@ -53,7 +53,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
     public async Task LoadAsync_EmptyEntriesObject_ReturnsNull()
     {
         // Arrange
-        await File.WriteAllTextAsync(_cachePath, """{"timestamp":"2026-01-01T00:00:00Z","entries":null}""", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(_cachePath, """{"timestamp":"2026-01-01T00:00:00Z","protected":false,"entries":null}""", TestContext.Current.CancellationToken);
         using var cache = CreateCache();
 
         // Act
@@ -68,12 +68,10 @@ public sealed class FileConfigurationCacheTests : IDisposable
     {
         // Arrange
         using var cache = CreateCache();
-        var config = new Dictionary<string, string>
-        {
-            ["Logging:LogLevel:Default"] = "Warning",
-            ["Database:Host"] = "localhost",
-            ["FeatureFlags:DarkMode"] = "true"
-        };
+        var config = Dict(
+            ("Logging:LogLevel:Default", "Warning"),
+            ("Database:Host", "localhost"),
+            ("FeatureFlags:DarkMode", "true"));
 
         // Act
         await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
@@ -82,9 +80,9 @@ public sealed class FileConfigurationCacheTests : IDisposable
         // Assert
         result.ShouldNotBeNull();
         result.Entries.Count.ShouldBe(3);
-        result.Entries["Logging:LogLevel:Default"].ShouldBe("Warning");
-        result.Entries["Database:Host"].ShouldBe("localhost");
-        result.Entries["FeatureFlags:DarkMode"].ShouldBe("true");
+        result.Entries["Logging:LogLevel:Default"].Value.ShouldBe("Warning");
+        result.Entries["Database:Host"].Value.ShouldBe("localhost");
+        result.Entries["FeatureFlags:DarkMode"].Value.ShouldBe("true");
     }
 
     [Fact]
@@ -92,7 +90,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
     {
         // Arrange
         using var cache = CreateCache();
-        var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
+        var config = Dict(("Key1", "Value1"));
 
         // Act
         await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
@@ -108,7 +106,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
         var nestedDir = Path.Combine(_cacheDir, "nested", "deep");
         var nestedPath = Path.Combine(nestedDir, "cache.json");
         using var cache = CreateCache(cachePath: nestedPath);
-        var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
+        var config = Dict(("Key1", "Value1"));
 
         // Act
         await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
@@ -122,8 +120,8 @@ public sealed class FileConfigurationCacheTests : IDisposable
     {
         // Arrange
         using var cache = CreateCache();
-        var config1 = new Dictionary<string, string> { ["Key1"] = "Original" };
-        var config2 = new Dictionary<string, string> { ["Key1"] = "Updated", ["Key2"] = "New" };
+        var config1 = Dict(("Key1", "Original"));
+        var config2 = Dict(("Key1", "Updated"), ("Key2", "New"));
 
         // Act
         await cache.SaveAsync(new CachedConfiguration { Entries = config1 }, TestContext.Current.CancellationToken);
@@ -133,72 +131,85 @@ public sealed class FileConfigurationCacheTests : IDisposable
         // Assert
         result.ShouldNotBeNull();
         result.Entries.Count.ShouldBe(2);
-        result.Entries["Key1"].ShouldBe("Updated");
-        result.Entries["Key2"].ShouldBe("New");
+        result.Entries["Key1"].Value.ShouldBe("Updated");
+        result.Entries["Key2"].Value.ShouldBe("New");
     }
 
     [Fact]
-    public async Task SaveAsync_WithProtector_EncryptsValuesInFile()
+    public async Task SaveAsync_WithProtector_EncryptsOnlySensitiveValuesInFile()
     {
         // Arrange
         using var cache = CreateCache(protector: new XorProtector());
-        var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
-
-        // Act
-        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
-
-        // Assert
-        var rawJson = await File.ReadAllTextAsync(_cachePath, TestContext.Current.CancellationToken);
-        rawJson.ShouldContain("***ENCRYPTED:");
-        rawJson.ShouldNotContain("my-password");
-    }
-
-    [Fact]
-    public async Task SaveAsync_ThenLoadAsync_WithProtector_DecryptsValues()
-    {
-        // Arrange
-        using var cache = CreateCache(protector: new XorProtector());
-        var config = new Dictionary<string, string>
+        var entries = new Dictionary<string, ConfigValue>
         {
-            ["Secret"] = "my-password",
-            ["ApiKey"] = "abc-123"
+            ["Secret"] = V("my-password", isSensitive: true),
+            ["PublicUrl"] = V("https://example.com")
         };
 
         // Act
-        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = entries }, TestContext.Current.CancellationToken);
+
+        // Assert — sensitive value is encrypted, non-sensitive value stays plaintext
+        var rawJson = await File.ReadAllTextAsync(_cachePath, TestContext.Current.CancellationToken);
+        rawJson.ShouldNotContain("my-password");
+        rawJson.ShouldContain("https://example.com");
+    }
+
+    [Fact]
+    public async Task SaveAsync_ThenLoadAsync_WithProtector_DecryptsSensitiveValues()
+    {
+        // Arrange
+        using var cache = CreateCache(protector: new XorProtector());
+        var entries = new Dictionary<string, ConfigValue>
+        {
+            ["Secret"] = V("my-password", isSensitive: true),
+            ["ApiKey"] = V("abc-123", isSensitive: true),
+            ["Feature:Flag"] = V("enabled")
+        };
+
+        // Act
+        await cache.SaveAsync(new CachedConfiguration { Entries = entries }, TestContext.Current.CancellationToken);
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
 
         // Assert
         result.ShouldNotBeNull();
-        result.Entries["Secret"].ShouldBe("my-password");
-        result.Entries["ApiKey"].ShouldBe("abc-123");
+        result.Entries["Secret"].Value.ShouldBe("my-password");
+        result.Entries["Secret"].IsSensitive.ShouldBeTrue();
+        result.Entries["ApiKey"].Value.ShouldBe("abc-123");
+        result.Entries["ApiKey"].IsSensitive.ShouldBeTrue();
+        result.Entries["Feature:Flag"].Value.ShouldBe("enabled");
+        result.Entries["Feature:Flag"].IsSensitive.ShouldBeFalse();
     }
 
     [Fact]
-    public async Task SaveAsync_WithoutProtector_StoresPlaintext()
+    public async Task SaveAsync_WithoutProtector_StoresEverythingPlaintext()
     {
-        // Arrange
+        // Arrange — no protector configured, even sensitive entries land on disk in plaintext per the opt-out policy
         using var cache = CreateCache();
-        var config = new Dictionary<string, string> { ["Key1"] = "plaintext-value" };
+        var entries = new Dictionary<string, ConfigValue>
+        {
+            ["Key1"] = V("plaintext-value"),
+            ["Secret"] = V("opt-out-secret", isSensitive: true)
+        };
 
         // Act
-        await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
+        await cache.SaveAsync(new CachedConfiguration { Entries = entries }, TestContext.Current.CancellationToken);
 
         // Assert
         var rawJson = await File.ReadAllTextAsync(_cachePath, TestContext.Current.CancellationToken);
         rawJson.ShouldContain("plaintext-value");
-        rawJson.ShouldNotContain("***ENCRYPTED:");
+        rawJson.ShouldContain("opt-out-secret");
     }
 
     [Fact]
-    public async Task LoadAsync_EncryptedValuesWithoutProtector_ReturnsNull()
+    public async Task LoadAsync_ProtectedEnvelopeWithoutProtector_ReturnsNull()
     {
-        // Arrange — write encrypted values using a protector
+        // Arrange — write with a protector, read without one
         using var encryptedCache = CreateCache(protector: new XorProtector());
-        var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
-        await encryptedCache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
+        var entries = new Dictionary<string, ConfigValue> { ["Secret"] = V("my-password", isSensitive: true) };
+        await encryptedCache.SaveAsync(new CachedConfiguration { Entries = entries }, TestContext.Current.CancellationToken);
 
-        // Act — read without a protector
+        // Act
         using var plainCache = CreateCache();
         var result = await plainCache.LoadAsync(TestContext.Current.CancellationToken);
 
@@ -207,14 +218,14 @@ public sealed class FileConfigurationCacheTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadAsync_PlaintextValuesWithProtector_ReturnsNull()
+    public async Task LoadAsync_UnprotectedEnvelopeWithProtector_ReturnsNull()
     {
-        // Arrange — write plaintext values
+        // Arrange — write without protector, read with one (prevents silent downgrade / plaintext fed to Unprotect)
         using var plainCache = CreateCache();
-        var config = new Dictionary<string, string> { ["Key1"] = "value" };
-        await plainCache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
+        var entries = new Dictionary<string, ConfigValue> { ["Key1"] = V("value") };
+        await plainCache.SaveAsync(new CachedConfiguration { Entries = entries }, TestContext.Current.CancellationToken);
 
-        // Act — read with a protector configured (downgrade prevention)
+        // Act
         using var encryptedCache = CreateCache(protector: new XorProtector());
         var result = await encryptedCache.LoadAsync(TestContext.Current.CancellationToken);
 
@@ -227,8 +238,8 @@ public sealed class FileConfigurationCacheTests : IDisposable
     {
         // Arrange — write with one protector, read with another that rejects the ciphertext
         using var writeCache = CreateCache(protector: new XorProtector());
-        var config = new Dictionary<string, string> { ["Secret"] = "my-password" };
-        await writeCache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
+        var entries = new Dictionary<string, ConfigValue> { ["Secret"] = V("my-password", isSensitive: true) };
+        await writeCache.SaveAsync(new CachedConfiguration { Entries = entries }, TestContext.Current.CancellationToken);
 
         using var readCache = CreateCache(protector: new ThrowingProtector());
 
@@ -240,12 +251,43 @@ public sealed class FileConfigurationCacheTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadAsync_MixedEntries_NonSensitiveStayPlaintextSensitiveDecrypt()
+    {
+        // Arrange
+        using var cache = CreateCache(protector: new XorProtector());
+        var entries = new Dictionary<string, ConfigValue>
+        {
+            ["Db:Host"] = V("db.example.com"),
+            ["Db:Password"] = V("hunter2", isSensitive: true),
+            ["Logging:Level"] = V("Information")
+        };
+
+        // Act
+        await cache.SaveAsync(new CachedConfiguration { Entries = entries }, TestContext.Current.CancellationToken);
+
+        var rawJson = await File.ReadAllTextAsync(_cachePath, TestContext.Current.CancellationToken);
+        var loaded = await cache.LoadAsync(TestContext.Current.CancellationToken);
+
+        // Assert — on disk: non-sensitive values are inspectable, sensitive values are not
+        rawJson.ShouldContain("db.example.com");
+        rawJson.ShouldContain("Information");
+        rawJson.ShouldNotContain("hunter2");
+
+        loaded.ShouldNotBeNull();
+        loaded.Entries["Db:Host"].Value.ShouldBe("db.example.com");
+        loaded.Entries["Db:Host"].IsSensitive.ShouldBeFalse();
+        loaded.Entries["Db:Password"].Value.ShouldBe("hunter2");
+        loaded.Entries["Db:Password"].IsSensitive.ShouldBeTrue();
+        loaded.Entries["Logging:Level"].Value.ShouldBe("Information");
+    }
+
+    [Fact]
     public async Task CacheFilePath_FromOptions_IsRespected()
     {
         // Arrange
         var customPath = Path.Combine(_cacheDir, "custom", "path.json");
         using var cache = CreateCache(cachePath: customPath);
-        var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
+        var config = Dict(("Key1", "Value1"));
 
         // Act
         await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
@@ -266,7 +308,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
         {
             var index = i;
             tasks.Add(cache.SaveAsync(
-                new CachedConfiguration { Entries = new Dictionary<string, string> { ["Key"] = $"Value{index}" } },
+                new CachedConfiguration { Entries = Dict(("Key", $"Value{index}")) },
                 TestContext.Current.CancellationToken));
         }
 
@@ -276,7 +318,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
         var result = await cache.LoadAsync(TestContext.Current.CancellationToken);
         result.ShouldNotBeNull();
         result.Entries.ShouldContainKey("Key");
-        result.Entries["Key"].ShouldStartWith("Value");
+        result.Entries["Key"].Value.ShouldStartWith("Value");
     }
 
     [Fact]
@@ -284,7 +326,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
     {
         // Arrange
         using var cache = CreateCache();
-        var config = new Dictionary<string, string> { ["Key1"] = "Value1" };
+        var config = Dict(("Key1", "Value1"));
 
         // Act
         await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
@@ -299,7 +341,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
     {
         // Arrange
         using var cache = CreateCache();
-        var config = new Dictionary<string, string> { ["MyKey"] = "Value" };
+        var config = Dict(("MyKey", "Value"));
         await cache.SaveAsync(new CachedConfiguration { Entries = config }, TestContext.Current.CancellationToken);
 
         // Act
@@ -307,8 +349,8 @@ public sealed class FileConfigurationCacheTests : IDisposable
 
         // Assert
         result.ShouldNotBeNull();
-        result.Entries["mykey"].ShouldBe("Value");
-        result.Entries["MYKEY"].ShouldBe("Value");
+        result.Entries["mykey"].Value.ShouldBe("Value");
+        result.Entries["MYKEY"].Value.ShouldBe("Value");
     }
 
     [Fact]
@@ -331,7 +373,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
         using var cache = CreateCache();
         var config = new CachedConfiguration
         {
-            Entries = new Dictionary<string, string> { ["App:Name"] = "Test" },
+            Entries = Dict(("App:Name", "Test")),
             ETag = "\"42\"",
             LastEventId = "evt-1"
         };
@@ -342,7 +384,7 @@ public sealed class FileConfigurationCacheTests : IDisposable
 
         // Assert
         loaded.ShouldNotBeNull();
-        loaded.Entries.ShouldContainKeyAndValue("App:Name", "Test");
+        loaded.Entries["App:Name"].Value.ShouldBe("Test");
         loaded.ETag.ShouldBe("\"42\"");
         loaded.LastEventId.ShouldBe("evt-1");
     }

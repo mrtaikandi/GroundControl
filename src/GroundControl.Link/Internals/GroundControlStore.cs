@@ -44,7 +44,7 @@ internal sealed class GroundControlStore
     /// <summary>
     /// Atomically swaps the snapshot, marks healthy, and raises <see cref="OnDataChanged"/>.
     /// </summary>
-    public void Update(Dictionary<string, string> data, string? etag, string? lastEventId)
+    public void Update(Dictionary<string, ConfigValue> data, string? etag, string? lastEventId)
     {
         _snapshot = new StoreSnapshot
         {
@@ -89,7 +89,7 @@ internal sealed record StoreSnapshot
 {
     public static readonly StoreSnapshot Empty = new() { Data = [] };
 
-    public required Dictionary<string, string> Data { get; init; }
+    public required Dictionary<string, ConfigValue> Data { get; init; }
 
     public string? ETag { get; init; }
 

@@ -5,26 +5,29 @@ namespace GroundControl.Link.Internals;
 
 
 /// <summary>
-/// Parses configuration JSON payloads from the GroundControl server into
-/// flattened key-value dictionaries compatible with the .NET configuration system.
+/// Parses configuration JSON payloads from the GroundControl server into flattened key-value dictionaries compatible with the .NET configuration system.
 /// </summary>
 internal static class ConfigurationParser
 {
     private const string DataPropertyName = "data";
     private const string SnapshotVersionPropertyName = "snapshotVersion";
+    private const string ValuePropertyName = "value";
+    private const string IsSensitivePropertyName = "isSensitive";
 
     /// <summary>
-    /// Parses a configuration JSON payload, flattening nested <c>data</c> properties
-    /// into colon-separated keys and extracting the optional <c>snapshotVersion</c>.
+    /// Parses a configuration JSON payload, flattening nested <c>data</c> properties into colon-separated keys and extracting the optional <c>snapshotVersion</c>.
     /// </summary>
     public static ParsedConfiguration Parse(string json)
     {
         using var doc = JsonDocument.Parse(json);
-        var config = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var config = new Dictionary<string, ConfigValue>(StringComparer.OrdinalIgnoreCase);
 
-        if (doc.RootElement.TryGetProperty(DataPropertyName, out var data))
+        if (doc.RootElement.TryGetProperty(DataPropertyName, out var data) && data.ValueKind == JsonValueKind.Object)
         {
-            FlattenElement(data, string.Empty, config);
+            foreach (var prop in data.EnumerateObject())
+            {
+                ParseEntry(prop.Name, prop.Value, config);
+            }
         }
 
         string? snapshotVersion = null;
@@ -36,7 +39,26 @@ internal static class ConfigurationParser
         return new ParsedConfiguration { Config = config, SnapshotVersion = snapshotVersion };
     }
 
-    private static void FlattenElement(JsonElement element, string prefix, Dictionary<string, string> result)
+    private static void ParseEntry(string key, JsonElement entry, Dictionary<string, ConfigValue> result)
+    {
+        // Expected shape: {"value": "...", "isSensitive": true?}. Non-sensitive entries omit the flag.
+        if (entry.ValueKind != JsonValueKind.Object)
+        {
+            // Defensive: treat a bare scalar as {Value: <scalar>, IsSensitive: false} so older or malformed payloads don't crash the Link.
+            FlattenValue(entry, key, isSensitive: false, result);
+            return;
+        }
+
+        if (!entry.TryGetProperty(ValuePropertyName, out var value))
+        {
+            return;
+        }
+
+        var isSensitive = entry.TryGetProperty(IsSensitivePropertyName, out var flag) && flag.ValueKind == JsonValueKind.True;
+        FlattenValue(value, key, isSensitive, result);
+    }
+
+    private static void FlattenValue(JsonElement element, string prefix, bool isSensitive, Dictionary<string, ConfigValue> result)
     {
         switch (element.ValueKind)
         {
@@ -44,7 +66,7 @@ internal static class ConfigurationParser
                 foreach (var prop in element.EnumerateObject())
                 {
                     var key = prefix.Length > 0 ? $"{prefix}:{prop.Name}" : prop.Name;
-                    FlattenElement(prop.Value, key, result);
+                    FlattenValue(prop.Value, key, isSensitive, result);
                 }
 
                 break;
@@ -53,7 +75,7 @@ internal static class ConfigurationParser
                 var index = 0;
                 foreach (var item in element.EnumerateArray())
                 {
-                    FlattenElement(item, $"{prefix}:{index++}", result);
+                    FlattenValue(item, $"{prefix}:{index++}", isSensitive, result);
                 }
 
                 break;
@@ -67,7 +89,7 @@ internal static class ConfigurationParser
             case JsonValueKind.True:
             case JsonValueKind.False:
             default:
-                result[prefix] = element.ToString();
+                result[prefix] = new ConfigValue { Value = element.ToString(), IsSensitive = isSensitive };
                 break;
         }
     }
@@ -80,7 +102,7 @@ internal static class ConfigurationParser
         /// <summary>
         /// Gets the flattened configuration entries with colon-separated keys.
         /// </summary>
-        public required Dictionary<string, string> Config { get; init; }
+        public required Dictionary<string, ConfigValue> Config { get; init; }
 
         /// <summary>
         /// Gets the snapshot version, or <see langword="null" /> if not present.

@@ -50,7 +50,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
     public async Task ExecuteAsync_SseStaysConnected_DoesNotPoll()
     {
         // Arrange -- SSE delivers events then stays open until cancellation
-        var json = """{"data":{"K":"V"},"snapshotVersion":1}""";
+        var json = """{"data":{"K":{"value":"V"}},"snapshotVersion":1}""";
         var events = new[] { new SseEvent { EventType = "config", Data = json, Id = "e1" } };
         _sseClient.StreamAsync(Arg.Any<CancellationToken>())
             .Returns(YieldThenBlock(events));
@@ -63,7 +63,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
         await strategy.ExecuteAsync(_store, cts.Token);
 
         // Assert -- data delivered via SSE, no polling occurred
-        _store.GetSnapshot().Data.ShouldContainKeyAndValue("K", "V");
+        _store.GetSnapshot().Data["K"].Value.ShouldBe("V");
         await _client.DidNotReceive().FetchConfigAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
@@ -78,7 +78,7 @@ public sealed class SseWithPollingFallbackStrategyTests : IDisposable
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
-                Config = new Dictionary<string, string> { ["Poll"] = "Data" },
+                Config = Dict(("Poll", "Data")),
                 ETag = "\"1\""
             });
 

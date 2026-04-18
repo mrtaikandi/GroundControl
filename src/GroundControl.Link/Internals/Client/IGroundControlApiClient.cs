@@ -64,9 +64,9 @@ internal sealed record FetchResult
     public required FetchStatus Status { get; init; }
 
     /// <summary>
-    /// Gets the configuration entries as key-value pairs, or <c>null</c> on non-success status.
+    /// Gets the configuration entries keyed by flattened path, or <c>null</c> on non-success status. Each entry carries the value and a sensitivity flag.
     /// </summary>
-    public IReadOnlyDictionary<string, string>? Config { get; init; }
+    public IReadOnlyDictionary<string, ConfigValue>? Config { get; init; }
 
     /// <summary>
     /// Gets the ETag for conditional requests.

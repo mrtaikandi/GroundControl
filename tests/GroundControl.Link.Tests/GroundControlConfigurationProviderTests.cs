@@ -40,7 +40,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
-                Config = new Dictionary<string, string> { ["Key1"] = "Value1" },
+                Config = Dict(("Key1", "Value1")),
                 ETag = "\"1\""
             });
         var provider = CreateProvider();
@@ -60,7 +60,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Arrange
         _configCache.Load().Returns(new CachedConfiguration
         {
-            Entries = new Dictionary<string, string> { ["Cached"] = "Data" },
+            Entries = Dict(("Cached", "Data")),
             ETag = "\"5\"",
             LastEventId = "evt-1"
         });
@@ -83,14 +83,14 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Arrange
         _configCache.Load().Returns(new CachedConfiguration
         {
-            Entries = new Dictionary<string, string> { ["Old"] = "Stale" },
+            Entries = Dict(("Old", "Stale")),
             ETag = "\"1\""
         });
         _restConfigClient.FetchConfigAsync("\"1\"", Arg.Any<CancellationToken>())
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
-                Config = new Dictionary<string, string> { ["New"] = "Fresh" },
+                Config = Dict(("New", "Fresh")),
                 ETag = "\"2\""
             });
         var provider = CreateProvider();
@@ -110,7 +110,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Arrange
         _configCache.Load().Returns(new CachedConfiguration
         {
-            Entries = new Dictionary<string, string> { ["Cached"] = "Fallback" },
+            Entries = Dict(("Cached", "Fallback")),
             ETag = "\"3\""
         });
         _restConfigClient.FetchConfigAsync("\"3\"", Arg.Any<CancellationToken>())
@@ -152,7 +152,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
-                Config = new Dictionary<string, string> { ["K"] = "V" },
+                Config = Dict(("K", "V")),
                 ETag = "\"10\""
             });
         var provider = CreateProvider();
@@ -171,7 +171,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Arrange
         _configCache.Load().Returns(new CachedConfiguration
         {
-            Entries = new Dictionary<string, string> { ["K"] = "V" },
+            Entries = Dict(("K", "V")),
             ETag = "\"5\""
         });
         _restConfigClient.FetchConfigAsync("\"5\"", Arg.Any<CancellationToken>())
@@ -194,7 +194,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
-                Config = new Dictionary<string, string> { ["MyKey"] = "MyValue" },
+                Config = Dict(("MyKey", "MyValue")),
                 ETag = "\"1\""
             });
         var provider = CreateProvider();
@@ -216,7 +216,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
-                Config = new Dictionary<string, string> { ["Initial"] = "1" },
+                Config = Dict(("Initial", "1")),
                 ETag = "\"1\""
             });
         var provider = CreateProvider();
@@ -226,10 +226,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         provider.GetReloadToken().RegisterChangeCallback(_ => reloadTriggered = true, null);
 
         // Act — simulate Phase 2 background service pushing new data
-        _store.Update(
-            new Dictionary<string, string> { ["Updated"] = "2" },
-            "\"2\"",
-            "evt-1");
+        _store.Update(Dict(("Updated", "2")), "\"2\"", "evt-1");
 
         // Assert
         provider.TryGet("Updated", out var value).ShouldBeTrue();
@@ -247,7 +244,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
             .Returns(new FetchResult
             {
                 Status = FetchStatus.Success,
-                Config = new Dictionary<string, string> { ["K"] = "V" },
+                Config = Dict(("K", "V")),
                 ETag = "\"1\""
             });
         var provider = CreateProvider();
@@ -255,7 +252,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
 
         // Act
         provider.Dispose();
-        _store.Update(new Dictionary<string, string> { ["After"] = "Dispose" }, "\"2\"", null);
+        _store.Update(Dict(("After", "Dispose")), "\"2\"", null);
 
         // Assert — Data should NOT have been updated after disposal
         provider.TryGet("After", out _).ShouldBeFalse();
@@ -268,7 +265,7 @@ public sealed class GroundControlConfigurationProviderTests : IDisposable
         // Arrange
         _configCache.Load().Returns(new CachedConfiguration
         {
-            Entries = new Dictionary<string, string> { ["Cached"] = "Value" },
+            Entries = Dict(("Cached", "Value")),
             ETag = "\"1\""
         });
         _restConfigClient.FetchConfigAsync("\"1\"", Arg.Any<CancellationToken>())

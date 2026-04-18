@@ -6,8 +6,9 @@ namespace GroundControl.Link;
 /// <remarks>
 /// <para>
 /// Implementations are supplied by the consumer via <see cref="GroundControlOptions.Protector"/>.
-/// When a protector is configured, every value written to the cache is passed through
-/// <see cref="Protect"/> on write and <see cref="Unprotect"/> on read.
+/// When a protector is configured, only entries the server has marked as sensitive are passed through
+/// <see cref="Protect"/> on write and <see cref="Unprotect"/> on read; non-sensitive entries are
+/// persisted as plaintext so they remain inspectable by diagnostic tooling.
 /// </para>
 /// <para>
 /// The ciphertext returned by <see cref="Protect"/> is treated as opaque by the SDK. If the

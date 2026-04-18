@@ -54,14 +54,14 @@ public sealed class GroundControlStoreTests
     {
         // Arrange
         var store = new GroundControlStore(CreateOptions());
-        var data = new Dictionary<string, string> { ["Key1"] = "Value1" };
+        var data = Dict(("Key1", "Value1"));
 
         // Act
         store.Update(data, "etag-1", "event-1");
 
         // Assert
         var snapshot = store.GetSnapshot();
-        snapshot.Data.ShouldContainKeyAndValue("Key1", "Value1");
+        snapshot.Data["Key1"].Value.ShouldBe("Value1");
         snapshot.ETag.ShouldBe("etag-1");
         snapshot.LastEventId.ShouldBe("event-1");
         store.HealthStatus.ShouldBe(HealthStatus.Healthy);
@@ -77,7 +77,7 @@ public sealed class GroundControlStoreTests
         store.OnDataChanged += () => raised = true;
 
         // Act
-        store.Update(new Dictionary<string, string> { ["K"] = "V" }, null, null);
+        store.Update(Dict(("K", "V")), null, null);
 
         // Assert
         raised.ShouldBeTrue();
@@ -90,7 +90,7 @@ public sealed class GroundControlStoreTests
         var store = new GroundControlStore(CreateOptions());
 
         // Act & Assert
-        Should.NotThrow(() => store.Update(new Dictionary<string, string>(), null, null));
+        Should.NotThrow(() => store.Update([], null, null));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class GroundControlStoreTests
         store.SetHealth(HealthStatus.Unhealthy, "fail", new HttpRequestException("fail"));
 
         // Act
-        store.Update(new Dictionary<string, string> { ["K"] = "V" }, "\"1\"", null);
+        store.Update(Dict(("K", "V")), "\"1\"", null);
 
         // Assert
         store.LastError.ShouldBeNull();
@@ -141,15 +141,15 @@ public sealed class GroundControlStoreTests
     {
         // Arrange
         var store = new GroundControlStore(CreateOptions());
-        store.Update(new Dictionary<string, string> { ["Old"] = "1" }, "etag-1", null);
+        store.Update(Dict(("Old", "1")), "etag-1", null);
 
         // Act
-        store.Update(new Dictionary<string, string> { ["New"] = "2" }, "etag-2", "event-2");
+        store.Update(Dict(("New", "2")), "etag-2", "event-2");
 
         // Assert
         var snapshot = store.GetSnapshot();
         snapshot.Data.ShouldNotContainKey("Old");
-        snapshot.Data.ShouldContainKeyAndValue("New", "2");
+        snapshot.Data["New"].Value.ShouldBe("2");
         snapshot.ETag.ShouldBe("etag-2");
     }
 }

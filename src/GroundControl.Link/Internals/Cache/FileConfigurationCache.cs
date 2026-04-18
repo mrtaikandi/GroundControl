@@ -5,18 +5,16 @@ namespace GroundControl.Link.Internals.Cache;
 
 /// <summary>
 /// A file-based <see cref="IConfigurationCache"/> implementation that persists configuration to disk
-/// using atomic writes, with optional encryption of values via a consumer-supplied <see cref="IConfigurationProtector"/>.
+/// using atomic writes, with selective encryption of sensitive values via a consumer-supplied <see cref="IConfigurationProtector"/>.
 /// </summary>
 /// <remarks>
-/// When an <see cref="IConfigurationProtector"/> is supplied, every value in the cache file is encrypted
-/// and prefixed with <c>***ENCRYPTED:</c>. The marker lets the reader detect a mismatched configuration
-/// (cache written with a protector but read without one, or vice versa) and treat the file as a cache miss;
-/// the next <see cref="SaveAsync"/> atomically overwrites it.
+/// Only entries whose <see cref="ConfigValue.IsSensitive" /> flag is set are passed through <see cref="IConfigurationProtector.Protect" />
+/// when a protector is configured; non-sensitive entries are persisted as plaintext so diagnostics and alternate tooling can read them.
+/// The envelope carries a <c>Protected</c> flag recording whether a protector was configured at write time; a mismatch with the current
+/// protector state at read time is treated as a cache miss so the next save will atomically overwrite it.
 /// </remarks>
 internal sealed class FileConfigurationCache : IConfigurationCache
 {
-    private const string EncryptedPrefix = "***ENCRYPTED:";
-
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     private readonly SemaphoreSlim _writeLock = new(1, 1);
@@ -167,7 +165,8 @@ internal sealed class FileConfigurationCache : IConfigurationCache
     /// <inheritdoc />
     public void Dispose() => _writeLock.Dispose();
 
-    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Consumer-supplied Unprotect may throw any exception; treat all as a cache-miss signal")]
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Consumer-supplied Unprotect may throw any exception; treat all as a cache-miss signal")]
     private CachedConfiguration? DeserializeEnvelope(string json)
     {
         var cacheFile = JsonSerializer.Deserialize<CacheEnvelope>(json, SerializerOptions);
@@ -177,30 +176,27 @@ internal sealed class FileConfigurationCache : IConfigurationCache
             return null;
         }
 
-        var result = new Dictionary<string, string>(cacheFile.Entries.Count, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var (key, value) in cacheFile.Entries)
+        var hasProtector = _protector is not null;
+        if (cacheFile.Protected != hasProtector)
         {
-            var isEncrypted = value.StartsWith(EncryptedPrefix, StringComparison.Ordinal);
+            // The envelope was written under a different protection regime than we're currently configured for.
+            // Serving either plaintext-as-ciphertext or ciphertext-as-plaintext would corrupt downstream readers,
+            // so treat it as a cache miss and let the server refetch overwrite the file.
+            _logger.LogCacheProtectionMismatch(cacheFile.Protected, hasProtector);
+            return null;
+        }
 
-            if (isEncrypted && _protector is null)
-            {
-                _logger.LogCacheProtectorMissing();
-                return null;
-            }
+        var result = new Dictionary<string, ConfigValue>(cacheFile.Entries.Count, StringComparer.OrdinalIgnoreCase);
 
-            if (!isEncrypted && _protector is not null)
-            {
-                _logger.LogCacheUnexpectedPlaintext();
-                return null;
-            }
+        foreach (var (key, entry) in cacheFile.Entries)
+        {
+            string value;
 
-            if (isEncrypted)
+            if (entry.IsSensitive && _protector is not null)
             {
-                var cipherText = value[EncryptedPrefix.Length..];
                 try
                 {
-                    result[key] = _protector!.Unprotect(cipherText);
+                    value = _protector.Unprotect(entry.Value);
                 }
                 catch (Exception ex)
                 {
@@ -210,8 +206,10 @@ internal sealed class FileConfigurationCache : IConfigurationCache
             }
             else
             {
-                result[key] = value;
+                value = entry.Value;
             }
+
+            result[key] = new ConfigValue { Value = value, IsSensitive = entry.IsSensitive };
         }
 
         _logger.LogCacheLoaded();
@@ -225,18 +223,18 @@ internal sealed class FileConfigurationCache : IConfigurationCache
 
     private string SerializeEnvelope(CachedConfiguration config)
     {
-        var entries = new Dictionary<string, string>(config.Entries.Count, StringComparer.OrdinalIgnoreCase);
+        var entries = new Dictionary<string, CachedEntry>(config.Entries.Count, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (key, value) in config.Entries)
+        foreach (var (key, entry) in config.Entries)
         {
-            entries[key] = _protector is not null
-                ? EncryptedPrefix + _protector.Protect(value)
-                : value;
+            var storedValue = entry.IsSensitive && _protector is not null ? _protector.Protect(entry.Value) : entry.Value;
+            entries[key] = new CachedEntry { Value = storedValue, IsSensitive = entry.IsSensitive };
         }
 
         var cacheFile = new CacheEnvelope
         {
             Timestamp = DateTimeOffset.UtcNow,
+            Protected = _protector is not null,
             ETag = config.ETag,
             LastEventId = config.LastEventId,
             Entries = entries
@@ -253,7 +251,16 @@ internal sealed class FileConfigurationCache : IConfigurationCache
 
         public DateTimeOffset Timestamp { get; init; }
 
-        public Dictionary<string, string> Entries { get; init; } = [];
+        public bool Protected { get; init; }
+
+        public Dictionary<string, CachedEntry> Entries { get; init; } = [];
+    }
+
+    internal sealed class CachedEntry
+    {
+        public string Value { get; init; } = string.Empty;
+
+        public bool IsSensitive { get; init; }
     }
 }
 
@@ -265,12 +272,9 @@ internal static partial class FileConfigCacheLogs
     [LoggerMessage(2, LogLevel.Warning, "Failed to read local cache file.")]
     public static partial void LogCacheReadFailed(this ILogger<FileConfigurationCache> logger, Exception exception);
 
-    [LoggerMessage(3, LogLevel.Warning, "Cache contains encrypted values but no IConfigurationProtector is configured; treating as cache miss.")]
-    public static partial void LogCacheProtectorMissing(this ILogger<FileConfigurationCache> logger);
+    [LoggerMessage(3, LogLevel.Warning, "Cache envelope protection state ({EnvelopeProtected}) does not match the current protector configuration ({ProtectorConfigured}); treating as cache miss.")]
+    public static partial void LogCacheProtectionMismatch(this ILogger<FileConfigurationCache> logger, bool envelopeProtected, bool protectorConfigured);
 
-    [LoggerMessage(4, LogLevel.Warning, "Cache contains unprotected values but an IConfigurationProtector is configured; treating as cache miss to prevent a silent downgrade.")]
-    public static partial void LogCacheUnexpectedPlaintext(this ILogger<FileConfigurationCache> logger);
-
-    [LoggerMessage(5, LogLevel.Warning, "Failed to decrypt a cached value; treating as cache miss.")]
+    [LoggerMessage(4, LogLevel.Warning, "Failed to decrypt a cached value; treating as cache miss.")]
     public static partial void LogCacheDecryptFailed(this ILogger<FileConfigurationCache> logger, Exception exception);
 }

@@ -57,7 +57,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
             switch (result.Status)
             {
                 case FetchStatus.Success when result.Config is not null:
-                    Store.Update(new Dictionary<string, string>(result.Config, StringComparer.OrdinalIgnoreCase), result.ETag, null);
+                    Store.Update(new Dictionary<string, ConfigValue>(result.Config, StringComparer.OrdinalIgnoreCase), result.ETag, null);
                     TrySaveToCache(result.Config, result.ETag, null);
                     break;
 
@@ -115,7 +115,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
         var data = new Dictionary<string, string?>(snapshot.Data.Count, StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in snapshot.Data)
         {
-            data[key] = value;
+            data[key] = value.Value;
         }
 
         Data = data;
@@ -128,7 +128,7 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
             return;
         }
 
-        Store.Update(new Dictionary<string, string>(cache.Entries, StringComparer.OrdinalIgnoreCase), cache.ETag, cache.LastEventId);
+        Store.Update(new Dictionary<string, ConfigValue>(cache.Entries, StringComparer.OrdinalIgnoreCase), cache.ETag, cache.LastEventId);
     }
 
     private void MarkAsUnhealthy(CachedConfiguration? cached, FetchStatus? fetchStatus = null, Exception? error = null)
@@ -146,11 +146,11 @@ internal sealed class GroundControlConfigurationProvider : ConfigurationProvider
     }
 
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Cache save is best-effort; failures are non-fatal")]
-    private void TrySaveToCache(IReadOnlyDictionary<string, string> data, string? etag, string? lastEventId)
+    private void TrySaveToCache(IReadOnlyDictionary<string, ConfigValue> data, string? etag, string? lastEventId)
     {
         try
         {
-            var entries = new Dictionary<string, string>(data, StringComparer.OrdinalIgnoreCase);
+            var entries = new Dictionary<string, ConfigValue>(data, StringComparer.OrdinalIgnoreCase);
             Cache.Save(new CachedConfiguration { Entries = entries, ETag = etag, LastEventId = lastEventId });
         }
         catch

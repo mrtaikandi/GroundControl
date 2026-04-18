@@ -45,7 +45,7 @@ public sealed class SseConnectionStrategyTests : IDisposable
     public async Task ExecuteAsync_SseDeliversConfig_UpdatesStore()
     {
         // Arrange
-        var json = """{"data":{"Key1":"Value1"},"snapshotVersion":1}""";
+        var json = """{"data":{"Key1":{"value":"Value1"}},"snapshotVersion":1}""";
         var events = new[] { new SseEvent { EventType = "config", Data = json, Id = "evt-1" } };
         _sseClient.StreamAsync(Arg.Any<CancellationToken>())
             .Returns(ToAsyncEnumerable(events));
@@ -59,7 +59,7 @@ public sealed class SseConnectionStrategyTests : IDisposable
 
         // Assert
         var snapshot = _store.GetSnapshot();
-        snapshot.Data.ShouldContainKeyAndValue("Key1", "Value1");
+        snapshot.Data["Key1"].Value.ShouldBe("Value1");
         snapshot.ETag.ShouldBe("1");
         snapshot.LastEventId.ShouldBe("evt-1");
     }
@@ -68,7 +68,7 @@ public sealed class SseConnectionStrategyTests : IDisposable
     public async Task ExecuteAsync_SseDeliversConfig_SavesToCache()
     {
         // Arrange
-        var json = """{"data":{"K":"V"},"snapshotVersion":1}""";
+        var json = """{"data":{"K":{"value":"V"}},"snapshotVersion":1}""";
         _sseClient.StreamAsync(Arg.Any<CancellationToken>())
             .Returns(ToAsyncEnumerable([new SseEvent { EventType = "config", Data = json, Id = "e1" }]));
 
@@ -92,7 +92,7 @@ public sealed class SseConnectionStrategyTests : IDisposable
         var events = new[]
         {
             new SseEvent { EventType = "heartbeat", Data = "" },
-            new SseEvent { EventType = "config", Data = """{"data":{"K":"V"},"snapshotVersion":1}""", Id = "e1" }
+            new SseEvent { EventType = "config", Data = """{"data":{"K":{"value":"V"}},"snapshotVersion":1}""", Id = "e1" }
         };
         _sseClient.StreamAsync(Arg.Any<CancellationToken>())
             .Returns(ToAsyncEnumerable(events));
@@ -105,7 +105,7 @@ public sealed class SseConnectionStrategyTests : IDisposable
         await strategy.ExecuteAsync(_store, cts.Token);
 
         // Assert
-        _store.GetSnapshot().Data.ShouldContainKeyAndValue("K", "V");
+        _store.GetSnapshot().Data["K"].Value.ShouldBe("V");
     }
 
     [Fact]

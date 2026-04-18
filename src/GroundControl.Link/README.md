@@ -66,13 +66,13 @@ options.EnableLocalCache = true;
 options.CacheFilePath    = "./groundcontrol-cache.json"; // default
 ```
 
-Cached values are written in plaintext by default. To encrypt them at rest, implement `IConfigurationProtector` and assign it to `options.Protector`:
+Cached values are written in plaintext by default. To encrypt sensitive values at rest, implement `IConfigurationProtector` and assign it to `options.Protector`:
 
 ```csharp
 options.Protector = new MyProtector(); // implements IConfigurationProtector
 ```
 
-The SDK treats the ciphertext returned by `Protect` as opaque — key rotation and algorithm versioning are the implementation's responsibility. If `Unprotect` throws (tampering, wrong key, unrecognized format), the cache file is invalidated and the SDK refetches from the server.
+Only entries the server has marked as sensitive are passed through the protector; non-sensitive entries (feature flags, URLs, thresholds) remain inspectable as plaintext in the cache file. The SDK treats the ciphertext returned by `Protect` as opaque — key rotation and algorithm versioning are the implementation's responsibility. If `Unprotect` throws (tampering, wrong key, unrecognized format), the cache file is invalidated and the SDK refetches from the server. The same happens when the cache was written under a different protector configuration than the current one.
 
 ## Health Checks
 
