@@ -291,9 +291,9 @@ jobs:
       - name: Setup .NET
         uses: ./.github/actions/dotnet-setup
 
-      - name: Install nbgv
+      - name: Restore local tools (pins nbgv via .config/dotnet-tools.json)
         shell: bash
-        run: dotnet tool install -g nbgv
+        run: dotnet tool restore
 
       - name: Configure git identity
         shell: bash
@@ -338,7 +338,7 @@ jobs:
           TAG='${{ needs.plan-release.outputs.release_tag }}'
 
           git checkout -b "${BRANCH}"
-          nbgv set-version "${NEXT}" -p ${{ inputs.project-path }}
+          dotnet nbgv set-version "${NEXT}" -p ${{ inputs.project-path }}
           git add ${{ inputs.project-path }}/version.json
           git commit -m "chore(${{ inputs.component-name }}): bump to ${NEXT}"
           git push origin "${BRANCH}"
