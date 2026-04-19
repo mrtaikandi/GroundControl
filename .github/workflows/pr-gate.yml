@@ -39,17 +39,7 @@ jobs:
       - name: Run tests
         uses: ./.github/actions/dotnet-test
         with:
-          # GroundControl.Api.Tests.Infrastructure is a test-helper library
-          # (no runnable tests, InternalsVisibleTo the Api.Tests projects)
-          # and is deliberately excluded.
-          targets: |
-            tests/GroundControl.Api.Tests/GroundControl.Api.Tests.csproj
-            tests/GroundControl.Api.Client.Tests/GroundControl.Api.Client.Tests.csproj
-            tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
-            tests/GroundControl.E2E.Tests/GroundControl.E2E.Tests.csproj
-            tests/GroundControl.Host.Api.Generators.Tests/GroundControl.Host.Api.Generators.Tests.csproj
-            tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
-            tests/GroundControl.Persistence.MongoDb.Tests/GroundControl.Persistence.MongoDb.Tests.csproj
+          targets: GroundControl.slnx
           no-restore: 'true'
           artifact-name: pr-gate-test-results
           report-name: PR-gate tests
