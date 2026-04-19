@@ -1,0 +1,47 @@
+name: generate-changelog
+description: >-
+  Runs git-cliff against the component's config to produce CHANGES.md for
+  the unreleased commits, enforces a non-empty changelog on stable
+  releases, and uploads the file as a workflow artifact so downstream jobs
+  can attach it to the GitHub Release.
+
+inputs:
+  cliff-config:
+    description: Path to the git-cliff config (e.g., `.github/cliff/link.toml`).
+    required: true
+  release-tag:
+    description: Fully-qualified release tag (e.g., `link/v1.2.0`).
+    required: true
+  release-type:
+    description: Either `preview` or `stable`. Stable releases require a non-empty changelog.
+    required: true
+  component-name:
+    description: Short component name used for the uploaded artifact name.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Generate changelog from Conventional Commits
+      uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72  # v4
+      with:
+        config: ${{ inputs.cliff-config }}
+        args: --unreleased --tag ${{ inputs.release-tag }} --strip header
+      env:
+        OUTPUT: CHANGES.md
+
+    - name: Require non-empty changelog for stable releases
+      if: ${{ inputs.release-type == 'stable' }}
+      shell: bash
+      run: |
+        if [ ! -s CHANGES.md ] || ! grep -q '[^[:space:]]' CHANGES.md; then
+          echo "::error::No conventional commits since the last stable release — nothing to ship."
+          exit 1
+        fi
+
+    - name: Upload changelog artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.component-name }}-release-changelog
+        path: CHANGES.md
+        if-no-files-found: error

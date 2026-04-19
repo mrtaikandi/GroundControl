@@ -1,0 +1,51 @@
+name: nuget-oidc-publish
+description: >-
+  Exchanges a GitHub OIDC token for a short-lived nuget.org API key via
+  NuGet trusted publishing, pushes every .nupkg in the package directory
+  to nuget.org, and attaches the same files to the GitHub Release.
+  The surrounding job must grant `id-token: write` and `contents: write`.
+
+inputs:
+  nuget-user:
+    description: nuget.org profile name (NOT an email address).
+    required: true
+  package-dir:
+    description: Directory containing the .nupkg / .snupkg files to publish.
+    required: false
+    default: artifacts/package
+  release-tag:
+    description: GitHub Release tag to attach packages to.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Login to nuget.org via trusted publishing (OIDC)
+      id: nuget_login
+      uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544  # v1
+      with:
+        user: ${{ inputs.nuget-user }}
+
+    - name: Push to nuget.org
+      shell: bash
+      env:
+        PACKAGE_DIR: ${{ inputs.package-dir }}
+        NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
+      run: |
+        dotnet nuget push "${PACKAGE_DIR}/*.nupkg" \
+          --source https://api.nuget.org/v3/index.json \
+          --api-key "${NUGET_API_KEY}" \
+          --skip-duplicate
+
+    - name: Attach package to GitHub Release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ inputs.release-tag }}
+        PACKAGE_DIR: ${{ inputs.package-dir }}
+      run: |
+        gh release upload "${RELEASE_TAG}" \
+          "${PACKAGE_DIR}"/*.nupkg \
+          "${PACKAGE_DIR}"/*.snupkg \
+          --repo "${GITHUB_REPOSITORY}" \
+          --clobber

@@ -1,9 +1,8 @@
 # GroundControl.Cli — cut a release and publish to nuget.org.
 #
-# Thin wrapper around _release-template.yml. See that file for the full
-# release-atomicity flow (preflight → build → release → publish → bump-pr).
-# Tags are prefixed with "cli/" so they don't collide with other
-# components' tags.
+# Thin wrapper around _release.yml. See that file for the full release-
+# atomicity flow. Tags are prefixed with "cli/" so they don't collide
+# with other components' tags.
 
 name: cli-release
 
@@ -19,7 +18,7 @@ on:
           - major
         default: minor
       dryRun:
-        description: 'Run preflight + build (incl. tests and smoke test) but do not tag, release, publish, or open the bump PR.'
+        description: 'Run plan-release + build-test-pack (incl. tests and smoke test) but do not tag, release, publish, or open the bump PR.'
         type: boolean
         default: false
 
@@ -29,12 +28,12 @@ concurrency:
 
 jobs:
   release:
-    uses: ./.github/workflows/_release-template.yml
+    uses: ./.github/workflows/_release.yml
     permissions:
       contents: write       # gh release create + bump PR push
       pull-requests: write  # bump PR
       id-token: write       # OIDC to nuget.org
-      checks: write         # test-reporter in _build-template.yml
+      checks: write         # test-reporter in _release.yml
     secrets: inherit
     with:
       component-name: cli
@@ -43,6 +42,7 @@ jobs:
       test-project: tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
       pack-project: src/GroundControl.Cli/GroundControl.Cli.csproj
       cliff-config: .github/cliff/cli.toml
+      nuget-user: mrtaikandi
       is-tool: true
       tool-command: groundcontrol
       versionIncrement: ${{ inputs.versionIncrement }}

@@ -1,0 +1,80 @@
+# Repo-wide PR gate — builds and runs every runnable test project on every
+# pull request (and every merge-queue entry). Publishing/packaging is NOT
+# done here; that belongs to the per-component release workflows.
+#
+# All step-level work lives in composite actions under .github/actions/ so
+# the YAML here stays declarative. To add a new test target, append it to
+# the `targets` block below.
+
+name: pr-gate
+
+on:
+  pull_request:
+  merge_group:
+
+concurrency:
+  group: pr-gate-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build-and-test:
+    name: Build & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET + restore solution
+        uses: ./.github/actions/dotnet-setup
+        with:
+          restore-target: GroundControl.slnx
+
+      - name: Run tests
+        uses: ./.github/actions/dotnet-test
+        with:
+          # GroundControl.Api.Tests.Infrastructure is a test-helper library
+          # (no runnable tests, InternalsVisibleTo the Api.Tests projects)
+          # and is deliberately excluded.
+          targets: |
+            tests/GroundControl.Api.Tests/GroundControl.Api.Tests.csproj
+            tests/GroundControl.Api.Client.Tests/GroundControl.Api.Client.Tests.csproj
+            tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
+            tests/GroundControl.E2E.Tests/GroundControl.E2E.Tests.csproj
+            tests/GroundControl.Host.Api.Generators.Tests/GroundControl.Host.Api.Generators.Tests.csproj
+            tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
+            tests/GroundControl.Persistence.MongoDb.Tests/GroundControl.Persistence.MongoDb.Tests.csproj
+          no-restore: 'true'
+          artifact-name: pr-gate-test-results
+          report-name: PR-gate tests
+
+  # Stable required-check name for branch protection. Keep branch
+  # protection pointed at `pr-gate-summary` so the underlying job can be
+  # renamed or fan-out into a matrix later without touching GitHub
+  # settings.
+  pr-gate-summary:
+    name: PR gate
+    needs: [build-and-test]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Assert upstream jobs succeeded
+        shell: bash
+        env:
+          BUILD_AND_TEST_RESULT: ${{ needs.build-and-test.result }}
+        run: |
+          case "${BUILD_AND_TEST_RESULT}" in
+            success) echo "build-and-test succeeded." ;;
+            skipped) echo "build-and-test was skipped (likely a draft PR or merge-queue skip)." ;;
+            *)
+              echo "::error::build-and-test reported '${BUILD_AND_TEST_RESULT}'."
+              exit 1
+              ;;
+          esac

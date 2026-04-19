@@ -1,0 +1,97 @@
+name: compute-release-version
+description: >-
+  Reads the component's version.json, determines whether the upcoming
+  release is preview or stable, computes the SemVer2 release version via
+  NBGV, asserts the resulting tag does not already exist locally or on
+  origin, and exposes everything as outputs for downstream jobs.
+
+inputs:
+  project-path:
+    description: >-
+      Path to the component folder that owns `version.json`
+      (e.g., `src/GroundControl.Link`).
+    required: true
+  component-name:
+    description: Short component name used for the tag prefix (e.g., `link`, `cli`).
+    required: true
+
+outputs:
+  release_tag:
+    description: Fully-qualified release tag (e.g., `link/v1.2.0-preview.3`).
+    value: ${{ steps.version.outputs.release_tag }}
+  release_version:
+    description: SemVer2 version string.
+    value: ${{ steps.version.outputs.release_version }}
+  release_type:
+    description: Either `preview` or `stable`.
+    value: ${{ steps.type.outputs.release_type }}
+  version_field:
+    description: Raw value of the `version` field in version.json.
+    value: ${{ steps.type.outputs.version_field }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install nbgv
+      shell: bash
+      run: dotnet tool install -g nbgv
+
+    - name: Determine release type from version.json
+      id: type
+      shell: bash
+      env:
+        PROJECT_PATH: ${{ inputs.project-path }}
+      run: |
+        VERSION_FIELD=$(jq -r .version "${PROJECT_PATH}/version.json")
+        echo "version.json version: ${VERSION_FIELD}"
+        case "${VERSION_FIELD}" in
+          *-preview*) RELEASE_TYPE=preview ;;
+          *)          RELEASE_TYPE=stable ;;
+        esac
+        echo "release_type=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
+        echo "version_field=${VERSION_FIELD}" >> "$GITHUB_OUTPUT"
+        echo "Release type: ${RELEASE_TYPE}"
+
+    - name: Compute release version from NBGV
+      id: version
+      shell: bash
+      env:
+        PROJECT_PATH: ${{ inputs.project-path }}
+        COMPONENT_NAME: ${{ inputs.component-name }}
+        RELEASE_TYPE: ${{ steps.type.outputs.release_type }}
+      run: |
+        VERSION=$(nbgv get-version -p "${PROJECT_PATH}" -v SemVer2)
+        echo "NBGV SemVer2: ${VERSION}"
+
+        # Sanity-check: NBGV's output must agree with the release type we
+        # inferred from version.json. A preview run must produce a
+        # prerelease version, a stable run must not.
+        case "${RELEASE_TYPE}/${VERSION}" in
+          preview/*-preview*) ;;
+          preview/*)
+            echo "::error::Release type is 'preview' but NBGV produced '${VERSION}' (no prerelease tag). Check publicReleaseRefSpec in version.json."
+            exit 1
+            ;;
+          stable/*-*)
+            echo "::error::Release type is 'stable' but NBGV produced '${VERSION}' (has prerelease/metadata). Ensure main is on a publicReleaseRefSpec ref and version.json has no '-preview' tag."
+            exit 1
+            ;;
+          stable/*) ;;
+        esac
+
+        echo "release_version=${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "release_tag=${COMPONENT_NAME}/v${VERSION}" >> "$GITHUB_OUTPUT"
+
+    - name: Ensure tag does not already exist
+      shell: bash
+      env:
+        TAG: ${{ steps.version.outputs.release_tag }}
+      run: |
+        if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+          echo "::error::Tag ${TAG} already exists locally."
+          exit 1
+        fi
+        if git ls-remote --exit-code --tags origin "${TAG}" >/dev/null; then
+          echo "::error::Tag ${TAG} already exists on origin. Push a new commit to main (preview) or merge the post-release bump PR (stable) before re-running."
+          exit 1
+        fi

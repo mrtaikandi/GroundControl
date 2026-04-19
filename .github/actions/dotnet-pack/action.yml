@@ -1,0 +1,49 @@
+name: dotnet-pack
+description: >-
+  Runs `dotnet pack` against a single project and uploads the produced
+  .nupkg / .snupkg files as a workflow artifact for reuse by downstream
+  jobs (validation → publish).
+
+inputs:
+  project:
+    description: Path to the csproj to pack.
+    required: true
+  output-dir:
+    description: Directory that will receive the packed files.
+    required: false
+    default: artifacts/package
+  configuration:
+    description: Build configuration.
+    required: false
+    default: Release
+  artifact-name:
+    description: Name used for the uploaded package artifact.
+    required: true
+  no-build:
+    description: Pass --no-build to dotnet pack (caller has already built).
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Pack ${{ inputs.project }}
+      shell: bash
+      env:
+        PROJECT: ${{ inputs.project }}
+        OUTPUT_DIR: ${{ inputs.output-dir }}
+        CONFIG: ${{ inputs.configuration }}
+        NO_BUILD: ${{ inputs.no-build }}
+      run: |
+        BUILD_FLAGS=""
+        [ "${NO_BUILD}" = "true" ] && BUILD_FLAGS="--no-build"
+        dotnet pack "${PROJECT}" --configuration "${CONFIG}" ${BUILD_FLAGS} --output "${OUTPUT_DIR}"
+
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          ${{ inputs.output-dir }}/*.nupkg
+          ${{ inputs.output-dir }}/*.snupkg
+        if-no-files-found: error

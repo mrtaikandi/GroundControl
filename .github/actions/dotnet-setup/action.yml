@@ -1,0 +1,34 @@
+name: dotnet-setup
+description: >-
+  Sets up the .NET SDK using global.json with NuGet caching, and optionally
+  restores a target (csproj, sln, slnx, or slnf). Assumes the repo is already
+  checked out.
+
+inputs:
+  global-json-file:
+    description: Path to global.json for SDK pinning.
+    required: false
+    default: global.json
+  restore-target:
+    description: >-
+      Path to restore (csproj, sln, slnx, or slnf). Leave empty to skip
+      restore.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: ${{ inputs.global-json-file }}
+        cache: true
+        cache-dependency-path: |
+          **/*.csproj
+          Directory.Packages.props
+
+    - name: Restore ${{ inputs.restore-target }}
+      if: ${{ inputs.restore-target != '' }}
+      shell: bash
+      run: dotnet restore "${{ inputs.restore-target }}"
