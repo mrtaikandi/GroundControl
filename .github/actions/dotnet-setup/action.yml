@@ -31,4 +31,6 @@ runs:
     - name: Restore ${{ inputs.restore-target }}
       if: ${{ inputs.restore-target != '' }}
       shell: bash
-      run: dotnet restore "${{ inputs.restore-target }}"
+      env:
+        RESTORE_TARGET: ${{ inputs.restore-target }}
+      run: dotnet restore "${RESTORE_TARGET}"

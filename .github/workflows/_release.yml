@@ -47,6 +47,15 @@ on:
         description: Path to the csproj to pack.
         required: true
         type: string
+      solution:
+        description: >-
+          Path to a solution file (.sln, .slnx, or .slnf) that covers every
+          project needed to build, test, and pack this component. Restore
+          and build run against this file so that `pack-project` is
+          guaranteed to be built before `dotnet pack --no-build` runs,
+          without relying on implicit project-reference.
+        required: true
+        type: string
       cliff-config:
         description: Path to the git-cliff config for this component.
         required: true
@@ -88,6 +97,9 @@ jobs:
       release_version: ${{ steps.version.outputs.release_version }}
       release_type: ${{ steps.version.outputs.release_type }}
       version_field: ${{ steps.version.outputs.version_field }}
+      # github.sha is the workflow-dispatch ref; the "Assert dispatch is
+      # at main tip" step below proves it equals origin/main, so this is
+      # the validated target SHA every downstream job pins against.
       release_sha: ${{ github.sha }}
     steps:
       - name: Checkout main
@@ -157,14 +169,16 @@ jobs:
           ref: ${{ needs.plan-release.outputs.release_sha }}
           fetch-depth: 0
 
-      - name: Setup .NET + restore test project
+      - name: Setup .NET + restore solution
         uses: ./.github/actions/dotnet-setup
         with:
-          restore-target: ${{ inputs.test-project }}
+          restore-target: ${{ inputs.solution }}
 
-      - name: Build
+      - name: Build solution
         shell: bash
-        run: dotnet build "${{ inputs.test-project }}" --configuration Release --no-restore
+        env:
+          SOLUTION: ${{ inputs.solution }}
+        run: dotnet build "${SOLUTION}" --configuration Release --no-restore
 
       - name: Test
         uses: ./.github/actions/dotnet-test
@@ -240,6 +254,9 @@ jobs:
         with:
           ref: ${{ needs.plan-release.outputs.release_sha }}
           fetch-depth: 1
+
+      - name: Setup .NET
+        uses: ./.github/actions/dotnet-setup
 
       - name: Download package artifact from build job
         uses: actions/download-artifact@v4

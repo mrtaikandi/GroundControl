@@ -67,6 +67,10 @@ runs:
           TARGET="$(echo "${TARGET}" | tr -d '\r' | xargs)"
           [ -z "${TARGET}" ] && continue
 
+          # Exact-line match against the exclude list. Strings must match
+          # byte-for-byte — differing `./` prefixes, trailing whitespace,
+          # or path-separator flavor will silently fail to exclude. Callers
+          # should pass exclude paths in the same form as targets.
           if printf '%s\n' "${EXCLUDE}" | tr -d '\r' | grep -qFx "${TARGET}"; then
             echo "::notice::Skipping excluded target: ${TARGET}"
             continue
@@ -76,7 +80,12 @@ runs:
           echo "::group::dotnet test ${TARGET}"
           case "${TARGET}" in
             *.csproj)
-              SLUG="$(basename "${TARGET%.csproj}")"
+              # Slug the full path so two csprojs sharing a basename
+              # (e.g. `Foo/Bar.Tests.csproj` + `Baz/Bar.Tests.csproj`)
+              # don't collide on the same TRX filename.
+              SLUG="${TARGET%.csproj}"
+              SLUG="${SLUG//\//_}"
+              SLUG="${SLUG//\\/_}"
               dotnet test "${TARGET}" --configuration "${CONFIG}" ${BUILD_FLAGS} -- \
                 --report-xunit-trx \
                 --report-xunit-trx-filename "${SLUG}.trx" \

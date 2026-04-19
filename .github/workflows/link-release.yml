@@ -30,9 +30,9 @@ jobs:
     uses: ./.github/workflows/_release.yml
     permissions:
       contents: write       # gh release create + bump PR push
-      pull-requests: write  # bump PR
+      pull-requests: write  # bump version PR
       id-token: write       # OIDC to nuget.org
-      checks: write         # test-reporter in _release.yml
+      checks: write         # dorny/test-reporter in _release.yml's build-test-pack job
     secrets: inherit
     with:
       component-name: link
@@ -40,6 +40,7 @@ jobs:
       project-path: src/GroundControl.Link
       test-project: tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
       pack-project: src/GroundControl.Link/GroundControl.Link.csproj
+      solution: GroundControl.slnx
       cliff-config: .github/cliff/link.toml
       nuget-user: mrtaikandi
       versionIncrement: ${{ inputs.versionIncrement }}
