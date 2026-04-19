@@ -341,10 +341,24 @@ jobs:
           dotnet nbgv set-version "${NEXT}" -p ${{ inputs.project-path }}
           git add ${{ inputs.project-path }}/version.json
           git commit -m "chore(${{ inputs.component-name }}): bump to ${NEXT}"
-          git push origin "${BRANCH}"
 
-          gh pr create \
-            --base main \
-            --head "${BRANCH}" \
-            --title "chore(${{ inputs.component-name }}): bump to ${NEXT}" \
-            --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`${{ inputs.component-name }}-release\` again, or preview builds will collide with the just-published tag."
+          # Fetch any prior remote-tracking ref so --force-with-lease has a
+          # baseline to compare against; swallow failure when the branch
+          # doesn't exist yet on origin. --force-with-lease makes the push
+          # idempotent on re-run after a prior failure without silently
+          # overwriting concurrent pushes from another actor.
+          git fetch origin "${BRANCH}" 2>/dev/null || true
+          git push origin "${BRANCH}" --force-with-lease
+
+          # Skip `gh pr create` if a prior (failed) run already opened the
+          # PR for this branch — otherwise gh exits non-zero.
+          EXISTING_PR=$(gh pr list --head "${BRANCH}" --state open --json number --jq '.[0].number // empty')
+          if [ -n "${EXISTING_PR}" ]; then
+            echo "Bump PR already open as #${EXISTING_PR}; skipping create."
+          else
+            gh pr create \
+              --base main \
+              --head "${BRANCH}" \
+              --title "chore(${{ inputs.component-name }}): bump to ${NEXT}" \
+              --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`${{ inputs.component-name }}-release\` again, or preview builds will collide with the just-published tag."
+          fi
