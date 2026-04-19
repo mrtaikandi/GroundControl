@@ -39,8 +39,12 @@ on:
         description: Path to the component folder containing version.json.
         required: true
         type: string
-      test-project:
-        description: Path to the test csproj.
+      test-targets:
+        description: >-
+          Newline-separated list of test targets. Each entry may be a
+          `.csproj`, `.sln`, `.slnx`, or `.slnf` path — the same shapes
+          accepted by the `dotnet-test` composite action. Pass a single
+          path for the common case.
         required: true
         type: string
       pack-project:
@@ -183,7 +187,7 @@ jobs:
       - name: Test
         uses: ./.github/actions/dotnet-test
         with:
-          targets: ${{ inputs.test-project }}
+          targets: ${{ inputs.test-targets }}
           no-build: 'true'
           no-restore: 'true'
           artifact-name: ${{ inputs.component-name }}-test-results
