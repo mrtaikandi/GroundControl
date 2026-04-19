@@ -38,7 +38,7 @@ jobs:
       component-name: link
       display-name: Link tests (release)
       project-path: src/GroundControl.Link
-      test-project: tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
+      test-targets: tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
       pack-project: src/GroundControl.Link/GroundControl.Link.csproj
       solution: GroundControl.slnx
       cliff-config: .github/cliff/link.toml

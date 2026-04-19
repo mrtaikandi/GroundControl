@@ -39,7 +39,7 @@ jobs:
       component-name: cli
       display-name: Cli tests (release)
       project-path: src/GroundControl.Cli
-      test-project: tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
+      test-targets: tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
       pack-project: src/GroundControl.Cli/GroundControl.Cli.csproj
       solution: GroundControl.slnx
       cliff-config: .github/cliff/cli.toml
