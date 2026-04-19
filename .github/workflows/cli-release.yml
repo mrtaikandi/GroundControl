@@ -31,9 +31,9 @@ jobs:
     uses: ./.github/workflows/_release.yml
     permissions:
       contents: write       # gh release create + bump PR push
-      pull-requests: write  # bump PR
+      pull-requests: write  # bump version PR
       id-token: write       # OIDC to nuget.org
-      checks: write         # test-reporter in _release.yml
+      checks: write         # dorny/test-reporter in _release.yml's build-test-pack job
     secrets: inherit
     with:
       component-name: cli
@@ -41,6 +41,7 @@ jobs:
       project-path: src/GroundControl.Cli
       test-project: tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
       pack-project: src/GroundControl.Cli/GroundControl.Cli.csproj
+      solution: GroundControl.slnx
       cliff-config: .github/cliff/cli.toml
       nuget-user: mrtaikandi
       is-tool: true

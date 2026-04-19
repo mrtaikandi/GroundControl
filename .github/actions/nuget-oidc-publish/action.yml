@@ -26,6 +26,10 @@ runs:
       with:
         user: ${{ inputs.nuget-user }}
 
+    # `NuGet/login` registers `NUGET_API_KEY` as a masked secret via the
+    # runner's `::add-mask::` workflow command, so reading it through
+    # `steps.nuget_login.outputs.NUGET_API_KEY` and piping it into an
+    # `env:` here is safe — it will still be scrubbed from any logs.
     - name: Push to nuget.org
       shell: bash
       env:
