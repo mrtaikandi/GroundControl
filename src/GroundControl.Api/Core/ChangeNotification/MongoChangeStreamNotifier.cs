@@ -89,14 +89,26 @@ internal sealed partial class MongoChangeStreamNotifier : IChangeNotifier, IHost
     }
 
     /// <inheritdoc />
-    public async IAsyncEnumerable<(Guid ProjectId, Guid SnapshotId)> SubscribeAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<(Guid ProjectId, Guid SnapshotId)> SubscribeAsync(CancellationToken cancellationToken = default)
     {
+        // Register the subscriber synchronously so a notification published between
+        // this call and the caller's first MoveNextAsync is not lost. Deferring
+        // registration to the iterator body produces a race when a publisher fires
+        // before the consumer's enumeration has actually started.
         var channel = Channel.CreateUnbounded<(Guid, Guid)>(
             new UnboundedChannelOptions { SingleWriter = false, SingleReader = true });
 
         var id = Guid.CreateVersion7();
         _subscribers.TryAdd(id, channel.Writer);
 
+        return ReadSubscriptionAsync(channel, id, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<(Guid ProjectId, Guid SnapshotId)> ReadSubscriptionAsync(
+        Channel<(Guid, Guid)> channel,
+        Guid id,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         try
         {
             await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
