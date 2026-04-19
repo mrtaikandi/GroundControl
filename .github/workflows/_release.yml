@@ -348,9 +348,11 @@ jobs:
 
           # Fetch any prior remote-tracking ref so --force-with-lease has a
           # baseline to compare against; swallow failure when the branch
-          # doesn't exist yet on origin. --force-with-lease makes the push
-          # idempotent on re-run after a prior failure without silently
-          # overwriting concurrent pushes from another actor.
+          # doesn't exist yet on origin. On first run the fetch fails
+          # silently and the push creates the branch with a vacuous lease;
+          # on a retry after a prior failure the lease compares against
+          # the previously-pushed state and aborts if anything else has
+          # touched the branch in the meantime.
           git fetch origin "${BRANCH}" 2>/dev/null || true
           git push origin "${BRANCH}" --force-with-lease
 

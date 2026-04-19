@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       versionIncrement:
-        description: 'STABLE path only: component to bump on main after the release (default: minor).'
+        description: 'Next Version: STABLE path only: component to bump on main after the release (default: minor).'
         type: choice
         options:
           - patch
@@ -18,7 +18,7 @@ on:
           - major
         default: minor
       dryRun:
-        description: 'Run plan-release + build-test-pack (incl. tests and smoke test) but do not tag, release, publish, or open the bump PR.'
+        description: 'Dry-Run: plan-release + build-test-pack, but do not tag, release, publish, or open the bump PR.'
         type: boolean
         default: false
 
@@ -39,7 +39,10 @@ jobs:
       component-name: cli
       display-name: Cli tests (release)
       project-path: src/GroundControl.Cli
-      test-targets: tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
+      test-targets: |
+        tests/GroundControl.Api.Client.Tests/GroundControl.Api.Client.Tests.csproj
+        tests/GroundControl.Cli.Tests/GroundControl.Cli.Tests.csproj
+        tests/GroundControl.E2E.Tests/GroundControl.E2E.Tests.csproj
       pack-project: src/GroundControl.Cli/GroundControl.Cli.csproj
       solution: GroundControl.slnx
       cliff-config: .github/cliff/cli.toml
