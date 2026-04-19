@@ -12,7 +12,7 @@ builder.AddProject<Projects.GroundControl_Api>("api")
     .WithReference(mongodb)
     .WithEnvironment("Authentication__Mode", "None")
     .WithEnvironment("DataProtection__Mode", "FileSystem")
-    .WithHttpHealthCheck("/healthz/ready");
+    .WithHttpHealthCheck("/healthz/ready", endpointName: "http");
 
 builder.AddProject<Projects.GroundControl_Samples_LinkConsole>("link-console");
 
