@@ -38,10 +38,15 @@ public sealed class MongoChangeStreamNotifierTests
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(10));
 
+            // Subscribe on the test thread so the subscriber is registered before the update fires.
+            // Calling SubscribeAsync inside Task.Run defers registration until the pool worker runs,
+            // which on slow CI hosts can lose updates that arrive before the delegate starts.
+            var subscription = notifier.SubscribeAsync(cts.Token);
+
             var received = new List<(Guid ProjectId, Guid SnapshotId)>();
             var subscriberTask = Task.Run(async () =>
             {
-                await foreach (var item in notifier.SubscribeAsync(cts.Token))
+                await foreach (var item in subscription)
                 {
                     received.Add(item);
                     await cts.CancelAsync();
@@ -85,10 +90,12 @@ public sealed class MongoChangeStreamNotifierTests
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(3));
 
+            var subscription = notifier.SubscribeAsync(cts.Token);
+
             var received = new List<(Guid ProjectId, Guid SnapshotId)>();
             var subscriberTask = Task.Run(async () =>
             {
-                await foreach (var item in notifier.SubscribeAsync(cts.Token))
+                await foreach (var item in subscription)
                 {
                     received.Add(item);
                 }
@@ -160,16 +167,16 @@ public sealed class MongoChangeStreamNotifierTests
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
         var received = new List<(Guid ProjectId, Guid SnapshotId)>();
 
+        var subscription = notifier.SubscribeAsync(cts.Token);
+
         var subscriberTask = Task.Run(async () =>
         {
-            await foreach (var item in notifier.SubscribeAsync(cts.Token))
+            await foreach (var item in subscription)
             {
                 received.Add(item);
                 await cts.CancelAsync();
             }
         }, TestCancellationToken);
-
-        await Task.Delay(50, TestCancellationToken);
 
         // Act
         await notifier.NotifyAsync(projectId, snapshotId, TestCancellationToken);
@@ -204,10 +211,12 @@ public sealed class MongoChangeStreamNotifierTests
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestCancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(10));
 
+            var subscription = notifier.SubscribeAsync(cts.Token);
+
             var received = new List<(Guid ProjectId, Guid SnapshotId)>();
             var subscriberTask = Task.Run(async () =>
             {
-                await foreach (var item in notifier.SubscribeAsync(cts.Token))
+                await foreach (var item in subscription)
                 {
                     received.Add(item);
                     if (received.Count >= 3)
