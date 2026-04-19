@@ -32,9 +32,9 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Install nbgv
+    - name: Restore local tools
       shell: bash
-      run: dotnet tool install -g nbgv
+      run: dotnet tool restore
 
     - name: Determine release type from version.json
       id: type
@@ -60,7 +60,7 @@ runs:
         COMPONENT_NAME: ${{ inputs.component-name }}
         RELEASE_TYPE: ${{ steps.type.outputs.release_type }}
       run: |
-        VERSION=$(nbgv get-version -p "${PROJECT_PATH}" -v SemVer2)
+        VERSION=$(dotnet nbgv get-version -p "${PROJECT_PATH}" -v SemVer2)
         echo "NBGV SemVer2: ${VERSION}"
 
         # Sanity-check: NBGV's output must agree with the release type we
