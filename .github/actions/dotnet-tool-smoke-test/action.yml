@@ -1,0 +1,54 @@
+name: dotnet-tool-smoke-test
+description: >-
+  Installs a freshly-packed global tool from a local feed, invokes it to
+  verify it runs, then uninstalls. Uses `--source` (not `--add-source`)
+  to isolate resolution from nuget.org so a name/version collision with
+  an already-published package can't silently succeed.
+
+inputs:
+  pack-project:
+    description: >-
+      Path to the csproj that was packed. The default PackageId (csproj
+      basename) is used as the tool id.
+    required: true
+  tool-command:
+    description: Command name produced by the global tool (e.g., `groundcontrol`).
+    required: true
+  package-dir:
+    description: Local directory containing the freshly-packed nupkg.
+    required: false
+    default: artifacts/package
+
+runs:
+  using: composite
+  steps:
+    - name: Put dotnet tools on PATH
+      shell: bash
+      run: echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+    - name: Install, invoke & uninstall tool
+      shell: bash
+      env:
+        PACK_PROJECT: ${{ inputs.pack-project }}
+        TOOL_COMMAND: ${{ inputs.tool-command }}
+        PACKAGE_DIR: ${{ inputs.package-dir }}
+      run: |
+        set -euo pipefail
+        # Derive the tool id from the pack-project csproj basename. Parsing
+        # the version out of the nupkg filename with a regex is ambiguous
+        # because SemVer versions contain dots, so we split by stripping the
+        # known prefix/suffix instead.
+        TOOL_ID="$(basename "${PACK_PROJECT}" .csproj)"
+        NUPKG="$(ls "${PACKAGE_DIR}/${TOOL_ID}".*.nupkg | head -n1)"
+        if [ -z "${NUPKG}" ]; then
+          echo "::error::No nupkg found for ${TOOL_ID} in ${PACKAGE_DIR}"
+          exit 1
+        fi
+        FILENAME="$(basename "${NUPKG}")"
+        TOOL_VERSION="${FILENAME#${TOOL_ID}.}"
+        TOOL_VERSION="${TOOL_VERSION%.nupkg}"
+        echo "Installing ${TOOL_ID} ${TOOL_VERSION} from the packed artifact only..."
+        dotnet tool install -g --source "${GITHUB_WORKSPACE}/${PACKAGE_DIR}" "${TOOL_ID}" --version "${TOOL_VERSION}"
+        "${TOOL_COMMAND}" --version
+        "${TOOL_COMMAND}" --help > /dev/null
+        dotnet tool uninstall -g "${TOOL_ID}"

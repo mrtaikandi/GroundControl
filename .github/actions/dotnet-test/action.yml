@@ -1,0 +1,122 @@
+name: dotnet-test
+description: >-
+  Runs dotnet test over a newline-separated list of targets (csproj, sln,
+  slnx, or slnf). Produces per-target TRX output, uploads the results
+  directory as an artifact, and optionally publishes a test-reporter check.
+  Continues past individual failures so every target runs, then fails the
+  step if any target failed.
+
+inputs:
+  targets:
+    description: Newline-separated list of paths (.csproj, .sln, .slnx, .slnf).
+    required: true
+  exclude:
+    description: Newline-separated list of paths to skip (matched exactly against `targets`).
+    required: false
+    default: ''
+  configuration:
+    description: Build configuration.
+    required: false
+    default: Release
+  results-dir:
+    description: Directory where TRX files will be collected.
+    required: false
+    default: ${{ github.workspace }}/artifacts/test-results
+  artifact-name:
+    description: Name used for the uploaded test-results artifact. Empty to skip upload.
+    required: false
+    default: test-results
+  report-name:
+    description: >-
+      If non-empty, publishes a dorny/test-reporter check with this title.
+      Requires the surrounding job to grant `checks: write`.
+    required: false
+    default: ''
+  no-build:
+    description: Pass --no-build to dotnet test (caller has already built).
+    required: false
+    default: 'false'
+  no-restore:
+    description: Pass --no-restore to dotnet test (caller has already restored).
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Run tests across targets
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+        EXCLUDE: ${{ inputs.exclude }}
+        CONFIG: ${{ inputs.configuration }}
+        RESULTS_DIR: ${{ inputs.results-dir }}
+        NO_BUILD: ${{ inputs.no-build }}
+        NO_RESTORE: ${{ inputs.no-restore }}
+      run: |
+        set -u
+        mkdir -p "${RESULTS_DIR}"
+
+        BUILD_FLAGS=""
+        [ "${NO_BUILD}" = "true" ] && BUILD_FLAGS="${BUILD_FLAGS} --no-build"
+        [ "${NO_RESTORE}" = "true" ] && BUILD_FLAGS="${BUILD_FLAGS} --no-restore"
+
+        FAIL=0
+        RAN=0
+        while IFS= read -r TARGET; do
+          TARGET="$(echo "${TARGET}" | tr -d '\r' | xargs)"
+          [ -z "${TARGET}" ] && continue
+
+          if printf '%s\n' "${EXCLUDE}" | tr -d '\r' | grep -qFx "${TARGET}"; then
+            echo "::notice::Skipping excluded target: ${TARGET}"
+            continue
+          fi
+
+          RAN=$((RAN + 1))
+          echo "::group::dotnet test ${TARGET}"
+          case "${TARGET}" in
+            *.csproj)
+              SLUG="$(basename "${TARGET%.csproj}")"
+              dotnet test "${TARGET}" --configuration "${CONFIG}" ${BUILD_FLAGS} -- \
+                --report-xunit-trx \
+                --report-xunit-trx-filename "${SLUG}.trx" \
+                --results-directory "${RESULTS_DIR}" \
+                || FAIL=1
+              ;;
+            *.sln|*.slnx|*.slnf)
+              dotnet test "${TARGET}" --configuration "${CONFIG}" ${BUILD_FLAGS} -- \
+                --report-xunit-trx \
+                --results-directory "${RESULTS_DIR}" \
+                || FAIL=1
+              ;;
+            *)
+              echo "::error::Unsupported target extension: ${TARGET}"
+              FAIL=1
+              ;;
+          esac
+          echo "::endgroup::"
+        done < <(printf '%s\n' "${TARGETS}")
+
+        if [ "${RAN}" -eq 0 ]; then
+          echo "::error::No targets ran (check that `targets` is non-empty and not fully excluded)."
+          exit 1
+        fi
+
+        exit "${FAIL}"
+
+    - name: Upload test results
+      if: ${{ always() && inputs.artifact-name != '' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.results-dir }}/**/*.trx
+        if-no-files-found: warn
+
+    - name: Publish test report
+      if: ${{ always() && inputs.report-name != '' }}
+      uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc  # v1
+      with:
+        name: ${{ inputs.report-name }}
+        path: ${{ inputs.results-dir }}/**/*.trx
+        reporter: dotnet-trx
+        fail-on-error: false

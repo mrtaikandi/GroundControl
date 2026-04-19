@@ -1,7 +1,7 @@
 # GroundControl.Link — cut a release and publish to nuget.org.
 #
-# Thin wrapper around _release-template.yml. See that file for the full
-# release-atomicity flow (preflight → build → release → publish → bump-pr).
+# Thin wrapper around _release.yml. See that file for the full release-
+# atomicity flow.
 
 name: link-release
 
@@ -17,7 +17,7 @@ on:
           - major
         default: minor
       dryRun:
-        description: 'Run preflight + build (incl. tests) but do not tag, release, publish, or open the bump PR.'
+        description: 'Run plan-release + build-test-pack (incl. tests) but do not tag, release, publish, or open the bump PR.'
         type: boolean
         default: false
 
@@ -27,12 +27,12 @@ concurrency:
 
 jobs:
   release:
-    uses: ./.github/workflows/_release-template.yml
+    uses: ./.github/workflows/_release.yml
     permissions:
       contents: write       # gh release create + bump PR push
       pull-requests: write  # bump PR
       id-token: write       # OIDC to nuget.org
-      checks: write         # test-reporter in _build-template.yml
+      checks: write         # test-reporter in _release.yml
     secrets: inherit
     with:
       component-name: link
@@ -41,5 +41,6 @@ jobs:
       test-project: tests/GroundControl.Link.Tests/GroundControl.Link.Tests.csproj
       pack-project: src/GroundControl.Link/GroundControl.Link.csproj
       cliff-config: .github/cliff/link.toml
+      nuget-user: mrtaikandi
       versionIncrement: ${{ inputs.versionIncrement }}
       dryRun: ${{ inputs.dryRun }}

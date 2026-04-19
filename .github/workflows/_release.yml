@@ -1,0 +1,333 @@
+# Reusable release workflow. Callers (cli-release.yml, link-release.yml,
+# future api-client-release.yml, ...) pass component-specific inputs and
+# inherit this DAG:
+#
+#   plan-release ─► build-test-pack ─► release ─► publish ─► open-next-version-pr
+#
+#   plan-release           Read-only validation at main-tip: compute version
+#                          via NBGV, render changelog, assert tag collision,
+#                          upload CHANGES.md.
+#   build-test-pack        Checks out the validated SHA, builds, runs the
+#                          component's tests, packs the nupkg, smoke-tests
+#                          the tool if applicable. Uploads the nupkg artifact.
+#   release                Creates the GitHub Release (first reversible side
+#                          effect). Skipped on dry-run.
+#   publish                Downloads the already-built nupkg artifact (no
+#                          rebuild) and pushes to nuget.org via OIDC, then
+#                          attaches files to the GitHub Release.
+#   open-next-version-pr   Stable-only. Opens the chore(bump) PR back to main.
+#
+# Every job is a discrete GitHub Actions job with explicit `needs:` edges,
+# so GitHub's "Re-run failed jobs" targets just the stage that broke. The
+# nupkg that reaches nuget.org is the bit-identical artifact produced by
+# build-test-pack.
+
+name: _release
+
+on:
+  workflow_call:
+    inputs:
+      component-name:
+        description: Short component name. Drives tag prefix, artifact names, bump branch, and commit scope.
+        required: true
+        type: string
+      display-name:
+        description: Human label for the release build test-reporter check run.
+        required: true
+        type: string
+      project-path:
+        description: Path to the component folder containing version.json.
+        required: true
+        type: string
+      test-project:
+        description: Path to the test csproj.
+        required: true
+        type: string
+      pack-project:
+        description: Path to the csproj to pack.
+        required: true
+        type: string
+      cliff-config:
+        description: Path to the git-cliff config for this component.
+        required: true
+        type: string
+      nuget-user:
+        description: nuget.org profile name (NOT an email).
+        required: true
+        type: string
+      is-tool:
+        description: Whether `pack-project` is a .NET global tool and should be smoke-tested.
+        required: false
+        type: boolean
+        default: false
+      tool-command:
+        description: Command name produced by the global tool (required when is-tool is true).
+        required: false
+        type: string
+        default: ''
+      versionIncrement:
+        description: STABLE path only — component to bump on main after the release (patch/minor/major).
+        required: false
+        type: string
+        default: minor
+      dryRun:
+        description: Run plan-release + build-test-pack but do not tag, release, publish, or open the bump PR.
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  plan-release:
+    name: Plan release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_version: ${{ steps.version.outputs.release_version }}
+      release_type: ${{ steps.version.outputs.release_type }}
+      version_field: ${{ steps.version.outputs.version_field }}
+      release_sha: ${{ github.sha }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Assert dispatch is at main tip
+        shell: bash
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "::error::release must be dispatched from the 'main' branch (got ${{ github.ref }})"
+            exit 1
+          fi
+          MAIN_TIP=$(git rev-parse origin/main)
+          if [ "${{ github.sha }}" != "${MAIN_TIP}" ]; then
+            echo "::error::release must be dispatched at main tip (got ${{ github.sha }}, tip is ${MAIN_TIP})"
+            exit 1
+          fi
+
+      - name: Setup .NET
+        uses: ./.github/actions/dotnet-setup
+
+      - name: Compute release version
+        id: version
+        uses: ./.github/actions/compute-release-version
+        with:
+          project-path: ${{ inputs.project-path }}
+          component-name: ${{ inputs.component-name }}
+
+      - name: Generate changelog
+        uses: ./.github/actions/generate-changelog
+        with:
+          cliff-config: ${{ inputs.cliff-config }}
+          release-tag: ${{ steps.version.outputs.release_tag }}
+          release-type: ${{ steps.version.outputs.release_type }}
+          component-name: ${{ inputs.component-name }}
+
+      - name: Dry-run summary
+        if: ${{ inputs.dryRun }}
+        shell: bash
+        run: |
+          {
+            echo "## Dry run — ${{ inputs.component-name }} ${{ steps.version.outputs.release_type }} release"
+            echo ""
+            echo "- Tag: \`${{ steps.version.outputs.release_tag }}\`"
+            echo "- Target: \`${{ github.sha }}\`"
+            echo ""
+            echo "### Changelog"
+            echo ""
+            if [ -s CHANGES.md ]; then cat CHANGES.md; else echo "_(empty)_"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-test-pack:
+    name: Build, test & pack
+    needs: plan-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      checks: write  # dorny/test-reporter
+    steps:
+      - name: Checkout released commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan-release.outputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Setup .NET + restore test project
+        uses: ./.github/actions/dotnet-setup
+        with:
+          restore-target: ${{ inputs.test-project }}
+
+      - name: Build
+        shell: bash
+        run: dotnet build "${{ inputs.test-project }}" --configuration Release --no-restore
+
+      - name: Test
+        uses: ./.github/actions/dotnet-test
+        with:
+          targets: ${{ inputs.test-project }}
+          no-build: 'true'
+          no-restore: 'true'
+          artifact-name: ${{ inputs.component-name }}-test-results
+          report-name: ${{ inputs.display-name }}
+
+      - name: Pack
+        uses: ./.github/actions/dotnet-pack
+        with:
+          project: ${{ inputs.pack-project }}
+          artifact-name: ${{ inputs.component-name }}-nupkg
+          no-build: 'true'
+
+      - name: Smoke-test global tool
+        if: ${{ inputs.is-tool }}
+        uses: ./.github/actions/dotnet-tool-smoke-test
+        with:
+          pack-project: ${{ inputs.pack-project }}
+          tool-command: ${{ inputs.tool-command }}
+
+  release:
+    name: Create GitHub Release
+    needs: [plan-release, build-test-pack]
+    if: ${{ !inputs.dryRun }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write  # gh release create + tag
+    outputs:
+      release_created: ${{ steps.create_release.outputs.created }}
+    steps:
+      - name: Checkout released commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan-release.outputs.release_sha }}
+          fetch-depth: 1
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.component-name }}-release-changelog
+
+      - name: Create GitHub Release
+        id: create_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE_FLAG: ${{ needs.plan-release.outputs.release_type == 'preview' && '--prerelease' || '' }}
+        run: |
+          gh release create "${{ needs.plan-release.outputs.release_tag }}" \
+            --target "${{ needs.plan-release.outputs.release_sha }}" \
+            ${PRERELEASE_FLAG} \
+            --title "${{ needs.plan-release.outputs.release_tag }}" \
+            --notes-file CHANGES.md
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish to nuget.org
+    needs: [plan-release, release]
+    if: ${{ needs.release.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: nuget
+    permissions:
+      contents: write  # gh release upload
+      id-token: write  # OIDC trusted publishing to nuget.org
+    steps:
+      - name: Checkout (for local composite actions)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan-release.outputs.release_sha }}
+          fetch-depth: 1
+
+      - name: Download package artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.component-name }}-nupkg
+          path: artifacts/package
+
+      - name: Publish
+        uses: ./.github/actions/nuget-oidc-publish
+        with:
+          nuget-user: ${{ inputs.nuget-user }}
+          package-dir: artifacts/package
+          release-tag: ${{ needs.plan-release.outputs.release_tag }}
+
+  open-next-version-pr:
+    name: Open post-release bump PR
+    needs: [plan-release, release, publish]
+    if: ${{ needs.release.outputs.release_created == 'true' && needs.plan-release.outputs.release_type == 'stable' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write       # push bump branch
+      pull-requests: write  # gh pr create
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: ./.github/actions/dotnet-setup
+
+      - name: Install nbgv
+        shell: bash
+        run: dotnet tool install -g nbgv
+
+      - name: Configure git identity
+        shell: bash
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Compute next development version
+        id: next
+        shell: bash
+        env:
+          CURRENT: ${{ needs.plan-release.outputs.version_field }}
+          INCREMENT: ${{ inputs.versionIncrement }}
+          COMPONENT: ${{ inputs.component-name }}
+        run: |
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT}"
+          PATCH=${PATCH:-0}
+
+          case "${INCREMENT}" in
+            patch) PATCH=$((PATCH + 1)) ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+          esac
+
+          if [ "${PATCH}" = "0" ]; then
+            NEXT="${MAJOR}.${MINOR}-preview"
+          else
+            NEXT="${MAJOR}.${MINOR}.${PATCH}-preview"
+          fi
+
+          echo "next_version=${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "bump_branch=chore/${COMPONENT}-bump-to-${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "Next development version: ${NEXT}"
+
+      - name: Open bump PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          BRANCH='${{ steps.next.outputs.bump_branch }}'
+          NEXT='${{ steps.next.outputs.next_version }}'
+          TAG='${{ needs.plan-release.outputs.release_tag }}'
+
+          git checkout -b "${BRANCH}"
+          nbgv set-version "${NEXT}" -p ${{ inputs.project-path }}
+          git add ${{ inputs.project-path }}/version.json
+          git commit -m "chore(${{ inputs.component-name }}): bump to ${NEXT}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "chore(${{ inputs.component-name }}): bump to ${NEXT}" \
+            --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`${{ inputs.component-name }}-release\` again, or preview builds will collide with the just-published tag."
