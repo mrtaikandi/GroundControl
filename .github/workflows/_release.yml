@@ -91,7 +91,7 @@ on:
 
 jobs:
   plan-release:
-    name: Plan release
+    name: Plan
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
