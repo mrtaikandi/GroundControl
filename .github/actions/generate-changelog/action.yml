@@ -40,8 +40,11 @@ runs:
         fi
 
     - name: Upload changelog artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
       with:
         name: ${{ inputs.component-name }}-release-changelog
         path: CHANGES.md
         if-no-files-found: error
+        # CHANGES.md also becomes the GitHub Release body; the workflow
+        # artifact only needs to bridge plan-release → release.
+        retention-days: 14

@@ -40,10 +40,14 @@ runs:
         dotnet pack "${PROJECT}" --configuration "${CONFIG}" ${BUILD_FLAGS} --output "${OUTPUT_DIR}"
 
     - name: Upload package artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
       with:
         name: ${{ inputs.artifact-name }}
         path: |
           ${{ inputs.output-dir }}/*.nupkg
           ${{ inputs.output-dir }}/*.snupkg
         if-no-files-found: error
+        # Published nupkgs also get attached to the GitHub Release and
+        # live on nuget.org — the workflow artifact only needs to survive
+        # long enough for the `publish` job to download it.
+        retention-days: 14

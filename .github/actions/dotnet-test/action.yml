@@ -115,11 +115,14 @@ runs:
 
     - name: Upload test results
       if: ${{ always() && inputs.artifact-name != '' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
       with:
         name: ${{ inputs.artifact-name }}
         path: ${{ inputs.results-dir }}/**/*.trx
         if-no-files-found: warn
+        # TRX files are only useful for debugging the specific run; no
+        # reason to hold them for GitHub's 90-day default.
+        retention-days: 7
 
     - name: Publish test report
       if: ${{ always() && inputs.report-name != '' }}

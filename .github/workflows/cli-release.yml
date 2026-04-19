@@ -34,7 +34,9 @@ jobs:
       pull-requests: write  # bump version PR
       id-token: write       # OIDC to nuget.org
       checks: write         # dorny/test-reporter in _release.yml's build-test-pack job
-    secrets: inherit
+    # No `secrets: inherit` — the reusable flow uses only GITHUB_TOKEN
+    # (auto-scoped per-job) and OIDC, both of which cross the workflow-call
+    # boundary without secret inheritance.
     with:
       component-name: cli
       display-name: Cli tests (release)
