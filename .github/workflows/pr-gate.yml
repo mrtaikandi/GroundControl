@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           fetch-depth: 0
 
@@ -36,10 +36,18 @@ jobs:
         with:
           restore-target: GroundControl.slnx
 
+      # Explicit build step so build-only regressions (warnings-as-errors,
+      # analyzer violations, pack-time errors on non-test projects) surface
+      # with a distinct failing step from test failures.
+      - name: Build solution
+        shell: bash
+        run: dotnet build GroundControl.slnx --configuration Release --no-restore
+
       - name: Run tests
         uses: ./.github/actions/dotnet-test
         with:
           targets: GroundControl.slnx
+          no-build: 'true'
           no-restore: 'true'
           artifact-name: pr-gate-test-results
           report-name: PR-gate tests
