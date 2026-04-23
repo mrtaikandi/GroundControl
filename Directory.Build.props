@@ -28,14 +28,14 @@
         <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     </PropertyGroup>
 
-    <PropertyGroup Label="NuGet package properties">
+    <PropertyGroup Label="NuGet package properties" Condition="'$(IsPackable)' != 'false'">
         <Authors>Mohammadreza Taikandi</Authors>
         <PackageVersion>$(Version)</PackageVersion>
         <PackageProjectUrl>https://github.com/mrtaikandi/GroundControl</PackageProjectUrl>
         <RepositoryUrl>https://github.com/mrtaikandi/GroundControl</RepositoryUrl>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     </PropertyGroup>
 
     <ItemGroup>
