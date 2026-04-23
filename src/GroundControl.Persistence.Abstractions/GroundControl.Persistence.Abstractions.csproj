@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <RootNamespace>GroundControl.Persistence</RootNamespace>
-  </PropertyGroup>
+
+    <PropertyGroup>
+        <RootNamespace>GroundControl.Persistence</RootNamespace>
+        <!--suppress CheckTagEmptyBody: Clear the Apache-2.0 expression inherited from Directory.Build.props: this project ships under BSL 1.1 via PackageLicenseFile. -->
+        <PackageLicenseExpression></PackageLicenseExpression>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="LICENSE" Pack="true" PackagePath="" />
+    </ItemGroup>
+
 </Project>

@@ -1,0 +1,20 @@
+GroundControl
+Copyright 2026 Mohammadreza Taikandi
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE),
+except for the following projects, which are licensed under the Business
+Source License 1.1:
+
+    src/GroundControl.Api
+    src/GroundControl.Persistence.Abstractions
+    src/GroundControl.Persistence.MongoDb
+
+Each of those projects contains its own LICENSE file with the applicable
+BSL 1.1 terms, Additional Use Grant, and the Change Date on which that
+version converts to the Apache License 2.0. Each released version of the
+BSL-licensed projects converts four years after its public release.
+
+See LICENSING.md for a summary of the dual-licensing arrangement and
+COMMERCIAL.md for commercial licensing.
+
+GroundControl is a trademark of Mohammadreza Taikandi.

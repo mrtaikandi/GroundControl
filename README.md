@@ -177,3 +177,7 @@ dotnet test tests/GroundControl.Persistence.MongoDb.Tests
 # Single test by name filter
 dotnet test --filter "FullyQualifiedName~MyTestClass.MyTestMethod"
 ```
+
+## License
+
+GroundControl is dual-licensed. See [LICENSING.md](LICENSING.md) for a plain-English summary, [COMMERCIAL.md](COMMERCIAL.md) for commercial licensing, and [CONTRIBUTING.md](CONTRIBUTING.md) for the contributor agreement.
