@@ -6,7 +6,7 @@ Centralized, scope-aware configuration management for distributed .NET applicati
 
 GroundControl is a self-hosted configuration management server that delivers the right configuration to each instance of your application based on where and how it runs. Instead of maintaining separate config files per environment, you define **scopes** — dimensions such as `Environment`, `Region`, or `AppTier` — and assign values along those dimensions. Each client receives only the configuration that matches its context.
 
-Configuration is distributed as **snapshots**: immutable, versioned bundles built from your project entries and shared templates, with all variables resolved and secrets encrypted. Clients receive snapshots over REST or Server-Sent Events (SSE) and stay synchronized automatically as new snapshots are published.
+Configuration is distributed as **snapshots**: immutable, and versioned bundles built from your project entries and shared templates, with all variables resolved and secrets encrypted. Clients receive snapshots over REST or Server-Sent Events (SSE) and stay synchronized automatically as new snapshots are published.
 
 GroundControl includes a REST API, a terminal CLI (`groundcontrol`), and a .NET SDK (`GroundControl.Link`) for direct integration with `Microsoft.Extensions.Configuration`.
 
