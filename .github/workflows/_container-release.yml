@@ -396,17 +396,32 @@ jobs:
           # OCI_ROOT is resolved and exported by the extract step above.
           LAYOUT="${OCI_ROOT}"
 
-          # Each ContainerImageTags entry is annotated in index.json with
-          # `org.opencontainers.image.ref.name=<tag>`; skopeo's
-          # `oci:DIR:reference` syntax selects by that ref-name.
-          # `--multi-arch all` copies every per-arch manifest in the index
-          # (default is host arch only).
+          # The .NET SDK stores ref-names in the archive as
+          # `{ContainerRegistry}/{ContainerRepository}:{tag}` (defaulting to
+          # `docker.io` when no registry is passed at build time). Rather than
+          # reconstructing that prefix, we read the first ref-name straight
+          # from index.json — all entries in the archive point to the same
+          # underlying multi-arch manifests, so any one ref works as the
+          # skopeo source for every target tag.
+          SRC_REF=$(python3 -c "
+          import json
+          data = json.load(open('${LAYOUT}/index.json'))
+          manifests = data.get('manifests', [])
+          if not manifests:
+              raise SystemExit('index.json has no manifests')
+          ref = manifests[0].get('annotations', {}).get('org.opencontainers.image.ref.name', '')
+          if not ref:
+              raise SystemExit('First manifest has no org.opencontainers.image.ref.name annotation')
+          print(ref)
+          ")
+          echo "Source ref-name from archive: ${SRC_REF}"
+
           IFS=';' read -ra TAG_ARRAY <<< "${TAGS}"
           for TAG in "${TAG_ARRAY[@]}"; do
             FULL_REF="${REGISTRY}/${REPO}:${TAG}"
             echo "::group::Push ${FULL_REF}"
             skopeo copy --multi-arch all \
-              "oci:${LAYOUT}:${TAG}" \
+              "oci:${LAYOUT}:${SRC_REF}" \
               "docker://${FULL_REF}"
             echo "::endgroup::"
           done
