@@ -355,7 +355,33 @@ jobs:
           fi
           mkdir -p "${LAYOUT}"
           tar -xf "${ARCHIVE}" -C "${LAYOUT}" --no-same-owner --no-same-permissions
-          ls -la "${LAYOUT}"
+
+          # The SDK may produce a flat layout (index.json at root) or a
+          # nested one (index.json one directory down). Find the real root.
+          echo "=== Extracted layout ==="
+          find "${LAYOUT}" -maxdepth 3 | sort
+
+          OCI_ROOT=$(find "${LAYOUT}" -name "index.json" -maxdepth 3 \
+            | xargs -I{} dirname {} | head -1)
+          if [ -z "${OCI_ROOT}" ]; then
+            echo "::error::No index.json found inside the extracted OCI layout at ${LAYOUT}"
+            exit 1
+          fi
+          echo "OCI layout root: ${OCI_ROOT}"
+
+          echo "=== index.json ==="
+          cat "${OCI_ROOT}/index.json"
+
+          echo "=== Ref-names embedded in the archive ==="
+          python3 -c "
+          import json, sys
+          data = json.load(open('${OCI_ROOT}/index.json'))
+          refs = [m.get('annotations', {}).get('org.opencontainers.image.ref.name', '(none)') for m in data.get('manifests', [])]
+          print('\n'.join(refs))
+          "
+
+          # Export the resolved root for the push step.
+          echo "OCI_ROOT=${OCI_ROOT}" >> "$GITHUB_ENV"
 
       - name: Push every tag from OCI layout
         id: push
@@ -367,7 +393,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          LAYOUT="${GITHUB_WORKSPACE}/artifacts/container/oci-layout"
+          # OCI_ROOT is resolved and exported by the extract step above.
+          LAYOUT="${OCI_ROOT}"
 
           # Each ContainerImageTags entry is annotated in index.json with
           # `org.opencontainers.image.ref.name=<tag>`; skopeo's
