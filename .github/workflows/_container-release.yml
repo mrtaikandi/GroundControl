@@ -333,35 +333,53 @@ jobs:
           set -euo pipefail
           echo "${GH_TOKEN}" | skopeo login --username "${GH_USER}" --password-stdin "${REGISTRY}"
 
-      - name: Push every tag from OCI archive
+      # Extract the archive into an OCI layout directory ourselves rather
+      # than letting `skopeo copy oci-archive:...` do it, because skopeo's
+      # internal untar tries to chown blobs to the original tar entry
+      # ownership (root) and fails with "operation not permitted" when
+      # running as the unprivileged runner user. Plain `tar -xf` running
+      # as the same user that produced the archive doesn't chown, so the
+      # extracted layout is usable directly via skopeo's `oci:DIR:TAG`
+      # selector — same ref-name semantics as `oci-archive:`.
+      - name: Extract OCI archive to layout directory
+        shell: bash
+        env:
+          COMPONENT: ${{ inputs.component-name }}
+        run: |
+          set -euo pipefail
+          ARCHIVE="${GITHUB_WORKSPACE}/artifacts/container/${COMPONENT}.tar.gz"
+          LAYOUT="${GITHUB_WORKSPACE}/artifacts/container/oci-layout"
+          if [ ! -f "${ARCHIVE}" ]; then
+            echo "::error::OCI archive not found at ${ARCHIVE}"
+            exit 1
+          fi
+          mkdir -p "${LAYOUT}"
+          tar -xf "${ARCHIVE}" -C "${LAYOUT}" --no-same-owner --no-same-permissions
+          ls -la "${LAYOUT}"
+
+      - name: Push every tag from OCI layout
         id: push
         shell: bash
         env:
           REGISTRY: ${{ inputs.image-registry }}
           REPO: ${{ needs.plan-release.outputs.image_repository }}
           TAGS: ${{ needs.plan-release.outputs.image_tags }}
-          COMPONENT: ${{ inputs.component-name }}
         run: |
           set -euo pipefail
 
-          ARCHIVE="${GITHUB_WORKSPACE}/artifacts/container/${COMPONENT}.tar.gz"
-          if [ ! -f "${ARCHIVE}" ]; then
-            echo "::error::OCI archive not found at ${ARCHIVE}"
-            exit 1
-          fi
+          LAYOUT="${GITHUB_WORKSPACE}/artifacts/container/oci-layout"
 
-          # The SDK writes one OCI image index containing one manifest per
-          # ContainerImageTags entry, each annotated with
-          # `org.opencontainers.image.ref.name=<tag>`. skopeo's
-          # `oci-archive:path:reference` syntax selects by that ref-name.
-          # `--multi-arch all` ensures every per-arch manifest in the index
-          # is copied (default would be the host arch only).
+          # Each ContainerImageTags entry is annotated in index.json with
+          # `org.opencontainers.image.ref.name=<tag>`; skopeo's
+          # `oci:DIR:reference` syntax selects by that ref-name.
+          # `--multi-arch all` copies every per-arch manifest in the index
+          # (default is host arch only).
           IFS=';' read -ra TAG_ARRAY <<< "${TAGS}"
           for TAG in "${TAG_ARRAY[@]}"; do
             FULL_REF="${REGISTRY}/${REPO}:${TAG}"
             echo "::group::Push ${FULL_REF}"
             skopeo copy --multi-arch all \
-              "oci-archive:${ARCHIVE}:${TAG}" \
+              "oci:${LAYOUT}:${TAG}" \
               "docker://${FULL_REF}"
             echo "::endgroup::"
           done
