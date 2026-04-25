@@ -23,12 +23,6 @@ internal class PaginationQuery
     public const string DefaultSortOrder = "asc";
 
     /// <summary>
-    /// Gets the maximum number of items to return. Must be between 1 and 100.
-    /// </summary>
-    [Range(1, 100)]
-    public int? Limit { get; init; } = DefaultLimit;
-
-    /// <summary>
     /// Gets the cursor pointing to the item after which results should begin (forward pagination).
     /// </summary>
     public string? After { get; init; }
@@ -37,6 +31,12 @@ internal class PaginationQuery
     /// Gets the cursor pointing to the item before which results should end (backward pagination).
     /// </summary>
     public string? Before { get; init; }
+
+    /// <summary>
+    /// Gets the maximum number of items to return. Must be between 1 and 100.
+    /// </summary>
+    [Range(1, 100)]
+    public int? Limit { get; init; } = DefaultLimit;
 
     /// <summary>
     /// Gets the name of the field to sort results by.

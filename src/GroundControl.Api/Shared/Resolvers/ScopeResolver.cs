@@ -3,7 +3,7 @@ using GroundControl.Persistence.Contracts;
 namespace GroundControl.Api.Shared.Resolvers;
 
 /// <summary>
-/// Resolves the most specific <see cref="ScopedValue"/> that matches a client's scope dimensions.
+/// Resolves the most specific <see cref="ScopedValue" /> that matches a client's scope dimensions.
 /// </summary>
 internal sealed class ScopeResolver : IScopeResolver
 {

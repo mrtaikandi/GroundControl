@@ -6,9 +6,9 @@ namespace GroundControl.Api.Shared.Security.Protection;
 internal sealed class SensitiveValueMasker
 {
     private const string Mask = "***";
+    private readonly AuditRecorder _audit;
 
     private readonly IValueProtector _protector;
-    private readonly AuditRecorder _audit;
 
     public SensitiveValueMasker(IValueProtector protector, AuditRecorder audit)
     {
@@ -21,7 +21,7 @@ internal sealed class SensitiveValueMasker
 
     /// <summary>
     /// Masks or decrypts an <em>encrypted</em> value (e.g. snapshot entries).
-    /// Calls <see cref="IValueProtector.Unprotect"/> when decryption is permitted.
+    /// Calls <see cref="IValueProtector.Unprotect" /> when decryption is permitted.
     /// </summary>
     public string MaskOrDecrypt(string value, bool isSensitive, bool canDecrypt)
     {
@@ -36,7 +36,7 @@ internal sealed class SensitiveValueMasker
     /// <summary>
     /// Masks or reveals <em>plaintext</em> values (e.g. config entries, variables).
     /// ConfigEntry/Variable values are stored unencrypted — this method masks or returns
-    /// them as-is without calling <see cref="IValueProtector.Unprotect"/>.
+    /// them as-is without calling <see cref="IValueProtector.Unprotect" />.
     /// Records an audit entry when values are revealed.
     /// </summary>
     public async Task<IReadOnlyList<ScopedValue>> MaskOrDecryptAsync(
