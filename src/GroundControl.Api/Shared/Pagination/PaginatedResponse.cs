@@ -12,16 +12,6 @@ internal sealed record PaginatedResponse<T>
     public required IReadOnlyList<T> Data { get; init; }
 
     /// <summary>
-    /// Gets the cursor for the next page.
-    /// </summary>
-    public string? NextCursor { get; init; }
-
-    /// <summary>
-    /// Gets the cursor for the previous page.
-    /// </summary>
-    public string? PreviousCursor { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether another page exists after the current page.
     /// </summary>
     [JsonIgnore]
@@ -32,6 +22,16 @@ internal sealed record PaginatedResponse<T>
     /// </summary>
     [JsonIgnore]
     public bool HasPrevious => PreviousCursor is not null;
+
+    /// <summary>
+    /// Gets the cursor for the next page.
+    /// </summary>
+    public string? NextCursor { get; init; }
+
+    /// <summary>
+    /// Gets the cursor for the previous page.
+    /// </summary>
+    public string? PreviousCursor { get; init; }
 
     /// <summary>
     /// Gets the total number of matching items.
