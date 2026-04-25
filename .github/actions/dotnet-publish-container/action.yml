@@ -82,8 +82,17 @@ runs:
         [ "${NO_RESTORE}" = "true" ] && BUILD_FLAGS="${BUILD_FLAGS} --no-restore"
 
         # Bash escaping rule for semicolon-delimited MSBuild values is
-        # `'"a;b"'` per the .NET SDK container docs. Apply it to every
-        # property that takes a list.
+        # `'"a;b"'` per the .NET SDK container docs.
+        #
+        # Note we deliberately do NOT pass `-p:RuntimeIdentifiers=...`
+        # here. RuntimeIdentifiers governs the restore graph and must
+        # be declared in the csproj — overriding it on the CLI conflicts
+        # with the prior solution-level restore and produces an assets
+        # file missing per-RID targets (NETSDK1047 on the second arch).
+        # ContainerRuntimeIdentifiers, by contrast, only selects which
+        # already-restored RIDs PublishContainer iterates, so it's safe
+        # to pass per-call (it must be a subset of csproj's
+        # RuntimeIdentifiers).
         ARGS=(
           "${PROJECT}"
           --configuration "${CONFIG}"
@@ -91,7 +100,6 @@ runs:
           -t:PublishContainer
           -p:"ContainerImageTags=\"${IMAGE_TAGS}\""
           -p:"ContainerRuntimeIdentifiers=\"${RIDS}\""
-          -p:"RuntimeIdentifiers=\"${RIDS}\""
         )
 
         if [ "${ARCHIVE_ONLY}" = "true" ]; then
