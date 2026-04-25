@@ -1,0 +1,130 @@
+name: dotnet-publish-container
+description: >-
+  Runs `dotnet publish /t:PublishContainer` against a single project, either
+  emitting an OCI tarball (offline mode — no daemon, no auth) or pushing
+  directly to a registry. The csproj owns base image / repository / runtime
+  metadata; this action only injects per-release bits (tags, registry,
+  archive path) and uploads the tarball as an artifact when in archive mode.
+
+inputs:
+  project:
+    description: Path to the csproj that produces the container.
+    required: true
+  configuration:
+    description: Build configuration.
+    required: false
+    default: Release
+  image-tags:
+    description: >-
+      Semicolon-delimited list of tags to apply to the produced image
+      (e.g. `1.0.0-preview.5;sha-abc1234;latest`). Maps to ContainerImageTags.
+    required: true
+  registry:
+    description: >-
+      Container registry to push to (e.g. `ghcr.io`). Ignored when
+      `archive-only` is `true`.
+    required: false
+    default: ''
+  runtime-identifiers:
+    description: >-
+      Semicolon-delimited list of RIDs to publish for. Each RID becomes a
+      manifest in the resulting OCI Image Index.
+    required: false
+    default: 'linux-x64;linux-arm64'
+  archive-only:
+    description: >-
+      When `true`, write the image to `archive-path` and skip pushing.
+      When `false`, push to `registry` (the surrounding job is responsible
+      for `docker login`).
+    required: false
+    default: 'false'
+  archive-path:
+    description: >-
+      Output path for the OCI tarball when `archive-only` is `true`.
+    required: false
+    default: 'artifacts/container/image.tar.gz'
+  artifact-name:
+    description: >-
+      Name used when uploading the tarball as a workflow artifact. Empty to
+      skip upload. Only used when `archive-only` is `true`.
+    required: false
+    default: ''
+  no-build:
+    description: Pass --no-build to dotnet publish (caller has already built).
+    required: false
+    default: 'false'
+  no-restore:
+    description: Pass --no-restore to dotnet publish (caller has already restored).
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Publish container ${{ inputs.project }}
+      shell: bash
+      env:
+        PROJECT: ${{ inputs.project }}
+        CONFIG: ${{ inputs.configuration }}
+        IMAGE_TAGS: ${{ inputs.image-tags }}
+        REGISTRY: ${{ inputs.registry }}
+        RIDS: ${{ inputs.runtime-identifiers }}
+        ARCHIVE_ONLY: ${{ inputs.archive-only }}
+        ARCHIVE_PATH: ${{ inputs.archive-path }}
+        WORKSPACE: ${{ github.workspace }}
+        NO_BUILD: ${{ inputs.no-build }}
+        NO_RESTORE: ${{ inputs.no-restore }}
+      run: |
+        set -euo pipefail
+
+        BUILD_FLAGS=""
+        [ "${NO_BUILD}" = "true" ] && BUILD_FLAGS="${BUILD_FLAGS} --no-build"
+        [ "${NO_RESTORE}" = "true" ] && BUILD_FLAGS="${BUILD_FLAGS} --no-restore"
+
+        # Bash escaping rule for semicolon-delimited MSBuild values is
+        # `'"a;b"'` per the .NET SDK container docs. Apply it to every
+        # property that takes a list.
+        ARGS=(
+          "${PROJECT}"
+          --configuration "${CONFIG}"
+          ${BUILD_FLAGS}
+          -t:PublishContainer
+          -p:"ContainerImageTags=\"${IMAGE_TAGS}\""
+          -p:"ContainerRuntimeIdentifiers=\"${RIDS}\""
+          -p:"RuntimeIdentifiers=\"${RIDS}\""
+        )
+
+        if [ "${ARCHIVE_ONLY}" = "true" ]; then
+          # ContainerArchiveOutputPath is resolved relative to the csproj,
+          # not CWD. Anchor at $GITHUB_WORKSPACE so callers can pass repo-
+          # relative paths and the resulting file lives where actions/
+          # upload-artifact expects it.
+          case "${ARCHIVE_PATH}" in
+            /*) ABS_ARCHIVE="${ARCHIVE_PATH}" ;;
+            *)  ABS_ARCHIVE="${WORKSPACE}/${ARCHIVE_PATH}" ;;
+          esac
+          mkdir -p "$(dirname "${ABS_ARCHIVE}")"
+          ARGS+=(-p:"ContainerArchiveOutputPath=${ABS_ARCHIVE}")
+          echo "Publishing to OCI tarball: ${ABS_ARCHIVE}"
+        else
+          if [ -z "${REGISTRY}" ]; then
+            echo "::error::registry input is required when archive-only is false"
+            exit 1
+          fi
+          ARGS+=(-p:"ContainerRegistry=${REGISTRY}")
+          echo "Publishing to registry: ${REGISTRY}"
+        fi
+
+        dotnet publish "${ARGS[@]}"
+
+    - name: Upload container tarball artifact
+      if: ${{ inputs.archive-only == 'true' && inputs.artifact-name != '' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.archive-path }}
+        if-no-files-found: error
+        # Tarballs are intermediate artifacts that only need to bridge
+        # build-test-image → publish-image; they are not the canonical
+        # release artifact (the registry image is).
+        retention-days: 7

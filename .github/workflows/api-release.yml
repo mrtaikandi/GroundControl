@@ -1,0 +1,53 @@
+# GroundControl.Api — cut a release and publish the container image to GHCR.
+#
+# Thin wrapper around _container-release.yml. See that file for the full
+# release-atomicity flow. Tags are prefixed with "api/" so they don't
+# collide with other components' tags.
+
+name: api-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionIncrement:
+        description: 'Next Version: STABLE path only: component to bump on main after the release (default: minor).'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: minor
+      dryRun:
+        description: 'Dry-Run: plan-release + build-test-image, but do not tag, release, push the image, or open the bump PR.'
+        type: boolean
+        default: false
+
+concurrency:
+  group: api-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: ./.github/workflows/_container-release.yml
+    permissions:
+      contents: write       # gh release create + bump PR push
+      pull-requests: write  # bump version PR
+      packages: write       # GHCR push
+      checks: write         # dorny/test-reporter in _container-release.yml's build-test-image job
+    # No `secrets: inherit` — the reusable flow uses only GITHUB_TOKEN
+    # (auto-scoped per-job for both gh and GHCR), which crosses the
+    # workflow-call boundary without secret inheritance.
+    with:
+      component-name: api
+      display-name: Api tests (release)
+      project-path: src/GroundControl.Api
+      image-project: src/GroundControl.Api/GroundControl.Api.csproj
+      image-repository: mrtaikandi/groundcontrol
+      test-targets: |
+        tests/GroundControl.Api.Tests/GroundControl.Api.Tests.csproj
+        tests/GroundControl.Persistence.MongoDb.Tests/GroundControl.Persistence.MongoDb.Tests.csproj
+        tests/GroundControl.Api.Client.Tests/GroundControl.Api.Client.Tests.csproj
+      solution: GroundControl.slnx
+      cliff-config: .github/cliff/api.toml
+      versionIncrement: ${{ inputs.versionIncrement }}
+      dryRun: ${{ inputs.dryRun }}
