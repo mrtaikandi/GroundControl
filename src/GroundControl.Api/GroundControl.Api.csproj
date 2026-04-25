@@ -28,12 +28,12 @@
     </ItemGroup>
 
     <ItemGroup Label="License files (relocated under /app/licenses/ in the published image)">
-        <None Include="$(RepositoryRoot)\LICENSE" Link="licenses\LICENSE-Apache-2.0" CopyToPublishDirectory="PreserveNewest" Pack="false" />
-        <None Include="$(RepositoryRoot)\NOTICE" Link="licenses\NOTICE" CopyToPublishDirectory="PreserveNewest" Pack="false" />
-        <None Include="$(RepositoryRoot)\LICENSING.md" Link="licenses\LICENSING.md" CopyToPublishDirectory="PreserveNewest" Pack="false" />
-        <None Include="LICENSE" Link="licenses\LICENSE-BSL-1.1-Api" CopyToPublishDirectory="PreserveNewest" Pack="false" />
-        <None Include="..\GroundControl.Persistence.Abstractions\LICENSE" Link="licenses\LICENSE-BSL-1.1-Persistence.Abstractions" CopyToPublishDirectory="PreserveNewest" Pack="false" />
-        <None Include="..\GroundControl.Persistence.MongoDb\LICENSE" Link="licenses\LICENSE-BSL-1.1-Persistence.MongoDb" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+        <None Include="$(RepositoryRoot)\LICENSE" Link="licenses\LICENSE-Apache-2.0" CopyToPublishDirectory="PreserveNewest" Pack="false" Visible="false" />
+        <None Include="$(RepositoryRoot)\NOTICE" Link="licenses\NOTICE" CopyToPublishDirectory="PreserveNewest" Pack="false" Visible="false" />
+        <None Include="$(RepositoryRoot)\LICENSING.md" Link="licenses\LICENSING.md" CopyToPublishDirectory="PreserveNewest" Pack="false" Visible="false" />
+        <None Include="LICENSE" Link="licenses\LICENSE-BSL-1.1-Api" CopyToPublishDirectory="PreserveNewest" Pack="false" Visible="false" />
+        <None Include="..\GroundControl.Persistence.Abstractions\LICENSE" Link="licenses\LICENSE-BSL-1.1-Persistence.Abstractions" CopyToPublishDirectory="PreserveNewest" Pack="false" Visible="false" />
+        <None Include="..\GroundControl.Persistence.MongoDb\LICENSE" Link="licenses\LICENSE-BSL-1.1-Persistence.MongoDb" CopyToPublishDirectory="PreserveNewest" Pack="false" Visible="false" />
     </ItemGroup>
 
     <PropertyGroup Label="OpenAPI spec generation">
@@ -76,10 +76,6 @@
         <ProjectReference Include="..\GroundControl.Persistence.Abstractions\GroundControl.Persistence.Abstractions.csproj" />
         <ProjectReference Include="..\GroundControl.Persistence.MongoDb\GroundControl.Persistence.MongoDb.csproj" />
         <ProjectReference Include="..\GroundControl.Host.Api.Generators\GroundControl.Host.Api.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Include="version.json" />
     </ItemGroup>
 
 </Project>
