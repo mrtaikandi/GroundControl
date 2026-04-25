@@ -8,14 +8,18 @@
         <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.Http.Generated</InterceptorsNamespaces>
     </PropertyGroup>
 
-    <!-- RuntimeIdentifiers / ContainerRuntimeIdentifiers / ContainerImageTags are passed by the release workflow
-         on the CLI so dev `dotnet run` on non-Linux hosts is unaffected and the csproj never edits per
-         release. See .github/actions/dotnet-publish-container/action.yml. -->
+    <!-- ContainerImageTags are passed by the release workflow on the CLI so the csproj
+         never edits per release. RuntimeIdentifiers must live here, not on the CLI:
+         restore needs to see the full RID list to populate the per-RID assets graph,
+         otherwise multi-arch PublishContainer fails with NETSDK1047 on the second RID.
+         The plural list only enriches restore — `dotnet run` / `dotnet build` still
+         default to the host RID. See .github/actions/dotnet-publish-container/action.yml. -->
     <PropertyGroup Label="Container image">
         <ContainerRepository>groundcontrol</ContainerRepository>
         <ContainerFamily>noble-chiseled</ContainerFamily>
         <ContainerImageFormat>OCI</ContainerImageFormat>
         <ContainerLicenseExpression>Apache-2.0 AND BUSL-1.1</ContainerLicenseExpression>
+        <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
     </PropertyGroup>
 
     <ItemGroup Label="Container runtime config">
