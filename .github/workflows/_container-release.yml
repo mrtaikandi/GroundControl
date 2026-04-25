@@ -65,7 +65,7 @@ on:
       image-repository:
         description: >-
           Repository name within the registry (e.g. `mrtaikandi/groundcontrol`).
-          Defaults to `${{ github.repository }}` lowercased.
+          Defaults to the calling GitHub repository slug, lowercased.
         required: false
         type: string
         default: ''
