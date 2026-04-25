@@ -461,9 +461,11 @@ jobs:
             done
           } > image-notes.md
 
-          gh release view "${RELEASE_TAG}" --json body --jq .body > existing-notes.md
+          # publish-image has no checkout step, so gh cannot auto-detect the
+          # repo from .git. Pass --repo explicitly to avoid the git error.
+          gh release view "${RELEASE_TAG}" --repo "${{ github.repository }}" --json body --jq .body > existing-notes.md
           cat existing-notes.md image-notes.md > combined-notes.md
-          gh release edit "${RELEASE_TAG}" --notes-file combined-notes.md
+          gh release edit "${RELEASE_TAG}" --repo "${{ github.repository }}" --notes-file combined-notes.md
 
   open-next-version-pr:
     name: Open post-release bump PR
