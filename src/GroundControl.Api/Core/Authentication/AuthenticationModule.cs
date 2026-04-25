@@ -14,21 +14,6 @@ internal sealed class AuthenticationModule(AuthenticationOptions options) : IWeb
 {
     private IAuthenticationBuilder? _authenticationBuilder;
 
-    public void OnServiceConfiguration(WebApplicationBuilder builder)
-    {
-        _authenticationBuilder = AddAuthenticationServices(builder, options);
-
-        switch (options.Mode)
-        {
-            case AuthenticationMode.BuiltIn:
-                AddAuthHandlers(builder.Services);
-                break;
-            case AuthenticationMode.External:
-                AddExternalAuthHandlers(builder.Services);
-                break;
-        }
-    }
-
     public void OnApplicationConfiguration(WebApplication app)
     {
         Debug.Assert(_authenticationBuilder != null, $"{nameof(_authenticationBuilder)} != null");
@@ -42,8 +27,25 @@ internal sealed class AuthenticationModule(AuthenticationOptions options) : IWeb
             case AuthenticationMode.BuiltIn:
                 MapAuthEndpoints(group);
                 break;
+
             case AuthenticationMode.External:
                 MapExternalAuthEndpoints(group);
+                break;
+        }
+    }
+
+    public void OnServiceConfiguration(WebApplicationBuilder builder)
+    {
+        _authenticationBuilder = AddAuthenticationServices(builder, options);
+
+        switch (options.Mode)
+        {
+            case AuthenticationMode.BuiltIn:
+                AddAuthHandlers(builder.Services);
+                break;
+
+            case AuthenticationMode.External:
+                AddExternalAuthHandlers(builder.Services);
                 break;
         }
     }
@@ -83,6 +85,11 @@ internal sealed class AuthenticationModule(AuthenticationOptions options) : IWeb
         services.AddTransient<GetCurrentUserHandler>();
     }
 
+    private static void AddExternalAuthHandlers(IServiceCollection services)
+    {
+        services.AddTransient<GetCurrentUserHandler>();
+    }
+
     private static void MapAuthEndpoints(IEndpointRouteBuilder group)
     {
         LoginHandler.Endpoint(group);
@@ -90,11 +97,6 @@ internal sealed class AuthenticationModule(AuthenticationOptions options) : IWeb
         TokenLoginHandler.Endpoint(group);
         TokenRefreshHandler.Endpoint(group);
         GetCurrentUserHandler.Endpoint(group);
-    }
-
-    private static void AddExternalAuthHandlers(IServiceCollection services)
-    {
-        services.AddTransient<GetCurrentUserHandler>();
     }
 
     private static void MapExternalAuthEndpoints(IEndpointRouteBuilder group)
