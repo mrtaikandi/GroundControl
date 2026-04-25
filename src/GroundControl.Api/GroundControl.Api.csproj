@@ -8,6 +8,30 @@
         <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.Http.Generated</InterceptorsNamespaces>
     </PropertyGroup>
 
+    <!-- RuntimeIdentifiers / ContainerRuntimeIdentifiers / ContainerImageTags are passed by the release workflow
+         on the CLI so dev `dotnet run` on non-Linux hosts is unaffected and the csproj never edits per
+         release. See .github/actions/dotnet-publish-container/action.yml. -->
+    <PropertyGroup Label="Container image">
+        <ContainerRepository>groundcontrol</ContainerRepository>
+        <ContainerFamily>noble-chiseled</ContainerFamily>
+        <ContainerImageFormat>OCI</ContainerImageFormat>
+        <ContainerLicenseExpression>Apache-2.0 AND BUSL-1.1</ContainerLicenseExpression>
+    </PropertyGroup>
+
+    <ItemGroup Label="Container runtime config">
+        <ContainerEnvironmentVariable Include="ASPNETCORE_URLS" Value="http://+:8080" />
+        <ContainerPort Include="8080" Type="tcp" />
+    </ItemGroup>
+
+    <ItemGroup Label="License files (relocated under /app/licenses/ in the published image)">
+        <None Include="$(RepositoryRoot)\LICENSE" Link="licenses\LICENSE-Apache-2.0" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+        <None Include="$(RepositoryRoot)\NOTICE" Link="licenses\NOTICE" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+        <None Include="$(RepositoryRoot)\LICENSING.md" Link="licenses\LICENSING.md" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+        <None Include="LICENSE" Link="licenses\LICENSE-BSL-1.1-Api" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+        <None Include="..\GroundControl.Persistence.Abstractions\LICENSE" Link="licenses\LICENSE-BSL-1.1-Persistence.Abstractions" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+        <None Include="..\GroundControl.Persistence.MongoDb\LICENSE" Link="licenses\LICENSE-BSL-1.1-Persistence.MongoDb" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+    </ItemGroup>
+
     <PropertyGroup Label="OpenAPI spec generation">
         <OpenApiGenerateDocuments Condition="'$(OpenApiGenerateDocuments)' == ''">false</OpenApiGenerateDocuments>
         <OpenApiDocumentsDirectory>.</OpenApiDocumentsDirectory>

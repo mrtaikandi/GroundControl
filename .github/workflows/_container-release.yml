@@ -1,0 +1,482 @@
+# Reusable container release workflow. Sibling of _release.yml — same DAG,
+# but the artifact is an OCI image pushed to a container registry instead
+# of a nupkg pushed to nuget.org. Callers (api-release.yml, future
+# worker-release.yml, ...) pass component-specific inputs and inherit:
+#
+#   plan-release ─► build-test-image ─► release ─► publish-image ─► open-next-version-pr
+#
+#   plan-release           Read-only validation at main-tip: compute version
+#                          via NBGV, render changelog, assert tag collision,
+#                          upload CHANGES.md, derive image tag list.
+#   build-test-image       Checks out the validated SHA, builds, runs the
+#                          component's tests, publishes the multi-arch
+#                          container to an OCI tarball (no registry side
+#                          effects), uploads the tarball as an artifact.
+#   release                Creates the GitHub Release (first reversible
+#                          side effect). Skipped on dry-run.
+#   publish-image          Downloads the tarball, logs in to the registry,
+#                          pushes every tag, and amends the release notes
+#                          with the image digest.
+#   open-next-version-pr   Stable-only. Opens the chore(bump) PR back to main.
+
+name: _container-release
+
+on:
+  workflow_call:
+    inputs:
+      component-name:
+        description: Short component name. Drives tag prefix, artifact names, bump branch, and commit scope.
+        required: true
+        type: string
+      display-name:
+        description: Human label for the release build test-reporter check run.
+        required: true
+        type: string
+      project-path:
+        description: Path to the component folder containing version.json.
+        required: true
+        type: string
+      image-project:
+        description: Path to the csproj that produces the container image.
+        required: true
+        type: string
+      test-targets:
+        description: >-
+          Newline-separated list of test targets. Each entry may be a
+          `.csproj`, `.sln`, `.slnx`, or `.slnf` path — the same shapes
+          accepted by the `dotnet-test` composite action.
+        required: true
+        type: string
+      solution:
+        description: >-
+          Path to a solution file (.sln, .slnx, or .slnf) that covers every
+          project needed to build, test, and publish this component's image.
+        required: true
+        type: string
+      cliff-config:
+        description: Path to the git-cliff config for this component.
+        required: true
+        type: string
+      image-registry:
+        description: Container registry hostname.
+        required: false
+        type: string
+        default: ghcr.io
+      image-repository:
+        description: >-
+          Repository name within the registry (e.g. `mrtaikandi/groundcontrol`).
+          Defaults to `${{ github.repository }}` lowercased.
+        required: false
+        type: string
+        default: ''
+      runtime-identifiers:
+        description: Semicolon-delimited RIDs to include in the multi-arch image.
+        required: false
+        type: string
+        default: 'linux-x64;linux-arm64'
+      versionIncrement:
+        description: STABLE path only — component to bump on main after the release (patch/minor/major).
+        required: false
+        type: string
+        default: minor
+      dryRun:
+        description: Run plan-release + build-test-image but do not tag, release, push, or open the bump PR.
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  plan-release:
+    name: Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      release_tag: ${{ steps.version.outputs.release_tag }}
+      release_version: ${{ steps.version.outputs.release_version }}
+      release_type: ${{ steps.version.outputs.release_type }}
+      version_field: ${{ steps.version.outputs.version_field }}
+      image_repository: ${{ steps.image.outputs.image_repository }}
+      image_tags: ${{ steps.image.outputs.image_tags }}
+      release_sha: ${{ github.sha }}
+      release_sha_short: ${{ steps.image.outputs.release_sha_short }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Assert dispatch is at main tip
+        shell: bash
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "::error::release must be dispatched from the 'main' branch (got ${{ github.ref }})"
+            exit 1
+          fi
+          MAIN_TIP=$(git rev-parse origin/main)
+          if [ "${{ github.sha }}" != "${MAIN_TIP}" ]; then
+            echo "::error::release must be dispatched at main tip (got ${{ github.sha }}, tip is ${MAIN_TIP})"
+            exit 1
+          fi
+
+      - name: Setup .NET
+        uses: ./.github/actions/dotnet-setup
+
+      - name: Compute release version
+        id: version
+        uses: ./.github/actions/compute-release-version
+        with:
+          project-path: ${{ inputs.project-path }}
+          component-name: ${{ inputs.component-name }}
+
+      - name: Generate changelog
+        uses: ./.github/actions/generate-changelog
+        with:
+          cliff-config: ${{ inputs.cliff-config }}
+          release-tag: ${{ steps.version.outputs.release_tag }}
+          release-type: ${{ steps.version.outputs.release_type }}
+          component-name: ${{ inputs.component-name }}
+
+      - name: Compute image repository and tag list
+        id: image
+        shell: bash
+        env:
+          INPUT_REPO: ${{ inputs.image-repository }}
+          DEFAULT_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
+          RELEASE_TYPE: ${{ steps.version.outputs.release_type }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # Repository name within the registry. Default is the GitHub repo
+          # path lowercased (GHCR is case-sensitive and the convention is
+          # all-lowercase). Callers can override to e.g. `mrtaikandi/groundcontrol`.
+          if [ -n "${INPUT_REPO}" ]; then
+            REPO="${INPUT_REPO}"
+          else
+            REPO=$(echo "${DEFAULT_REPO}" | tr '[:upper:]' '[:lower:]')
+          fi
+
+          SHA_SHORT="${RELEASE_SHA:0:7}"
+
+          # Tag policy: every release pushes the SemVer tag, the short SHA
+          # tag (immutable, easy to cross-reference with the source commit),
+          # and `latest`. Pre-1.0 the project has no GA cut-off so `latest`
+          # rolls forward through previews too — flip this when there's a
+          # stable channel to protect.
+          TAGS="${RELEASE_VERSION};sha-${SHA_SHORT};latest"
+
+          echo "image_repository=${REPO}" >> "$GITHUB_OUTPUT"
+          echo "image_tags=${TAGS}" >> "$GITHUB_OUTPUT"
+          echo "release_sha_short=${SHA_SHORT}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "Image repository: ${REPO}"
+            echo "Image tags: ${TAGS}"
+          }
+
+      - name: Dry-run summary
+        if: ${{ inputs.dryRun }}
+        shell: bash
+        env:
+          REPO: ${{ steps.image.outputs.image_repository }}
+          REGISTRY: ${{ inputs.image-registry }}
+          TAGS: ${{ steps.image.outputs.image_tags }}
+        run: |
+          {
+            echo "## Dry run — ${{ inputs.component-name }} ${{ steps.version.outputs.release_type }} release"
+            echo ""
+            echo "- Tag: \`${{ steps.version.outputs.release_tag }}\`"
+            echo "- Target: \`${{ github.sha }}\`"
+            echo "- Image: \`${REGISTRY}/${REPO}\`"
+            echo "- Image tags: \`${TAGS}\`"
+            echo ""
+            echo "### Changelog"
+            echo ""
+            if [ -s CHANGES.md ]; then cat CHANGES.md; else echo "_(empty)_"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-test-image:
+    name: Build, test & image
+    needs: plan-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      checks: write  # dorny/test-reporter
+    steps:
+      - name: Checkout released commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          ref: ${{ needs.plan-release.outputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Setup .NET + restore solution
+        uses: ./.github/actions/dotnet-setup
+        with:
+          restore-target: ${{ inputs.solution }}
+
+      - name: Build solution
+        shell: bash
+        env:
+          SOLUTION: ${{ inputs.solution }}
+        run: dotnet build "${SOLUTION}" --configuration Release --no-restore
+
+      - name: Test
+        uses: ./.github/actions/dotnet-test
+        with:
+          targets: ${{ inputs.test-targets }}
+          no-build: 'true'
+          no-restore: 'true'
+          artifact-name: ${{ inputs.component-name }}-test-results
+          report-name: ${{ inputs.display-name }}
+
+      # Publish to a tarball — no registry side effects until the GitHub
+      # Release exists. Mirrors the dotnet-pack stage in _release.yml.
+      # Both --no-build and --no-restore are off because the prior build
+      # step only produced host-RID artifacts; the per-RID compiles for
+      # linux-x64 and linux-arm64 must run inside this publish step, and
+      # they each need their own restore graph populated.
+      - name: Publish container image to tarball
+        uses: ./.github/actions/dotnet-publish-container
+        with:
+          project: ${{ inputs.image-project }}
+          image-tags: ${{ needs.plan-release.outputs.image_tags }}
+          runtime-identifiers: ${{ inputs.runtime-identifiers }}
+          archive-only: 'true'
+          archive-path: artifacts/container/${{ inputs.component-name }}.tar.gz
+          artifact-name: ${{ inputs.component-name }}-container
+
+  release:
+    name: Create GitHub Release
+    needs: [plan-release, build-test-image]
+    if: ${{ !inputs.dryRun }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write  # gh release create + tag
+    outputs:
+      release_created: ${{ steps.create_release.outputs.created }}
+    steps:
+      - name: Checkout released commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          ref: ${{ needs.plan-release.outputs.release_sha }}
+          fetch-depth: 1
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: ${{ inputs.component-name }}-release-changelog
+
+      - name: Create GitHub Release
+        id: create_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE_FLAG: ${{ needs.plan-release.outputs.release_type == 'preview' && '--prerelease' || '' }}
+        run: |
+          gh release create "${{ needs.plan-release.outputs.release_tag }}" \
+            --target "${{ needs.plan-release.outputs.release_sha }}" \
+            ${PRERELEASE_FLAG} \
+            --title "${{ needs.plan-release.outputs.release_tag }}" \
+            --notes-file CHANGES.md
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+  publish-image:
+    name: Publish image to ${{ inputs.image-registry }}
+    needs: [plan-release, release]
+    if: ${{ needs.release.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write   # gh release edit (append digest to notes)
+      packages: write   # GHCR push
+    steps:
+      - name: Download container tarball
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: ${{ inputs.component-name }}-container
+          path: artifacts/container
+
+      - name: Ensure skopeo is installed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v skopeo >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends skopeo
+          fi
+          skopeo --version
+
+      - name: Log in to ${{ inputs.image-registry }}
+        shell: bash
+        env:
+          REGISTRY: ${{ inputs.image-registry }}
+          GH_USER: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "${GH_TOKEN}" | skopeo login --username "${GH_USER}" --password-stdin "${REGISTRY}"
+
+      - name: Push every tag from OCI archive
+        id: push
+        shell: bash
+        env:
+          REGISTRY: ${{ inputs.image-registry }}
+          REPO: ${{ needs.plan-release.outputs.image_repository }}
+          TAGS: ${{ needs.plan-release.outputs.image_tags }}
+          COMPONENT: ${{ inputs.component-name }}
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="${GITHUB_WORKSPACE}/artifacts/container/${COMPONENT}.tar.gz"
+          if [ ! -f "${ARCHIVE}" ]; then
+            echo "::error::OCI archive not found at ${ARCHIVE}"
+            exit 1
+          fi
+
+          # The SDK writes one OCI image index containing one manifest per
+          # ContainerImageTags entry, each annotated with
+          # `org.opencontainers.image.ref.name=<tag>`. skopeo's
+          # `oci-archive:path:reference` syntax selects by that ref-name.
+          # `--multi-arch all` ensures every per-arch manifest in the index
+          # is copied (default would be the host arch only).
+          IFS=';' read -ra TAG_ARRAY <<< "${TAGS}"
+          for TAG in "${TAG_ARRAY[@]}"; do
+            FULL_REF="${REGISTRY}/${REPO}:${TAG}"
+            echo "::group::Push ${FULL_REF}"
+            skopeo copy --multi-arch all \
+              "oci-archive:${ARCHIVE}:${TAG}" \
+              "docker://${FULL_REF}"
+            echo "::endgroup::"
+          done
+
+          # Capture the manifest list digest from the first tag — every tag
+          # points at the same OCI Image Index so any one will do.
+          FIRST_TAG="${TAG_ARRAY[0]}"
+          DIGEST=$(skopeo inspect --raw "docker://${REGISTRY}/${REPO}:${FIRST_TAG}" \
+            | sha256sum | awk '{print "sha256:"$1}')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Pushed ${#TAG_ARRAY[@]} tag(s); digest: ${DIGEST}"
+
+      - name: Append image reference to release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.plan-release.outputs.release_tag }}
+          REGISTRY: ${{ inputs.image-registry }}
+          REPO: ${{ needs.plan-release.outputs.image_repository }}
+          TAGS: ${{ needs.plan-release.outputs.image_tags }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo ""
+            echo "## Container image"
+            echo ""
+            echo "- Registry: \`${REGISTRY}/${REPO}\`"
+            if [ -n "${DIGEST}" ]; then
+              echo "- Digest: \`${REGISTRY}/${REPO}@${DIGEST}\`"
+            fi
+            echo "- Tags:"
+            IFS=';' read -ra TAG_ARRAY <<< "${TAGS}"
+            for TAG in "${TAG_ARRAY[@]}"; do
+              echo "  - \`${REGISTRY}/${REPO}:${TAG}\`"
+            done
+          } > image-notes.md
+
+          gh release view "${RELEASE_TAG}" --json body --jq .body > existing-notes.md
+          cat existing-notes.md image-notes.md > combined-notes.md
+          gh release edit "${RELEASE_TAG}" --notes-file combined-notes.md
+
+  open-next-version-pr:
+    name: Open post-release bump PR
+    needs: [plan-release, release, publish-image]
+    if: ${{ needs.release.outputs.release_created == 'true' && needs.plan-release.outputs.release_type == 'stable' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write       # push bump branch
+      pull-requests: write  # gh pr create
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: ./.github/actions/dotnet-setup
+
+      - name: Restore local tools (pins nbgv via .config/dotnet-tools.json)
+        shell: bash
+        run: dotnet tool restore
+
+      - name: Configure git identity
+        shell: bash
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Compute next development version
+        id: next
+        shell: bash
+        env:
+          CURRENT: ${{ needs.plan-release.outputs.version_field }}
+          INCREMENT: ${{ inputs.versionIncrement }}
+          COMPONENT: ${{ inputs.component-name }}
+        run: |
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT}"
+          PATCH=${PATCH:-0}
+
+          case "${INCREMENT}" in
+            patch) PATCH=$((PATCH + 1)) ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+          esac
+
+          if [ "${PATCH}" = "0" ]; then
+            NEXT="${MAJOR}.${MINOR}-preview"
+          else
+            NEXT="${MAJOR}.${MINOR}.${PATCH}-preview"
+          fi
+
+          echo "next_version=${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "bump_branch=chore/${COMPONENT}-bump-to-${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "Next development version: ${NEXT}"
+
+      - name: Open bump PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          BRANCH='${{ steps.next.outputs.bump_branch }}'
+          NEXT='${{ steps.next.outputs.next_version }}'
+          TAG='${{ needs.plan-release.outputs.release_tag }}'
+
+          git checkout -b "${BRANCH}"
+          dotnet nbgv set-version "${NEXT}" -p ${{ inputs.project-path }}
+          git add ${{ inputs.project-path }}/version.json
+          git commit -m "chore(${{ inputs.component-name }}): bump to ${NEXT}"
+
+          # Fetch any prior remote-tracking ref so --force-with-lease has a
+          # baseline to compare against; swallow failure when the branch
+          # doesn't exist yet on origin.
+          git fetch origin "${BRANCH}" 2>/dev/null || true
+          git push origin "${BRANCH}" --force-with-lease
+
+          EXISTING_PR=$(gh pr list --head "${BRANCH}" --state open --json number --jq '.[0].number // empty')
+          if [ -n "${EXISTING_PR}" ]; then
+            echo "Bump PR already open as #${EXISTING_PR}; skipping create."
+          else
+            gh pr create \
+              --base main \
+              --head "${BRANCH}" \
+              --title "chore(${{ inputs.component-name }}): bump to ${NEXT}" \
+              --body "Post-release bump after publishing \`${TAG}\`. Starts the next development line. Merge before running \`${{ inputs.component-name }}-release\` again, or preview builds will collide with the just-published tag."
+          fi

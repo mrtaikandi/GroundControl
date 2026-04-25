@@ -1,0 +1,67 @@
+# git-cliff configuration for GroundControl.Api
+# https://git-cliff.org/docs/configuration
+#
+# Used by api-release.yml to generate per-component changelogs. The shared
+# [changelog] template and commit parsers are duplicated between this file
+# and cli.toml / link.toml — git-cliff does not support config inheritance.
+
+[changelog]
+header = ""
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+
+{% for commit in commits -%}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/mrtaikandi/GroundControl/commit/{{ commit.id }})){% if commit.breaking %} [**breaking**]{% endif %}
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+protect_breaking_commits = true
+filter_commits = true
+# Anchor only on stable Api tags so each release (preview or stable) shows
+# the cumulative commit set since the last stable Api release.
+tag_pattern = "api/v[0-9]+\\.[0-9]+\\.[0-9]+$"
+# Mirror the pathFilters in src/GroundControl.Api/version.json so the commit
+# set NBGV bumps the version for is the same set that shows up in the
+# changelog. Includes the Persistence projects (their DLLs ship inside the
+# API image) and the source generator (compile-time-only but its output
+# changes the produced binaries).
+include_path = [
+    "src/GroundControl.Api/**",
+    "src/GroundControl.Persistence.Abstractions/**",
+    "src/GroundControl.Persistence.MongoDb/**",
+    "src/GroundControl.Host.Api.Generators/**",
+    "tests/GroundControl.Api.Tests/**",
+    "tests/GroundControl.Api.Tests.Infrastructure/**",
+    "tests/GroundControl.Api.Client.Tests/**",
+    "tests/GroundControl.Persistence.MongoDb.Tests/**",
+]
+topo_order = false
+sort_commits = "oldest"
+
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Fixes" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactors" },
+    { message = "^docs", group = "Documentation" },
+    { message = "^test", group = "Tests" },
+    { message = "^build", group = "Build" },
+    { message = "^ci", group = "CI" },
+    { message = "^chore\\(release\\)", skip = true },
+    { message = "^chore\\(deps\\)", skip = true },
+    { message = "^chore", group = "Chores" },
+    { message = "^revert", group = "Reverts" },
+    { body = ".*security", group = "Security" },
+]
+
+commit_preprocessors = [
+    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/mrtaikandi/GroundControl/issues/${2}))" },
+]
