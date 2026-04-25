@@ -21,6 +21,10 @@ on:
         description: 'Dry-Run: plan-release + build-test-image, but do not tag, release, push the image, or open the bump PR.'
         type: boolean
         default: false
+      skipTests:
+        description: 'Skip tests: build and publish the image without running the test suite. Use sparingly — only for hotfix-style releases where tests are known-passing.'
+        type: boolean
+        default: false
 
 concurrency:
   group: api-release
@@ -51,3 +55,4 @@ jobs:
       cliff-config: .github/cliff/api.toml
       versionIncrement: ${{ inputs.versionIncrement }}
       dryRun: ${{ inputs.dryRun }}
+      skipTests: ${{ inputs.skipTests }}

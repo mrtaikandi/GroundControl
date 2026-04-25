@@ -84,6 +84,11 @@ on:
         required: false
         type: boolean
         default: false
+      skipTests:
+        description: Skip the test step in build-test-image. Build and image publish still run.
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   plan-release:
@@ -226,6 +231,7 @@ jobs:
         run: dotnet build "${SOLUTION}" --configuration Release --no-restore
 
       - name: Test
+        if: ${{ !inputs.skipTests }}
         uses: ./.github/actions/dotnet-test
         with:
           targets: ${{ inputs.test-targets }}
@@ -233,6 +239,12 @@ jobs:
           no-restore: 'true'
           artifact-name: ${{ inputs.component-name }}-test-results
           report-name: ${{ inputs.display-name }}
+
+      - name: Note tests skipped
+        if: ${{ inputs.skipTests }}
+        shell: bash
+        run: |
+          echo "::warning::Tests were skipped via skipTests=true. Image publish proceeded without test verification."
 
       # Publish to a tarball — no registry side effects until the GitHub
       # Release exists. Mirrors the dotnet-pack stage in _release.yml.
