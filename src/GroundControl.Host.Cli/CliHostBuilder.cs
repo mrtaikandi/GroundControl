@@ -23,6 +23,7 @@ public sealed class CliHostBuilder
     private readonly Assembly _commandAssembly;
     private readonly string _description;
     private readonly HostApplicationBuilder _innerBuilder;
+    private readonly List<IDependencyModule> _globalModules = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CliHostBuilder" /> class.
@@ -64,6 +65,21 @@ public sealed class CliHostBuilder
     /// Gets the service collection for registering additional dependencies.
     /// </summary>
     public IServiceCollection Services => _innerBuilder.Services;
+
+    /// <summary>
+    /// Registers a dependency module whose <see cref="IDependencyModule.ConfigureServices"/> runs for every
+    /// command, regardless of which root command is invoked. Use this to wire shared services that all commands
+    /// depend on (e.g. an HTTP client). Per-command modules declared via <see cref="RootCommandAttribute{TModule}"/>
+    /// run after global modules and may override their registrations.
+    /// </summary>
+    /// <typeparam name="TModule">The module type. Must be public and have a parameterless constructor.</typeparam>
+    /// <returns>The same <see cref="CliHostBuilder" /> for chaining.</returns>
+    public CliHostBuilder UseDependencyModule<TModule>()
+        where TModule : IDependencyModule, new()
+    {
+        _globalModules.Add(new TModule());
+        return this;
+    }
 
     /// <summary>
     /// Builds the CLI host, discovering commands, wiring dependency injection, and preparing for execution.
@@ -223,6 +239,11 @@ public sealed class CliHostBuilder
         ConfigureCliHostOptions(parseResult);
 
         var dependencyContext = new DependencyModuleContext(_innerBuilder.Environment, _innerBuilder.Configuration);
+        foreach (var module in _globalModules)
+        {
+            module.ConfigureServices(dependencyContext, _innerBuilder.Services);
+        }
+
         rootModule?.ConfigureServices(dependencyContext, _innerBuilder.Services);
         subCommandModule?.ConfigureServices(dependencyContext, _innerBuilder.Services);
     }
