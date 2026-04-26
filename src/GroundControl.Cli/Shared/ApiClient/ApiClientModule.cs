@@ -64,6 +64,7 @@ internal sealed class ApiClientModule : IDependencyModule
                 httpClient.BaseAddress = new Uri(serverUrl);
             })
             .AddHttpMessageHandler<ApiVersionHandler>()
-            .AddHttpMessageHandler<AuthenticatingHandler>();
+            .AddHttpMessageHandler<AuthenticatingHandler>()
+            .AddStandardResilienceHandler();
     }
 }

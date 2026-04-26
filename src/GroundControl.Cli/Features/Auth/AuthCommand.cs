@@ -5,7 +5,7 @@ using GroundControl.Cli.Features.Auth.Status;
 
 namespace GroundControl.Cli.Features.Auth;
 
-[RootCommand<AuthDependencyModule>]
+[RootCommand]
 internal sealed class AuthCommand : Command
 {
     public AuthCommand()

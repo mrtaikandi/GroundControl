@@ -1,6 +1,6 @@
 namespace GroundControl.Cli.Features.Tui;
 
-[RootCommand<TuiDependencyModule>]
+[RootCommand]
 internal sealed class TuiCommand : Command<TuiCommandHandler, TuiCommandOptions>
 {
     public TuiCommand()
