@@ -22,10 +22,6 @@
         <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
     </PropertyGroup>
 
-    <ItemGroup Label="Container runtime config">
-        <ContainerEnvironmentVariable Include="ASPNETCORE_URLS" Value="http://+:8080" />
-        <ContainerPort Include="8080" Type="tcp" />
-    </ItemGroup>
 
     <ItemGroup Label="License files (relocated under /app/licenses/ in the published image)">
         <None Include="$(RepositoryRoot)\LICENSE" Link="licenses\LICENSE-Apache-2.0" CopyToPublishDirectory="PreserveNewest" Pack="false" Visible="false" />
