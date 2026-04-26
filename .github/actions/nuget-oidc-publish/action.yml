@@ -48,8 +48,11 @@ runs:
         RELEASE_TAG: ${{ inputs.release-tag }}
         PACKAGE_DIR: ${{ inputs.package-dir }}
       run: |
-        gh release upload "${RELEASE_TAG}" \
-          "${PACKAGE_DIR}"/*.nupkg \
-          "${PACKAGE_DIR}"/*.snupkg \
+        # shopt -s nullglob: globs that match nothing expand to empty instead
+        # of the literal pattern string, so *.snupkg is silently dropped when
+        # the pack step did not emit a symbols package (e.g. PackAsTool=true).
+        shopt -s nullglob
+        FILES=("${PACKAGE_DIR}"/*.nupkg "${PACKAGE_DIR}"/*.snupkg)
+        gh release upload "${RELEASE_TAG}" "${FILES[@]}" \
           --repo "${GITHUB_REPOSITORY}" \
           --clobber
