@@ -4,7 +4,7 @@ using GroundControl.Cli.Features.Config.Show;
 
 namespace GroundControl.Cli.Features.Config;
 
-[RootCommand<ConfigDependencyModule>]
+[RootCommand]
 internal sealed class ConfigCommand : Command
 {
     public ConfigCommand()

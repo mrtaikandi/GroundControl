@@ -1,4 +1,5 @@
-using GroundControl.Api.Client;
+using GroundControl.Cli.Shared.ApiClient;
+using GroundControl.Cli.Shared.Config;
 using Microsoft.Extensions.DependencyInjection;
 
 // When no command is specified, launch the TUI dashboard
@@ -8,11 +9,8 @@ if (args.Length == 0)
 }
 
 var builder = new CliHostBuilder(args, "GroundControl management tool");
-builder.Services.AddGroundControlClient(options =>
-    {
-        var baseAddress = builder.Configuration["GroundControl:ServerUrl"] ?? "https://localhost:5001";
-        options.BaseAddress = new Uri(baseAddress);
-    })
-    .AddStandardResilienceHandler();
+
+new ApiClientModule().ConfigureServices(new DependencyModuleContext(builder.Environment, builder.Configuration), builder.Services);
+builder.Services.AddSingleton(new CredentialStore(CredentialStore.DefaultPath));
 
 await builder.RunAsync();
