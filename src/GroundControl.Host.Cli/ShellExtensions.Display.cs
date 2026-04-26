@@ -8,6 +8,10 @@ namespace GroundControl.Host.Cli;
 /// </summary>
 public static partial class ShellExtensions
 {
+    // Width of the prefix produced by DisplayMessage(emoji, message): 1 emoji glyph + 2 spaces.
+    // Continuation lines under a prefixed message use this indent to align under the message text.
+    private const string PrefixedLineIndent = "   ";
+
     extension(IShell shell)
     {
         /// <summary>
@@ -39,7 +43,7 @@ public static partial class ShellExtensions
         public void DisplayExceptionSummary(Exception ex)
         {
             var summary = $"{ex.GetType().Name}: {ex.Message}";
-            shell.Console.MarkupLine($"   [red]{Markup.Escape(summary)}[/]");
+            shell.Console.MarkupLine($"{PrefixedLineIndent}[red]{Markup.Escape(summary)}[/]");
         }
 
         /// <summary>

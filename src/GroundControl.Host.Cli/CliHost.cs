@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Spectre.Console;
 
@@ -13,7 +12,7 @@ namespace GroundControl.Host.Cli;
 /// <summary>
 /// Represents a built CLI application ready for execution.
 /// </summary>
-public sealed partial class CliHost
+public sealed class CliHost
 {
     private readonly IHost? _applicationHost;
     private readonly Type? _commandType;
@@ -77,10 +76,7 @@ public sealed partial class CliHost
 
             if (hostOptions.Debug)
             {
-                shell.DisplayException(ex);
-
-                var logger = _applicationHost.Services.GetRequiredService<ILogger<CliHost>>();
-                LogUnhandledError(logger, ex);
+                shell.DisplayException(ex, ExceptionFormats.ShowLinks);
             }
             else
             {
@@ -93,7 +89,4 @@ public sealed partial class CliHost
     }
 
     internal static CliHost CreateError(string error) => new(error);
-
-    [LoggerMessage(1, LogLevel.Critical, "An unexpected error occurred while executing the command.")]
-    private static partial void LogUnhandledError(ILogger<CliHost> logger, Exception exception);
 }
