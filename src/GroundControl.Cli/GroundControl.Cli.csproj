@@ -6,8 +6,6 @@
         <ToolCommandName>groundcontrol</ToolCommandName>
         <NoWarn>$(NoWarn);CA2007;CA1008;CA1031</NoWarn>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <IncludeSymbols>true</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <PropertyGroup Label="Package Metadata">
