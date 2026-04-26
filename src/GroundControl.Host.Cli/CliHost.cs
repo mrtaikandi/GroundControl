@@ -5,6 +5,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Spectre.Console;
 
 namespace GroundControl.Host.Cli;
@@ -68,19 +69,25 @@ public sealed partial class CliHost
         }
         catch (Exception ex)
         {
-            var environment = _applicationHost.Services.GetRequiredService<IHostEnvironment>();
+            var hostOptions = _applicationHost.Services.GetRequiredService<IOptions<CliHostOptions>>().Value;
             var shell = _applicationHost.Services.GetRequiredService<IShell>();
 
             shell.DisplayEmptyLine();
             shell.DisplayError("Oops! something went wrong while executing the command.");
-            shell.DisplayEmptyLine();
 
-            if (environment.IsDevelopment())
+            if (hostOptions.Debug)
             {
+                shell.DisplayException(ex);
+
                 var logger = _applicationHost.Services.GetRequiredService<ILogger<CliHost>>();
                 LogUnhandledError(logger, ex);
             }
+            else
+            {
+                shell.DisplayExceptionSummary(ex);
+            }
 
+            shell.DisplayEmptyLine();
             return 1;
         }
     }

@@ -231,11 +231,13 @@ public sealed class CliHostBuilder
     {
         var outputFormat = parseResult.GetValue(CliHostOptions.OutputOption);
         var noInteractive = parseResult.GetValue(CliHostOptions.NoInteractiveOption);
+        var debug = parseResult.GetResult(CliHostOptions.DebugOption) is not null;
 
         _innerBuilder.Services.Configure<CliHostOptions>(options =>
         {
             options.OutputFormat = outputFormat;
             options.NoInteractive = noInteractive;
+            options.Debug = debug;
         });
     }
 

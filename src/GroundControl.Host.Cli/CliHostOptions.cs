@@ -61,4 +61,10 @@ public class CliHostOptions
     /// Gets or sets a value indicating whether interactive prompts are disabled.
     /// </summary>
     public bool NoInteractive { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether <c>--debug</c> was specified for the current invocation.
+    /// </summary>
+    /// <remarks>True when the user passed <c>--debug</c> at any level (with or without a verbosity value).</remarks>
+    public bool Debug { get; set; }
 }
