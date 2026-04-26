@@ -33,6 +33,16 @@ public static partial class ShellExtensions
             shell.Console.WriteException(ex, exceptionFormats.ToSpectreExceptionFormats());
 
         /// <summary>
+        /// Renders a one-line summary of an exception in the form <c>TypeName: Message</c>.
+        /// </summary>
+        /// <param name="ex">The exception to summarize.</param>
+        public void DisplayExceptionSummary(Exception ex)
+        {
+            var summary = $"{ex.GetType().Name}: {ex.Message}";
+            shell.Console.MarkupLine($"   [red]{Markup.Escape(summary)}[/]");
+        }
+
+        /// <summary>
         /// Displays a sequence of output lines, coloring stderr lines in red.
         /// </summary>
         /// <param name="lines">Tuples of (stream name, line text) where stream is <c>"stdout"</c> or <c>"stderr"</c>.</param>
