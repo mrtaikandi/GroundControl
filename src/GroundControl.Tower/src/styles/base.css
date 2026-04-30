@@ -1,0 +1,63 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, 'Segoe UI Variable', 'Segoe UI', -apple-system, system-ui, sans-serif;
+  background: var(--tower-bg-page);
+  color: var(--tower-fg-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-tower-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+  background: var(--tower-bg-page);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: 'Cascadia Code', 'Cascadia Mono', Consolas, 'SF Mono', ui-monospace, Menlo, monospace;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--tower-bg-page);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tower-stroke-field-initial);
+  border: 2px solid var(--tower-bg-page);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tower-fg-icon-subtle);
+}

@@ -1,0 +1,81 @@
+/* AUTO-GENERATED — do not edit. Source: tokens.json */
+
+:root {
+  --tower-bg-page: #fcfcfc;
+  --tower-bg-container: #f8f7fa;
+  --tower-bg-surface: #ffffff;
+  --tower-bg-selected: #f4f1fb;
+  --tower-bg-selected-strong: #e7e1f6;
+  --tower-bg-chip-selected: #16151a;
+  --tower-fg-heading: #16151a;
+  --tower-fg-body: #3c3a44;
+  --tower-fg-caption: #74727f;
+  --tower-fg-link: #5a39bc;
+  --tower-fg-icon-subtle: #a5a3b0;
+  --tower-fg-on-selected: #452a92;
+  --tower-fg-chip-selected: #ffffff;
+  --tower-stroke-divider: #e7e6eb;
+  --tower-stroke-subtle: #f4f4f6;
+  --tower-stroke-field-initial: #d1d0d8;
+  --tower-stroke-field-focus: #6e4ad8;
+  --tower-badge-neutral-bg: #f4f4f6;
+  --tower-badge-neutral-fg: #3c3a44;
+  --tower-badge-info-bg: #f4f1fb;
+  --tower-badge-info-fg: #452a92;
+  --tower-badge-success-bg: #eaf3e8;
+  --tower-badge-success-fg: #1f561d;
+  --tower-badge-warning-bg: #fbf5e4;
+  --tower-badge-warning-fg: #5a430a;
+  --tower-badge-critical-bg: #fbe9e6;
+  --tower-badge-critical-fg: #a53929;
+  --tower-syntax-key: #5a39bc;
+  --tower-syntax-string: #1f561d;
+  --tower-syntax-number: #a53929;
+  --tower-syntax-punct: #74727f;
+  --tower-syntax-sensitive: #5a430a;
+  --tower-syntax-sensitive-bg: #fbf5e4;
+  --tower-syntax-diff-add-bg: rgba(79, 184, 72, 0.14);
+  --tower-syntax-diff-add-fg: #1f561d;
+  --tower-syntax-diff-del-bg: rgba(221, 92, 76, 0.10);
+  --tower-syntax-diff-del-fg: #a53929;
+}
+
+[data-tower-theme="dark"] {
+  --tower-bg-page: #2d2d30;
+  --tower-bg-container: #252526;
+  --tower-bg-surface: #2d2d30;
+  --tower-bg-selected: rgba(110, 74, 216, 0.18);
+  --tower-bg-selected-strong: rgba(110, 74, 216, 0.28);
+  --tower-bg-chip-selected: #f2f2f3;
+  --tower-fg-heading: #f2f2f3;
+  --tower-fg-body: #d4d4d6;
+  --tower-fg-caption: #9d9da3;
+  --tower-fg-link: #a48cff;
+  --tower-fg-icon-subtle: #6e6e73;
+  --tower-fg-on-selected: #c9b8ff;
+  --tower-fg-chip-selected: #16151a;
+  --tower-stroke-divider: #3c3c40;
+  --tower-stroke-subtle: #333337;
+  --tower-stroke-field-initial: #48484d;
+  --tower-stroke-field-focus: #8e6eff;
+  --tower-badge-neutral-bg: #333337;
+  --tower-badge-neutral-fg: #d4d4d6;
+  --tower-badge-info-bg: rgba(110, 74, 216, 0.14);
+  --tower-badge-info-fg: #c9b8ff;
+  --tower-badge-success-bg: rgba(79, 184, 72, 0.16);
+  --tower-badge-success-fg: #9ed79a;
+  --tower-badge-warning-bg: rgba(212, 177, 58, 0.18);
+  --tower-badge-warning-fg: #e8cf7d;
+  --tower-badge-critical-bg: rgba(201, 72, 58, 0.18);
+  --tower-badge-critical-fg: #eaa098;
+  --tower-syntax-key: #9cdcfe;
+  --tower-syntax-string: #ce9178;
+  --tower-syntax-number: #b5cea8;
+  --tower-syntax-punct: #808080;
+  --tower-syntax-sensitive: #dcdcaa;
+  --tower-syntax-sensitive-bg: rgba(220, 220, 170, 0.14);
+  --tower-syntax-diff-add-bg: rgba(79, 184, 72, 0.22);
+  --tower-syntax-diff-add-fg: #9ed79a;
+  --tower-syntax-diff-del-bg: rgba(221, 92, 76, 0.22);
+  --tower-syntax-diff-del-fg: #eaa098;
+}
