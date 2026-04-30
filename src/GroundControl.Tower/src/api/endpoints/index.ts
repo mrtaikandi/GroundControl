@@ -3,6 +3,7 @@ export * from './clients';
 export * from './config-entries';
 export * from './groups';
 export * from './projects';
+export * from './roles';
 export * from './scopes';
 export * from './snapshots';
 export * from './templates';
