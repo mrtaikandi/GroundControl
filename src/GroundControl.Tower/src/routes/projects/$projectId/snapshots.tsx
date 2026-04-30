@@ -1,15 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
+import { PublishModal } from '@/components/tower/snapshots/PublishModal';
 import { SnapshotDiffView } from '@/components/tower/snapshots/SnapshotDiffView';
 import { SnapshotJsonDiffView } from '@/components/tower/snapshots/SnapshotJsonDiffView';
 import { SnapshotJsonView } from '@/components/tower/snapshots/SnapshotJsonView';
 import { useProjects } from '@/queries/useProjects';
-import { useSnapshotDetail, useSnapshots, type SnapshotSummary } from '@/queries/useSnapshots';
+import { useActivateSnapshot, useSnapshotDetail, useSnapshots, type SnapshotSummary } from '@/queries/useSnapshots';
 import { useTweaksStore } from '@/store/tweaks';
 
 export const Route = createFileRoute('/projects/$projectId/snapshots')({
@@ -23,6 +25,8 @@ function SnapshotsRoute() {
   const snapshotViewMode = useTweaksStore((state) => state.snapshotViewMode);
   const setSnapshotViewMode = useTweaksStore((state) => state.setSnapshotViewMode);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | undefined>();
+  const [publishing, setPublishing] = useState(false);
+  const [activatingSnapshot, setActivatingSnapshot] = useState<SnapshotSummary | undefined>();
   const items = snapshots.data?.data ?? [];
   const project = projects.data?.data.find((candidate) => candidate.id === projectId);
   const activeSnapshotId = project?.activeSnapshotId || undefined;
@@ -32,6 +36,7 @@ function SnapshotsRoute() {
   const selectedDetail = useSnapshotDetail(projectId, selectedSnapshot?.id);
   const activeDetail = useSnapshotDetail(projectId, activeSnapshotId);
   const previousDetail = useSnapshotDetail(projectId, previousSnapshot?.id);
+  const activateSnapshot = useActivateSnapshot(projectId);
 
   useEffect(() => {
     if (!selectedSnapshotId && items[0]) {
@@ -49,7 +54,10 @@ function SnapshotsRoute() {
           <h1 className="mt-2 text-[34px] font-bold leading-tight text-fg-heading">Snapshots</h1>
           <p className="mt-2 text-[14.5px] text-fg-caption">Inspect immutable resolved configuration captures</p>
         </div>
-        <SegmentedControl onChange={setSnapshotViewMode} options={[{ label: 'Diff', value: 'diff' }, { label: 'JSON', value: 'json' }, { label: 'JSON diff', value: 'json-diff' }]} value={snapshotViewMode} />
+        <div className="flex flex-wrap justify-end gap-3">
+          <SegmentedControl onChange={setSnapshotViewMode} options={[{ label: 'Diff', value: 'diff' }, { label: 'JSON', value: 'json' }, { label: 'JSON diff', value: 'json-diff' }]} value={snapshotViewMode} />
+          <Button onClick={() => setPublishing(true)} type="button">Publish snapshot</Button>
+        </div>
       </div>
 
       {snapshots.isLoading ? <Skeleton className="h-96" /> : null}
@@ -64,7 +72,7 @@ function SnapshotsRoute() {
               <div>Published by</div>
               <div />
             </div>
-            {items.map((snapshot) => <SnapshotRow active={snapshot.id === activeSnapshotId} key={snapshot.id} onSelect={() => setSelectedSnapshotId(snapshot.id)} selected={snapshot.id === selectedSnapshot?.id} snapshot={snapshot} />)}
+            {items.map((snapshot) => <SnapshotRow active={snapshot.id === activeSnapshotId} key={snapshot.id} onActivate={() => setActivatingSnapshot(snapshot)} onSelect={() => setSelectedSnapshotId(snapshot.id)} selected={snapshot.id === selectedSnapshot?.id} snapshot={snapshot} />)}
           </div>
           <div className="min-w-0 rounded-xl border border-stroke-subtle bg-bg-surface p-5">
             <div className="mb-4 flex items-start justify-between gap-3">
@@ -80,11 +88,34 @@ function SnapshotsRoute() {
           </div>
         </div>
       ) : null}
+
+      <PublishModal activeSnapshotId={activeSnapshotId} onOpenChange={setPublishing} open={publishing} projectId={projectId} />
+      <AlertDialog open={Boolean(activatingSnapshot)} onOpenChange={(open) => !open && setActivatingSnapshot(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Activate snapshot v{activatingSnapshot?.snapshotVersion}?</AlertDialogTitle>
+            <AlertDialogDescription>Clients will immediately start receiving the config from this snapshot.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={activateSnapshot.isPending} onClick={(event) => { event.preventDefault(); void confirmActivate(); }}>Activate</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
+
+  async function confirmActivate() {
+    if (!activatingSnapshot) {
+      return;
+    }
+
+    await activateSnapshot.mutateAsync({ id: activatingSnapshot.id, version: activatingSnapshot.snapshotVersion.toString() });
+    setActivatingSnapshot(undefined);
+  }
 }
 
-function SnapshotRow({ active, onSelect, selected, snapshot }: { active: boolean; onSelect: () => void; selected: boolean; snapshot: SnapshotSummary }) {
+function SnapshotRow({ active, onActivate, onSelect, selected, snapshot }: { active: boolean; onActivate: () => void; onSelect: () => void; selected: boolean; snapshot: SnapshotSummary }) {
   return (
     <div className={`group grid cursor-pointer grid-cols-[90px_96px_170px_1fr_auto] gap-3 px-4 py-3 text-[12.5px] transition-colors ${selected ? 'bg-bg-selected' : 'hover:bg-bg-container'}`} onClick={onSelect}>
       <div className="font-mono font-semibold text-fg-heading">v{snapshot.snapshotVersion}</div>
@@ -95,7 +126,7 @@ function SnapshotRow({ active, onSelect, selected, snapshot }: { active: boolean
         <div className="mt-1 truncate text-[11.5px] text-fg-caption">{snapshot.description || 'No comment'}</div>
       </div>
       <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(event) => event.stopPropagation()}>
-        <Button disabled size="sm" type="button" variant="ghost">Set as active</Button>
+        <Button disabled={active} onClick={onActivate} size="sm" type="button" variant="ghost">Set as active</Button>
         <Button onClick={onSelect} size="sm" type="button" variant="ghost">View</Button>
       </div>
     </div>

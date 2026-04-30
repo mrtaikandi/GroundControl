@@ -77,3 +77,38 @@ function coerceValue(value: null | string, valueType: string): unknown {
 
   return value;
 }
+
+export function snapshotToResolvedDocument(snapshot: SnapshotDetail | undefined, scopes: Record<string, string>, options: { maskSensitive?: boolean } = {}): Record<string, unknown> {
+  const document: Record<string, unknown> = {};
+
+  for (const entry of snapshot?.entries ?? []) {
+    const value = resolveScopedValue(entry.values, scopes);
+
+    setPath(document, entry.key.split('.').filter(Boolean), options.maskSensitive && entry.isSensitive ? '••••••••' : coerceValue(value?.value ?? null, entry.valueType));
+  }
+
+  return document;
+}
+
+function resolveScopedValue(values: SnapshotDetail['entries'][number]['values'], scopes: Record<string, string>) {
+  let unscopedDefault: SnapshotDetail['entries'][number]['values'][number] | undefined;
+  let bestMatch: SnapshotDetail['entries'][number]['values'][number] | undefined;
+  let bestSpecificity = 0;
+
+  for (const candidate of values) {
+    const candidateScopes = candidate.scopes ?? {};
+    const specificity = Object.keys(candidateScopes).length;
+
+    if (specificity === 0) {
+      unscopedDefault = candidate;
+      continue;
+    }
+
+    if (Object.entries(candidateScopes).every(([dimension, value]) => scopes[dimension] === value) && specificity > bestSpecificity) {
+      bestMatch = candidate;
+      bestSpecificity = specificity;
+    }
+  }
+
+  return bestMatch ?? unscopedDefault;
+}
