@@ -1,7 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using GroundControl.Api.Features.Activity.Contracts;
+using GroundControl.Api.Features.Audit.Contracts;
 using GroundControl.Api.Shared.Activity;
+using GroundControl.Persistence.Contracts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GroundControl.Api.Features.Activity;
@@ -40,9 +42,17 @@ internal sealed class StreamActivityHandler : IEndpointHandler
 
         try
         {
-            await foreach (var snapshot in _tracker.SubscribeAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var item in _tracker.SubscribeAsync(cancellationToken).ConfigureAwait(false))
             {
-                await WriteActivityEventAsync(httpContext.Response, snapshot, cancellationToken).ConfigureAwait(false);
+                if (item.Kind is LiveActivityEventKind.Activity && item.Activity is not null)
+                {
+                    await WriteActivityEventAsync(httpContext.Response, item.Activity, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (item.Kind is LiveActivityEventKind.AuditRecord && item.AuditRecord is not null)
+                {
+                    await WriteAuditRecordEventAsync(httpContext.Response, item.AuditRecord, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -55,6 +65,18 @@ internal sealed class StreamActivityHandler : IEndpointHandler
         var json = JsonSerializer.Serialize(ActivitySummaryResponse.From(snapshot), JsonOptions);
         var sb = new StringBuilder();
         sb.Append("event: activity\n");
+        sb.Append("data: ").Append(json).Append('\n');
+        sb.Append('\n');
+
+        await response.WriteAsync(sb.ToString(), cancellationToken).ConfigureAwait(false);
+        await response.Body.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task WriteAuditRecordEventAsync(HttpResponse response, AuditRecord record, CancellationToken cancellationToken)
+    {
+        var json = JsonSerializer.Serialize(AuditRecordResponse.From(record), JsonOptions);
+        var sb = new StringBuilder();
+        sb.Append("event: audit_record\n");
         sb.Append("data: ").Append(json).Append('\n');
         sb.Append('\n');
 

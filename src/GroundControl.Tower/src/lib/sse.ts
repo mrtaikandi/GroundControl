@@ -1,6 +1,6 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { useEffect, useRef, useState } from 'react';
-import { getAccessToken } from '@/api/client';
+import { getAccessToken, type ApiResponse } from '@/api/client';
 import { env } from './env';
 
 export interface LiveActivity {
@@ -15,6 +15,12 @@ interface ActivityPayload {
   rate?: number;
 }
 
+export type LiveAuditRecord = NonNullable<ApiResponse<'ListAuditRecordsHandler'>>['data'][number];
+
+interface UseLiveActivityOptions {
+  onAuditRecord?: (record: LiveAuditRecord) => void;
+}
+
 const initialActivity: LiveActivity = {
   clientCount: 0,
   eventsPerSecond: 0,
@@ -23,9 +29,14 @@ const initialActivity: LiveActivity = {
 };
 
 // Must be called exactly once at the root. Use liveActivityAtom to read from child components.
-export function useLiveActivity(): LiveActivity {
+export function useLiveActivity(options: UseLiveActivityOptions = {}): LiveActivity {
   const [activity, setActivity] = useState<LiveActivity>(initialActivity);
   const eventTimestamps = useRef<number[]>([]);
+  const onAuditRecord = useRef(options.onAuditRecord);
+
+  useEffect(() => {
+    onAuditRecord.current = options.onAuditRecord;
+  }, [options.onAuditRecord]);
 
   useEffect(() => {
     if (!supportsSse()) {
@@ -41,11 +52,22 @@ export function useLiveActivity(): LiveActivity {
         setActivity((current) => ({ ...current, isConnected: false }));
       },
       onmessage: (message) => {
+        if (message.event === 'audit_record') {
+          const record = parseJson<LiveAuditRecord>(message.data);
+
+          if (record) {
+            onAuditRecord.current?.(record);
+            setActivity((current) => ({ ...current, isConnected: true, lastEventAt: new Date() }));
+          }
+
+          return;
+        }
+
         if (message.event !== 'activity') {
           return;
         }
 
-        const payload = parseActivityPayload(message.data);
+        const payload = parseJson<ActivityPayload>(message.data) ?? {};
         const now = Date.now();
         eventTimestamps.current = [...eventTimestamps.current, now].slice(-10);
         const computedRate = computeEventsPerSecond(eventTimestamps.current);
@@ -125,11 +147,11 @@ function startPolling(setActivity: (value: LiveActivity | ((current: LiveActivit
   };
 }
 
-function parseActivityPayload(data: string): ActivityPayload {
+function parseJson<T>(data: string): T | null {
   try {
-    return JSON.parse(data) as ActivityPayload;
+    return JSON.parse(data) as T;
   } catch {
-    return {};
+    return null;
   }
 }
 

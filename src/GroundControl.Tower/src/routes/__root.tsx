@@ -1,13 +1,14 @@
-import { DriftBanner } from '@/components/tower/feedback/DriftBanner';
 import { AppShell } from '@/components/tower/shell/AppShell';
 import { TweaksPanel } from '@/components/tower/shell/TweaksPanel';
-import { liveActivityAtom } from '@/lib/atoms';
+import { liveActivityAtom, liveAuditRecordsAtom } from '@/lib/atoms';
+import { prependLiveAuditRecord } from '@/lib/live-audit';
+import { queryClient } from '@/lib/query-client';
 import { SensitiveProvider } from '@/lib/sensitive';
-import { useLiveActivity } from '@/lib/sse';
+import { useLiveActivity, type LiveAuditRecord } from '@/lib/sse';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { useSetAtom } from 'jotai';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Toaster } from 'sonner';
 
 export const Route = createRootRoute({
@@ -22,8 +23,30 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const liveActivity = useLiveActivity();
   const setLiveActivity = useSetAtom(liveActivityAtom);
+  const setLiveAuditRecords = useSetAtom(liveAuditRecordsAtom);
+  const statsRefetchTimer = useRef<number | null>(null);
+  const scheduleStatsRefetch = useCallback(() => {
+    if (statsRefetchTimer.current !== null) {
+      return;
+    }
+
+    statsRefetchTimer.current = window.setTimeout(() => {
+      statsRefetchTimer.current = null;
+      void queryClient.refetchQueries({ predicate: (query) => query.queryKey[0] === 'stats' });
+    }, 500);
+  }, []);
+  const handleAuditRecord = useCallback((record: LiveAuditRecord) => {
+    setLiveAuditRecords((current) => prependLiveAuditRecord(current, record));
+    scheduleStatsRefetch();
+  }, [scheduleStatsRefetch, setLiveAuditRecords]);
+  const liveActivity = useLiveActivity({ onAuditRecord: handleAuditRecord });
+
+  useEffect(() => () => {
+    if (statsRefetchTimer.current !== null) {
+      window.clearTimeout(statsRefetchTimer.current);
+    }
+  }, []);
 
   useEffect(() => {
     setLiveActivity(liveActivity);
@@ -32,7 +55,6 @@ function RootComponent() {
   return (
     <SensitiveProvider>
       <AppShell>
-        <DriftBanner />
         <Outlet />
       </AppShell>
       <TweaksPanel />

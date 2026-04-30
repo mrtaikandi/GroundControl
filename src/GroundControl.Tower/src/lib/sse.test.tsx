@@ -88,6 +88,47 @@ describe('useLiveActivity', () => {
     expect(result.current.isConnected).toBe(false);
     expect(result.current.clientCount).toBe(0);
   });
+
+  it('emits audit records from SSE events', async () => {
+    const onAuditRecord = vi.fn();
+    Object.defineProperty(globalThis, 'ReadableStream', { configurable: true, value: supportedReadableStream });
+    fetchEventSourceMock.mockImplementation(async (_url, options) => {
+      await options.onopen(new Response(null, { status: 200 }));
+      options.onmessage({
+        data: JSON.stringify({
+          action: 'Created',
+          changes: [],
+          entityId: 'entity-1',
+          entityType: 'Project',
+          id: 'audit-1',
+          performedAt: new Date().toISOString(),
+          performedBy: 'actor-1',
+        }),
+        event: 'audit_record',
+      });
+    });
+
+    renderHook(() => useLiveActivity({ onAuditRecord }));
+
+    await flushPromises();
+
+    expect(onAuditRecord).toHaveBeenCalledWith(expect.objectContaining({ id: 'audit-1' }));
+  });
+
+  it('ignores invalid audit record payloads', async () => {
+    const onAuditRecord = vi.fn();
+    Object.defineProperty(globalThis, 'ReadableStream', { configurable: true, value: supportedReadableStream });
+    fetchEventSourceMock.mockImplementation(async (_url, options) => {
+      await options.onopen(new Response(null, { status: 200 }));
+      options.onmessage({ data: '{', event: 'audit_record' });
+    });
+
+    renderHook(() => useLiveActivity({ onAuditRecord }));
+
+    await flushPromises();
+
+    expect(onAuditRecord).not.toHaveBeenCalled();
+  });
 });
 
 async function flushPromises() {

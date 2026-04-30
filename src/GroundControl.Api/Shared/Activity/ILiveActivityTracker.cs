@@ -1,3 +1,5 @@
+using GroundControl.Persistence.Contracts;
+
 namespace GroundControl.Api.Shared.Activity;
 
 internal interface ILiveActivityTracker : IAsyncDisposable
@@ -10,5 +12,7 @@ internal interface ILiveActivityTracker : IAsyncDisposable
 
     void RecordEvent();
 
-    IAsyncEnumerable<LiveActivitySnapshot> SubscribeAsync(CancellationToken cancellationToken = default);
+    void RecordAuditRecord(AuditRecord record);
+
+    IAsyncEnumerable<LiveActivityEvent> SubscribeAsync(CancellationToken cancellationToken = default);
 }

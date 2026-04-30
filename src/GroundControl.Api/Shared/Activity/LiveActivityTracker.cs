@@ -2,14 +2,16 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using GroundControl.Persistence.Contracts;
 
 namespace GroundControl.Api.Shared.Activity;
 
 internal sealed class LiveActivityTracker : ILiveActivityTracker
 {
     private const int RateWindowSize = 10;
+    private const int SubscriberBufferSize = 20;
 
-    private readonly ConcurrentDictionary<Guid, ChannelWriter<LiveActivitySnapshot>> _subscribers = new();
+    private readonly ConcurrentDictionary<Guid, ChannelWriter<LiveActivityEvent>> _subscribers = new();
     private readonly ConcurrentQueue<long> _eventTimestamps = new();
     private int _clientCount;
     private volatile bool _disposed;
@@ -41,14 +43,24 @@ internal sealed class LiveActivityTracker : ILiveActivityTracker
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         _eventTimestamps.Enqueue(Stopwatch.GetTimestamp());
-        Publish(GetSnapshot());
+        Publish(LiveActivityEvent.FromActivity(GetSnapshot()));
     }
 
-    public IAsyncEnumerable<LiveActivitySnapshot> SubscribeAsync(CancellationToken cancellationToken = default)
+    public void RecordAuditRecord(AuditRecord record)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(record);
+
+        _eventTimestamps.Enqueue(Stopwatch.GetTimestamp());
+        Publish(LiveActivityEvent.FromActivity(GetSnapshot()));
+        Publish(LiveActivityEvent.FromAuditRecord(record));
+    }
+
+    public IAsyncEnumerable<LiveActivityEvent> SubscribeAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var channel = Channel.CreateBounded<LiveActivitySnapshot>(new BoundedChannelOptions(1)
+        var channel = Channel.CreateBounded<LiveActivityEvent>(new BoundedChannelOptions(SubscriberBufferSize)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true,
@@ -56,7 +68,7 @@ internal sealed class LiveActivityTracker : ILiveActivityTracker
         });
         var id = Guid.CreateVersion7();
         _subscribers.TryAdd(id, channel.Writer);
-        channel.Writer.TryWrite(GetSnapshot());
+        channel.Writer.TryWrite(LiveActivityEvent.FromActivity(GetSnapshot()));
 
         return ReadSubscriptionAsync(channel, id, cancellationToken);
     }
@@ -74,16 +86,16 @@ internal sealed class LiveActivityTracker : ILiveActivityTracker
         return ValueTask.CompletedTask;
     }
 
-    private async IAsyncEnumerable<LiveActivitySnapshot> ReadSubscriptionAsync(
-        Channel<LiveActivitySnapshot> channel,
+    private async IAsyncEnumerable<LiveActivityEvent> ReadSubscriptionAsync(
+        Channel<LiveActivityEvent> channel,
         Guid id,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         try
         {
-            await foreach (var snapshot in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                yield return snapshot;
+                yield return item;
             }
         }
         finally
@@ -93,11 +105,11 @@ internal sealed class LiveActivityTracker : ILiveActivityTracker
         }
     }
 
-    private void Publish(LiveActivitySnapshot snapshot)
+    private void Publish(LiveActivityEvent item)
     {
         foreach (var writer in _subscribers.Values)
         {
-            writer.TryWrite(snapshot);
+            writer.TryWrite(item);
         }
     }
 

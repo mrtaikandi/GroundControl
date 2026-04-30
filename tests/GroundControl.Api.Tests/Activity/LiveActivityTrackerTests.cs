@@ -1,4 +1,5 @@
 using GroundControl.Api.Shared.Activity;
+using GroundControl.Persistence.Contracts;
 using Shouldly;
 using Xunit;
 
@@ -22,9 +23,10 @@ public sealed class LiveActivityTrackerTests
 
         // Assert
         hasInitial.ShouldBeTrue();
-        subscription.Current.Clients.ShouldBe(1);
         hasUpdate.ShouldBeTrue();
-        subscription.Current.Clients.ShouldBe(1);
+        subscription.Current.Kind.ShouldBe(LiveActivityEventKind.Activity);
+        subscription.Current.Activity.ShouldNotBeNull();
+        subscription.Current.Activity.Clients.ShouldBe(1);
     }
 
     [Fact]
@@ -39,5 +41,37 @@ public sealed class LiveActivityTrackerTests
 
         // Assert
         tracker.Current.Clients.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_WhenAuditRecordRecorded_PublishesAuditRecordEvent()
+    {
+        // Arrange
+        await using var tracker = new LiveActivityTracker();
+        await using var subscription = tracker.SubscribeAsync(TestCancellationToken).GetAsyncEnumerator(TestCancellationToken);
+        await subscription.MoveNextAsync();
+        var record = new AuditRecord
+        {
+            Id = Guid.CreateVersion7(),
+            Action = "Created",
+            EntityId = Guid.CreateVersion7(),
+            EntityType = "Project",
+            PerformedAt = DateTimeOffset.UtcNow,
+            PerformedBy = Guid.CreateVersion7(),
+        };
+
+        // Act
+        tracker.RecordAuditRecord(record);
+        var hasActivityUpdate = await subscription.MoveNextAsync();
+
+        // Assert
+        hasActivityUpdate.ShouldBeTrue();
+        subscription.Current.Kind.ShouldBe(LiveActivityEventKind.Activity);
+
+        var hasAuditUpdate = await subscription.MoveNextAsync();
+
+        hasAuditUpdate.ShouldBeTrue();
+        subscription.Current.Kind.ShouldBe(LiveActivityEventKind.AuditRecord);
+        subscription.Current.AuditRecord.ShouldBe(record);
     }
 }
