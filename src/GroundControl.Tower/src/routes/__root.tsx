@@ -1,3 +1,4 @@
+import { DriftBanner } from '@/components/tower/feedback/DriftBanner';
 import { AppShell } from '@/components/tower/shell/AppShell';
 import { TweaksPanel } from '@/components/tower/shell/TweaksPanel';
 import { SensitiveProvider } from '@/lib/sensitive';
@@ -20,6 +21,7 @@ function RootComponent() {
   return (
     <SensitiveProvider>
       <AppShell>
+        <DriftBanner />
         <Outlet />
       </AppShell>
       <TweaksPanel />
