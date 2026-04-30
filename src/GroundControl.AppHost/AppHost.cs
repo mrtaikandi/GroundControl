@@ -7,12 +7,19 @@ var mongo = builder.AddMongoDB("mongo")
 var mongodb = mongo.AddDatabase("Storage", databaseName: "GroundControl");
 
 // GroundControl API
-builder.AddProject<Projects.GroundControl_Api>("api")
+var api = builder.AddProject<Projects.GroundControl_Api>("api")
     .WaitFor(mongodb)
     .WithReference(mongodb)
     .WithEnvironment("Authentication__Mode", "None")
     .WithEnvironment("DataProtection__Mode", "FileSystem")
     .WithHttpHealthCheck("/healthz/ready", endpointName: "http");
+
+builder.AddNpmApp("tower", "../../src/GroundControl.Tower", "dev")
+    .WithReference(api)
+    .WithEnvironment("VITE_API_BASE_URL", api.GetEndpoint("http"))
+    .WithEnvironment("BROWSER", "none")
+    .WithHttpEndpoint(port: 5173, env: "PORT")
+    .WithExternalHttpEndpoints();
 
 builder.AddProject<Projects.GroundControl_Samples_LinkConsole>("link-console");
 
