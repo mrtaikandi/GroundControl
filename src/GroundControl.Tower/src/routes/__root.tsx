@@ -1,4 +1,6 @@
 import { AppShell } from '@/components/tower/shell/AppShell';
+import { TweaksPanel } from '@/components/tower/shell/TweaksPanel';
+import { SensitiveProvider } from '@/lib/sensitive';
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createRootRoute({
@@ -14,8 +16,11 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
+    <SensitiveProvider>
+      <AppShell>
+        <Outlet />
+      </AppShell>
+      <TweaksPanel />
+    </SensitiveProvider>
   );
 }

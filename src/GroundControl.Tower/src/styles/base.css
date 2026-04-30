@@ -13,6 +13,35 @@
   color-scheme: dark;
 }
 
+[data-density="compact"] {
+  --spacing-page-v: 28px;
+  --spacing-page-h: 40px;
+}
+
+[data-accent="success"] {
+  --tower-bg-selected: var(--tower-badge-success-bg);
+  --tower-bg-selected-strong: var(--tower-badge-success-bg);
+  --tower-fg-link: var(--tower-badge-success-fg);
+  --tower-fg-on-selected: var(--tower-badge-success-fg);
+  --tower-stroke-field-focus: var(--tower-badge-success-fg);
+}
+
+[data-accent="warning"] {
+  --tower-bg-selected: var(--tower-badge-warning-bg);
+  --tower-bg-selected-strong: var(--tower-badge-warning-bg);
+  --tower-fg-link: var(--tower-badge-warning-fg);
+  --tower-fg-on-selected: var(--tower-badge-warning-fg);
+  --tower-stroke-field-focus: var(--tower-badge-warning-fg);
+}
+
+[data-accent="critical"] {
+  --tower-bg-selected: var(--tower-badge-critical-bg);
+  --tower-bg-selected-strong: var(--tower-badge-critical-bg);
+  --tower-fg-link: var(--tower-badge-critical-fg);
+  --tower-fg-on-selected: var(--tower-badge-critical-fg);
+  --tower-stroke-field-focus: var(--tower-badge-critical-fg);
+}
+
 * {
   box-sizing: border-box;
 }
