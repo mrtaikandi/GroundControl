@@ -500,3 +500,4 @@ docs/superpowers/
 # Project specific files and folders
 planning/
 appsettings.local.json
+samples/GroundControl.Samples.LinkConsole/groundcontrol-cache.json
