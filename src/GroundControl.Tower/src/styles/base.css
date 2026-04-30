@@ -61,3 +61,30 @@ samp {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--tower-fg-icon-subtle);
 }
+
+@keyframes tower-status-pulse {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+.tower-status-dot[data-pulse="true"]::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: currentColor;
+  border-radius: inherit;
+  animation: tower-status-pulse 1.8s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tower-status-dot[data-pulse="true"]::after {
+    animation: none;
+  }
+}
