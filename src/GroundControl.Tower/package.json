@@ -14,7 +14,8 @@
     "prebuild": "npm run build:tokens && npm run generate:api",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest",
+    "test:run": "vitest run",
     "typecheck": "tsc -b"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@tanstack/react-query": "^5.100.6",
     "@tanstack/react-router": "^1.132.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -33,6 +35,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "shiki": "^4.0.2",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.0.0",
     "zustand": "^5.0.12"
@@ -40,6 +43,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
     "@tailwindcss/vite": "^4.0.0",
+    "@tanstack/react-query-devtools": "^5.100.6",
     "@tanstack/router-vite-plugin": "^1.132.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
