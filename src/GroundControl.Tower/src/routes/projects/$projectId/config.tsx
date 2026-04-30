@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { ConfigFlatView } from '@/components/tower/config/ConfigFlatView';
+import { ConfigTreeView } from '@/components/tower/config/ConfigTreeView';
 import { useTweaksStore } from '@/store/tweaks';
 
 export const Route = createFileRoute('/projects/$projectId/config')({
@@ -23,7 +24,7 @@ function ConfigRoute() {
         <SegmentedControl onChange={setConfigViewMode} options={[{ label: 'Flat', value: 'flat' }, { label: 'Tree', value: 'tree' }, { label: 'JSON', value: 'json' }]} value={configViewMode} />
       </div>
 
-      <ConfigFlatView projectId={projectId} />
+      {configViewMode === 'tree' ? <ConfigTreeView projectId={projectId} /> : <ConfigFlatView projectId={projectId} />}
     </div>
   );
 }
