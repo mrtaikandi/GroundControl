@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateEntry, useUpdateEntry, type ConfigEntry } from '@/queries/useConfigEntries';
+import { useCreateEntry, useUpdateEntry, type ConfigEntry, type ConfigEntryOwnerType } from '@/queries/useConfigEntries';
 import { useScopes } from '@/queries/useScopes';
 
 const valueTypes = ['string', 'number', 'boolean', 'json'] as const;
@@ -27,13 +27,16 @@ interface EntryModalProps {
   mode: 'create' | 'edit';
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  projectId: string;
+  ownerId?: string;
+  ownerType?: ConfigEntryOwnerType;
+  projectId?: string;
 }
 
-export function EntryModal({ entry, mode, onOpenChange, open, projectId }: EntryModalProps) {
+export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType = 1, projectId }: EntryModalProps) {
+  const resolvedOwnerId = ownerId ?? projectId ?? '';
   const scopes = useScopes();
-  const createEntry = useCreateEntry(projectId);
-  const updateEntry = useUpdateEntry(projectId);
+  const createEntry = useCreateEntry(resolvedOwnerId, ownerType);
+  const updateEntry = useUpdateEntry(resolvedOwnerId, ownerType);
   const form = useForm<EntryFormValues>({
     defaultValues: toFormValues(entry),
     resolver: zodResolver(entrySchema),
@@ -48,7 +51,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, projectId }: Entry
     const body = toRequest(values);
 
     if (mode === 'create') {
-      await createEntry.mutateAsync({ ...body, key: values.key, ownerId: projectId, ownerType: 1 });
+      await createEntry.mutateAsync({ ...body, key: values.key, ownerId: resolvedOwnerId, ownerType });
     } else if (entry) {
       await updateEntry.mutateAsync({ body, id: entry.id, version: entry.version.toString() });
     }

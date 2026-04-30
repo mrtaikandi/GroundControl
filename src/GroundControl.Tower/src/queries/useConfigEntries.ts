@@ -7,35 +7,36 @@ import { useConflictMutation } from '@/lib/mutations';
 export type ConfigEntry = NonNullable<ApiResponse<'ListConfigEntriesHandler'>>['data'][number];
 export type CreateConfigEntryRequest = ApiRequestBody<'CreateConfigEntryHandler'>;
 export type UpdateConfigEntryRequest = ApiRequestBody<'UpdateConfigEntryHandler'>;
+export type ConfigEntryOwnerType = CreateConfigEntryRequest['ownerType'];
 
-export function configEntriesQueryKey(projectId: string) {
-  return ['projects', projectId, 'config-entries'] as const;
+export function configEntriesQueryKey(ownerId: string, ownerType: ConfigEntryOwnerType = 1) {
+  return ['config-entries', ownerType, ownerId] as const;
 }
 
-export function useConfigEntries(projectId: string) {
+export function useConfigEntries(ownerId: string, ownerType: ConfigEntryOwnerType = 1) {
   return useQuery({
-    queryFn: () => getConfigEntries({ Limit: 100, OwnerId: projectId, OwnerType: 1, SortField: 'key', SortOrder: 'asc', decrypt: false }),
-    queryKey: configEntriesQueryKey(projectId),
+    queryFn: () => getConfigEntries({ Limit: 100, OwnerId: ownerId, OwnerType: ownerType, SortField: 'key', SortOrder: 'asc', decrypt: false }),
+    queryKey: configEntriesQueryKey(ownerId, ownerType),
   });
 }
 
-export function useCreateEntry(projectId: string) {
+export function useCreateEntry(ownerId: string, ownerType: ConfigEntryOwnerType = 1) {
   return useMutation({
     mutationFn: (body: CreateConfigEntryRequest) => createConfigEntry(body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(projectId) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(ownerId, ownerType) }),
   });
 }
 
-export function useUpdateEntry(projectId: string) {
+export function useUpdateEntry(ownerId: string, ownerType: ConfigEntryOwnerType = 1) {
   return useConflictMutation<{ body: UpdateConfigEntryRequest; id: string }, ConfigEntry>(
     (variables) => updateConfigEntry(variables.id, variables.body, variables.version),
-    { onSuccess: () => queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(projectId) }) },
+    { onSuccess: () => queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(ownerId, ownerType) }) },
   );
 }
 
-export function useDeleteEntry(projectId: string) {
+export function useDeleteEntry(ownerId: string, ownerType: ConfigEntryOwnerType = 1) {
   return useConflictMutation<{ id: string }, void>(
     (variables) => deleteConfigEntry(variables.id, variables.version),
-    { onSuccess: () => queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(projectId) }) },
+    { onSuccess: () => queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(ownerId, ownerType) }) },
   );
 }

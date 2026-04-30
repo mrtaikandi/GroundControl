@@ -1,16 +1,19 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { InlineCode } from '@/components/tower/data/InlineCode';
-import { useDeleteEntry, type ConfigEntry } from '@/queries/useConfigEntries';
+import { useDeleteEntry, type ConfigEntry, type ConfigEntryOwnerType } from '@/queries/useConfigEntries';
 
 interface DeleteEntryDialogProps {
   entry?: ConfigEntry;
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  projectId: string;
+  ownerId?: string;
+  ownerType?: ConfigEntryOwnerType;
+  projectId?: string;
 }
 
-export function DeleteEntryDialog({ entry, onOpenChange, open, projectId }: DeleteEntryDialogProps) {
-  const deleteEntry = useDeleteEntry(projectId);
+export function DeleteEntryDialog({ entry, onOpenChange, open, ownerId, ownerType = 1, projectId }: DeleteEntryDialogProps) {
+  const resolvedOwnerId = ownerId ?? projectId ?? '';
+  const deleteEntry = useDeleteEntry(resolvedOwnerId, ownerType);
 
   async function confirmDelete() {
     if (!entry) {
