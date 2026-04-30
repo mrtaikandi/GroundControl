@@ -1,9 +1,76 @@
+import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { createFileRoute } from '@tanstack/react-router';
+import { useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/tower/data/Badge';
+import { FilterChip } from '@/components/tower/data/FilterChip';
+import { InlineCode } from '@/components/tower/data/InlineCode';
+import { NewClientModal } from '@/components/tower/clients/NewClientModal';
+import { useClients, type Client } from '@/queries/useClients';
+
+const columnHelper = createColumnHelper<Client>();
 
 export const Route = createFileRoute('/projects/$projectId/clients')({
-  component: ComingSoon,
+  component: ClientsRoute,
 });
 
-function ComingSoon() {
-  return <div>Coming soon</div>;
+function ClientsRoute() {
+  const { projectId } = Route.useParams();
+  const clients = useClients(projectId);
+  const data = clients.data?.data ?? [];
+  const columns = useMemo(() => [
+    columnHelper.accessor('name', { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Name' }),
+    columnHelper.display({ cell: (info) => <ScopeChips scopes={info.row.original.scopes} />, header: 'Scope context', id: 'scopes' }),
+    columnHelper.accessor('isActive', { cell: (info) => <Badge variant={info.getValue() ? 'success' : 'critical'}>{info.getValue() ? 'active' : 'revoked'}</Badge>, header: 'Status' }),
+    columnHelper.accessor('lastUsedAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'never', header: 'Last used' }),
+    columnHelper.display({ cell: () => <div className="flex justify-end"><Button disabled size="sm" type="button" variant="ghost">Revoke</Button></div>, header: '', id: 'actions' }),
+  ], []);
+  const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
+
+  return (
+    <div className="grid gap-8">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-medium uppercase text-fg-caption">GET /api/projects/{'{projectId}'}/clients</div>
+          <h1 className="mt-2 text-[34px] font-bold leading-tight text-fg-heading">Clients</h1>
+          <p className="mt-2 text-[14.5px] text-fg-caption">API credentials that fetch resolved config for this project</p>
+        </div>
+        <NewClientModal projectId={projectId} />
+      </div>
+
+      {clients.isLoading ? <Skeleton className="h-96" /> : (
+        <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.map((row) => (
+                <TableRow className={row.original.isActive ? undefined : 'opacity-60'} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
+              ))}
+              {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No client credentials found.</TableCell></TableRow> : null}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScopeChips({ scopes }: { scopes: Record<string, string> }) {
+  const entries = Object.entries(scopes);
+
+  if (entries.length === 0) {
+    return <span className="text-fg-caption">default</span>;
+  }
+
+  return <div className="flex flex-wrap gap-2">{entries.map(([dimension, value]) => <FilterChip key={dimension} label={`${dimension}=${value}`} onToggle={() => undefined} />)}</div>;
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
