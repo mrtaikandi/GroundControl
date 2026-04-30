@@ -109,6 +109,34 @@ function renderBlock(selector: string, tokens: CssToken[], mode: TokenMode): str
   return `${selector} {\n${declarations}\n}`;
 }
 
+function renderShadcnBridge(): string {
+  return [
+    ':root {',
+    '  /* shadcn variable bridge */',
+    '  --background: var(--tower-bg-page);',
+    '  --foreground: var(--tower-fg-body);',
+    '  --card: var(--tower-bg-surface);',
+    '  --card-foreground: var(--tower-fg-body);',
+    '  --popover: var(--tower-bg-surface);',
+    '  --popover-foreground: var(--tower-fg-body);',
+    '  --primary: var(--tower-stroke-field-focus);',
+    '  --primary-foreground: var(--tower-fg-chip-selected);',
+    '  --secondary: var(--tower-bg-surface);',
+    '  --secondary-foreground: var(--tower-fg-heading);',
+    '  --muted: var(--tower-bg-container);',
+    '  --muted-foreground: var(--tower-fg-caption);',
+    '  --accent: var(--tower-bg-selected);',
+    '  --accent-foreground: var(--tower-fg-heading);',
+    '  --destructive: var(--tower-badge-critical-fg);',
+    '  --destructive-foreground: var(--tower-fg-chip-selected);',
+    '  --border: var(--tower-stroke-subtle);',
+    '  --input: var(--tower-stroke-field-initial);',
+    '  --ring: var(--tower-stroke-field-focus);',
+    '  --radius: var(--radius-lg);',
+    '}',
+  ].join('\n');
+}
+
 const tokenSource = JSON.parse(await readFile(tokenSourcePath, 'utf8')) as JsonObject;
 const semantic = tokenSource.semantic;
 
@@ -123,6 +151,8 @@ const css = [
   renderBlock(':root', tokens, 'light'),
   '',
   renderBlock('[data-tower-theme="dark"]', tokens, 'dark'),
+  '',
+  renderShadcnBridge(),
   '',
 ].join('\n');
 
