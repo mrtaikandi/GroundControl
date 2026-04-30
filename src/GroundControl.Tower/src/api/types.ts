@@ -64,6 +64,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/activity/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get live activity summary
+         * @description Returns the current live client count and activity event rate.
+         */
+        get: operations["GetActivitySummaryHandler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/activity/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream live activity
+         * @description Opens a Server-Sent Events stream that emits live Tower activity telemetry.
+         */
+        get: operations["StreamActivityHandler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit-records": {
         parameters: {
             query?: never;
@@ -776,6 +816,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ActivitySummaryResponse: {
+            /** Format: int32 */
+            clients: number | string;
+            /** Format: double */
+            rate: number | string;
+        };
         AuditRecordResponse: {
             /** Format: uuid */
             id: string;
@@ -1885,6 +1931,62 @@ export interface operations {
             };
         };
     };
+    GetActivitySummaryHandler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivitySummaryResponse"];
+                };
+            };
+        };
+    };
+    StreamActivityHandler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListAuditRecordsHandler: {
         parameters: {
             query?: {
@@ -1957,12 +2059,12 @@ export interface operations {
     ListClientsHandler: {
         parameters: {
             query?: {
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */
@@ -2171,12 +2273,12 @@ export interface operations {
                 OwnerId?: string;
                 OwnerType?: components["schemas"]["ConfigEntryOwnerType"];
                 KeyPrefix?: string;
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */
@@ -2396,12 +2498,12 @@ export interface operations {
     ListGroupsHandler: {
         parameters: {
             query?: {
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */
@@ -2873,12 +2975,12 @@ export interface operations {
             query?: {
                 GroupId?: string;
                 Search?: string;
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */
@@ -3388,12 +3490,12 @@ export interface operations {
     ListScopesHandler: {
         parameters: {
             query?: {
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */
@@ -3601,12 +3703,12 @@ export interface operations {
     ListSnapshotsHandler: {
         parameters: {
             query?: {
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */
@@ -3764,12 +3866,12 @@ export interface operations {
             query?: {
                 GroupId?: string;
                 GlobalOnly?: boolean;
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */
@@ -3977,12 +4079,12 @@ export interface operations {
     ListUsersHandler: {
         parameters: {
             query?: {
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */
@@ -4271,12 +4373,12 @@ export interface operations {
                 Scope?: components["schemas"]["VariableScope"];
                 GroupId?: string;
                 ProjectId?: string;
-                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
-                Limit?: number | string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
                 /** @description Gets the cursor pointing to the item before which results should end (backward pagination). */
                 Before?: string;
+                /** @description Gets the maximum number of items to return. Must be between 1 and 100. */
+                Limit?: number | string;
                 /** @description Gets the name of the field to sort results by. */
                 SortField?: string;
                 /** @description Gets the sort direction (e.g., `asc` or `desc`). */

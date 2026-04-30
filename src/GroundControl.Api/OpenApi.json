@@ -90,6 +90,63 @@
         }
       }
     },
+    "/activity/summary": {
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Get live activity summary",
+        "description": "Returns the current live client count and activity event rate.",
+        "operationId": "GetActivitySummaryHandler",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivitySummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activity/stream": {
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "summary": "Stream live activity",
+        "description": "Opens a Server-Sent Events stream that emits live Tower activity telemetry.",
+        "operationId": "StreamActivityHandler",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/audit-records": {
       "get": {
         "tags": [
@@ -304,21 +361,6 @@
             }
           },
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -332,6 +374,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -652,21 +709,6 @@
             }
           },
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -680,6 +722,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -965,21 +1022,6 @@
         "operationId": "ListGroupsHandler",
         "parameters": [
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -993,6 +1035,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -1635,21 +1692,6 @@
             }
           },
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -1663,6 +1705,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -2319,21 +2376,6 @@
         "operationId": "ListScopesHandler",
         "parameters": [
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -2347,6 +2389,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -2648,21 +2705,6 @@
             }
           },
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -2676,6 +2718,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -2905,21 +2962,6 @@
             }
           },
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -2933,6 +2975,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -3214,21 +3271,6 @@
         "operationId": "ListUsersHandler",
         "parameters": [
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -3242,6 +3284,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -3632,21 +3689,6 @@
             }
           },
           {
-            "name": "Limit",
-            "in": "query",
-            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
-            "schema": {
-              "maximum": 100,
-              "minimum": 1,
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
-            }
-          },
-          {
             "name": "After",
             "in": "query",
             "description": "Gets the cursor pointing to the item after which results should begin (forward pagination).",
@@ -3660,6 +3702,21 @@
             "description": "Gets the cursor pointing to the item before which results should end (backward pagination).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Limit",
+            "in": "query",
+            "description": "Gets the maximum number of items to return. Must be between 1 and 100.",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
             }
           },
           {
@@ -3898,6 +3955,31 @@
   },
   "components": {
     "schemas": {
+      "ActivitySummaryResponse": {
+        "required": [
+          "clients",
+          "rate"
+        ],
+        "type": "object",
+        "properties": {
+          "clients": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
       "AuditRecordResponse": {
         "required": [
           "id",
@@ -6295,6 +6377,9 @@
   "tags": [
     {
       "name": "ClientApi"
+    },
+    {
+      "name": "Activity"
     },
     {
       "name": "Audit"

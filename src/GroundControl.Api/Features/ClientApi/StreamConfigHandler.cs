@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using GroundControl.Api.Core.ChangeNotification;
 using GroundControl.Api.Features.ClientApi.Contracts;
+using GroundControl.Api.Shared.Activity;
 using GroundControl.Api.Shared.Observability;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Api.Shared.Security;
@@ -22,19 +23,22 @@ internal sealed class StreamConfigHandler : IEndpointHandler
     private readonly SensitiveSourceValueProtector _protector;
     private readonly IChangeNotifier _changeNotifier;
     private readonly IConfiguration _configuration;
+    private readonly ILiveActivityTracker _activityTracker;
 
     public StreamConfigHandler(
         SnapshotCache cache,
         IScopeResolver scopeResolver,
         SensitiveSourceValueProtector protector,
         IChangeNotifier changeNotifier,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILiveActivityTracker activityTracker)
     {
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _scopeResolver = scopeResolver ?? throw new ArgumentNullException(nameof(scopeResolver));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
         _changeNotifier = changeNotifier ?? throw new ArgumentNullException(nameof(changeNotifier));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _activityTracker = activityTracker ?? throw new ArgumentNullException(nameof(activityTracker));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -70,6 +74,7 @@ internal sealed class StreamConfigHandler : IEndpointHandler
 
         GroundControlMetrics.SseActiveConnections.Add(1);
         GroundControlMetrics.SseTotalConnections.Add(1);
+        _activityTracker.ClientConnected();
 
         try
         {
@@ -90,6 +95,7 @@ internal sealed class StreamConfigHandler : IEndpointHandler
                 if (snapshot is not null && !string.Equals(snapshot.Id.ToString(), lastEventId, StringComparison.Ordinal))
                 {
                     await WriteConfigEventAsync(httpContext.Response, snapshot, clientScopes, cancellationToken).ConfigureAwait(false);
+                    _activityTracker.RecordEvent();
                 }
 
                 var heartbeatInterval = _configuration.GetValue("ClientApi:HeartbeatIntervalSeconds", 30);
@@ -121,6 +127,7 @@ internal sealed class StreamConfigHandler : IEndpointHandler
                             if (updatedSnapshot is not null)
                             {
                                 await WriteConfigEventAsync(httpContext.Response, updatedSnapshot, clientScopes, cancellationToken).ConfigureAwait(false);
+                                _activityTracker.RecordEvent();
                             }
                         }
                     }
@@ -145,6 +152,7 @@ internal sealed class StreamConfigHandler : IEndpointHandler
         finally
         {
             GroundControlMetrics.SseActiveConnections.Add(-1);
+            _activityTracker.ClientDisconnected();
         }
     }
 

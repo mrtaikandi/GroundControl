@@ -45,6 +45,10 @@ export function setAccessTokenProvider(provider: AccessTokenProvider | undefined
   accessTokenProvider = provider;
 }
 
+export function getAccessToken() {
+  return accessTokenProvider?.();
+}
+
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { body, expectType = 'json', headers: optionHeaders, query, version, ...requestOptions } = options;
   const method = requestOptions.method?.toUpperCase() ?? 'GET';
