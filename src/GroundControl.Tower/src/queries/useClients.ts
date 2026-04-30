@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { createClient, getClients } from '@/api/endpoints/clients';
+import { createClient, deleteClient, getClients } from '@/api/endpoints/clients';
 import type { ApiRequestBody, ApiResponse } from '@/api/client';
+import { useConflictMutation } from '@/lib/mutations';
 import { queryClient } from '@/lib/query-client';
 
 export type Client = NonNullable<ApiResponse<'ListClientsHandler'>>['data'][number];
@@ -27,4 +28,11 @@ export function useCreateClient(projectId: string, onCreated: (rawToken: string)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: clientsQueryKey(projectId) }),
   });
+}
+
+export function useRevokeClient(projectId: string) {
+  return useConflictMutation(
+    ({ id, version }: { id: string; version: string }) => deleteClient(projectId, id, version),
+    { onSuccess: () => queryClient.invalidateQueries({ queryKey: clientsQueryKey(projectId) }) },
+  );
 }

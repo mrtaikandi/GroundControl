@@ -1,6 +1,6 @@
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { createFileRoute } from '@tanstack/react-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/tower/data/Badge';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { NewClientModal } from '@/components/tower/clients/NewClientModal';
+import { RevokeClientDialog } from '@/components/tower/clients/RevokeClientDialog';
 import { useClients, type Client } from '@/queries/useClients';
 
 const columnHelper = createColumnHelper<Client>();
@@ -19,13 +20,14 @@ export const Route = createFileRoute('/projects/$projectId/clients')({
 function ClientsRoute() {
   const { projectId } = Route.useParams();
   const clients = useClients(projectId);
+  const [clientToRevoke, setClientToRevoke] = useState<Client | null>(null);
   const data = clients.data?.data ?? [];
   const columns = useMemo(() => [
     columnHelper.accessor('name', { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Name' }),
     columnHelper.display({ cell: (info) => <ScopeChips scopes={info.row.original.scopes} />, header: 'Scope context', id: 'scopes' }),
     columnHelper.accessor('isActive', { cell: (info) => <Badge variant={info.getValue() ? 'success' : 'critical'}>{info.getValue() ? 'active' : 'revoked'}</Badge>, header: 'Status' }),
     columnHelper.accessor('lastUsedAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'never', header: 'Last used' }),
-    columnHelper.display({ cell: () => <div className="flex justify-end"><Button disabled size="sm" type="button" variant="ghost">Revoke</Button></div>, header: '', id: 'actions' }),
+    columnHelper.display({ cell: (info) => <div className="flex justify-end"><Button disabled={!info.row.original.isActive} onClick={() => setClientToRevoke(info.row.original)} size="sm" type="button" variant="ghost">Revoke</Button></div>, header: '', id: 'actions' }),
   ], []);
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
@@ -57,6 +59,7 @@ function ClientsRoute() {
           </Table>
         </div>
       )}
+      <RevokeClientDialog client={clientToRevoke} onOpenChange={(open) => { if (!open) { setClientToRevoke(null); } }} open={clientToRevoke !== null} projectId={projectId} />
     </div>
   );
 }
