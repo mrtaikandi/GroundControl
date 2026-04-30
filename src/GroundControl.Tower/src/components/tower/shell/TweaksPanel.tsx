@@ -1,3 +1,4 @@
+import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { useTweaksStore, type Accent, type ConfigViewMode, type Density, type SnapshotViewMode, type Theme } from '@/store/tweaks';
 import { Settings2, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
@@ -134,19 +135,3 @@ function ControlRow({ children, label }: { children: ReactNode; label: string })
   );
 }
 
-function SegmentedControl<TValue extends string>({ onChange, options, value }: { onChange: (value: TValue) => void; options: Option<TValue>[]; value: TValue }) {
-  return (
-    <div className="inline-flex rounded-full bg-bg-container p-0.5">
-      {options.map((option) => (
-        <button
-          className={`h-7 rounded-full px-3 text-[12px] transition-colors ${option.value === value ? 'bg-bg-surface text-fg-heading' : 'text-fg-caption hover:text-fg-body'}`}
-          key={option.value}
-          onClick={() => onChange(option.value)}
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
