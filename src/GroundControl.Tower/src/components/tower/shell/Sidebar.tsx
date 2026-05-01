@@ -1,4 +1,3 @@
-import { StatusDot } from '@/components/tower/data/StatusDot';
 import { useProjects } from '@/queries/useProjects';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { Activity, CircleGauge, FileClock, FolderKanban, KeyRound, Layers3, ListTree, MonitorSmartphone, ScrollText, ShieldCheck, SlidersHorizontal, Users, Variable } from 'lucide-react';
@@ -66,14 +65,6 @@ export function Sidebar() {
           <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} />
         ))}
       </nav>
-
-      <div className="mt-5 rounded-lg border border-stroke-subtle bg-bg-surface px-3 py-3">
-        <div className="flex items-center gap-2 text-[12.5px] font-medium text-fg-heading">
-          <StatusDot pulse status="live" />
-          <span>All systems nominal</span>
-        </div>
-        <div className="mt-1 pl-4 text-[11.5px] text-fg-caption">3 replicas · rs0 healthy</div>
-      </div>
     </aside>
   );
 }
