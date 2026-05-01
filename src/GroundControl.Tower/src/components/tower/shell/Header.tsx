@@ -1,11 +1,18 @@
 import { StatusDot } from '@/components/tower/data/StatusDot';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { liveActivityAtom } from '@/lib/atoms';
+import { SYSTEM_USER_LABEL } from '@/lib/user';
+import { useTweaksStore, type Theme } from '@/store/tweaks';
 import { useAtomValue } from 'jotai';
-import { Bell, Search } from 'lucide-react';
+import { Bell, Moon, Search, Sun } from 'lucide-react';
 
 export function Header() {
   const liveActivity = useAtomValue(liveActivityAtom);
   const dotStatus = liveActivity.isConnected ? 'live' : liveActivity.lastEventAt ? 'warning' : 'offline';
+  const theme = useTweaksStore((state) => state.theme);
+  const setTheme = useTweaksStore((state) => state.setTheme);
+  const userName = SYSTEM_USER_LABEL;
+  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <header className="flex h-14 items-center justify-between gap-5 border-b border-stroke-subtle bg-bg-surface px-6">
@@ -29,7 +36,35 @@ export function Header() {
           <span className="sr-only">Notifications</span>
           <Bell aria-hidden="true" className="size-4" strokeWidth={1.8} />
         </button>
-        <div className="grid size-7 place-items-center rounded-full bg-bg-chip-selected text-[12px] font-semibold text-fg-chip-selected">U</div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label={`Account menu for ${userName}`}
+              className="grid size-7 place-items-center rounded-full bg-bg-chip-selected text-[12px] font-semibold text-fg-chip-selected outline-none focus-visible:ring-2 focus-visible:ring-stroke-field-focus"
+              type="button"
+            >
+              {userInitial}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-52">
+            <DropdownMenuLabel>
+              <div className="text-[12.5px] font-medium text-fg-heading">{userName}</div>
+              <div className="text-[11px] font-normal text-fg-caption">Signed in</div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Theme</DropdownMenuLabel>
+            <DropdownMenuRadioGroup onValueChange={(value) => setTheme(value as Theme)} value={theme}>
+              <DropdownMenuRadioItem value="light">
+                <Sun aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
+                Light
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="dark">
+                <Moon aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
+                Dark
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

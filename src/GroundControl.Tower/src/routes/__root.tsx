@@ -1,5 +1,4 @@
 import { AppShell } from '@/components/tower/shell/AppShell';
-import { TweaksPanel } from '@/components/tower/shell/TweaksPanel';
 import { liveActivityAtom, liveAuditRecordsAtom } from '@/lib/atoms';
 import { prependLiveAuditRecord } from '@/lib/live-audit';
 import { queryClient } from '@/lib/query-client';
@@ -57,7 +56,6 @@ function RootComponent() {
       <AppShell>
         <Outlet />
       </AppShell>
-      <TweaksPanel />
       <Toaster position="bottom-right" richColors={false} />
       <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />
     </SensitiveProvider>
