@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
@@ -32,6 +33,7 @@ function SnapshotsRoute() {
   const project = projects.data?.data.find((candidate) => candidate.id === projectId);
   const activeSnapshotId = project?.activeSnapshotId || undefined;
   const selectedSnapshot = items.find((snapshot) => snapshot.id === selectedSnapshotId) ?? items[0];
+  const selectedIsActive = Boolean(selectedSnapshot && activeSnapshotId && selectedSnapshot.id === activeSnapshotId);
   const selectedIndex = items.findIndex((snapshot) => snapshot.id === selectedSnapshot?.id);
   const previousSnapshot = selectedIndex >= 0 ? items[selectedIndex + 1] : undefined;
   const selectedDetail = useSnapshotDetail(projectId, selectedSnapshot?.id);
@@ -57,7 +59,14 @@ function SnapshotsRoute() {
         </div>
         <div className="flex flex-wrap justify-end gap-3">
           <SegmentedControl onChange={setSnapshotViewMode} options={[{ label: 'Diff', value: 'diff' }, { label: 'JSON', value: 'json' }, { label: 'JSON diff', value: 'json-diff' }]} value={snapshotViewMode} />
-          <Button onClick={() => setPublishing(true)} type="button">Publish snapshot</Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span><Button disabled={selectedIsActive} onClick={() => setPublishing(true)} type="button">Publish snapshot</Button></span>
+              </TooltipTrigger>
+              {selectedIsActive ? <TooltipContent>Selected snapshot is already active</TooltipContent> : null}
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
