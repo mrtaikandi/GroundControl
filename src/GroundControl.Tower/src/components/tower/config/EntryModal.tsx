@@ -71,7 +71,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
         <form className="grid max-h-[70vh] gap-4 overflow-auto pr-1" onSubmit={form.handleSubmit(submit)}>
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="entry-key">Key</label>
-            <Input disabled={mode === 'edit'} id="entry-key" placeholder="feature.checkout.enabled" {...form.register('key')} />
+            <Input disabled={mode === 'edit'} id="entry-key" placeholder="Feature:Checkout:Enabled" {...form.register('key')} />
             {form.formState.errors.key ? <p className="text-[11.5px] text-badge-critical-fg">{form.formState.errors.key.message}</p> : null}
           </div>
 

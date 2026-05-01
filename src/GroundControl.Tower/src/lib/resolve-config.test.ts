@@ -5,7 +5,7 @@ import type { ConfigEntry } from '@/queries/useConfigEntries';
 describe('resolveConfigEntries', () => {
   it('uses default values when no scoped value matches', () => {
     const resolved = resolveConfigEntries([
-      entry('feature.checkout.enabled', 'boolean', [
+      entry('Feature:Checkout:Enabled', 'boolean', [
         { scopes: {}, value: 'false' },
         { scopes: { Environment: 'prod' }, value: 'true' },
       ]),
