@@ -1,14 +1,9 @@
-import { StatusDot } from '@/components/tower/data/StatusDot';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { liveActivityAtom } from '@/lib/atoms';
 import { SYSTEM_USER_LABEL } from '@/lib/user';
 import { useTweaksStore, type Theme } from '@/store/tweaks';
-import { useAtomValue } from 'jotai';
 import { Bell, Moon, Search, Sun } from 'lucide-react';
 
 export function Header() {
-  const liveActivity = useAtomValue(liveActivityAtom);
-  const dotStatus = liveActivity.isConnected ? 'live' : liveActivity.lastEventAt ? 'warning' : 'offline';
   const theme = useTweaksStore((state) => state.theme);
   const setTheme = useTweaksStore((state) => state.setTheme);
   const userName = SYSTEM_USER_LABEL;
@@ -28,10 +23,6 @@ export function Header() {
       </label>
 
       <div className="flex items-center gap-3">
-        <div className="flex h-8 items-center gap-2 rounded-full border border-stroke-subtle bg-bg-container px-3 text-[12.5px] text-fg-caption">
-          <StatusDot pulse={liveActivity.isConnected} status={dotStatus} />
-          <span>{formatCount(liveActivity.clientCount)} clients · {formatRate(liveActivity.eventsPerSecond)} ev/s</span>
-        </div>
         <button className="grid size-8 place-items-center rounded-lg text-fg-icon-subtle transition-colors hover:bg-bg-container hover:text-fg-body" type="button">
           <span className="sr-only">Notifications</span>
           <Bell aria-hidden="true" className="size-4" strokeWidth={1.8} />
@@ -68,12 +59,4 @@ export function Header() {
       </div>
     </header>
   );
-}
-
-function formatCount(value: number) {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
-}
-
-function formatRate(value: number) {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: value < 10 ? 1 : 0 }).format(value);
 }
