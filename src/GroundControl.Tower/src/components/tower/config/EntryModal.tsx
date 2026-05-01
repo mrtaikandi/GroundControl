@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMemo } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -37,10 +38,11 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
   const scopes = useScopes();
   const createEntry = useCreateEntry(resolvedOwnerId, ownerType);
   const updateEntry = useUpdateEntry(resolvedOwnerId, ownerType);
+  const formValues = useMemo(() => toFormValues(entry), [entry]);
   const form = useForm<EntryFormValues>({
-    defaultValues: toFormValues(entry),
+    defaultValues: formValues,
     resolver: zodResolver(entrySchema),
-    values: toFormValues(entry),
+    values: formValues,
   });
   const scopedValues = useFieldArray({ control: form.control, name: 'scopedValues' });
   const isSensitive = form.watch('isSensitive');

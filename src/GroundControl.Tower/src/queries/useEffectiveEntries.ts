@@ -24,6 +24,23 @@ export interface EffectiveEntriesResult {
   ownCount: number;
 }
 
+interface TemplateBundle {
+  entries: ConfigEntry[];
+  templateId: string;
+}
+
+interface CombinedTemplateData {
+  bundles: TemplateBundle[];
+  isLoading: boolean;
+}
+
+const EMPTY_RESULT: Omit<EffectiveEntriesResult, 'attachedTemplates' | 'isLoading'> = {
+  entries: [],
+  inheritedCount: 0,
+  overrideCount: 0,
+  ownCount: 0,
+};
+
 export function useEffectiveEntries(projectId: string): EffectiveEntriesResult {
   const projectEntries = useConfigEntries(projectId, 1);
   const projects = useProjects();
@@ -37,45 +54,50 @@ export function useEffectiveEntries(projectId: string): EffectiveEntriesResult {
       .filter((template): template is Template => template !== undefined);
   }, [templates.data?.data, templateIds]);
 
-  const templateEntryQueries = useQueries({
+  const templateData: CombinedTemplateData = useQueries({
     queries: templateIds.map((templateId) => ({
       enabled: Boolean(templateId),
       queryFn: () => getConfigEntries({ Limit: 100, OwnerId: templateId, OwnerType: 0 as const, SortField: 'key', SortOrder: 'asc', decrypt: false }),
       queryKey: configEntriesQueryKey(templateId, 0),
     })),
+    combine: (results): CombinedTemplateData => ({
+      bundles: results
+        .map((result, index) => ({ entries: result.data?.data ?? [], templateId: templateIds[index] ?? '' }))
+        .filter((bundle): bundle is TemplateBundle => bundle.templateId !== ''),
+      isLoading: results.some((result) => result.isLoading),
+    }),
   });
 
-  const isLoading = projectEntries.isLoading || projects.isLoading || templates.isLoading || templateEntryQueries.some((query) => query.isLoading);
+  const isLoading = projectEntries.isLoading || projects.isLoading || templates.isLoading || templateData.isLoading;
 
   const result = useMemo(() => {
-    const projectItems = projectEntries.data?.data ?? [];
+    const projectItems = projectEntries.data?.data;
+    if (!projectItems) {
+      return EMPTY_RESULT;
+    }
+
     const projectKeys = new Set(projectItems.map((entry) => entry.key));
     const overriddenBy = new Map<string, { templateId: string; templateName: string }>();
     const inheritedItems: EffectiveEntry[] = [];
 
-    templateEntryQueries.forEach((query, index) => {
-      const templateId = templateIds[index];
-      if (!templateId || !query.data) {
-        return;
-      }
+    for (const bundle of templateData.bundles) {
+      const template = attachedTemplates.find((candidate) => candidate.id === bundle.templateId);
+      const templateName = template?.name ?? bundle.templateId;
 
-      const template = attachedTemplates.find((candidate) => candidate.id === templateId);
-      const templateName = template?.name ?? templateId;
-
-      for (const entry of query.data.data) {
+      for (const entry of bundle.entries) {
         if (projectKeys.has(entry.key)) {
           if (!overriddenBy.has(entry.key)) {
-            overriddenBy.set(entry.key, { templateId, templateName });
+            overriddenBy.set(entry.key, { templateId: bundle.templateId, templateName });
           }
           continue;
         }
 
         inheritedItems.push({
           entry,
-          source: { kind: 'template', templateId, templateName },
+          source: { kind: 'template', templateId: bundle.templateId, templateName },
         });
       }
-    });
+    }
 
     const projectEntriesWithSource: EffectiveEntry[] = projectItems.map((entry) => {
       const overrides = overriddenBy.get(entry.key);
@@ -91,11 +113,10 @@ export function useEffectiveEntries(projectId: string): EffectiveEntriesResult {
     const overrideCount = projectEntriesWithSource.filter((item) => item.source.kind === 'project-overrides').length;
 
     return { entries: merged, inheritedCount, overrideCount, ownCount };
-  }, [attachedTemplates, projectEntries.data?.data, templateEntryQueries, templateIds]);
+  }, [attachedTemplates, projectEntries.data?.data, templateData.bundles]);
 
-  return {
-    attachedTemplates,
-    isLoading,
-    ...result,
-  };
+  return useMemo(
+    () => ({ attachedTemplates, isLoading, ...result }),
+    [attachedTemplates, isLoading, result],
+  );
 }
