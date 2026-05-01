@@ -5,15 +5,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { useGroups } from '@/queries/useGroups';
 import { useProjects } from '@/queries/useProjects';
 import { useCreateVariable, useDeleteVariable, useUpdateVariable, useVariables, type Variable } from '@/queries/useVariables';
+
+type VariableTier = 'group' | 'project';
 
 const columnHelper = createColumnHelper<Variable>();
 
@@ -77,13 +81,19 @@ function VariablesRoute() {
 }
 
 function VariableModal({ mode, onOpenChange, open, variable }: { mode: 'create' | 'edit'; onOpenChange: (open: boolean) => void; open: boolean; variable?: Variable }) {
+  const projects = useProjects();
+  const groups = useGroups();
   const createVariable = useCreateVariable();
   const updateVariable = useUpdateVariable();
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
   const [description, setDescription] = useState('');
   const [isSensitive, setIsSensitive] = useState(false);
+  const [tier, setTier] = useState<VariableTier>('group');
+  const [groupId, setGroupId] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const pending = createVariable.isPending || updateVariable.isPending;
+  const isEdit = mode === 'edit';
 
   useEffect(() => {
     if (!open) {
@@ -94,15 +104,52 @@ function VariableModal({ mode, onOpenChange, open, variable }: { mode: 'create' 
     setValue(defaultValue(variable));
     setDescription(variable?.description ?? '');
     setIsSensitive(variable?.isSensitive ?? false);
+
+    if (variable) {
+      if (variable.projectId) {
+        setTier('project');
+        setProjectId(variable.projectId);
+        setGroupId(null);
+      } else {
+        setTier('group');
+        setGroupId(variable.groupId ?? null);
+        setProjectId(null);
+      }
+    } else {
+      setTier('group');
+      setGroupId(null);
+      setProjectId(null);
+    }
   }, [open, variable]);
+
+  const canSave = useMemo(() => {
+    if (!name.trim()) {
+      return false;
+    }
+
+    if (tier === 'project' && !projectId) {
+      return false;
+    }
+
+    return true;
+  }, [name, projectId, tier]);
 
   async function save() {
     const values = [{ scopes: {}, value }];
+    const trimmedDescription = description.trim() || null;
 
     if (mode === 'create') {
-      await createVariable.mutateAsync({ description: description.trim() || null, isSensitive, name: name.trim(), scope: 0, values });
+      const body = tier === 'project'
+        ? { description: trimmedDescription, groupId: null, isSensitive, name: name.trim(), projectId, scope: 1 as const, values }
+        : { description: trimmedDescription, groupId, isSensitive, name: name.trim(), projectId: null, scope: 0 as const, values };
+
+      await createVariable.mutateAsync(body);
     } else if (variable) {
-      await updateVariable.mutateAsync({ body: { description: description.trim() || null, isSensitive, values }, id: variable.id, version: variable.version.toString() });
+      await updateVariable.mutateAsync({
+        body: { description: trimmedDescription, isSensitive, values },
+        id: variable.id,
+        version: variable.version.toString(),
+      });
     }
 
     onOpenChange(false);
@@ -113,13 +160,65 @@ function VariableModal({ mode, onOpenChange, open, variable }: { mode: 'create' 
       <DialogContent className="w-[min(calc(100vw-32px),620px)]">
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'New variable' : 'Edit variable'}</DialogTitle>
-          <DialogDescription>Variables are resolved before snapshots are published.</DialogDescription>
+          <DialogDescription>Variables are resolved before snapshots are published. Project-tier variables override group-tier variables on key collision.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="variable-name">Name</label>
-            <Input disabled={mode === 'edit'} id="variable-name" onChange={(event) => setName(event.target.value)} placeholder="connectionString" value={name} />
+            <Input disabled={isEdit} id="variable-name" onChange={(event) => setName(event.target.value)} placeholder="connectionString" value={name} />
           </div>
+
+          <div className="grid gap-1.5">
+            <label className="text-[12px] font-medium text-fg-body">Tier</label>
+            {isEdit ? (
+              <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption">
+                {tier === 'project' ? 'Project tier — overrides group-tier variables for one project' : 'Group tier — global by default, or scoped to a group'}
+                <span className="ml-2 text-fg-icon-subtle">(locked after creation)</span>
+              </div>
+            ) : (
+              <SegmentedControl
+                onChange={(next) => setTier(next as VariableTier)}
+                options={[{ label: 'Group', value: 'group' }, { label: 'Project', value: 'project' }]}
+                value={tier}
+              />
+            )}
+          </div>
+
+          {tier === 'group' ? (
+            <div className="grid gap-1.5">
+              <label className="text-[12px] font-medium text-fg-body" htmlFor="variable-group">Group</label>
+              {isEdit ? (
+                <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption">
+                  {groupId ? groups.data?.data.find((g) => g.id === groupId)?.name ?? groupId : 'Global (no group)'}
+                </div>
+              ) : (
+                <Select onValueChange={(next) => setGroupId(next === '__global__' ? null : next)} value={groupId ?? '__global__'}>
+                  <SelectTrigger id="variable-group"><SelectValue placeholder="Pick a group" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__global__">Global (no group)</SelectItem>
+                    {(groups.data?.data ?? []).map((group) => <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-1.5">
+              <label className="text-[12px] font-medium text-fg-body" htmlFor="variable-project">Project</label>
+              {isEdit ? (
+                <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption">
+                  {projectId ? projects.data?.data.find((p) => p.id === projectId)?.name ?? projectId : '—'}
+                </div>
+              ) : (
+                <Select onValueChange={(next) => setProjectId(next)} value={projectId ?? ''}>
+                  <SelectTrigger id="variable-project"><SelectValue placeholder="Pick a project" /></SelectTrigger>
+                  <SelectContent>
+                    {(projects.data?.data ?? []).map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="variable-value">Value</label>
             <Input id="variable-value" onChange={(event) => setValue(event.target.value)} type={isSensitive ? 'password' : 'text'} value={value} />
@@ -134,7 +233,7 @@ function VariableModal({ mode, onOpenChange, open, variable }: { mode: 'create' 
           </div>
         </div>
         <DialogFooter>
-          <Button disabled={pending || !name.trim()} onClick={() => void save()} type="button">{pending ? 'Saving…' : 'Save variable'}</Button>
+          <Button disabled={pending || !canSave} onClick={() => void save()} type="button">{pending ? 'Saving…' : 'Save variable'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
