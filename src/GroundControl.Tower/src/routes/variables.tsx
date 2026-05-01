@@ -45,8 +45,7 @@ function VariablesRoute() {
     <div className="grid gap-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] font-medium uppercase text-fg-caption">GET /api/variables</div>
-          <h1 className="mt-2 text-[34px] font-bold leading-tight text-fg-heading">Variables</h1>
+          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Variables</h1>
           <p className="mt-2 text-[14.5px] text-fg-caption">Reusable values for interpolation during snapshot publishing</p>
         </div>
         <Button onClick={() => setCreating(true)} type="button">New variable</Button>

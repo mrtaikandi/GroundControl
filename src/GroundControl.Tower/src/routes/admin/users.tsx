@@ -47,8 +47,7 @@ function UsersRoute() {
   return (
     <div className="grid gap-8">
       <div>
-        <div className="text-[11px] font-medium uppercase text-fg-caption">GET /api/users</div>
-        <h1 className="mt-2 text-[34px] font-bold leading-tight text-fg-heading">Users</h1>
+        <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Users</h1>
         <p className="mt-2 text-[14.5px] text-fg-caption">Users receive roles through grants scoped to groups.</p>
       </div>
 

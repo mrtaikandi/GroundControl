@@ -40,8 +40,7 @@ function TokensRoute() {
     <div className="grid gap-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] font-medium uppercase text-fg-caption">GET /api/personal-access-tokens</div>
-          <h1 className="mt-2 text-[34px] font-bold leading-tight text-fg-heading">Access tokens</h1>
+          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Access tokens</h1>
           <p className="mt-2 text-[14.5px] text-fg-caption">Personal access tokens authenticate the admin API. The raw token is only returned once at creation.</p>
         </div>
         <NewTokenModal />
