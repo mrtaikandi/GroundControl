@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Maximize2 } from 'lucide-react';
+import { GitCompareArrows, Maximize2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,11 @@ import { useActivateSnapshot, useSnapshotDetail, useSnapshots, type SnapshotSumm
 import { useTweaksStore } from '@/store/tweaks';
 import { formatUserId } from '@/lib/user';
 
-const snapshotViewOptions = [{ label: 'JSON', value: 'json' }, { label: 'Diff', value: 'diff' }, { label: 'JSON diff', value: 'json-diff' }] as const;
+const snapshotViewOptions = [
+  { label: 'JSON', value: 'json' },
+  { icon: GitCompareArrows, label: 'Active', value: 'diff' },
+  { icon: GitCompareArrows, label: 'Previous', value: 'json-diff' },
+] as const;
 
 export const Route = createFileRoute('/projects/$projectId/snapshots')({
   component: SnapshotsRoute,
