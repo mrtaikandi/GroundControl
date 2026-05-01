@@ -312,7 +312,7 @@ function SnapshotRow({ active, onSelect, selected, snapshot }: { active: boolean
         </div>
         <span className="shrink-0 font-mono text-[11.5px] text-fg-caption">{formatRelative(snapshot.publishedAt)}</span>
       </div>
-      <div className="mt-1 truncate text-[13px] text-fg-body">{snapshot.description?.trim() || 'No comment'}</div>
+      {snapshot.description?.trim() ? <div className="mt-1 truncate text-[13px] text-fg-body">{snapshot.description.trim()}</div> : null}
       <div className="mt-0.5 truncate text-[11.5px] text-fg-caption">
         {formatUserId(snapshot.publishedBy)} · {snapshot.entryCount} {snapshot.entryCount === 1 ? 'entry' : 'entries'}
       </div>
