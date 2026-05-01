@@ -12,7 +12,7 @@ function DropdownMenuTrigger({ ...props }: React.ComponentProps<typeof DropdownM
 }
 
 function DropdownMenuContent({ align = 'start', className, sideOffset = 6, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
-  return <DropdownMenuPrimitive.Portal><DropdownMenuPrimitive.Content align={align} className={cn('z-50 min-w-40 overflow-hidden rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_18px_40px_-16px_rgba(0,0,40,.25)]', className)} data-slot="dropdown-menu-content" sideOffset={sideOffset} {...props} /></DropdownMenuPrimitive.Portal>;
+  return <DropdownMenuPrimitive.Portal><DropdownMenuPrimitive.Content align={align} className={cn('z-50 min-w-40 overflow-hidden rounded-xl border border-border bg-popover p-1 text-[13px] text-popover-foreground shadow-[0_18px_40px_-16px_rgba(0,0,40,.25)]', className)} data-slot="dropdown-menu-content" sideOffset={sideOffset} {...props} /></DropdownMenuPrimitive.Portal>;
 }
 
 function DropdownMenuItem({ className, inset, variant = 'default', ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & { inset?: boolean; variant?: 'default' | 'destructive' }) {
@@ -48,7 +48,7 @@ function DropdownMenuSubTrigger({ children, className, inset, ...props }: React.
 }
 
 function DropdownMenuSubContent({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
-  return <DropdownMenuPrimitive.SubContent className={cn('z-50 min-w-40 overflow-hidden rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_18px_40px_-16px_rgba(0,0,40,.25)]', className)} data-slot="dropdown-menu-sub-content" {...props} />;
+  return <DropdownMenuPrimitive.SubContent className={cn('z-50 min-w-40 overflow-hidden rounded-xl border border-border bg-popover p-1 text-[13px] text-popover-foreground shadow-[0_18px_40px_-16px_rgba(0,0,40,.25)]', className)} data-slot="dropdown-menu-sub-content" {...props} />;
 }
 
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;

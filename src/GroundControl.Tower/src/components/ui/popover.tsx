@@ -11,7 +11,7 @@ function PopoverTrigger({ ...props }: React.ComponentProps<typeof PopoverPrimiti
 }
 
 function PopoverContent({ align = 'center', className, sideOffset = 6, ...props }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
-  return <PopoverPrimitive.Portal><PopoverPrimitive.Content align={align} className={cn('z-50 w-72 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-[0_18px_40px_-16px_rgba(0,0,40,.25)] outline-none', className)} data-slot="popover-content" sideOffset={sideOffset} {...props} /></PopoverPrimitive.Portal>;
+  return <PopoverPrimitive.Portal><PopoverPrimitive.Content align={align} className={cn('z-50 w-72 rounded-xl border border-border bg-popover p-4 text-[13px] text-popover-foreground shadow-[0_18px_40px_-16px_rgba(0,0,40,.25)] outline-none', className)} data-slot="popover-content" sideOffset={sideOffset} {...props} /></PopoverPrimitive.Portal>;
 }
 
 function PopoverAnchor({ ...props }: React.ComponentProps<typeof PopoverPrimitive.Anchor>) {
