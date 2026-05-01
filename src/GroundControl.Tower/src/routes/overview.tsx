@@ -5,6 +5,7 @@ import { Badge } from '@/components/tower/data/Badge';
 import { StatusDot } from '@/components/tower/data/StatusDot';
 import { liveActivityAtom, liveAuditRecordsAtom } from '@/lib/atoms';
 import { maxLiveAuditRecords } from '@/lib/live-audit';
+import { isSystemUser, SYSTEM_USER_LABEL } from '@/lib/user';
 import { useAuditRecords, type AuditRecord } from '@/queries/useAuditRecords';
 import { useOverviewStats } from '@/queries/useOverviewStats';
 import { useTweaksStore } from '@/store/tweaks';
@@ -120,7 +121,7 @@ function ActivityItem({ animate, record }: { animate: boolean; record: AuditReco
           <span className="font-medium text-fg-heading">{record.entityType} {labelForAction(record.action)}</span>
           <Badge variant="neutral">{record.action}</Badge>
         </div>
-        <div className="mt-1 truncate text-[12.5px] text-fg-caption">Actor <span className="font-mono">{shortId(record.performedBy)}</span> · Entity <span className="font-mono">{shortId(record.entityId)}</span></div>
+        <div className="mt-1 truncate text-[12.5px] text-fg-caption">Actor <span className="font-mono">{isSystemUser(record.performedBy) ? SYSTEM_USER_LABEL : shortId(record.performedBy)}</span> · Entity <span className="font-mono">{shortId(record.entityId)}</span></div>
       </div>
       <time className="whitespace-nowrap pt-1 text-[12px] text-fg-caption" dateTime={record.performedAt}>{formatRelativeTime(record.performedAt)}</time>
     </div>

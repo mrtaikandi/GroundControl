@@ -10,6 +10,7 @@ import { Badge } from '@/components/tower/data/Badge';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { useAuditRecords, type AuditRecord } from '@/queries/useAuditRecords';
+import { formatUserId } from '@/lib/user';
 
 const columnHelper = createColumnHelper<AuditRecord>();
 
@@ -57,7 +58,7 @@ function AuditRoute() {
   }, [audit]);
   const columns = useMemo(() => [
     columnHelper.accessor('performedAt', { cell: (info) => <span className="font-mono text-[12px] text-fg-caption">{formatDate(info.getValue())}</span>, header: 'Timestamp' }),
-    columnHelper.accessor('performedBy', { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Actor' }),
+    columnHelper.accessor('performedBy', { cell: (info) => <InlineCode>{formatUserId(info.getValue())}</InlineCode>, header: 'Actor' }),
     columnHelper.accessor('action', { cell: (info) => <InlineCode>{info.row.original.entityType}.{info.getValue()}</InlineCode>, header: 'Action' }),
     columnHelper.accessor('entityType', { cell: (info) => <Badge variant="info">{labelForEntityType(info.getValue())}</Badge>, header: 'Entity' }),
     columnHelper.accessor('entityId', { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Entity ID' }),

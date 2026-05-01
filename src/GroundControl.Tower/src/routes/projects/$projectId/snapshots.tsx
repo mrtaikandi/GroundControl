@@ -13,6 +13,7 @@ import { SnapshotJsonView } from '@/components/tower/snapshots/SnapshotJsonView'
 import { useProjects } from '@/queries/useProjects';
 import { useActivateSnapshot, useSnapshotDetail, useSnapshots, type SnapshotSummary } from '@/queries/useSnapshots';
 import { useTweaksStore } from '@/store/tweaks';
+import { formatUserId } from '@/lib/user';
 
 export const Route = createFileRoute('/projects/$projectId/snapshots')({
   component: SnapshotsRoute,
@@ -122,7 +123,7 @@ function SnapshotRow({ active, onActivate, onSelect, selected, snapshot }: { act
       <div>{active ? <Badge variant="success">active</Badge> : <Badge variant="neutral">stored</Badge>}</div>
       <div className="font-mono text-fg-caption">{formatDate(snapshot.publishedAt)}</div>
       <div className="min-w-0">
-        <InlineCode>{snapshot.publishedBy}</InlineCode>
+        <InlineCode>{formatUserId(snapshot.publishedBy)}</InlineCode>
         <div className="mt-1 truncate text-[11.5px] text-fg-caption">{snapshot.description || 'No comment'}</div>
       </div>
       <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(event) => event.stopPropagation()}>
