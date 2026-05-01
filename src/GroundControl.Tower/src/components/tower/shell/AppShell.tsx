@@ -8,11 +8,11 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="grid min-h-screen grid-cols-[232px_1fr] bg-bg-page text-[13px] text-fg-body">
+    <div className="grid h-screen grid-cols-[232px_1fr] bg-bg-page text-[13px] text-fg-body">
       <Sidebar />
-      <div className="grid min-h-screen grid-rows-[56px_1fr] overflow-hidden">
+      <div className="grid h-screen min-h-0 grid-rows-[56px_1fr] overflow-hidden">
         <Header />
-        <main className="overflow-y-auto bg-bg-page">
+        <main className="min-h-0 overflow-y-auto bg-bg-page">
           <div className="mx-auto w-full max-w-[1280px] px-page-h py-page-v">
             {children}
           </div>
