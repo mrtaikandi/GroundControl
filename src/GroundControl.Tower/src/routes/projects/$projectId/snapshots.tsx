@@ -18,7 +18,7 @@ import { useActivateSnapshot, useSnapshotDetail, useSnapshots, type SnapshotSumm
 import { useTweaksStore } from '@/store/tweaks';
 import { formatUserId } from '@/lib/user';
 
-const snapshotViewOptions = [{ label: 'Diff', value: 'diff' }, { label: 'JSON', value: 'json' }, { label: 'JSON diff', value: 'json-diff' }] as const;
+const snapshotViewOptions = [{ label: 'JSON', value: 'json' }, { label: 'Diff', value: 'diff' }, { label: 'JSON diff', value: 'json-diff' }] as const;
 
 export const Route = createFileRoute('/projects/$projectId/snapshots')({
   component: SnapshotsRoute,
