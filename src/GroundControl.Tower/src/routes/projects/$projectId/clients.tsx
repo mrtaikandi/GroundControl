@@ -1,5 +1,5 @@
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,8 +8,10 @@ import { Badge } from '@/components/tower/data/Badge';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { NewClientModal } from '@/components/tower/clients/NewClientModal';
+import { ProjectPicker } from '@/components/tower/projects/ProjectPicker';
 import { RevokeClientDialog } from '@/components/tower/clients/RevokeClientDialog';
 import { useClients, type Client } from '@/queries/useClients';
+import { useProjects } from '@/queries/useProjects';
 
 const columnHelper = createColumnHelper<Client>();
 
@@ -19,9 +21,13 @@ export const Route = createFileRoute('/projects/$projectId/clients')({
 
 function ClientsRoute() {
   const { projectId } = Route.useParams();
+  const navigate = useNavigate();
+  const projects = useProjects();
   const clients = useClients(projectId);
   const [clientToRevoke, setClientToRevoke] = useState<Client | null>(null);
   const data = clients.data?.data ?? [];
+  const activeCount = data.filter((client) => client.isActive).length;
+  const summary = clients.isLoading ? null : `${data.length} ${data.length === 1 ? 'credential' : 'credentials'} · ${activeCount} active`;
   const columns = useMemo(() => [
     columnHelper.accessor('name', { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Name' }),
     columnHelper.display({ cell: (info) => <ScopeChips scopes={info.row.original.scopes} />, header: 'Scope context', id: 'scopes' }),
@@ -32,11 +38,19 @@ function ClientsRoute() {
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Clients</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">API credentials that fetch resolved config for this project</p>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Clients</h1>
+            <span aria-hidden="true" className="text-[20px] text-fg-caption">·</span>
+            <ProjectPicker
+              onChange={(nextId) => navigate({ params: { projectId: nextId }, to: '/projects/$projectId/clients' })}
+              projects={projects.data?.data ?? []}
+              selectedId={projectId}
+            />
+          </div>
+          {summary ? <p className="mt-1.5 text-[12.5px] text-fg-caption">{summary}</p> : null}
         </div>
         <NewClientModal projectId={projectId} />
       </div>
