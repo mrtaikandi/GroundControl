@@ -21,5 +21,9 @@ export function SensitiveValue({ className, isSensitive, value }: SensitiveValue
     );
   }
 
+  if (!value) {
+    return null;
+  }
+
   return <InlineCode className={className}>{value}</InlineCode>;
 }
