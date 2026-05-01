@@ -6,6 +6,7 @@ import { ConfigFlatView } from '@/components/tower/config/ConfigFlatView';
 import { ConfigJsonView } from '@/components/tower/config/ConfigJsonView';
 import { ConfigTreeView } from '@/components/tower/config/ConfigTreeView';
 import { ProjectPicker } from '@/components/tower/projects/ProjectPicker';
+import { TemplateAttachmentsBar } from '@/components/tower/projects/TemplateAttachmentsBar';
 import { PublishModal } from '@/components/tower/snapshots/PublishModal';
 import { useEffectiveEntries } from '@/queries/useEffectiveEntries';
 import { useProjects } from '@/queries/useProjects';
@@ -50,6 +51,8 @@ function ConfigRoute() {
           <Button onClick={() => setPublishing(true)} type="button">Publish snapshot</Button>
         </div>
       </div>
+
+      <TemplateAttachmentsBar projectId={projectId} />
 
       {configViewMode === 'tree' ? <ConfigTreeView projectId={projectId} /> : configViewMode === 'json' ? <ConfigJsonView projectId={projectId} /> : <ConfigFlatView projectId={projectId} />}
 
