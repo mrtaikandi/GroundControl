@@ -49,8 +49,10 @@ export function JsonDiff({ after, before, className, mode = 'unified' }: JsonDif
   }
 
   return (
-    <div className={cn('overflow-auto rounded-xl bg-bg-surface p-4 font-mono text-[12.5px]', className)}>
-      {highlightedLines.map((line, index) => <DiffRow index={index} key={`${line.kind}-${index}-${line.content}`} line={line} />)}
+    <div className={cn('overflow-auto rounded-xl bg-bg-surface py-4 font-mono text-[12.5px]', className)}>
+      <div className="min-w-max">
+        {highlightedLines.map((line, index) => <DiffRow index={index} key={`${line.kind}-${index}-${line.content}`} line={line} />)}
+      </div>
     </div>
   );
 }
