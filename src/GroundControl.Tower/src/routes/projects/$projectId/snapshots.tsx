@@ -7,10 +7,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/tower/data/Badge';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
-import { PublishModal, summarizeChanges } from '@/components/tower/snapshots/PublishModal';
+import { summarizeChanges } from '@/components/tower/snapshots/PublishModal';
 import { SnapshotDiffView } from '@/components/tower/snapshots/SnapshotDiffView';
 import { SnapshotJsonDiffView } from '@/components/tower/snapshots/SnapshotJsonDiffView';
 import { SnapshotJsonView } from '@/components/tower/snapshots/SnapshotJsonView';
@@ -41,7 +40,6 @@ function SnapshotsRoute() {
   const snapshotViewMode = useTweaksStore((state) => state.snapshotViewMode);
   const setSnapshotViewMode = useTweaksStore((state) => state.setSnapshotViewMode);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | undefined>();
-  const [publishing, setPublishing] = useState(false);
   const [detailExpanded, setDetailExpanded] = useState(false);
   const [activatingSnapshot, setActivatingSnapshot] = useState<SnapshotSummary | undefined>();
   const items = snapshots.data?.data ?? [];
@@ -138,14 +136,6 @@ function SnapshotsRoute() {
             <p className="mt-1.5 text-[12.5px] text-fg-caption">{headerSummary}</p>
           ) : null}
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span><Button disabled={selectedIsActive} onClick={() => setPublishing(true)} type="button">Publish snapshot</Button></span>
-            </TooltipTrigger>
-            {selectedIsActive ? <TooltipContent>Selected snapshot is already active</TooltipContent> : null}
-          </Tooltip>
-        </TooltipProvider>
       </div>
 
       {snapshots.isLoading ? <Skeleton className="h-96" /> : null}
@@ -241,7 +231,6 @@ function SnapshotsRoute() {
         </DialogContent>
       </Dialog>
 
-      <PublishModal activeSnapshotId={activeSnapshotId} onOpenChange={setPublishing} open={publishing} projectId={projectId} />
       <AlertDialog open={Boolean(activatingSnapshot)} onOpenChange={(open) => !open && setActivatingSnapshot(undefined)}>
         <AlertDialogContent>
           <AlertDialogHeader>
