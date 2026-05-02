@@ -121,7 +121,7 @@ Creates a new configuration entry attached to a template or project. Scoped valu
 | `--key`          | string                  | Yes      | The configuration key (e.g., `Database:ConnectionString`)          |
 | `--owner-id`     | Guid                    | Yes      | The owning template or project ID                                  |
 | `--owner-type`   | `Template` \| `Project` | Yes      | The owner type                                                     |
-| `--value-type`   | string                  | Yes      | The value type name (e.g., `String`, `Int32`, `Boolean`)           |
+| `--value-type`   | string                  | Yes      | The value type name. Allowed: `String`, `Int32`, `Int64`, `Double`, `Decimal`, `Boolean`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly` |
 | `--sensitive`    | flag                    | No       | Whether the entry contains sensitive data                          |
 | `--description`  | string                  | No       | The entry description                                              |
 | `--value`        | string[]                | No       | Scoped value (repeatable, e.g., `"default=myval"`)                 |
@@ -184,7 +184,7 @@ Updates an existing configuration entry. Use the `--version` option for optimist
 
 | Option          | Type     | Required | Description                                                |
 |-----------------|----------|----------|------------------------------------------------------------|
-| `--value-type`  | string   | No       | The new value type                                         |
+| `--value-type`  | string   | No       | The new value type (see [`config-entry create`](#config-entry-create) for the allowed list) |
 | `--sensitive`   | flag     | No       | Whether the entry contains sensitive data                  |
 | `--description` | string   | No       | The new description                                        |
 | `--value`       | string[] | No       | Scoped value (repeatable)                                  |
