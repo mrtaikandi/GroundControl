@@ -41,7 +41,7 @@ function TokensRoute() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Access tokens</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Personal access tokens authenticate the admin API. The raw token is only returned once at creation.</p>
+          <p className="mt-2 text-[14.5px] text-fg-caption">Create personal tokens to use GroundControl from scripts and tools.</p>
         </div>
         <NewTokenModal />
       </div>

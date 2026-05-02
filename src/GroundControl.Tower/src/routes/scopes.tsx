@@ -26,7 +26,7 @@ function ScopesRoute() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Scopes</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Manage the closed dimensions clients can resolve against</p>
+          <p className="mt-2 text-[14.5px] text-fg-caption">Decide which settings each app sees based on where it's running.</p>
         </div>
         <Button onClick={() => setCreating(true)} type="button">New scope</Button>
       </div>

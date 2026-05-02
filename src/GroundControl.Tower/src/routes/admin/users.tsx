@@ -45,7 +45,7 @@ function UsersRoute() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Users</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Users receive roles through grants scoped to groups.</p>
+          <p className="mt-2 text-[14.5px] text-fg-caption">Manage the people who can sign in and use GroundControl.</p>
         </div>
         <NewUserModal />
       </div>

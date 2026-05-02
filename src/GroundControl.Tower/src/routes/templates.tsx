@@ -40,7 +40,7 @@ function TemplatesRoute() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Templates</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Reusable bundles of entries that projects can inherit</p>
+          <p className="mt-2 text-[14.5px] text-fg-caption">Share common settings across multiple projects.</p>
         </div>
         <Button onClick={() => setCreating(true)} type="button">New template</Button>
       </div>

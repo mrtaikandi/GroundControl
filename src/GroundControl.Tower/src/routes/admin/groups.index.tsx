@@ -57,7 +57,7 @@ function GroupsRoute() {
       <div>
         <div className="text-[11px] font-medium uppercase text-fg-caption">Admin</div>
         <h1 className="mt-2 text-[34px] font-bold leading-tight text-fg-heading">Groups & roles</h1>
-        <p className="mt-2 text-[14.5px] text-fg-caption">Membership is assigned through PUT /api/groups/{'{id}'}/members/{'{userId}'}.</p>
+        <p className="mt-2 text-[14.5px] text-fg-caption">Group people together and control what they can access.</p>
       </div>
 
       {groups.isLoading ? <Skeleton className="h-96" /> : (
