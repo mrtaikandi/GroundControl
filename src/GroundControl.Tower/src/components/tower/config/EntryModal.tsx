@@ -155,7 +155,7 @@ function toRequest(values: EntryFormValues) {
     isSensitive: values.isSensitive,
     valueType: values.type,
     values: [
-      { scopes: {}, value: values.defaultValue },
+      ...(values.defaultValue ? [{ scopes: {}, value: values.defaultValue }] : []),
       ...values.scopedValues.filter((value) => value.dimension && value.scopeValue).map((value) => ({ scopes: { [value.dimension!]: value.scopeValue! }, value: value.value })),
     ],
   };

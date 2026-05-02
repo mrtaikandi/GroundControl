@@ -11,7 +11,7 @@ export function useResolvedConfig(projectId: string, scopes: Record<string, stri
       let after: string | undefined;
 
       do {
-        const page = await getConfigEntries({ After: after, Limit: 100, OwnerId: projectId, OwnerType: 1, SortField: 'key', SortOrder: 'asc', decrypt: true });
+        const page = await getConfigEntries({ After: after, Limit: 100, OwnerId: projectId, OwnerType: 1, SortField: 'key', SortOrder: 'asc', decrypt: false });
 
         entries.push(...page.data);
         after = page.nextCursor ?? undefined;
