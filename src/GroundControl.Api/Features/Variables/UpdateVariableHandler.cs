@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,13 @@ internal sealed class UpdateVariableHandler : IEndpointHandler
 {
     private readonly IVariableStore _store;
     private readonly AuditRecorder _audit;
+    private readonly SensitiveSourceValueProtector _protector;
 
-    public UpdateVariableHandler(IVariableStore store, AuditRecorder audit)
+    public UpdateVariableHandler(IVariableStore store, AuditRecorder audit, SensitiveSourceValueProtector protector)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _protector = protector ?? throw new ArgumentNullException(nameof(protector));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -54,15 +57,19 @@ internal sealed class UpdateVariableHandler : IEndpointHandler
             return problem;
         }
 
-        var oldValues = variable.Values.ToList();
         var oldIsSensitive = variable.IsSensitive;
         var oldDescription = variable.Description;
-        var isSensitive = variable.IsSensitive || request.IsSensitive;
+        var auditIsSensitive = oldIsSensitive || request.IsSensitive;
+
+        var oldPlaintextValues = _protector.UnprotectValues(variable.Values, oldIsSensitive);
+
+        var newPlaintextValues = request.Values.Select(v => new ScopedValue(v.Value, v.Scopes)).ToList();
+        var protectedValues = _protector.ProtectValues(newPlaintextValues, request.IsSensitive);
 
         variable.Values.Clear();
-        foreach (var v in request.Values)
+        foreach (var v in protectedValues)
         {
-            variable.Values.Add(new ScopedValue { Scopes = v.Scopes, Value = v.Value });
+            variable.Values.Add(v);
         }
 
         variable.IsSensitive = request.IsSensitive;
@@ -77,14 +84,15 @@ internal sealed class UpdateVariableHandler : IEndpointHandler
         }
 
         List<FieldChange> changes = [
-            .. AuditRecorder.CompareCollections("Values", oldValues, variable.Values.ToList(), isSensitive),
+            .. AuditRecorder.CompareCollections("Values", [.. oldPlaintextValues], newPlaintextValues, auditIsSensitive),
             .. AuditRecorder.CompareFields("IsSensitive", oldIsSensitive.ToString(), variable.IsSensitive.ToString()),
             .. AuditRecorder.CompareFields("Description", oldDescription, variable.Description),
         ];
 
         await _audit.RecordAsync("Variable", variable.Id, variable.GroupId, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
+        var responseValues = SensitiveSourceValueProtector.MaskValues(variable.Values, variable.IsSensitive);
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(variable.Version);
-        return TypedResults.Ok(VariableResponse.From(variable));
+        return TypedResults.Ok(VariableResponse.From(variable, [.. responseValues]));
     }
 }

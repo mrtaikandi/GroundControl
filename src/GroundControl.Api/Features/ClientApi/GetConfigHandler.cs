@@ -76,7 +76,7 @@ internal sealed class GetConfigHandler : IEndpointHandler
                 continue;
             }
 
-            var value = entry.IsSensitive ? _protector.Unprotect(resolved.Value) : resolved.Value;
+            var value = entry.IsSensitive && !string.IsNullOrEmpty(resolved.Value) ? _protector.Unprotect(resolved.Value) : resolved.Value;
             data[entry.Key] = new ConfigValue { Value = value, IsSensitive = entry.IsSensitive };
         }
 

@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -12,11 +13,13 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
 {
     private readonly IConfigEntryStore _store;
     private readonly AuditRecorder _audit;
+    private readonly SensitiveSourceValueProtector _protector;
 
-    public CreateConfigEntryHandler(IConfigEntryStore store, AuditRecorder audit)
+    public CreateConfigEntryHandler(IConfigEntryStore store, AuditRecorder audit, SensitiveSourceValueProtector protector)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _protector = protector ?? throw new ArgumentNullException(nameof(protector));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -38,6 +41,9 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
     private async Task<IResult> HandleAsync(CreateConfigEntryRequest request, CancellationToken cancellationToken = default)
     {
         var timestamp = DateTimeOffset.UtcNow;
+        var plaintextValues = request.Values.Select(v => new ScopedValue(v.Value, v.Scopes));
+        var protectedValues = _protector.ProtectValues(plaintextValues, request.IsSensitive);
+
         var entry = new ConfigEntry
         {
             Id = Guid.CreateVersion7(),
@@ -45,7 +51,7 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
             OwnerId = request.OwnerId,
             OwnerType = request.OwnerType,
             ValueType = request.ValueType,
-            Values = [.. request.Values.Select(v => new ScopedValue(v.Value, v.Scopes))],
+            Values = [.. protectedValues],
             IsSensitive = request.IsSensitive,
             Description = request.Description,
             Version = 1,
@@ -68,6 +74,7 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
 
         await _audit.RecordAsync("ConfigEntry", entry.Id, null, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        return TypedResults.Created($"/api/config-entries/{entry.Id}", ConfigEntryResponse.From(entry));
+        var responseValues = SensitiveSourceValueProtector.MaskValues(entry.Values, entry.IsSensitive);
+        return TypedResults.Created($"/api/config-entries/{entry.Id}", ConfigEntryResponse.From(entry, responseValues));
     }
 }

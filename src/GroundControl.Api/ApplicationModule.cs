@@ -19,6 +19,7 @@ internal sealed class ApplicationModule : IWebApiModule
 
         builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();
         builder.Services.AddScoped<AuditRecorder>();
+        builder.Services.AddSingleton<SensitiveSourceValueProtector>();
         builder.Services.AddScoped<SensitiveValueMasker>();
 
         builder.Services.AddApiVersioning(options =>
