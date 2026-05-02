@@ -1,0 +1,350 @@
+{
+  "projects": [
+    {
+      "name": "Data Catalog",
+      "description": "Central metadata catalogue of all data assets: tables, topics, schemas, and data sets with ownership, lineage, and classification tags",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Catalog metadata store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDataCatalog;User=svc_datacatalog;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDataCatalog;User=svc_datacatalog;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Elasticsearch","valueType":"String","sensitive":true,"description":"Elasticsearch for full-text asset search","values":[{"scopes":{},"value":"http://dev-es.meridian.internal:9200"},{"scopes":{"environment":"prod"},"value":"https://prod-es-cluster.meridian.internal:9200"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DataCatalog"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Schema Registry",
+      "description": "Manages Avro, Protobuf, and JSON Schema definitions for Kafka topics; enforces compatibility rules and provides schema evolution governance",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Schema version store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSchemaRegistry;User=svc_schemareg;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSchemaRegistry;User=svc_schemareg;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SchemaRegistry"}]},
+        {"key":"Schema:DefaultCompatibilityMode","valueType":"String","description":"Default schema compatibility mode for new subjects","values":[{"scopes":{},"value":"BACKWARD"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Stream Processor",
+      "description": "Runs continuous Kafka Streams and Apache Flink jobs for real-time data transformations, enrichments, and event-driven aggregations",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Kafka","valueType":"String","sensitive":true,"description":"Kafka cluster bootstrap servers","values":[{"scopes":{},"value":"kafka-dev-01.meridian.internal:9092"},{"scopes":{"environment":"prod"},"value":"kafka-prod-01.meridian.internal:9092,kafka-prod-02.meridian.internal:9092,kafka-prod-03.meridian.internal:9092"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"StreamProcessor"}]},
+        {"key":"Streaming:ConsumerGroupId","valueType":"String","description":"Kafka consumer group ID for this stream processor instance","values":[{"scopes":{},"value":"stream-processor-dev"},{"scopes":{"environment":"prod"},"value":"stream-processor-prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Change Data Capture Service",
+      "description": "Reads database change logs via Debezium/PostgreSQL logical replication and publishes change events to Kafka topics for downstream consumers",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Kafka","valueType":"String","sensitive":true,"description":"Kafka cluster for publishing CDC events","values":[{"scopes":{},"value":"kafka-dev-01.meridian.internal:9092"},{"scopes":{"environment":"prod"},"value":"kafka-prod-01.meridian.internal:9092,kafka-prod-02.meridian.internal:9092,kafka-prod-03.meridian.internal:9092"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ChangeDataCaptureService"}]},
+        {"key":"Cdc:SourceDatabaseSlotName","valueType":"String","description":"PostgreSQL replication slot name used by Debezium connector","values":[{"scopes":{},"value":"meridian_cdc_dev"},{"scopes":{"environment":"prod"},"value":"meridian_cdc_prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Lineage Service",
+      "description": "Tracks the origin, transformation, and movement of data across the platform; builds lineage graphs for compliance, debugging, and impact analysis",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Lineage graph node and edge store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDataLineage;User=svc_lineage;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDataLineage;User=svc_lineage;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DataLineageService"}]},
+        {"key":"Lineage:GraphBackend","valueType":"String","description":"Graph database backend used for lineage storage","values":[{"scopes":{},"value":"Neo4j"},{"scopes":{"environment":"prod"},"value":"Neo4j"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Quality Service",
+      "description": "Runs automated data quality checks (completeness, uniqueness, referential integrity, freshness) against registered data assets and reports violations",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Quality rule definition and check result store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDataQuality;User=svc_dataquality;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDataQuality;User=svc_dataquality;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DataQualityService"}]},
+        {"key":"Quality:CheckIntervalMinutes","valueType":"Int32","description":"How frequently quality checks run against monitored data assets","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"15"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "ETL Pipeline Service",
+      "description": "Python-based batch ETL orchestration service: reads from operational databases, transforms records, and loads into the data warehouse",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"PostgreSQL source database connection URL","values":[{"scopes":{},"value":"postgresql://svc_etl:CHANGEME@dev-db-01.meridian.internal:5432/MeridianEtl"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_etl:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianEtl"}]},
+        {"key":"WAREHOUSE_URL","valueType":"String","sensitive":true,"description":"Data warehouse connection URL (Snowflake/Redshift/BigQuery)","values":[{"scopes":{},"value":"snowflake://svc_etl:CHANGEME@meridian-dev.snowflakecomputing.com/MERIDIAN_DEV"},{"scopes":{"environment":"prod"},"value":"snowflake://svc_etl:CHANGEME@meridian.snowflakecomputing.com/MERIDIAN_PROD"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name for logging and Sentry breadcrumbs","values":[{"scopes":{},"value":"etl-pipeline-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Batch Ingestion Service",
+      "description": "Python service that ingests large file-based data sets (CSV, Parquet, ORC) from S3 and SFTP sources into the data lake with schema validation",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Ingestion manifest and job state database","values":[{"scopes":{},"value":"postgresql://svc_batchingest:CHANGEME@dev-db-01.meridian.internal:5432/MeridianBatchIngestion"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_batchingest:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianBatchIngestion"}]},
+        {"key":"S3_BUCKET","valueType":"String","description":"S3 bucket where source data files are staged for ingestion","values":[{"scopes":{},"value":"meridian-data-ingestion-dev"},{"scopes":{"environment":"prod"},"value":"meridian-data-ingestion-prod"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name for logging","values":[{"scopes":{},"value":"batch-ingestion-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Feature Store",
+      "description": "Manages ML feature definitions, computes feature values from raw data, and serves low-latency feature vectors for online model inference",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Feature definition and offline store database","values":[{"scopes":{},"value":"postgresql://svc_featurestore:CHANGEME@dev-db-01.meridian.internal:5432/MeridianFeatureStore"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_featurestore:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianFeatureStore"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for low-latency online feature vector serving","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/1"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/1"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"feature-store"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Warehouse Sync",
+      "description": "Python worker that synchronises incremental data changes from the operational database tier into the Snowflake data warehouse on a configurable schedule",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Source operational database connection","values":[{"scopes":{},"value":"postgresql://svc_dwsync:CHANGEME@dev-db-01.meridian.internal:5432/MeridianDwSync"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_dwsync:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianDwSync"}]},
+        {"key":"WAREHOUSE_URL","valueType":"String","sensitive":true,"description":"Snowflake warehouse connection URL","values":[{"scopes":{},"value":"snowflake://svc_dwsync:CHANGEME@meridian-dev.snowflakecomputing.com/MERIDIAN_DEV"},{"scopes":{"environment":"prod"},"value":"snowflake://svc_dwsync:CHANGEME@meridian.snowflakecomputing.com/MERIDIAN_PROD"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"data-warehouse-sync"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Sales Analytics Service",
+      "description": "Processes order and revenue data to produce daily, weekly, and monthly sales KPIs, category performance breakdowns, and market share metrics",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Analytics database connection","values":[{"scopes":{},"value":"postgresql://svc_salesanalytics:CHANGEME@dev-db-01.meridian.internal:5432/MeridianSalesAnalytics"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_salesanalytics:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianSalesAnalytics"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for computed metric cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/2"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/2"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"sales-analytics-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Customer Behaviour Analytics",
+      "description": "Analyses clickstream, session replay, and purchase funnel data to produce cohort analysis, retention curves, and behavioural segments",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"ClickHouse for high-volume event analytics","values":[{"scopes":{},"value":"clickhouse://svc_custanalytics:CHANGEME@dev-clickhouse.meridian.internal:9000/customer_analytics"},{"scopes":{"environment":"prod"},"value":"clickhouse://svc_custanalytics:CHANGEME@prod-clickhouse-cluster.meridian.internal:9000/customer_analytics"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for segment cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/3"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/3"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"customer-behaviour-analytics"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Finance Reporting Service",
+      "description": "Generates P&L, balance sheet, and cash flow reports by aggregating transactional data from payments, refunds, and operational costs",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Finance data mart connection","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianFinanceReporting;User=svc_finrpt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianFinanceReporting;User=svc_finrpt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"FinanceReportingService"}]},
+        {"key":"Reporting:FiscalYearStartMonth","valueType":"Int32","description":"Start month of the fiscal year for period-based reporting","values":[{"scopes":{},"value":"1"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Operations Analytics Service",
+      "description": "Tracks operational KPIs including on-time delivery rates, fulfillment throughput, warehouse efficiency, and carrier performance metrics",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Operations metrics store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianOpsAnalytics;User=svc_opsanalytics;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianOpsAnalytics;User=svc_opsanalytics;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"OperationsAnalyticsService"}]},
+        {"key":"Analytics:DataRefreshCronExpression","valueType":"String","description":"Cron schedule for refreshing aggregated operational KPIs","values":[{"scopes":{},"value":"0 * * * *"},{"scopes":{"environment":"prod"},"value":"*/15 * * * *"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "BI Dashboard API",
+      "description": "REST and GraphQL API powering the internal BI dashboards: metric queries, chart data, saved queries, and scheduled report delivery",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Dashboard definition and saved query store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianBiDashboard;User=svc_bidash;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianBiDashboard;User=svc_bidash;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"BiDashboardApi"}]},
+        {"key":"Dashboard:QueryTimeoutSeconds","valueType":"Int32","description":"Maximum duration for a single BI query before timeout","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"120"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Executive Dashboard",
+      "description": "Real-time executive KPI dashboard React web application: revenue, conversion, customer growth, and operational health metrics for the leadership team",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"BI Dashboard API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Executive Dashboard"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Operations Dashboard",
+      "description": "Internal operations team React dashboard: warehouse throughput, delivery performance, backlog trends, and incident status board",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Operations Analytics API URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Operations Dashboard"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Product Recommendation Engine",
+      "description": "Python ML service that trains and serves collaborative-filtering and content-based recommendation models for product suggestions and upsell opportunities",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Model metadata and recommendation cache database","values":[{"scopes":{},"value":"postgresql://svc_recengine:CHANGEME@dev-db-01.meridian.internal:5432/MeridianRecommendations"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_recengine:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianRecommendations"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for pre-computed recommendation vector cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/4"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/4"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"product-recommendation-engine"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Demand Forecasting Service",
+      "description": "Python service that uses time-series models (Prophet, LSTM) to forecast product demand across SKUs and regions for inventory planning",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Historical sales and forecast model store","values":[{"scopes":{},"value":"postgresql://svc_demandforecast:CHANGEME@dev-db-01.meridian.internal:5432/MeridianDemandForecasting"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_demandforecast:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianDemandForecasting"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for forecast result cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/5"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/5"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"demand-forecasting-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Fraud ML Service",
+      "description": "Python ML microservice that serves real-time fraud probability scores for payment transactions using gradient-boosted tree and deep learning models",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Model registry and scoring log database","values":[{"scopes":{},"value":"postgresql://svc_fraudml:CHANGEME@dev-db-01.meridian.internal:5432/MeridianFraudMl"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_fraudml:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianFraudMl"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for feature vector cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/6"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/6"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"fraud-ml-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Personalisation Engine",
+      "description": "Orchestrates multi-model personalisation: selects the appropriate recommendation, ranking, and content models per customer context and channel",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for personalisation decision cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PersonalisationEngine"}]},
+        {"key":"Personalisation:FallbackToPopularity","valueType":"Boolean","description":"Fall back to popularity-based ranking when no personalised model is available for the user","values":[{"scopes":{},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "NLP Text Analysis Service",
+      "description": "Python NLP service providing sentiment analysis, entity extraction, and intent classification for customer reviews, feedback, and support messages",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"NLP model and inference log store","values":[{"scopes":{},"value":"postgresql://svc_nlp:CHANGEME@dev-db-01.meridian.internal:5432/MeridianNlp"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_nlp:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianNlp"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for inference result cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/7"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/7"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"nlp-text-analysis-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Search Service",
+      "description": "Provides full-text and faceted product search using Elasticsearch; manages index lifecycle, tokenisation configuration, and query understanding pipelines",
+      "groupRef": "grp-search",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Elasticsearch","valueType":"String","sensitive":true,"description":"Elasticsearch cluster connection","values":[{"scopes":{},"value":"http://dev-es.meridian.internal:9200"},{"scopes":{"environment":"prod"},"value":"https://prod-es-cluster.meridian.internal:9200"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for query result cache and autocomplete suggestions","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SearchService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Search Indexer",
+      "description": "Python worker that consumes product, order, and customer update events and maintains up-to-date Elasticsearch indexes for the Search Service",
+      "groupRef": "grp-search",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Indexing job state database","values":[{"scopes":{},"value":"postgresql://svc_searchidx:CHANGEME@dev-db-01.meridian.internal:5432/MeridianSearchIndexer"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_searchidx:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianSearchIndexer"}]},
+        {"key":"ELASTICSEARCH_URL","valueType":"String","sensitive":true,"description":"Elasticsearch endpoint for write operations","values":[{"scopes":{},"value":"http://dev-es.meridian.internal:9200"},{"scopes":{"environment":"prod"},"value":"https://prod-es-cluster.meridian.internal:9200"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"search-indexer"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Query Understanding Service",
+      "description": "Applies NLP query parsing, spell correction, synonym expansion, and intent classification to raw search queries before passing them to the Search Service",
+      "groupRef": "grp-search",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Synonym dictionary and query rewrite rule store","values":[{"scopes":{},"value":"postgresql://svc_queryunderstand:CHANGEME@dev-db-01.meridian.internal:5432/MeridianQueryUnderstanding"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_queryunderstand:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianQueryUnderstanding"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for query normalisation cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/8"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/8"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"query-understanding-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Search Analytics Service",
+      "description": "Captures search query logs, click-through signals, and zero-result events; feeds data back to the ML team for ranking model improvement",
+      "groupRef": "grp-search",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:ClickHouse","valueType":"String","sensitive":true,"description":"ClickHouse for high-volume search event ingestion","values":[{"scopes":{},"value":"Host=dev-clickhouse.meridian.internal;Port=9000;Database=search_analytics;Username=svc_searchanalytics;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Host=prod-clickhouse-cluster.meridian.internal;Port=9000;Database=search_analytics;Username=svc_searchanalytics;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SearchAnalyticsService"}]},
+        {"key":"Analytics:ZeroResultThresholdPercent","valueType":"Int32","description":"Zero-result rate (%) above which an alert is raised for the search team","values":[{"scopes":{},"value":"5"},{"scopes":{"environment":"prod"},"value":"3"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Test Automation Framework",
+      "description": "Central .NET-based test automation framework providing shared drivers, page objects, and base test classes for all Selenium and Playwright UI test suites",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Test result and defect tracking store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianTestAutomation;User=svc_testautomation;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianTestAutomation;User=svc_testautomation;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"TestAutomationFramework"}]},
+        {"key":"TestRunner:BrowserTarget","valueType":"String","description":"Default browser target for UI test execution","values":[{"scopes":{},"value":"Chromium"},{"scopes":{"environment":"prod"},"value":"Chromium"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "API Contract Testing Service",
+      "description": ".NET service that runs consumer-driven contract tests using Pact and publishes pact verification results to PactFlow for the CI/CD pipeline",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Contract definition and verification result store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianContractTests;User=svc_contracttest;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianContractTests;User=svc_contracttest;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ApiContractTestingService"}]},
+        {"key":"PactFlow:BaseUrl","valueType":"String","description":"PactFlow broker URL for publishing and verifying consumer pacts","values":[{"scopes":{},"value":"https://meridian-dev.pactflow.io"},{"scopes":{"environment":"prod"},"value":"https://meridian.pactflow.io"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Performance Testing Service",
+      "description": "Orchestrates k6, Gatling, and Locust load tests against staging and production environments; aggregates results and compares against performance baselines",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Test configuration and result database","values":[{"scopes":{},"value":"postgresql://svc_perftest:CHANGEME@dev-db-01.meridian.internal:5432/MeridianPerfTesting"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_perftest:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianPerfTesting"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for in-progress test run state","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/9"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/9"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"performance-testing-service"}]}
+      ],
+      "publishSnapshot": true
+    }
+  ]
+}

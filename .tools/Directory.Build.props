@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Intentionally empty: isolates file-based apps in this directory from the parent repo's build configuration. -->
+<Project >  
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+        <NoWarn>$(NoWarn)</NoWarn>
+    </PropertyGroup>
+</Project>

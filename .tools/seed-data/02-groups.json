@@ -1,0 +1,27 @@
+{
+  "groups": [
+    { "$id": "grp-platform-eng",        "name": "Platform Engineering",      "description": "Core platform infrastructure: service mesh, telemetry, feature flags, and shared runtime tooling" },
+    { "$id": "grp-identity-access",     "name": "Identity & Access",         "description": "Authentication, authorisation, SSO, MFA, and user directory services" },
+    { "$id": "grp-data-platform",       "name": "Data Platform",             "description": "Data warehousing, ETL pipelines, stream processing, schema registry, and data governance" },
+    { "$id": "grp-commerce",            "name": "Commerce",                  "description": "Order management, product catalogue, pricing, fulfilment, and customer-facing shopping flows" },
+    { "$id": "grp-customer-exp",        "name": "Customer Experience",       "description": "Customer profiles, self-service portal, support ticketing, surveys, and loyalty programmes" },
+    { "$id": "grp-mobile",              "name": "Mobile",                    "description": "iOS, Android, and React Native applications plus their dedicated backend services" },
+    { "$id": "grp-analytics-bi",        "name": "Analytics & BI",            "description": "Event tracking, funnel analysis, A/B testing, dashboards, and revenue metrics" },
+    { "$id": "grp-devops",              "name": "DevOps",                    "description": "CI/CD pipelines, deployment orchestration, artifact management, and release governance" },
+    { "$id": "grp-security",            "name": "Security",                  "description": "Threat detection, vulnerability management, encryption, DLP, and compliance gating" },
+    { "$id": "grp-finance",             "name": "Finance Systems",           "description": "Invoicing, general ledger, accounts payable/receivable, tax reporting, and financial forecasting" },
+    { "$id": "grp-hr-tech",             "name": "HR Technology",             "description": "Employee lifecycle, payroll integration, performance management, and learning systems" },
+    { "$id": "grp-notifications",       "name": "Notifications",             "description": "Email, SMS, push, and in-app notification routing, templating, and delivery tracking" },
+    { "$id": "grp-content",             "name": "Content Management",        "description": "CMS, media library, CDN management, translation services, and brand assets" },
+    { "$id": "grp-partner-integrations","name": "Partner Integrations",      "description": "B2B API gateway, EDI, ERP/CRM connectors, webhook management, and marketplace adapters" },
+    { "$id": "grp-ml-ai",               "name": "Machine Learning & AI",     "description": "Recommendation engines, fraud detection, NLP pipelines, model serving, and MLOps tooling" },
+    { "$id": "grp-infrastructure",      "name": "Infrastructure",            "description": "Cloud resource provisioning, networking, backups, DR, monitoring, and cost optimisation" },
+    { "$id": "grp-qa",                  "name": "Quality Assurance",         "description": "Test orchestration, load testing, contract testing, and test data management" },
+    { "$id": "grp-api-gateway",         "name": "API Gateway",               "description": "External API entry points, rate limiting, versioning, developer portal, and request routing" },
+    { "$id": "grp-search",              "name": "Search",                    "description": "Full-text search indexing, faceted navigation, autocomplete, and personalised ranking" },
+    { "$id": "grp-payments",            "name": "Payments",                  "description": "Payment processing, card vault, PSP adapters, fraud checks, payouts, and settlements" },
+    { "$id": "grp-inventory",           "name": "Inventory",                 "description": "Stock management, warehouse operations, replenishment, supplier integration, and forecasting" },
+    { "$id": "grp-logistics",           "name": "Logistics",                 "description": "Carrier integration, shipment tracking, route optimisation, customs, and last-mile delivery" },
+    { "$id": "grp-compliance",          "name": "Compliance & Audit",        "description": "GDPR, PCI-DSS, SOX compliance, data retention, right-to-erasure, and regulatory reporting" }
+  ]
+}

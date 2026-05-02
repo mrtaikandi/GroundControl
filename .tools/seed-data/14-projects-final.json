@@ -1,0 +1,514 @@
+{
+  "projects": [
+    {
+      "name": "Wishlist Service",
+      "description": "Manages customer product wishlists: create, share, move to cart, and track price drops; supports guest wishlists that merge into accounts on sign-in",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Wishlist item and share store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianWishlists;User=svc_wishlist;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianWishlists;User=svc_wishlist;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"WishlistService"}]},
+        {"key":"Wishlist:MaxItemsPerList","valueType":"Int32","description":"Maximum number of items a customer can save in a single wishlist","values":[{"scopes":{},"value":"200"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Order Tracking Service",
+      "description": "Provides real-time order and shipment tracking to customers: aggregates carrier tracking events, enriches with estimated delivery windows, and pushes status updates",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Tracking event and ETA store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianOrderTracking;User=svc_ordertracking;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianOrderTracking;User=svc_ordertracking;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for live tracking event cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"OrderTrackingService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Return Merchandise Authorisation Service",
+      "description": "Handles the full RMA lifecycle: customer-initiated return requests, reason code capture, return label generation, inspection result recording, and refund/replacement authorisation",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"RMA case and authorisation store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRmaService;User=svc_rma;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRmaService;User=svc_rma;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ReturnMerchandiseAuthorisationService"}]},
+        {"key":"Rma:ReturnWindowDays","valueType":"Int32","description":"Number of days from dispatch within which a customer may initiate an RMA","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Subscription Management Service",
+      "description": "Manages subscription product plans: trial periods, recurring billing schedules, plan upgrades/downgrades, pause and cancellation flows, and subscription dunning sequences",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Subscription plan and billing cycle store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSubscriptionMgmt;User=svc_subscriptions;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSubscriptionMgmt;User=svc_subscriptions;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SubscriptionManagementService"}]},
+        {"key":"Subscription:DunningMaxAttempts","valueType":"Int32","description":"Maximum number of payment retry attempts before a subscription is cancelled","values":[{"scopes":{},"value":"3"},{"scopes":{"environment":"prod"},"value":"4"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Loyalty Points Service",
+      "description": "Manages the Meridian Rewards loyalty programme: point accrual on purchases, point redemption at checkout, tier progression, and point expiry enforcement",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Points ledger and tier status store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianLoyaltyPoints;User=svc_loyalty;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianLoyaltyPoints;User=svc_loyalty;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"LoyaltyPointsService"}]},
+        {"key":"Loyalty:PointsExpiryMonths","valueType":"Int32","description":"Number of months after which unused loyalty points expire","values":[{"scopes":{},"value":"24"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Price Alert Service",
+      "description": "Allows customers to register price-drop alerts on products; monitors price changes and dispatches email and push alerts when a product's price falls to or below the target",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Price alert subscription and history store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPriceAlerts;User=svc_pricealerts;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPriceAlerts;User=svc_pricealerts;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PriceAlertService"}]},
+        {"key":"PriceAlert:EvaluationIntervalMinutes","valueType":"Int32","description":"How often the service re-evaluates registered price alerts against the current product catalogue","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"10"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Product Review Moderation Service",
+      "description": "Processes incoming product reviews: runs automated toxicity and spam scoring, queues borderline cases for human review, publishes approved reviews, and tracks moderation SLAs",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Review moderation queue and decision store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianReviewModeration;User=svc_reviewmod;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianReviewModeration;User=svc_reviewmod;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ProductReviewModerationService"}]},
+        {"key":"Moderation:AutoApproveScoreThreshold","valueType":"String","description":"Toxicity score threshold below which a review is automatically approved","values":[{"scopes":{},"value":"0.2"},{"scopes":{"environment":"prod"},"value":"0.1"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "B2B Account Management Service",
+      "description": "Manages B2B customer accounts: company profiles, buyer hierarchy, credit accounts, contract pricing, purchase limits, and net-30/60 payment terms",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"B2B account and contract store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianB2bAccounts;User=svc_b2baccounts;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianB2bAccounts;User=svc_b2baccounts;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"B2bAccountManagementService"}]},
+        {"key":"B2b:DefaultCreditLimitGbp","valueType":"String","description":"Default credit limit assigned to newly approved B2B accounts pending credit review","values":[{"scopes":{},"value":"1000.00"},{"scopes":{"environment":"prod"},"value":"5000.00"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Quote Management Service",
+      "description": "Enables B2B buyers and internal sales reps to create, negotiate, and approve formal price quotes before converting to orders; supports multi-line quote versioning",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Quote version and approval workflow store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianQuoteManagement;User=svc_quotes;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianQuoteManagement;User=svc_quotes;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"QuoteManagementService"}]},
+        {"key":"Quote:ExpiryDays","valueType":"Int32","description":"Default validity period in days for issued quotes before they expire","values":[{"scopes":{},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Order Management Portal",
+      "description": "React back-office portal for the commerce operations team: manual order creation, order editing, hold and release workflows, split-shipment management, and order search",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Order management API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Order Management"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Customer Care Portal",
+      "description": "React application for customer support agents: customer 360 view, order and refund actions, subscription controls, loyalty point adjustments, and support ticket management",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Customer care API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Customer Care"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Survey Service",
+      "description": "Manages customer and employee survey campaigns: multi-channel distribution (email, in-app, SMS), real-time response collection, NPS/CSAT scoring, and results export",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Survey definition and response store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSurveys;User=svc_surveys;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSurveys;User=svc_surveys;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SurveyService"}]},
+        {"key":"Survey:ResponseRetentionMonths","valueType":"Int32","description":"Number of months individual survey responses are retained before anonymisation","values":[{"scopes":{},"value":"24"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Performance Management Service",
+      "description": "Manages the annual and mid-year performance review cycle: goal setting, check-ins, 360-degree feedback collection, calibration workflow, and final rating distribution",
+      "groupRef": "grp-hr-tech",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Performance cycle and rating store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPerformanceMgmt;User=svc_perfmgmt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPerformanceMgmt;User=svc_perfmgmt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PerformanceManagementService"}]},
+        {"key":"Performance:ReviewCycleFrequency","valueType":"String","description":"Review cycle cadence: Annual, SemiAnnual, or Quarterly","values":[{"scopes":{},"value":"SemiAnnual"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Absence Management Service",
+      "description": "Manages employee absence requests: holiday bookings, sickness recording, parental leave, compassionate leave, and entitlement balance tracking per employee and team",
+      "groupRef": "grp-hr-tech",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Absence request and entitlement balance store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAbsenceManagement;User=svc_absence;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAbsenceManagement;User=svc_absence;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AbsenceManagementService"}]},
+        {"key":"Absence:AnnualLeaveEntitlementDays","valueType":"Int32","description":"Default annual leave entitlement in days for full-time employees","values":[{"scopes":{},"value":"25"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Recruitment Pipeline Service",
+      "description": "Manages end-to-end recruitment pipelines: job posting, applicant tracking, stage progression, recruiter assignments, offer management, and headcount requisition linking",
+      "groupRef": "grp-hr-tech",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Applicant tracking and pipeline store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRecruitment;User=svc_recruitment;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRecruitment;User=svc_recruitment;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RecruitmentPipelineService"}]},
+        {"key":"Recruitment:LinkedInJobsApiKey","valueType":"String","sensitive":true,"description":"LinkedIn Jobs Posting API key for publishing new vacancies to LinkedIn","values":[{"scopes":{},"value":"li_jobs_dev_CHANGEME"},{"scopes":{"environment":"prod"},"value":"li_jobs_prod_CHANGEME"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Interview Scheduling Service",
+      "description": "Automates interview scheduling: availability polling, calendar sync with Google Workspace and Microsoft 365, interview room booking, and candidate confirmation emails",
+      "groupRef": "grp-hr-tech",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Interview slot and booking store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianInterviewScheduling;User=svc_interview;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianInterviewScheduling;User=svc_interview;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"InterviewSchedulingService"}]},
+        {"key":"Interview:CalendarProviderApiUrl","valueType":"String","description":"Calendar API endpoint for availability and booking management","values":[{"scopes":{},"value":"https://www.googleapis.com/calendar/v3"},{"scopes":{"environment":"prod"},"value":"https://www.googleapis.com/calendar/v3"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "HR Self-Service Portal",
+      "description": "React portal for all employees: holiday booking, payslip download, benefit elections, expense claims, personal detail updates, and company policy document library",
+      "groupRef": "grp-hr-tech",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"HR self-service API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian People"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Release Management Service",
+      "description": "Tracks software releases across all services: version tagging, release note generation from conventional commits, environment promotion gating, and release calendar",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Release record and promotion gate store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianReleaseMgmt;User=svc_releasemanagement;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianReleaseMgmt;User=svc_releasemanagement;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ReleaseManagementService"}]},
+        {"key":"Release:RequireChangeApprovalInProd","valueType":"Boolean","description":"Whether production releases require Change Advisory Board approval","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Incident Management API",
+      "description": "Central incident management API: incident declaration, severity classification, on-call escalation, timeline capture, post-mortem generation, and PagerDuty integration",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Incident record and timeline store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianIncidentMgmt;User=svc_incidentmgmt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianIncidentMgmt;User=svc_incidentmgmt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"IncidentManagementApi"}]},
+        {"key":"Incident:PagerDutyApiKey","valueType":"String","sensitive":true,"description":"PagerDuty API key for triggering and resolving on-call alerts","values":[{"scopes":{},"value":"pd_api_key_dev_CHANGEME"},{"scopes":{"environment":"prod"},"value":"pd_api_key_prod_CHANGEME"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Runbook Automation Service",
+      "description": "Executes automated runbooks for common operational tasks: log rotation, cache purge, database vacuuming, and circuit-breaker resets triggered by monitoring alerts",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Runbook definition and execution history store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRunbookAutomation;User=svc_runbooks;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRunbookAutomation;User=svc_runbooks;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RunbookAutomationService"}]},
+        {"key":"Runbook:MaxConcurrentExecutions","valueType":"Int32","description":"Maximum number of runbooks permitted to execute simultaneously","values":[{"scopes":{},"value":"5"},{"scopes":{"environment":"prod"},"value":"10"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Certificate Management Service",
+      "description": "Manages TLS certificate lifecycle: auto-renewal via ACME (Let's Encrypt), certificate inventory, expiry alerting, and distribution to load balancers and ingress controllers",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Certificate inventory and renewal record store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCertificateMgmt;User=svc_certmgmt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCertificateMgmt;User=svc_certmgmt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CertificateManagementService"}]},
+        {"key":"Certificate:ExpiryAlertDays","valueType":"Int32","description":"Days before expiry at which certificate renewal alerts are triggered","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"45"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "DNS Management Service",
+      "description": "Manages internal and external DNS records via API: automated record provisioning for new services, split-horizon DNS policy enforcement, and change audit trail",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"DNS record and change audit store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDnsManagement;User=svc_dns;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDnsManagement;User=svc_dns;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DnsManagementService"}]},
+        {"key":"Dns:ProviderApiUrl","valueType":"String","description":"DNS provider management API endpoint","values":[{"scopes":{},"value":"https://api.cloudflare.com/client/v4"},{"scopes":{"environment":"prod"},"value":"https://api.cloudflare.com/client/v4"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Cloud Billing Aggregator Service",
+      "description": "Worker that collects cloud spend data from AWS Cost Explorer, Azure Cost Management, and GCP Billing; allocates costs to teams by tag, and stores daily snapshots",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Cost allocation and spend snapshot store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCloudBilling;User=svc_cloudbilling;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCloudBilling;User=svc_cloudbilling;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CloudBillingAggregatorService"}]},
+        {"key":"Billing:AggregationCronExpression","valueType":"String","description":"Cron expression for the daily cloud cost aggregation job","values":[{"scopes":{},"value":"0 4 * * *"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Smoke Test Runner Service",
+      "description": "Python service that executes lightweight smoke test suites against deployed environments after each release; reports pass/fail status to the deployment pipeline",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Smoke test run result and history store","values":[{"scopes":{},"value":"postgresql://svc_smoketest:CHANGEME@dev-db-01.meridian.internal:5432/MeridianSmokeTests"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_smoketest:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianSmokeTests"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for smoke test job queue","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/8"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/8"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"smoke-test-runner-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "QA Dashboard",
+      "description": "React portal for the QA team: test coverage trends, open defect board, test plan execution status, smoke test history, and release quality gate sign-off",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"QA API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian QA Dashboard"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Revenue Analytics Service",
+      "description": "Computes revenue metrics: daily/monthly/annual recurring revenue, cohort revenue retention, revenue by channel, and gross margin per product category",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Revenue metric and reporting snapshot store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRevenueAnalytics;User=svc_revenueanalytics;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRevenueAnalytics;User=svc_revenueanalytics;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RevenueAnalyticsService"}]},
+        {"key":"Revenue:FiscalYearStartMonth","valueType":"Int32","description":"Month number (1-12) on which Meridian's fiscal year begins","values":[{"scopes":{},"value":"4"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Net Promoter Score Service",
+      "description": "Python service that aggregates NPS survey responses, computes rolling NPS by segment and product line, identifies detractor themes via text analysis, and feeds BI dashboards",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"NPS score and response store","values":[{"scopes":{},"value":"postgresql://svc_nps:CHANGEME@dev-db-01.meridian.internal:5432/MeridianNps"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_nps:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianNps"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for NPS score cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/9"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/9"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"net-promoter-score-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Analytics Portal",
+      "description": "React self-service analytics portal for business stakeholders: pre-built dashboards, ad hoc report builder, scheduled report subscriptions, and CSV data export",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Analytics API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Analytics"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Lineage Service",
+      "description": "Tracks end-to-end data lineage across the platform: pipeline-level column-level lineage capture, impact analysis for schema changes, and visualisation API for the data portal",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Lineage graph and impact analysis store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDataLineage;User=svc_datalineage;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDataLineage;User=svc_datalineage;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DataLineageService"}]},
+        {"key":"Lineage:GraphEngine","valueType":"String","description":"Graph database engine used for lineage storage and traversal","values":[{"scopes":{},"value":"neo4j"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Schema Registry Service",
+      "description": "Manages Avro, Protobuf, and JSON schema versions for Kafka topics; enforces compatibility rules on schema evolution and serves schema resolution to producers and consumers",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Schema version and compatibility rule store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSchemaRegistry;User=svc_schemaregistry;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSchemaRegistry;User=svc_schemaregistry;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SchemaRegistryService"}]},
+        {"key":"Schema:DefaultCompatibilityMode","valueType":"String","description":"Default schema compatibility enforcement mode for new subjects","values":[{"scopes":{},"value":"BACKWARD_TRANSITIVE"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Recommendation Feedback Service",
+      "description": "Collects explicit and implicit feedback signals on product recommendations: click-throughs, add-to-carts, dismissals, and ratings; feeds the collaborative filtering model",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Feedback event and signal store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRecommendationFeedback;User=svc_recfeedback;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRecommendationFeedback;User=svc_recfeedback;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RecommendationFeedbackService"}]},
+        {"key":"Feedback:BatchFlushSize","valueType":"Int32","description":"Number of feedback events buffered before flushing to the training pipeline","values":[{"scopes":{},"value":"100"},{"scopes":{"environment":"prod"},"value":"1000"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Natural Language Search Service",
+      "description": "Python service that augments keyword search with semantic understanding: query intent classification, synonym expansion, and embedding-based reranking of search results",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Query log and semantic model version store","values":[{"scopes":{},"value":"postgresql://svc_nlsearch:CHANGEME@dev-db-01.meridian.internal:5432/MeridianNlSearch"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_nlsearch:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianNlSearch"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for query embedding cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/10"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/10"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"natural-language-search-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Settlement Reconciliation Service",
+      "description": "Reconciles payment gateway settlement files against internal transaction records; identifies discrepancies, raises exceptions, and produces daily net settlement reports",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Settlement file and reconciliation exception store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSettlementReconciliation;User=svc_settlement;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSettlementReconciliation;User=svc_settlement;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SettlementReconciliationService"}]},
+        {"key":"Settlement:ToleranceGbp","valueType":"String","description":"Maximum acceptable GBP discrepancy per settlement before an exception is raised","values":[{"scopes":{},"value":"0.01"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Payment Method Management Service",
+      "description": "Manages tokenised payment methods on behalf of customers: card vaulting, default method selection, expiry tracking, and secure update flows via the payment gateway",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Vaulted token and payment method metadata store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPaymentMethods;User=svc_paymentmethods;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPaymentMethods;User=svc_paymentmethods;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PaymentMethodManagementService"}]},
+        {"key":"PaymentMethod:ExpiryAlertDays","valueType":"Int32","description":"Days before card expiry at which the customer is notified to update their payment method","values":[{"scopes":{},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "SAML SSO Service",
+      "description": "Provides SAML 2.0 identity provider and service provider endpoints for enterprise SSO; supports IdP-initiated and SP-initiated login and JIT user provisioning",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"IdP connection and assertion store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSamlSso;User=svc_samlsso;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSamlSso;User=svc_samlsso;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SamlSsoService"}]},
+        {"key":"Saml:CertificateThumbprint","valueType":"String","sensitive":true,"description":"Thumbprint of the signing certificate used for SAML assertion signing","values":[{"scopes":{},"value":"dev_saml_thumbprint_CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod_saml_thumbprint_CHANGEME"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Directory Sync Service",
+      "description": "Worker that synchronises user and group data from corporate Active Directory / Azure AD into the Meridian identity platform; handles provisioning, deprovisioning, and attribute mapping",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Sync state and attribute mapping store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDirectorySync;User=svc_dirsync;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDirectorySync;User=svc_dirsync;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DirectorySyncService"}]},
+        {"key":"DirectorySync:TenantId","valueType":"String","sensitive":true,"description":"Azure AD tenant ID for directory synchronisation","values":[{"scopes":{},"value":"azure_tenant_dev_CHANGEME"},{"scopes":{"environment":"prod"},"value":"azure_tenant_prod_CHANGEME"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "In-App Notification Service",
+      "description": "Delivers real-time in-app notification toasts and notification centre updates to web and mobile clients via SSE and WebSocket; persists notification history per user",
+      "groupRef": "grp-notifications",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"In-app notification history and read-state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianInAppNotifications;User=svc_inappnotif;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianInAppNotifications;User=svc_inappnotif;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis pub/sub for real-time notification fan-out","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"InAppNotificationService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Supplier Onboarding Service",
+      "description": "Manages the supplier onboarding lifecycle: application intake, due diligence document collection, credit checks, commercial terms negotiation, and approval workflows",
+      "groupRef": "grp-partner-integrations",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Supplier application and due diligence store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSupplierOnboarding;User=svc_supplieronboarding;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSupplierOnboarding;User=svc_supplieronboarding;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SupplierOnboardingService"}]},
+        {"key":"Supplier:DueDiligenceDocumentBucket","valueType":"String","description":"S3 bucket for supplier due diligence document uploads","values":[{"scopes":{},"value":"meridian-supplier-docs-dev"},{"scopes":{"environment":"prod"},"value":"meridian-supplier-docs-prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Procurement Portal",
+      "description": "React portal for the procurement and partner teams: supplier catalogue browsing, purchase requisition submission, approval status tracking, and contract repository",
+      "groupRef": "grp-partner-integrations",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Procurement API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Procurement"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "License Management Service",
+      "description": "Tracks software licences and subscriptions: vendor, seat counts, renewal dates, cost, and usage compliance; generates renewal alerts and over-allocation warnings",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Licence inventory and renewal alert store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianLicenseMgmt;User=svc_licensemgmt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianLicenseMgmt;User=svc_licensemgmt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"LicenseManagementService"}]},
+        {"key":"License:RenewalAlertDays","valueType":"Int32","description":"Days before licence expiry when a renewal alert notification is raised","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"90"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Risk Assessment Service",
+      "description": "Manages the corporate risk register: risk identification, probability/impact scoring, mitigation action tracking, control effectiveness scoring, and risk appetite monitoring",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Risk register and mitigation action store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRiskAssessment;User=svc_riskassessment;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRiskAssessment;User=svc_riskassessment;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RiskAssessmentService"}]},
+        {"key":"Risk:ReviewCadenceDays","valueType":"Int32","description":"Maximum number of days between mandatory reviews of open risk entries","values":[{"scopes":{},"value":"90"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Revenue Reporting Service",
+      "description": "Produces statutory revenue reports: management accounts packs, board-level dashboards, and regulatory financial statements in compliance with IFRS 15 revenue recognition rules",
+      "groupRef": "grp-finance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Report definition and generated report store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRevenueReporting;User=svc_revreporting;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRevenueReporting;User=svc_revreporting;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RevenueReportingService"}]},
+        {"key":"Reporting:OutputBucket","valueType":"String","description":"S3 bucket for generated statutory report PDF files","values":[{"scopes":{},"value":"meridian-financial-reports-dev"},{"scopes":{"environment":"prod"},"value":"meridian-financial-reports-prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Gift Registry Service",
+      "description": "Allows customers to create and share gift registries for weddings, birthdays, and baby showers; handles registry contribution tracking, fulfilment status, and thank-you note prompts",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Gift registry and contribution store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianGiftRegistry;User=svc_giftregistry;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianGiftRegistry;User=svc_giftregistry;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"GiftRegistryService"}]},
+        {"key":"Registry:EventTypes","valueType":"String","description":"Supported registry event types available to customers","values":[{"scopes":{},"value":"Wedding,Birthday,Baby,General"}]}
+      ],
+      "publishSnapshot": true
+    }
+  ]
+}

@@ -1,0 +1,362 @@
+{
+  "templates": [
+    {
+      "$id": "tmpl-dotnet-svc",
+      "name": "DotNet Microservice Base",
+      "description": "Shared configuration for all .NET HTTP microservices: logging levels, JWT settings, telemetry, and rate limits",
+      "groupRef": "grp-platform-eng",
+      "entries": [
+        {
+          "key": "Logging:LogLevel:Default",
+          "valueType": "String",
+          "description": "Default application log level",
+          "values": [
+            {"scopes":{},"value":"Information"},
+            {"scopes":{"environment":"dev"},"value":"Debug"},
+            {"scopes":{"environment":"prod"},"value":"Warning"}
+          ]
+        },
+        {
+          "key": "Logging:LogLevel:Microsoft.AspNetCore",
+          "valueType": "String",
+          "description": "ASP.NET Core framework log level",
+          "values": [
+            {"scopes":{},"value":"Warning"}
+          ]
+        },
+        {
+          "key": "App:MaxConcurrentRequests",
+          "valueType": "Int32",
+          "description": "Maximum concurrent HTTP requests accepted by the service",
+          "values": [
+            {"scopes":{},"value":"100"},
+            {"scopes":{"environment":"staging"},"value":"200"},
+            {"scopes":{"environment":"prod"},"value":"500"}
+          ]
+        },
+        {
+          "key": "Jwt:Authority",
+          "valueType": "String",
+          "description": "OIDC authority URL for JWT token validation",
+          "values": [
+            {"scopes":{},"value":"https://auth-dev.meridian.internal"},
+            {"scopes":{"environment":"staging"},"value":"https://auth-stg.meridian.internal"},
+            {"scopes":{"environment":"prod"},"value":"https://auth.meridian.com"}
+          ]
+        },
+        {
+          "key": "Jwt:Audience",
+          "valueType": "String",
+          "description": "Expected audience claim in incoming JWT tokens",
+          "values": [
+            {"scopes":{},"value":"meridian-internal-api"}
+          ]
+        },
+        {
+          "key": "Telemetry:OtlpEndpoint",
+          "valueType": "String",
+          "description": "OpenTelemetry OTLP gRPC exporter endpoint",
+          "values": [
+            {"scopes":{},"value":"http://otel-collector-dev.meridian.internal:4317"},
+            {"scopes":{"environment":"staging"},"value":"http://otel-collector-stg.meridian.internal:4317"},
+            {"scopes":{"environment":"prod"},"value":"http://otel-collector.meridian.internal:4317"}
+          ]
+        },
+        {
+          "key": "RateLimit:MaxRequestsPerMinute",
+          "valueType": "Int32",
+          "description": "Sliding-window rate limit per authenticated client per minute",
+          "values": [
+            {"scopes":{},"value":"1000"},
+            {"scopes":{"environment":"staging"},"value":"2000"},
+            {"scopes":{"environment":"prod"},"value":"5000"}
+          ]
+        },
+        {
+          "key": "HealthCheck:TimeoutMs",
+          "valueType": "Int32",
+          "description": "Timeout in milliseconds for liveness and readiness probes",
+          "values": [
+            {"scopes":{},"value":"5000"}
+          ]
+        }
+      ]
+    },
+    {
+      "$id": "tmpl-dotnet-worker",
+      "name": "DotNet Background Worker Base",
+      "description": "Shared configuration for .NET background worker services: batch sizing, polling intervals, retry policies, and telemetry",
+      "groupRef": "grp-platform-eng",
+      "entries": [
+        {
+          "key": "Logging:LogLevel:Default",
+          "valueType": "String",
+          "description": "Default application log level",
+          "values": [
+            {"scopes":{},"value":"Information"},
+            {"scopes":{"environment":"dev"},"value":"Debug"},
+            {"scopes":{"environment":"prod"},"value":"Warning"}
+          ]
+        },
+        {
+          "key": "Worker:BatchSize",
+          "valueType": "Int32",
+          "description": "Number of messages/records processed in a single batch",
+          "values": [
+            {"scopes":{},"value":"100"},
+            {"scopes":{"environment":"staging"},"value":"250"},
+            {"scopes":{"environment":"prod"},"value":"500"}
+          ]
+        },
+        {
+          "key": "Worker:PollingIntervalSeconds",
+          "valueType": "Int32",
+          "description": "Interval in seconds between queue polling attempts",
+          "values": [
+            {"scopes":{},"value":"60"},
+            {"scopes":{"environment":"staging"},"value":"30"},
+            {"scopes":{"environment":"prod"},"value":"10"}
+          ]
+        },
+        {
+          "key": "Worker:MaxConcurrency",
+          "valueType": "Int32",
+          "description": "Maximum number of parallel processing threads",
+          "values": [
+            {"scopes":{},"value":"2"},
+            {"scopes":{"environment":"staging"},"value":"4"},
+            {"scopes":{"environment":"prod"},"value":"8"}
+          ]
+        },
+        {
+          "key": "Retry:MaxAttempts",
+          "valueType": "Int32",
+          "description": "Maximum number of retry attempts for a failed message",
+          "values": [
+            {"scopes":{},"value":"3"},
+            {"scopes":{"environment":"prod"},"value":"5"}
+          ]
+        },
+        {
+          "key": "Retry:BaseDelaySeconds",
+          "valueType": "Int32",
+          "description": "Initial delay in seconds before the first retry (doubles on each attempt)",
+          "values": [
+            {"scopes":{},"value":"2"}
+          ]
+        },
+        {
+          "key": "Telemetry:OtlpEndpoint",
+          "valueType": "String",
+          "description": "OpenTelemetry OTLP gRPC exporter endpoint",
+          "values": [
+            {"scopes":{},"value":"http://otel-collector-dev.meridian.internal:4317"},
+            {"scopes":{"environment":"prod"},"value":"http://otel-collector.meridian.internal:4317"}
+          ]
+        }
+      ]
+    },
+    {
+      "$id": "tmpl-python-svc",
+      "name": "Python Service Base",
+      "description": "Shared configuration for Python-based services and data pipelines: log level, worker count, timeouts, Sentry DSN, and OTLP endpoint",
+      "groupRef": "grp-data-platform",
+      "entries": [
+        {
+          "key": "LOG_LEVEL",
+          "valueType": "String",
+          "description": "Python logging level (DEBUG / INFO / WARNING / ERROR)",
+          "values": [
+            {"scopes":{},"value":"INFO"},
+            {"scopes":{"environment":"dev"},"value":"DEBUG"},
+            {"scopes":{"environment":"prod"},"value":"WARNING"}
+          ]
+        },
+        {
+          "key": "MAX_WORKERS",
+          "valueType": "Int32",
+          "description": "Maximum number of Gunicorn/Uvicorn worker processes",
+          "values": [
+            {"scopes":{},"value":"4"},
+            {"scopes":{"environment":"staging"},"value":"8"},
+            {"scopes":{"environment":"prod"},"value":"16"}
+          ]
+        },
+        {
+          "key": "REQUEST_TIMEOUT",
+          "valueType": "Int32",
+          "description": "Maximum duration in seconds for outbound HTTP requests",
+          "values": [
+            {"scopes":{},"value":"30"},
+            {"scopes":{"environment":"prod"},"value":"15"}
+          ]
+        },
+        {
+          "key": "SENTRY_DSN",
+          "valueType": "String",
+          "sensitive": true,
+          "description": "Sentry Data Source Name for error tracking",
+          "values": [
+            {"scopes":{},"value":""},
+            {"scopes":{"environment":"staging"},"value":"https://a1b2c3d4e5f6@o987654.ingest.sentry.io/1111111"},
+            {"scopes":{"environment":"prod"},"value":"https://a1b2c3d4e5f6@o987654.ingest.sentry.io/2222222"}
+          ]
+        },
+        {
+          "key": "OTEL_EXPORTER_OTLP_ENDPOINT",
+          "valueType": "String",
+          "description": "OpenTelemetry OTLP HTTP exporter endpoint",
+          "values": [
+            {"scopes":{},"value":"http://otel-collector-dev.meridian.internal:4318"},
+            {"scopes":{"environment":"staging"},"value":"http://otel-collector-stg.meridian.internal:4318"},
+            {"scopes":{"environment":"prod"},"value":"http://otel-collector.meridian.internal:4318"}
+          ]
+        },
+        {
+          "key": "CORS_ORIGINS",
+          "valueType": "String",
+          "description": "Comma-separated list of allowed CORS origins",
+          "values": [
+            {"scopes":{},"value":"http://localhost:3000,http://localhost:5173"},
+            {"scopes":{"environment":"staging"},"value":"https://app-stg.meridian.com"},
+            {"scopes":{"environment":"prod"},"value":"https://app.meridian.com,https://admin.meridian.com"}
+          ]
+        }
+      ]
+    },
+    {
+      "$id": "tmpl-react-webapp",
+      "name": "React Web Application Base",
+      "description": "Shared Vite/React configuration for all browser-side apps: environment name, CDN URL, auth URL, Sentry DSN, analytics toggle, and feature-flags endpoint",
+      "groupRef": "grp-customer-exp",
+      "entries": [
+        {
+          "key": "VITE_APP_ENVIRONMENT",
+          "valueType": "String",
+          "description": "Runtime environment label displayed in the app shell",
+          "values": [
+            {"scopes":{},"value":"development"},
+            {"scopes":{"environment":"staging"},"value":"staging"},
+            {"scopes":{"environment":"prod"},"value":"production"}
+          ]
+        },
+        {
+          "key": "VITE_APP_AUTH_URL",
+          "valueType": "String",
+          "description": "Base URL of the OIDC/OAuth2 authentication service",
+          "values": [
+            {"scopes":{},"value":"https://auth-dev.meridian.internal"},
+            {"scopes":{"environment":"staging"},"value":"https://auth-stg.meridian.internal"},
+            {"scopes":{"environment":"prod"},"value":"https://auth.meridian.com"}
+          ]
+        },
+        {
+          "key": "VITE_APP_CDN_URL",
+          "valueType": "String",
+          "description": "CDN base URL for static assets and media",
+          "values": [
+            {"scopes":{},"value":"https://cdn-dev.meridian.internal"},
+            {"scopes":{"environment":"staging"},"value":"https://cdn-stg.meridian.com"},
+            {"scopes":{"environment":"prod"},"value":"https://cdn.meridian.com"}
+          ]
+        },
+        {
+          "key": "VITE_APP_SENTRY_DSN",
+          "valueType": "String",
+          "sensitive": true,
+          "description": "Sentry DSN for front-end error capture",
+          "values": [
+            {"scopes":{},"value":""},
+            {"scopes":{"environment":"staging"},"value":"https://d4e5f6a1b2c3@o987654.ingest.sentry.io/3333333"},
+            {"scopes":{"environment":"prod"},"value":"https://d4e5f6a1b2c3@o987654.ingest.sentry.io/4444444"}
+          ]
+        },
+        {
+          "key": "VITE_APP_ANALYTICS_ENABLED",
+          "valueType": "Boolean",
+          "description": "Enable product analytics event collection",
+          "values": [
+            {"scopes":{},"value":"false"},
+            {"scopes":{"environment":"staging"},"value":"true"},
+            {"scopes":{"environment":"prod"},"value":"true"}
+          ]
+        },
+        {
+          "key": "VITE_APP_FEATURE_FLAGS_URL",
+          "valueType": "String",
+          "description": "Feature-flags service REST endpoint",
+          "values": [
+            {"scopes":{},"value":"http://feature-flags-dev.meridian.internal/api/v1/flags"},
+            {"scopes":{"environment":"staging"},"value":"https://feature-flags-stg.meridian.internal/api/v1/flags"},
+            {"scopes":{"environment":"prod"},"value":"https://feature-flags.meridian.internal/api/v1/flags"}
+          ]
+        }
+      ]
+    },
+    {
+      "$id": "tmpl-mobile-app",
+      "name": "Mobile Application Base",
+      "description": "Shared configuration for iOS and Android apps: API base URL, auth URL, crash reporting, analytics, minimum version enforcement, and remote-config polling",
+      "groupRef": "grp-mobile",
+      "entries": [
+        {
+          "key": "ApiBaseUrl",
+          "valueType": "String",
+          "description": "Base URL of the mobile API gateway",
+          "values": [
+            {"scopes":{},"value":"https://mobile-api-dev.meridian.internal"},
+            {"scopes":{"environment":"staging"},"value":"https://mobile-api-stg.meridian.com"},
+            {"scopes":{"environment":"prod"},"value":"https://mobile-api.meridian.com"}
+          ]
+        },
+        {
+          "key": "AuthApiUrl",
+          "valueType": "String",
+          "description": "Authentication service URL used for token exchange",
+          "values": [
+            {"scopes":{},"value":"https://auth-dev.meridian.internal"},
+            {"scopes":{"environment":"staging"},"value":"https://auth-stg.meridian.internal"},
+            {"scopes":{"environment":"prod"},"value":"https://auth.meridian.com"}
+          ]
+        },
+        {
+          "key": "CrashReportingEnabled",
+          "valueType": "Boolean",
+          "description": "Whether to send crash reports to the crash-reporting backend",
+          "values": [
+            {"scopes":{},"value":"false"},
+            {"scopes":{"environment":"staging"},"value":"true"},
+            {"scopes":{"environment":"prod"},"value":"true"}
+          ]
+        },
+        {
+          "key": "AnalyticsEnabled",
+          "valueType": "Boolean",
+          "description": "Whether to send product analytics events",
+          "values": [
+            {"scopes":{},"value":"false"},
+            {"scopes":{"environment":"prod"},"value":"true"}
+          ]
+        },
+        {
+          "key": "MinSupportedVersion",
+          "valueType": "String",
+          "description": "Minimum app version that is allowed to connect — older clients receive a forced-upgrade prompt",
+          "values": [
+            {"scopes":{},"value":"2.0.0"}
+          ]
+        },
+        {
+          "key": "RemoteConfigPollingIntervalSeconds",
+          "valueType": "Int32",
+          "description": "How often the app polls for remote configuration updates",
+          "values": [
+            {"scopes":{},"value":"3600"},
+            {"scopes":{"environment":"dev"},"value":"60"},
+            {"scopes":{"environment":"prod"},"value":"1800"}
+          ]
+        }
+      ]
+    }
+  ]
+}

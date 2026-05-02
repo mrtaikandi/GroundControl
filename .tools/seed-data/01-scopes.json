@@ -1,0 +1,22 @@
+{
+  "scopes": [
+    {
+      "$id": "env",
+      "dimension": "Environment",
+      "values": "dev,staging,prod",
+      "description": "Application deployment environment (dev = local/CI, staging = pre-production, prod = live traffic)"
+    },
+    {
+      "$id": "region",
+      "dimension": "Region",
+      "values": "us-east-1,us-west-2,eu-west-1",
+      "description": "Cloud deployment region for geo-distributed deployments"
+    },
+    {
+      "$id": "tier",
+      "dimension": "Tier",
+      "values": "free,standard,premium",
+      "description": "Customer subscription tier — controls feature availability and rate limits"
+    }
+  ]
+}

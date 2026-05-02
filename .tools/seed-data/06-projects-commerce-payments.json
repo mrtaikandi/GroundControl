@@ -1,0 +1,508 @@
+{
+  "projects": [
+    {
+      "name": "Order Service",
+      "description": "Core order management service handling order creation, status tracking, and the full order lifecycle from placement through fulfillment",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Order store database connection","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianOrders;User=svc_orders;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianOrders;User=svc_orders;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for order state cache and idempotency keys","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"OrderService"}]},
+        {"key":"ServiceBus:ConnectionString","valueType":"String","sensitive":true,"description":"Azure Service Bus namespace connection string for publishing order domain events (OrderPlaced, OrderCancelled, OrderDispatched)","values":[{"scopes":{},"value":"Endpoint=sb://meridian-dev-events.servicebus.windows.net/;SharedAccessKeyName=orders-send;SharedAccessKey=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Endpoint=sb://meridian-prod-events.servicebus.windows.net/;SharedAccessKeyName=orders-send;SharedAccessKey=CHANGEME"}]},
+        {"key":"ServiceBus:RetryCount","valueType":"Int32","description":"Number of Service Bus delivery attempts before a message is moved to the dead-letter queue","values":[{"scopes":{},"value":"3"},{"scopes":{"environment":"prod"},"value":"5"}]},
+        {"key":"ServiceBus:RetryIntervalMs","valueType":"Int32","description":"Initial back-off delay in milliseconds between Service Bus retry attempts","values":[{"scopes":{},"value":"500"},{"scopes":{"environment":"prod"},"value":"200"}]},
+        {"key":"ServiceBus:RetryIntervalIncrementMs","valueType":"Int32","description":"Additional delay in milliseconds added to the back-off on each subsequent retry","values":[{"scopes":{},"value":"100"}]},
+        {"key":"PricingApi:BaseUrl","valueType":"String","description":"Pricing Engine API base URL for real-time price lookups during order creation","values":[{"scopes":{},"value":"https://pricing-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://pricing-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://pricing-api.meridian.internal"}]},
+        {"key":"PricingApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Pricing Engine","values":[{"scopes":{},"value":"ordersvc_dev_pricing_CHANGEME"},{"scopes":{"environment":"prod"},"value":"ordersvc_prod_pricing_CHANGEME"}]},
+        {"key":"InventoryApi:BaseUrl","valueType":"String","description":"Inventory Service API base URL for stock reservation checks during order placement","values":[{"scopes":{},"value":"https://inventory-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://inventory-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://inventory-api.meridian.internal"}]},
+        {"key":"InventoryApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Inventory Service","values":[{"scopes":{},"value":"ordersvc_dev_inventory_CHANGEME"},{"scopes":{"environment":"prod"},"value":"ordersvc_prod_inventory_CHANGEME"}]},
+        {"key":"NotificationsApi:BaseUrl","valueType":"String","description":"Notifications Service API base URL for dispatching order confirmation and status-update emails","values":[{"scopes":{},"value":"https://notifications-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://notifications-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://notifications-api.meridian.internal"}]},
+        {"key":"NotificationsApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Notifications Service","values":[{"scopes":{},"value":"ordersvc_dev_notif_CHANGEME"},{"scopes":{"environment":"prod"},"value":"ordersvc_prod_notif_CHANGEME"}]},
+        {"key":"Logging:LogLevel:Meridian.OrderService.Domain","valueType":"String","description":"Log level for the order domain event handlers — increased verbosity aids incident diagnosis","values":[{"scopes":{},"value":"Debug"},{"scopes":{"environment":"prod"},"value":"Information"}]},
+        {"key":"Features:InstantPaymentCapture:Enabled","valueType":"Boolean","description":"When enabled, payment is captured immediately at order placement; when disabled, capture is deferred to dispatch","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Features:MultiWarehouseSplitting:Enabled","valueType":"Boolean","description":"Allows an order to be split across multiple warehouse shipments when items are held in different locations","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Cors:AllowedOrigins","valueType":"String","description":"Comma-separated origins permitted to call the Order Service API — restrict to storefront and admin in production","values":[{"scopes":{},"value":"*"},{"scopes":{"environment":"prod"},"value":"https://www.meridian.com,https://admin.meridian.com,https://app.meridian.com"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Order Processor",
+      "description": "Asynchronous worker that processes order state machine transitions, applies business rules, and emits domain events to downstream fulfillment and notification services",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Order processing queue and state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianOrderProcessor;User=svc_orderproc;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianOrderProcessor;User=svc_orderproc;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:RabbitMq","valueType":"String","sensitive":true,"description":"RabbitMQ for order domain events","values":[{"scopes":{},"value":"amqp://svc_orderproc:CHANGEME@dev-rabbitmq.meridian.internal/meridian"},{"scopes":{"environment":"prod"},"value":"amqps://svc_orderproc:CHANGEME@prod-rabbitmq-cluster.meridian.internal/meridian"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"OrderProcessor"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Cart Service",
+      "description": "Manages shopping cart state for authenticated and anonymous users with real-time stock reservation, price lock, and cart merge on login",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for cart session storage","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CartService"}]},
+        {"key":"Cart:SessionTtlMinutes","valueType":"Int32","description":"Duration in minutes before an anonymous cart session expires","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"1440"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Checkout Service",
+      "description": "Orchestrates the checkout flow: validates cart contents, applies promotions, triggers payment authorisation, and submits confirmed orders",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Checkout session and order confirmation store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCheckout;User=svc_checkout;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCheckout;User=svc_checkout;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CheckoutService"}]},
+        {"key":"Checkout:MaxItemsPerOrder","valueType":"Int32","description":"Maximum number of line items permitted per checkout order","values":[{"scopes":{},"value":"50"},{"scopes":{"environment":"prod"},"value":"200"}]},
+        {"key":"AzureStorage:ConnectionString","valueType":"String","sensitive":true,"description":"Azure Blob Storage connection for persisting order confirmation documents and invoice PDFs","values":[{"scopes":{},"value":"DefaultEndpointsProtocol=https;AccountName=meridiandevdocssa;AccountKey=CHANGEME;EndpointSuffix=core.windows.net"},{"scopes":{"environment":"prod"},"value":"DefaultEndpointsProtocol=https;AccountName=meridianproddocssa;AccountKey=CHANGEME;EndpointSuffix=core.windows.net"}]},
+        {"key":"CartApi:BaseUrl","valueType":"String","description":"Cart Service API base URL for reading the current cart during checkout initialisation","values":[{"scopes":{},"value":"https://cart-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://cart-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://cart-api.meridian.internal"}]},
+        {"key":"CartApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Cart Service","values":[{"scopes":{},"value":"checkout_dev_cart_CHANGEME"},{"scopes":{"environment":"prod"},"value":"checkout_prod_cart_CHANGEME"}]},
+        {"key":"PaymentsApi:BaseUrl","valueType":"String","description":"Payments Service API base URL for authorising and capturing payments at checkout","values":[{"scopes":{},"value":"https://payments-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://payments-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://payments-api.meridian.internal"}]},
+        {"key":"PaymentsApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Payments Service","values":[{"scopes":{},"value":"checkout_dev_payments_CHANGEME"},{"scopes":{"environment":"prod"},"value":"checkout_prod_payments_CHANGEME"}]},
+        {"key":"TaxApi:BaseUrl","valueType":"String","description":"Tax calculation API base URL for computing VAT and regional tax obligations at checkout","values":[{"scopes":{},"value":"https://tax-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://tax-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://tax-api.meridian.internal"}]},
+        {"key":"TaxApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Tax Service","values":[{"scopes":{},"value":"checkout_dev_tax_CHANGEME"},{"scopes":{"environment":"prod"},"value":"checkout_prod_tax_CHANGEME"}]},
+        {"key":"FraudApi:BaseUrl","valueType":"String","description":"Fraud Detection API base URL for real-time risk scoring of each checkout attempt","values":[{"scopes":{},"value":"https://fraud-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://fraud-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://fraud-api.meridian.internal"}]},
+        {"key":"FraudApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Fraud Detection Service","values":[{"scopes":{},"value":"checkout_dev_fraud_CHANGEME"},{"scopes":{"environment":"prod"},"value":"checkout_prod_fraud_CHANGEME"}]},
+        {"key":"Features:GuestCheckout:Enabled","valueType":"Boolean","description":"Allows customers to complete a checkout without creating or signing into a Meridian account","values":[{"scopes":{},"value":"true"}]},
+        {"key":"Features:ExpressCheckout:Enabled","valueType":"Boolean","description":"Enables one-click express checkout using stored payment methods and default delivery address","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Cors:AllowedOrigins","valueType":"String","description":"Comma-separated origins allowed to initiate checkout — storefront and native app gateway in production","values":[{"scopes":{},"value":"*"},{"scopes":{"environment":"prod"},"value":"https://www.meridian.com,https://app.meridian.com"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Pricing Engine",
+      "description": "Calculates real-time product prices by applying tier pricing, customer-segment rules, volume discounts, and active promotions",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Pricing rule and tier configuration store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPricingEngine;User=svc_pricing;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPricingEngine;User=svc_pricing;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for computed price cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PricingEngine"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Discount Service",
+      "description": "Manages coupon codes, promotional campaigns, and automatic discount rules; validates redemption eligibility and tracks usage limits",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Discount campaign and redemption store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDiscounts;User=svc_discount;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDiscounts;User=svc_discount;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DiscountService"}]},
+        {"key":"Discount:MaxStackableDiscounts","valueType":"Int32","description":"Maximum number of discount codes that can be applied to a single order","values":[{"scopes":{},"value":"3"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Product Catalog",
+      "description": "Authoritative product data store: SKUs, descriptions, images, attributes, categorisation, and localised content for all markets",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Product definition and attribute store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianProductCatalog;User=svc_catalog;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianProductCatalog;User=svc_catalog;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for product data cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ProductCatalog"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "SKU Manager",
+      "description": "Manages Stock Keeping Unit definitions, variant trees (size, colour, configuration), and barcode registrations for warehouse and POS integration",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"SKU and variant definition store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSkuManager;User=svc_skumgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSkuManager;User=svc_skumgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SkuManager"}]},
+        {"key":"Sku:MaxVariantsPerProduct","valueType":"Int32","description":"Maximum number of product variants (SKUs) per base product definition","values":[{"scopes":{},"value":"100"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Fulfillment Service",
+      "description": "Routes confirmed orders to the appropriate warehouse or third-party fulfillment partner, generates pick lists, and tracks packing and dispatch milestones",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Fulfillment workflow and allocation store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianFulfillment;User=svc_fulfill;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianFulfillment;User=svc_fulfill;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"FulfillmentService"}]},
+        {"key":"Fulfillment:DefaultWarehouseCode","valueType":"String","description":"Default warehouse code used when no routing rule matches an order","values":[{"scopes":{},"value":"WH-DEV-01"},{"scopes":{"environment":"prod"},"value":"WH-UK-MAIN"}]},
+        {"key":"ServiceBus:ConnectionString","valueType":"String","sensitive":true,"description":"Azure Service Bus namespace connection string for consuming OrderPlaced events and publishing FulfillmentDispatched events","values":[{"scopes":{},"value":"Endpoint=sb://meridian-dev-events.servicebus.windows.net/;SharedAccessKeyName=fulfillment-listen-send;SharedAccessKey=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Endpoint=sb://meridian-prod-events.servicebus.windows.net/;SharedAccessKeyName=fulfillment-listen-send;SharedAccessKey=CHANGEME"}]},
+        {"key":"ServiceBus:RetryCount","valueType":"Int32","description":"Number of Service Bus delivery attempts before a fulfillment event is dead-lettered","values":[{"scopes":{},"value":"3"},{"scopes":{"environment":"prod"},"value":"5"}]},
+        {"key":"ServiceBus:RetryIntervalMs","valueType":"Int32","description":"Initial back-off delay in milliseconds between Service Bus retry attempts","values":[{"scopes":{},"value":"500"}]},
+        {"key":"AzureStorage:ConnectionString","valueType":"String","sensitive":true,"description":"Azure Blob Storage connection for storing generated pick-list and dispatch manifest PDFs","values":[{"scopes":{},"value":"DefaultEndpointsProtocol=https;AccountName=meridiandevwarehousesa;AccountKey=CHANGEME;EndpointSuffix=core.windows.net"},{"scopes":{"environment":"prod"},"value":"DefaultEndpointsProtocol=https;AccountName=meridianprodwarehousesa;AccountKey=CHANGEME;EndpointSuffix=core.windows.net"}]},
+        {"key":"InventoryApi:BaseUrl","valueType":"String","description":"Inventory Service API base URL for allocating and reserving stock at fulfillment routing time","values":[{"scopes":{},"value":"https://inventory-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://inventory-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://inventory-api.meridian.internal"}]},
+        {"key":"InventoryApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Inventory Service","values":[{"scopes":{},"value":"fulfillment_dev_inventory_CHANGEME"},{"scopes":{"environment":"prod"},"value":"fulfillment_prod_inventory_CHANGEME"}]},
+        {"key":"ShippingApi:BaseUrl","valueType":"String","description":"Shipping Rates Service API base URL for requesting carrier-specific shipping labels on dispatch","values":[{"scopes":{},"value":"https://shipping-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://shipping-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://shipping-api.meridian.internal"}]},
+        {"key":"ShippingApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Shipping Rates Service","values":[{"scopes":{},"value":"fulfillment_dev_shipping_CHANGEME"},{"scopes":{"environment":"prod"},"value":"fulfillment_prod_shipping_CHANGEME"}]},
+        {"key":"Features:ThirdPartyFulfillment:Enabled","valueType":"Boolean","description":"When enabled, eligible orders can be routed to third-party 3PL fulfillment partners rather than Meridian-operated warehouses","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Features:AutoPickListGeneration:Enabled","valueType":"Boolean","description":"Automatically generates warehouse pick lists when an order is allocated, without manual intervention","values":[{"scopes":{},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Returns Service",
+      "description": "Manages the customer returns workflow from RMA creation, label generation, and warehouse receipt through to refund initiation",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"RMA and returns tracking store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianReturns;User=svc_returns;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianReturns;User=svc_returns;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ReturnsService"}]},
+        {"key":"Returns:WindowDays","valueType":"Int32","description":"Number of days after delivery within which returns are accepted","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Refund Processor",
+      "description": "Processes approved refunds by triggering payment reversals, updating order financials, and notifying customers via the notification service",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Refund request and ledger store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRefundProcessor;User=svc_refund;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRefundProcessor;User=svc_refund;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:RabbitMq","valueType":"String","sensitive":true,"description":"RabbitMQ for refund request events","values":[{"scopes":{},"value":"amqp://svc_refund:CHANGEME@dev-rabbitmq.meridian.internal/meridian"},{"scopes":{"environment":"prod"},"value":"amqps://svc_refund:CHANGEME@prod-rabbitmq-cluster.meridian.internal/meridian"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RefundProcessor"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Shipping Rates Service",
+      "description": "Aggregates real-time shipping quotes from DHL, FedEx, and Royal Mail using carrier APIs, applies markup rules, and returns ranked options to checkout",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for carrier rate cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ShippingRatesService"}]},
+        {"key":"Shipping:RateCacheTtlSeconds","valueType":"Int32","description":"How long carrier rate quotes are cached before a live re-fetch","values":[{"scopes":{},"value":"300"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Delivery Estimate Service",
+      "description": "Calculates estimated delivery windows using carrier lead times, warehouse dispatch schedules, and regional cut-off times",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Carrier schedule and dispatch calendar store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDeliveryEstimate;User=svc_delivery;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDeliveryEstimate;User=svc_delivery;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DeliveryEstimateService"}]},
+        {"key":"Delivery:DefaultLeadTimeDays","valueType":"Int32","description":"Fallback delivery lead time in days when no carrier-specific estimate is available","values":[{"scopes":{},"value":"5"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Backorder Service",
+      "description": "Manages backorder queues for out-of-stock items, notifies customers when stock is replenished, and auto-reserves inventory for the queued orders",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Backorder queue and notification schedule","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianBackorder;User=svc_backorder;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianBackorder;User=svc_backorder;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"BackorderService"}]},
+        {"key":"Backorder:MaxQueueSizePerSku","valueType":"Int32","description":"Maximum number of customers that can join a backorder queue per SKU","values":[{"scopes":{},"value":"500"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Quote Service",
+      "description": "Generates time-limited price quotes for B2B customers including bulk pricing, custom terms, and multi-currency support with approval workflows",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Quote and approval workflow store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianQuotes;User=svc_quotes;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianQuotes;User=svc_quotes;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"QuoteService"}]},
+        {"key":"Quote:ValidityDays","valueType":"Int32","description":"Number of days a generated quote remains valid for acceptance","values":[{"scopes":{},"value":"7"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Voucher Service",
+      "description": "Manages gift vouchers and store credit balances: issuance, redemption, balance enquiry, and expiration enforcement",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Voucher balance and transaction ledger","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianVouchers;User=svc_vouchers;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianVouchers;User=svc_vouchers;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"VoucherService"}]},
+        {"key":"Voucher:DefaultExpiryMonths","valueType":"Int32","description":"Default expiry period in months for newly issued vouchers","values":[{"scopes":{},"value":"12"},{"scopes":{"environment":"prod"},"value":"24"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Loyalty Engine",
+      "description": "Calculates and manages loyalty points: earning rules, tier progression, point expiry, and redemption at checkout for registered customers",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Loyalty account and transaction store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianLoyalty;User=svc_loyalty;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianLoyalty;User=svc_loyalty;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"LoyaltyEngine"}]},
+        {"key":"Loyalty:PointsPerGbpSpend","valueType":"Int32","description":"Loyalty points awarded per £1 of qualifying spend","values":[{"scopes":{},"value":"1"},{"scopes":{"environment":"prod"},"value":"2"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Tax Calculator",
+      "description": "Computes VAT, GST, and sales tax obligations for every order line using jurisdiction rules, product tax codes, and customer exemption certificates",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Tax rate and jurisdiction rule store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianTaxCalc;User=svc_tax;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianTaxCalc;User=svc_tax;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"TaxCalculator"}]},
+        {"key":"Tax:DefaultVatRatePercent","valueType":"Int32","description":"Default VAT rate applied when no product-specific tax code is matched","values":[{"scopes":{},"value":"20"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Subscription Billing",
+      "description": "Manages recurring subscription plans: billing cycles, proration, dunning workflows for failed payments, and mid-cycle plan changes",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Subscription plan and billing cycle store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSubscriptionBilling;User=svc_subbilling;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSubscriptionBilling;User=svc_subbilling;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SubscriptionBilling"}]},
+        {"key":"Billing:DunningMaxRetries","valueType":"Int32","description":"Maximum payment retry attempts before a subscription is suspended","values":[{"scopes":{},"value":"3"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Wishlist Service",
+      "description": "Manages customer wish lists and saved-for-later carts; supports sharing, price-drop notifications, and conversion analytics",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Wishlist and saved item store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianWishlist;User=svc_wishlist;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianWishlist;User=svc_wishlist;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"WishlistService"}]},
+        {"key":"Wishlist:MaxItemsPerList","valueType":"Int32","description":"Maximum number of items a customer can have in a single wish list","values":[{"scopes":{},"value":"100"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Product Review Service",
+      "description": "Collects, moderates, and publishes customer product reviews and star ratings; calculates aggregate scores and surfaces verified-purchase badges",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Review content and moderation queue","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianProductReviews;User=svc_reviews;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianProductReviews;User=svc_reviews;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ProductReviewService"}]},
+        {"key":"Review:AutoApproveVerifiedPurchase","valueType":"Boolean","description":"Automatically publish reviews from verified purchasers without manual moderation","values":[{"scopes":{},"value":"true"},{"scopes":{"environment":"prod"},"value":"false"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Bundle Manager",
+      "description": "Defines and manages product bundle configurations, bundle pricing rules, and component substitution policies for kit-based products",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Bundle definition and pricing store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianBundles;User=svc_bundles;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianBundles;User=svc_bundles;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"BundleManager"}]},
+        {"key":"Bundle:MaxComponentsPerBundle","valueType":"Int32","description":"Maximum number of component products allowed in a single bundle","values":[{"scopes":{},"value":"20"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Commerce Analytics",
+      "description": "Tracks conversion funnels, abandonment rates, revenue attribution, and category-level sales trends; feeds data to the BI platform",
+      "groupRef": "grp-commerce",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:ClickHouse","valueType":"String","sensitive":true,"description":"ClickHouse for commerce event analytics","values":[{"scopes":{},"value":"Host=dev-clickhouse.meridian.internal;Port=9000;Database=commerce_analytics;Username=svc_comanalytics;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Host=prod-clickhouse-cluster.meridian.internal;Port=9000;Database=commerce_analytics;Username=svc_comanalytics;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CommerceAnalytics"}]},
+        {"key":"Analytics:EventBatchSize","valueType":"Int32","description":"Number of commerce events batched before flushing to ClickHouse","values":[{"scopes":{},"value":"100"},{"scopes":{"environment":"prod"},"value":"1000"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Payment Processor",
+      "description": "Core payment orchestration service that routes authorisation, capture, and void requests to the appropriate payment provider based on card BIN and transaction rules",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Payment transaction and routing state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPaymentProcessor;User=svc_payproc;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPaymentProcessor;User=svc_payproc;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for idempotency keys and in-flight transaction locks","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PaymentProcessor"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Card Vault",
+      "description": "PCI-DSS compliant tokenisation vault that stores encrypted card data and issues surrogate PANs (tokens) for use by the payment processor",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Encrypted card data and token mapping store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCardVault;User=svc_vault;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCardVault;User=svc_vault;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CardVault"}]},
+        {"key":"Vault:TokenAlgorithm","valueType":"String","description":"Tokenisation algorithm used to generate surrogate PANs","values":[{"scopes":{},"value":"FPE-FF3-AES256"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Payment Gateway",
+      "description": "External-facing gateway that receives payment requests from third-party merchants, validates signatures, and forwards to the internal payment processor",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Merchant registration and gateway config store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPaymentGateway;User=svc_paygw;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPaymentGateway;User=svc_paygw;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PaymentGateway"}]},
+        {"key":"Gateway:WebhookSigningSecret","valueType":"String","sensitive":true,"description":"HMAC secret used to sign outbound payment event webhooks to merchants","values":[{"scopes":{},"value":"webhook_secret_dev_CHANGEME"},{"scopes":{"environment":"prod"},"value":"webhook_secret_prod_CHANGEME"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Stripe Adapter",
+      "description": "Wraps the Stripe API to translate internal payment commands into Stripe Payment Intents, handles Stripe webhook events, and maps Stripe error codes to domain errors",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"Stripe:SecretKey","valueType":"String","sensitive":true,"description":"Stripe secret API key for the environment account","values":[{"scopes":{},"value":"sk_test_CHANGEME"},{"scopes":{"environment":"prod"},"value":"sk_live_CHANGEME"}]},
+        {"key":"Stripe:WebhookSecret","valueType":"String","sensitive":true,"description":"Stripe webhook endpoint signing secret","values":[{"scopes":{},"value":"whsec_test_CHANGEME"},{"scopes":{"environment":"prod"},"value":"whsec_live_CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"StripeAdapter"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "PayPal Adapter",
+      "description": "Integrates with PayPal REST APIs for PayPal Checkout, Pay Later, and Venmo payments; handles PayPal IPN/webhook events and order capture flow",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"PayPal:ClientId","valueType":"String","sensitive":true,"description":"PayPal REST API client ID","values":[{"scopes":{},"value":"paypal_client_id_sandbox_CHANGEME"},{"scopes":{"environment":"prod"},"value":"paypal_client_id_live_CHANGEME"}]},
+        {"key":"PayPal:ClientSecret","valueType":"String","sensitive":true,"description":"PayPal REST API client secret","values":[{"scopes":{},"value":"paypal_secret_sandbox_CHANGEME"},{"scopes":{"environment":"prod"},"value":"paypal_secret_live_CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PayPalAdapter"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Apple Pay Adapter",
+      "description": "Implements Apple Pay Web and In-App payment flows including merchant validation, payment token decryption, and Passbook integration",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ApplePay:MerchantId","valueType":"String","description":"Apple Pay merchant identifier registered in the Apple Developer portal","values":[{"scopes":{},"value":"merchant.com.meridian.dev"},{"scopes":{"environment":"prod"},"value":"merchant.com.meridian"}]},
+        {"key":"ApplePay:MerchantCertificatePath","valueType":"String","sensitive":true,"description":"Path to the Apple Pay merchant identity certificate","values":[{"scopes":{},"value":"/etc/meridian/apple-pay/merchant-dev.p12"},{"scopes":{"environment":"prod"},"value":"/etc/meridian/apple-pay/merchant-prod.p12"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ApplePayAdapter"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Google Pay Adapter",
+      "description": "Handles Google Pay payment token decryption, integrates with the Google Pay API for Web and Android, and maps payment method details for processing",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"GooglePay:MerchantId","valueType":"String","description":"Google Pay merchant ID from the Google Pay Business Console","values":[{"scopes":{},"value":"GPAY_MERCHANT_DEV"},{"scopes":{"environment":"prod"},"value":"GPAY_MERCHANT_PROD"}]},
+        {"key":"GooglePay:PrivateKeyPath","valueType":"String","sensitive":true,"description":"Path to the Google Pay payment decryption private key","values":[{"scopes":{},"value":"/etc/meridian/google-pay/private-dev.pem"},{"scopes":{"environment":"prod"},"value":"/etc/meridian/google-pay/private-prod.pem"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"GooglePayAdapter"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Fraud Check Service",
+      "description": "Evaluates payment transactions for fraud risk using velocity checks, device fingerprinting, address verification, and ML scoring before authorisation",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Fraud rule and detection event store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianFraudCheck;User=svc_fraud;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianFraudCheck;User=svc_fraud;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for velocity counter windows","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"FraudCheckService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "3DS Handler",
+      "description": "Implements 3-D Secure 2.x authentication flows: frictionless path, challenge flow, and exemption handling for SCA compliance under PSD2",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"3DS authentication session store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianThreeDs;User=svc_3ds;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianThreeDs;User=svc_3ds;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ThreeDsHandler"}]},
+        {"key":"ThreeDs:DirectoryServerUrl","valueType":"String","description":"3DS Directory Server base URL for AReq/ARes message exchange","values":[{"scopes":{},"value":"https://3ds-test.example.com/direct"},{"scopes":{"environment":"prod"},"value":"https://3ds.example.com/direct"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Payout Service",
+      "description": "Manages disbursements to merchants and sellers via BACS, SWIFT, and Stripe Connect; handles payout scheduling, FX conversion, and regulatory reporting",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Payout batch and beneficiary store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPayouts;User=svc_payouts;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPayouts;User=svc_payouts;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PayoutService"}]},
+        {"key":"Payout:BatchCutoffTimeUtc","valueType":"String","description":"Daily cut-off time (UTC) for including payout requests in the same-day batch","values":[{"scopes":{},"value":"16:00:00"},{"scopes":{"environment":"prod"},"value":"14:00:00"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Settlement Service",
+      "description": "Reconciles authorised payment captures against acquirer settlement reports, identifies discrepancies, and generates merchant settlement statements",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Settlement reconciliation and statement store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSettlement;User=svc_settlement;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSettlement;User=svc_settlement;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SettlementService"}]},
+        {"key":"Settlement:ReconciliationCronExpression","valueType":"String","description":"Cron schedule for the daily reconciliation run","values":[{"scopes":{},"value":"0 3 * * *"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Chargeback Service",
+      "description": "Manages the chargeback dispute lifecycle: evidence collection, counter-response submission to acquirers, and tracking dispute outcomes and financial impact",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Chargeback dispute and evidence store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianChargebacks;User=svc_chargeback;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianChargebacks;User=svc_chargeback;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ChargebackService"}]},
+        {"key":"Chargeback:ResponseDeadlineDays","valueType":"Int32","description":"Maximum number of days to submit counter-evidence to the acquirer","values":[{"scopes":{},"value":"14"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Digital Wallet Service",
+      "description": "Manages Meridian stored-value wallets: top-up via payment methods, peer-to-peer transfers, balance enquiry, and transaction history",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Wallet balance ledger and transfer store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDigitalWallet;User=svc_wallet;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDigitalWallet;User=svc_wallet;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DigitalWalletService"}]},
+        {"key":"Wallet:MaxBalanceGbp","valueType":"Int32","description":"Maximum wallet balance in GBP permitted per account","values":[{"scopes":{},"value":"500"},{"scopes":{"environment":"prod"},"value":"2000"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Currency Converter",
+      "description": "Provides real-time and cached FX rates from ECB and open exchange-rate feeds; converts amounts for multi-currency checkout and display",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for FX rate cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CurrencyConverter"}]},
+        {"key":"Fx:RateStalenessThresholdMinutes","valueType":"Int32","description":"Maximum age of cached FX rates before a live refresh is triggered","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"15"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Payment Audit Service",
+      "description": "Provides an immutable, tamper-evident log of all payment events for PCI-DSS audit purposes, financial forensics, and regulatory inspection",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Immutable payment audit event store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPaymentAudit;User=svc_payaudit;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPaymentAudit;User=svc_payaudit;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PaymentAuditService"}]},
+        {"key":"Audit:RetentionYears","valueType":"Int32","description":"Payment audit record retention period in years","values":[{"scopes":{},"value":"7"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Payment Routing Service",
+      "description": "Applies dynamic routing logic to distribute payment transactions across acquirers based on BIN, currency, success rate, and cost optimisation rules",
+      "groupRef": "grp-payments",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Routing rule and acquirer performance store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPaymentRouting;User=svc_payrouting;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPaymentRouting;User=svc_payrouting;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for acquirer health score cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PaymentRoutingService"}]}
+      ],
+      "publishSnapshot": true
+    }
+  ]
+}

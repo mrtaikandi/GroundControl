@@ -1,0 +1,703 @@
+{
+  "projects": [
+    {
+      "name": "API Gateway Core",
+      "description": "Central ingress controller that routes external HTTP requests to internal services, handles TLS termination, and enforces global middleware",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis cluster for rate-limit counters and request-id deduplication","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier for telemetry spans and log correlation","values":[{"scopes":{},"value":"ApiGatewayCore"}]},
+        {"key":"App:UpstreamTimeoutMs","valueType":"Int32","description":"Timeout for forwarded upstream requests","values":[{"scopes":{},"value":"30000"},{"scopes":{"environment":"prod"},"value":"15000"}]},
+        {"key":"Observability:ServiceName","valueType":"String","description":"Service name emitted in OpenTelemetry resource attributes and Datadog APM traces","values":[{"scopes":{},"value":"meridian.api-gateway.dev"},{"scopes":{"environment":"staging"},"value":"meridian.api-gateway.stg"},{"scopes":{"environment":"prod"},"value":"meridian.api-gateway"}]},
+        {"key":"Observability:Tracing:Enabled","valueType":"Boolean","description":"Enables distributed tracing export to the OTLP collector","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"staging"},"value":"true"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Observability:Metrics:Enabled","valueType":"Boolean","description":"Enables Prometheus-compatible metrics export via /metrics endpoint","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Observability:Metrics:EnableRuntimeInstrumentation","valueType":"Boolean","description":"Includes .NET runtime metrics (GC, thread pool, memory) in the metrics export","values":[{"scopes":{},"value":"true"}]},
+        {"key":"ServiceBus:ConnectionString","valueType":"String","sensitive":true,"description":"Azure Service Bus connection string for publishing gateway audit and security events","values":[{"scopes":{},"value":"Endpoint=sb://meridian-dev-events.servicebus.windows.net/;SharedAccessKeyName=gateway-send;SharedAccessKey=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Endpoint=sb://meridian-prod-events.servicebus.windows.net/;SharedAccessKeyName=gateway-send;SharedAccessKey=CHANGEME"}]},
+        {"key":"ServiceBus:RetryCount","valueType":"Int32","description":"Number of Service Bus delivery attempts before an audit event is dead-lettered","values":[{"scopes":{},"value":"3"},{"scopes":{"environment":"prod"},"value":"5"}]},
+        {"key":"ServiceBus:RetryIntervalMs","valueType":"Int32","description":"Initial back-off delay in milliseconds between Service Bus retry attempts","values":[{"scopes":{},"value":"500"}]},
+        {"key":"AzureStorage:ConnectionString","valueType":"String","sensitive":true,"description":"Azure Blob Storage connection for archiving gateway access logs for compliance and audit purposes","values":[{"scopes":{},"value":"DefaultEndpointsProtocol=https;AccountName=meridiandevgatewaylogssa;AccountKey=CHANGEME;EndpointSuffix=core.windows.net"},{"scopes":{"environment":"prod"},"value":"DefaultEndpointsProtocol=https;AccountName=meridianprodgatewaylogssa;AccountKey=CHANGEME;EndpointSuffix=core.windows.net"}]},
+        {"key":"IdentityApi:BaseUrl","valueType":"String","description":"Identity/Auth Service base URL for validating inbound JWT tokens on every proxied request","values":[{"scopes":{},"value":"https://auth-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://auth-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://auth.meridian.com"}]},
+        {"key":"IdentityApi:ApiKey","valueType":"String","sensitive":true,"description":"API key used by the gateway when calling the Identity Service token-introspection endpoint","values":[{"scopes":{},"value":"gateway_dev_identity_CHANGEME"},{"scopes":{"environment":"prod"},"value":"gateway_prod_identity_CHANGEME"}]},
+        {"key":"Logging:LogLevel:Microsoft.AspNetCore.Routing","valueType":"String","description":"Log level for the ASP.NET Core routing layer — useful for diagnosing upstream route mismatches","values":[{"scopes":{},"value":"Warning"},{"scopes":{"environment":"dev"},"value":"Debug"}]},
+        {"key":"Logging:LogLevel:Microsoft.Hosting.Lifetime","valueType":"String","description":"Log level for host startup and shutdown lifecycle messages","values":[{"scopes":{},"value":"Information"}]},
+        {"key":"Features:RequestLogging:Enabled","valueType":"Boolean","description":"Enables structured per-request access logging including upstream latency and status codes","values":[{"scopes":{},"value":"true"}]},
+        {"key":"Features:CircuitBreaker:Enabled","valueType":"Boolean","description":"Enables per-upstream circuit breaker that trips after a configurable threshold of 5xx responses","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Cors:AllowedOrigins","valueType":"String","description":"Comma-separated list of origins permitted to make cross-origin requests through the API gateway","values":[{"scopes":{},"value":"*"},{"scopes":{"environment":"prod"},"value":"https://www.meridian.com,https://app.meridian.com,https://admin.meridian.com,https://partner.meridian.com"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Service Discovery",
+      "description": "Service registry that maintains the live catalogue of deployed service instances and exposes DNS-based and HTTP-based discovery APIs",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Service registry persistence store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianServiceDiscovery;User=svc_svcdisc;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianServiceDiscovery;User=svc_svcdisc;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ServiceDiscovery"}]},
+        {"key":"Registry:HeartbeatIntervalSeconds","valueType":"Int32","description":"Expected heartbeat interval from registered services","values":[{"scopes":{},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Config Distribution Service",
+      "description": "Distributes resolved configuration snapshots to client applications via SSE streams and REST polling",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Config store database","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianConfigDistribution;User=svc_configdist;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianConfigDistribution;User=svc_configdist;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ConfigDistributionService"}]},
+        {"key":"Streaming:MaxSubscribersPerProject","valueType":"Int32","description":"Maximum concurrent SSE subscribers per project","values":[{"scopes":{},"value":"50"},{"scopes":{"environment":"prod"},"value":"500"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Secret Manager",
+      "description": "Centralised vault for storing, rotating, and auditing application secrets with envelope encryption and fine-grained access policies",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Secret vault persistence","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSecretManager;User=svc_secrets;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSecretManager;User=svc_secrets;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SecretManager"}]},
+        {"key":"Vault:KekArn","valueType":"String","sensitive":true,"description":"AWS KMS key ARN for envelope encryption of stored secrets","values":[{"scopes":{},"value":"arn:aws:kms:us-east-1:123456789012:key/dev-kek"},{"scopes":{"environment":"prod"},"value":"arn:aws:kms:us-east-1:123456789012:key/prod-kek"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Feature Flags Service",
+      "description": "Manages feature toggles with per-environment, per-tenant, and canary targeting rules; serves flag evaluations via REST and SSE",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Feature flag definitions store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianFeatureFlags;User=svc_flags;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianFeatureFlags;User=svc_flags;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for flag evaluation caching","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"FeatureFlagsService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Telemetry Collector",
+      "description": "Receives OpenTelemetry traces, metrics, and logs from all services; fans out to Jaeger, Prometheus, and the central log store",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:ClickHouse","valueType":"String","sensitive":true,"description":"ClickHouse connection for storing raw telemetry data","values":[{"scopes":{},"value":"Host=dev-clickhouse.meridian.internal;Port=9000;Database=telemetry;Username=svc_telemetry;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Host=prod-clickhouse-cluster.meridian.internal;Port=9000;Database=telemetry;Username=svc_telemetry;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"TelemetryCollector"}]},
+        {"key":"Otlp:MaxBatchSize","valueType":"Int32","description":"Maximum span batch size before forced flush","values":[{"scopes":{},"value":"512"},{"scopes":{"environment":"prod"},"value":"2048"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Log Aggregator",
+      "description": "Collects structured log streams from Fluent Bit forwarders, enriches with context, and ingests into Elasticsearch or OpenSearch",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Elasticsearch","valueType":"String","sensitive":true,"description":"Elasticsearch cluster connection URI","values":[{"scopes":{},"value":"http://dev-es.meridian.internal:9200"},{"scopes":{"environment":"prod"},"value":"https://prod-es-cluster.meridian.internal:9200"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"LogAggregator"}]},
+        {"key":"Worker:RetentionDays","valueType":"Int32","description":"Number of days to retain raw log documents","values":[{"scopes":{},"value":"7"},{"scopes":{"environment":"prod"},"value":"90"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Health Monitor",
+      "description": "Continuously probes registered service endpoints for liveness and readiness; exposes a unified health dashboard and triggers alerts on degradation",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Health check results store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianHealthMonitor;User=svc_health;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianHealthMonitor;User=svc_health;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"HealthMonitor"}]},
+        {"key":"Monitor:ProbeIntervalSeconds","valueType":"Int32","description":"Interval between consecutive health probes per endpoint","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"15"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Event Bus",
+      "description": "Internal publish-subscribe backbone built on RabbitMQ; provides topic-based routing, dead-letter queues, and at-least-once delivery guarantees",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:RabbitMq","valueType":"String","sensitive":true,"description":"RabbitMQ AMQP connection string","values":[{"scopes":{},"value":"amqp://svc_eventbus:CHANGEME@dev-rabbitmq.meridian.internal/meridian"},{"scopes":{"environment":"prod"},"value":"amqps://svc_eventbus:CHANGEME@prod-rabbitmq-cluster.meridian.internal/meridian"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"EventBus"}]},
+        {"key":"Bus:MaxQueueLength","valueType":"Int32","description":"Maximum messages allowed in a queue before back-pressure is applied","values":[{"scopes":{},"value":"10000"},{"scopes":{"environment":"prod"},"value":"100000"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Circuit Breaker Service",
+      "description": "Tracks error rates per downstream dependency and opens circuit breakers to prevent cascading failures across the service mesh",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for circuit state persistence","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CircuitBreakerService"}]},
+        {"key":"CircuitBreaker:FailureThresholdPercent","valueType":"Int32","description":"Error rate percentage that trips the circuit breaker","values":[{"scopes":{},"value":"50"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Distributed Tracing Service",
+      "description": "Stores and queries distributed traces from Jaeger-compatible collectors; provides trace search, latency percentiles, and dependency maps",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Cassandra","valueType":"String","sensitive":true,"description":"Apache Cassandra connection for trace storage","values":[{"scopes":{},"value":"Contact Points=dev-cassandra.meridian.internal;Keyspace=jaeger;User=svc_tracing;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Contact Points=prod-cassandra-01.meridian.internal,prod-cassandra-02.meridian.internal;Keyspace=jaeger;User=svc_tracing;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DistributedTracingService"}]},
+        {"key":"Tracing:MaxSpanAgeHours","valueType":"Int32","description":"Retention period for trace data in hours","values":[{"scopes":{},"value":"24"},{"scopes":{"environment":"prod"},"value":"168"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Artifact Registry",
+      "description": "Manages versioned build artifacts including Docker images, NuGet packages, npm packages, and wheel files with content-addressed storage",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Artifact metadata store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianArtifactRegistry;User=svc_artifacts;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianArtifactRegistry;User=svc_artifacts;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ArtifactRegistry"}]},
+        {"key":"Storage:BucketName","valueType":"String","description":"S3-compatible bucket for artifact blob storage","values":[{"scopes":{},"value":"meridian-artifacts-dev"},{"scopes":{"environment":"prod"},"value":"meridian-artifacts-prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Deployment Coordinator",
+      "description": "Orchestrates rolling deployments across Kubernetes clusters; coordinates with CI/CD pipelines, respects change-freeze windows, and tracks deployment state",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Deployment state and audit store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDeployCoordinator;User=svc_deployer;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDeployCoordinator;User=svc_deployer;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DeploymentCoordinator"}]},
+        {"key":"Kubernetes:ClusterEndpoint","valueType":"String","description":"Kubernetes API server endpoint","values":[{"scopes":{},"value":"https://k8s-dev.meridian.internal:6443"},{"scopes":{"environment":"prod"},"value":"https://k8s-prod.meridian.internal:6443"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Service Mesh Controller",
+      "description": "Manages Istio/Linkerd control-plane configuration: traffic policies, mTLS certificates, retries, timeouts, and traffic mirroring rules",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Mesh policy configuration store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianServiceMesh;User=svc_mesh;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianServiceMesh;User=svc_mesh;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ServiceMeshController"}]},
+        {"key":"Mesh:MtlsEnabled","valueType":"Boolean","description":"Whether mutual TLS is enforced for all inter-service traffic","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Configuration Drift Detector",
+      "description": "Periodically audits running service configurations against their approved snapshots and raises alerts when unmanaged drift is detected",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Drift audit log store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDriftDetector;User=svc_driftdet;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDriftDetector;User=svc_driftdet;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ConfigurationDriftDetector"}]},
+        {"key":"Drift:ScanIntervalMinutes","valueType":"Int32","description":"How often to scan all registered services for drift","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"15"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Internal Developer Platform",
+      "description": "Self-service portal for developers to provision environments, manage service ownership, view runbooks, and track infrastructure costs",
+      "groupRef": "grp-platform-eng",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"IDP metadata and provisioning store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianIDP;User=svc_idp;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianIDP;User=svc_idp;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"InternalDeveloperPlatform"}]},
+        {"key":"Portal:AllowSelfProvision","valueType":"Boolean","description":"Allow teams to self-provision sandbox environments","values":[{"scopes":{},"value":"true"},{"scopes":{"environment":"prod"},"value":"false"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Build Orchestrator",
+      "description": "Triggers, queues, and monitors CI build jobs across GitHub Actions and internal runners; surfaces build status and artifacts",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Build history and queue database","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianBuildOrchestrator;User=svc_build;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianBuildOrchestrator;User=svc_build;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"BuildOrchestrator"}]},
+        {"key":"GitHub:ApiToken","valueType":"String","sensitive":true,"description":"GitHub App token for triggering workflows","values":[{"scopes":{},"value":"ghp_CHANGEME_dev"},{"scopes":{"environment":"prod"},"value":"ghp_CHANGEME_prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Deployment Manager",
+      "description": "Manages the full deployment lifecycle including environment promotion, approval gates, and rollback triggers across all service teams",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Deployment pipeline state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDeployManager;User=svc_deploymgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDeployManager;User=svc_deploymgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DeploymentManager"}]},
+        {"key":"Approval:RequireApproverCount","valueType":"Int32","description":"Minimum number of approvals required before a production deployment proceeds","values":[{"scopes":{},"value":"1"},{"scopes":{"environment":"prod"},"value":"2"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Pipeline Runner",
+      "description": "Executes CI/CD pipeline steps in isolated containers; reports step progress, logs, and exit codes back to the Build Orchestrator",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Pipeline execution log store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPipelineRunner;User=svc_pipeline;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPipelineRunner;User=svc_pipeline;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PipelineRunner"}]},
+        {"key":"Runner:ContainerImage","valueType":"String","description":"Default Docker image used for pipeline step containers","values":[{"scopes":{},"value":"meridian-runner:latest"},{"scopes":{"environment":"prod"},"value":"meridian-runner:stable"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Artifact Store",
+      "description": "Persists and serves build artifacts (binaries, test reports, coverage files) with content hashing and signed download URLs",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Artifact metadata and index store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianArtifactStore;User=svc_artifstore;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianArtifactStore;User=svc_artifstore;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ArtifactStore"}]},
+        {"key":"Storage:S3Bucket","valueType":"String","description":"S3 bucket for artifact binary storage","values":[{"scopes":{},"value":"meridian-build-artifacts-dev"},{"scopes":{"environment":"prod"},"value":"meridian-build-artifacts-prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Rollback Manager",
+      "description": "Automates rollback procedures by detecting production anomalies and reverting deployments to the last known good snapshot",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Rollback event and snapshot store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRollbackMgr;User=svc_rollback;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRollbackMgr;User=svc_rollback;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RollbackManager"}]},
+        {"key":"Rollback:ErrorRateThresholdPercent","valueType":"Int32","description":"HTTP 5xx error rate (%) that triggers automatic rollback","values":[{"scopes":{},"value":"10"},{"scopes":{"environment":"prod"},"value":"5"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Blue-Green Deployer",
+      "description": "Executes blue-green deployments by spinning up a green environment in parallel, running smoke tests, and switching traffic atomically",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Deployment slot state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianBlueGreenDeployer;User=svc_bgdeploy;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianBlueGreenDeployer;User=svc_bgdeploy;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"BlueGreenDeployer"}]},
+        {"key":"Deploy:SmokeTestTimeoutSeconds","valueType":"Int32","description":"Maximum time to wait for smoke tests to pass on the green slot","values":[{"scopes":{},"value":"120"},{"scopes":{"environment":"prod"},"value":"300"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Canary Deployer",
+      "description": "Gradually shifts production traffic to a canary release using configurable weight increments; monitors error rates and auto-promotes or rolls back",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Canary release state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCanaryDeployer;User=svc_canary;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCanaryDeployer;User=svc_canary;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CanaryDeployer"}]},
+        {"key":"Canary:InitialTrafficPercent","valueType":"Int32","description":"Initial percentage of traffic routed to the canary slot","values":[{"scopes":{},"value":"5"},{"scopes":{"environment":"prod"},"value":"2"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Release Manager",
+      "description": "Coordinates release trains across multiple services: schedules release windows, tracks dependencies, and generates release notes from commit history",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Release plan and history store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianReleaseMgr;User=svc_releasemgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianReleaseMgr;User=svc_releasemgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ReleaseManager"}]},
+        {"key":"Release:NotifySlackChannel","valueType":"String","description":"Slack channel webhook for release announcements","values":[{"scopes":{},"value":"#releases-dev"},{"scopes":{"environment":"prod"},"value":"#releases-prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Secrets Rotator",
+      "description": "Automates credential rotation for databases, API keys, and certificates on a configurable schedule, coordinating zero-downtime updates via the Secret Manager",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Rotation schedule and audit log","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSecretsRotator;User=svc_rotator;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSecretsRotator;User=svc_rotator;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SecretsRotator"}]},
+        {"key":"Rotation:DefaultIntervalDays","valueType":"Int32","description":"Default rotation interval in days for secrets without an explicit schedule","values":[{"scopes":{},"value":"90"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Compliance Gate",
+      "description": "Enforces policy-as-code checks during CI/CD pipelines; blocks deployments that fail security, licensing, or change-management policies",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Policy decision log and exemption registry","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianComplianceGate;User=svc_compgate;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianComplianceGate;User=svc_compgate;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ComplianceGate"}]},
+        {"key":"Policy:BlockOnFailure","valueType":"Boolean","description":"Whether failing policy checks block the deployment or only warn","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Infrastructure Drift Detector",
+      "description": "Compares live cloud infrastructure state against Terraform or Pulumi state files and reports unauthorised out-of-band changes",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Drift finding store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianInfraDrift;User=svc_infradrift;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianInfraDrift;User=svc_infradrift;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"InfrastructureDriftDetector"}]},
+        {"key":"Drift:ScanCronExpression","valueType":"String","description":"Cron expression controlling when drift scans run","values":[{"scopes":{},"value":"0 */6 * * *"},{"scopes":{"environment":"prod"},"value":"0 * * * *"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "GitOps Controller",
+      "description": "Synchronises Kubernetes cluster state with Git repository contents using ArgoCD-style reconciliation loops",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"GitOps application state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianGitOps;User=svc_gitops;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianGitOps;User=svc_gitops;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"GitOpsController"}]},
+        {"key":"Git:RepositoryUrl","valueType":"String","description":"Primary GitOps manifest repository URL","values":[{"scopes":{},"value":"https://github.com/meridian-digital/k8s-manifests-dev"},{"scopes":{"environment":"prod"},"value":"https://github.com/meridian-digital/k8s-manifests-prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Change Advisory Board",
+      "description": "Implements digital CAB workflows: change request submission, risk scoring, approval routing, and integration with ServiceNow for ITSM compliance",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Change request and approval store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCAB;User=svc_cab;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCAB;User=svc_cab;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ChangeAdvisoryBoard"}]},
+        {"key":"ServiceNow:InstanceUrl","valueType":"String","description":"ServiceNow instance URL for ITSM integration","values":[{"scopes":{},"value":"https://meridian-dev.service-now.com"},{"scopes":{"environment":"prod"},"value":"https://meridian.service-now.com"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "CI Runner",
+      "description": "Self-hosted GitHub Actions runner manager that provisions ephemeral containers on demand and registers them with GitHub for job dispatch",
+      "groupRef": "grp-devops",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Runner registration and job state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCIRunner;User=svc_cirunner;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCIRunner;User=svc_cirunner;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CIRunner"}]},
+        {"key":"Runner:MaxParallelJobs","valueType":"Int32","description":"Maximum concurrent CI jobs across all runner instances","values":[{"scopes":{},"value":"20"},{"scopes":{"environment":"prod"},"value":"100"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Database Provisioner",
+      "description": "Automates database instance provisioning, schema migrations, and access credential management on AWS RDS and Azure SQL",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Provisioner state and audit store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDbProvisioner;User=svc_dbprov;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDbProvisioner;User=svc_dbprov;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DatabaseProvisioner"}]},
+        {"key":"Aws:RdsSubnetGroupName","valueType":"String","description":"AWS RDS subnet group for new database instances","values":[{"scopes":{},"value":"meridian-dev-db-subnets"},{"scopes":{"environment":"prod"},"value":"meridian-prod-db-subnets"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Network Manager",
+      "description": "Manages VPC configurations, security groups, NACLs, and inter-service network policies using Terraform via the infrastructure API",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Network policy and change log store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianNetworkMgr;User=svc_netmgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianNetworkMgr;User=svc_netmgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"NetworkManager"}]},
+        {"key":"Aws:DefaultVpcId","valueType":"String","description":"Default VPC ID for new infrastructure resources","values":[{"scopes":{},"value":"vpc-0dev1234567890abc"},{"scopes":{"environment":"prod"},"value":"vpc-0prod1234567890abc"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Cloud Resource Manager",
+      "description": "Unified control plane for provisioning and lifecycle management of AWS and Azure cloud resources, with tagging enforcement and quota tracking",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Resource inventory and provisioning state","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCloudResourceMgr;User=svc_cloudmgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCloudResourceMgr;User=svc_cloudmgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CloudResourceManager"}]},
+        {"key":"Cloud:PrimaryProvider","valueType":"String","description":"Default cloud provider for new resource provisioning requests","values":[{"scopes":{},"value":"aws"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Cost Optimizer",
+      "description": "Analyses cloud spending across accounts, identifies over-provisioned resources, recommends rightsizing, and enforces budget alerts",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Cost data and recommendation store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCostOptimizer;User=svc_costopt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCostOptimizer;User=svc_costopt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CostOptimizer"}]},
+        {"key":"Budget:MonthlyAlertThresholdUsd","valueType":"Int32","description":"Monthly spend threshold in USD that triggers a budget alert","values":[{"scopes":{},"value":"5000"},{"scopes":{"environment":"prod"},"value":"50000"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Backup Service",
+      "description": "Schedules and executes database backups, object-store snapshots, and configuration exports; validates restore integrity on a weekly cadence",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Backup job schedule and manifest store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianBackupService;User=svc_backup;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianBackupService;User=svc_backup;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"BackupService"}]},
+        {"key":"Backup:RetentionDays","valueType":"Int32","description":"How long backup files are retained before automatic deletion","values":[{"scopes":{},"value":"7"},{"scopes":{"environment":"prod"},"value":"365"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Disaster Recovery Service",
+      "description": "Manages DR runbooks, cross-region replication health checks, RTO/RPO tracking, and automated failover orchestration",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"DR plan and failover state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDR;User=svc_dr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDR;User=svc_dr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DisasterRecoveryService"}]},
+        {"key":"DR:SecondaryRegion","valueType":"String","description":"AWS/Azure region used as the failover target","values":[{"scopes":{},"value":"eu-west-1"},{"scopes":{"environment":"prod"},"value":"eu-west-1"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Monitoring Service",
+      "description": "Collects Prometheus metrics from all services, evaluates alerting rules, and dispatches alerts to PagerDuty, Slack, and email",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Prometheus","valueType":"String","description":"Prometheus remote-write endpoint for metrics ingestion","values":[{"scopes":{},"value":"http://prometheus-dev.meridian.internal:9090/api/v1/write"},{"scopes":{"environment":"prod"},"value":"http://prometheus-prod.meridian.internal:9090/api/v1/write"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MonitoringService"}]},
+        {"key":"Alerting:PagerDutyRoutingKey","valueType":"String","sensitive":true,"description":"PagerDuty Events API v2 routing key","values":[{"scopes":{},"value":""},{"scopes":{"environment":"prod"},"value":"R01ABCDEF0123456789012345678901234"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Alerting Service",
+      "description": "Manages alert routing rules, escalation policies, on-call schedules, and suppression windows; acts as an intermediary between Monitoring Service and human responders",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Alert history and on-call roster store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAlertingService;User=svc_alerting;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAlertingService;User=svc_alerting;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AlertingService"}]},
+        {"key":"Alert:DefaultSilenceDurationMinutes","valueType":"Int32","description":"Default alert silence duration when snoozed from the dashboard","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"15"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Autoscaler",
+      "description": "Implements predictive and reactive horizontal pod autoscaling by consuming Prometheus metrics and issuing scale commands to the Kubernetes API",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Scaling event and policy store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAutoscaler;User=svc_autoscaler;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAutoscaler;User=svc_autoscaler;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"Autoscaler"}]},
+        {"key":"Scale:CooldownSeconds","valueType":"Int32","description":"Minimum time between consecutive scale-up or scale-down events per service","values":[{"scopes":{},"value":"120"},{"scopes":{"environment":"prod"},"value":"60"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Capacity Planner",
+      "description": "Analyses historical resource utilisation trends to generate monthly capacity forecasts and procurement recommendations for the infrastructure team",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Capacity forecast and model store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCapacityPlanner;User=svc_capacity;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCapacityPlanner;User=svc_capacity;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CapacityPlanner"}]},
+        {"key":"Planning:ForecastHorizonDays","valueType":"Int32","description":"Number of days ahead the capacity forecast covers","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"90"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "DNS Manager",
+      "description": "Manages Route 53 and Azure DNS records programmatically; provides a self-service API for services to register their own DNS entries",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"DNS record change audit store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDnsMgr;User=svc_dns;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDnsMgr;User=svc_dns;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DnsManager"}]},
+        {"key":"Dns:DefaultTtlSeconds","valueType":"Int32","description":"Default TTL for new DNS records","values":[{"scopes":{},"value":"300"},{"scopes":{"environment":"prod"},"value":"60"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "SSL Manager",
+      "description": "Provisions TLS certificates via Let's Encrypt and AWS ACM, monitors expiration, and automates renewal with zero-downtime rotation",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Certificate inventory and renewal schedule","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSslManager;User=svc_ssl;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSslManager;User=svc_ssl;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SslManager"}]},
+        {"key":"Cert:RenewalThresholdDays","valueType":"Int32","description":"Number of days before expiry that certificate renewal is triggered","values":[{"scopes":{},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Firewall Manager",
+      "description": "Manages AWS WAF rule groups, security group rules, and IP allow/block lists across all production accounts via a central policy API",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Firewall policy and rule audit store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianFirewallMgr;User=svc_firewall;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianFirewallMgr;User=svc_firewall;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"FirewallManager"}]},
+        {"key":"Waf:ManagedRuleGroupArn","valueType":"String","description":"AWS WAF managed rule group ARN for common web threat protection","values":[{"scopes":{},"value":"arn:aws:wafv2:us-east-1:123456789012:regional/managedruleset/AWSManagedRulesCommonRuleSet"},{"scopes":{"environment":"prod"},"value":"arn:aws:wafv2:us-east-1:123456789012:regional/managedruleset/AWSManagedRulesCommonRuleSet"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "VPN Manager",
+      "description": "Manages AWS Client VPN and WireGuard VPN configurations, user certificate provisioning, and access log collection for remote-access security",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"VPN user and session store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianVpnMgr;User=svc_vpn;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianVpnMgr;User=svc_vpn;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"VpnManager"}]},
+        {"key":"Vpn:ClientCidrBlock","valueType":"String","description":"CIDR block assigned to VPN clients","values":[{"scopes":{},"value":"10.128.0.0/22"},{"scopes":{"environment":"prod"},"value":"10.192.0.0/22"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Storage Manager",
+      "description": "Abstracts object storage across S3 and Azure Blob; provides a unified API for service teams to create buckets, manage lifecycle rules, and generate pre-signed URLs",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Bucket inventory and policy store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianStorageMgr;User=svc_storage;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianStorageMgr;User=svc_storage;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"StorageManager"}]},
+        {"key":"Storage:DefaultRegion","valueType":"String","description":"Default region for new bucket creation requests","values":[{"scopes":{},"value":"us-east-1"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Resource Tagger",
+      "description": "Enforces mandatory cloud resource tagging policies by auditing new resources and applying cost-centre, owner, and environment tags automatically",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Tagging audit and remediation log","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianResourceTagger;User=svc_tagger;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianResourceTagger;User=svc_tagger;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ResourceTagger"}]},
+        {"key":"Tagging:EnforceOnCreate","valueType":"Boolean","description":"Whether to block resource creation that lacks required tags","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Load Balancer Manager",
+      "description": "Manages AWS ALB and NLB listener rules, target group registrations, and health check configurations via Terraform provider API",
+      "groupRef": "grp-infrastructure",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Load balancer rule and state store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianLbManager;User=svc_lbmgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianLbManager;User=svc_lbmgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"LoadBalancerManager"}]},
+        {"key":"Lb:DefaultHealthCheckPath","valueType":"String","description":"Default health check path used for new target groups","values":[{"scopes":{},"value":"/healthz/ready"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Gateway Core",
+      "description": "Public-facing API gateway that handles external client authentication, TLS offload, request routing to internal services, and response caching",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for API key cache and response cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"GatewayCore"}]},
+        {"key":"Gateway:MaxBodySizeKb","valueType":"Int32","description":"Maximum request body size in kilobytes","values":[{"scopes":{},"value":"1024"},{"scopes":{"environment":"prod"},"value":"4096"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Rate Limiter",
+      "description": "Enforces per-client and per-route rate limits using token-bucket and sliding-window algorithms stored in Redis",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for rate-limit counters","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RateLimiter"}]},
+        {"key":"RateLimit:DefaultWindowSeconds","valueType":"Int32","description":"Default sliding window duration for rate-limit counters","values":[{"scopes":{},"value":"60"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "API Versioning Service",
+      "description": "Manages API version lifecycle, negotiates version selection from Accept headers, and routes deprecated versions to shim adapters",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"API version registry and deprecation schedule","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianApiVersioning;User=svc_apiver;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianApiVersioning;User=svc_apiver;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ApiVersioningService"}]},
+        {"key":"Versioning:DeprecationNoticeMonths","valueType":"Int32","description":"Minimum notice period in months before a version is fully retired","values":[{"scopes":{},"value":"3"},{"scopes":{"environment":"prod"},"value":"6"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Request Throttler",
+      "description": "Applies adaptive request throttling under high load using queue depth and CPU utilisation signals to protect backend services",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for shared throttle state","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RequestThrottler"}]},
+        {"key":"Throttle:QueueDepthThreshold","valueType":"Int32","description":"Queue depth that triggers throttling mode","values":[{"scopes":{},"value":"500"},{"scopes":{"environment":"prod"},"value":"2000"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Auth Middleware",
+      "description": "Validates bearer tokens, API keys, and HMAC signatures at the gateway edge before requests are forwarded to internal services",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for token validation cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AuthMiddleware"}]},
+        {"key":"Auth:TokenCacheTtlSeconds","valueType":"Int32","description":"Duration to cache validated token claims in Redis","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"300"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Request Validator",
+      "description": "Enforces OpenAPI-defined request schemas at the gateway; rejects malformed requests before they reach internal services",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for schema cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RequestValidator"}]},
+        {"key":"Validation:StrictMode","valueType":"Boolean","description":"Reject requests with unknown additional properties","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Response Transformer",
+      "description": "Applies response transformations including field filtering, format translation (JSON↔XML), and envelope normalisation for legacy API compatibility",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for transformation rule cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ResponseTransformer"}]},
+        {"key":"Transform:MaxResponseSizeKb","valueType":"Int32","description":"Maximum response size that transformation rules are applied to","values":[{"scopes":{},"value":"512"},{"scopes":{"environment":"prod"},"value":"2048"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "API Documentation Service",
+      "description": "Aggregates OpenAPI specs from all registered services, merges them into a unified portal spec, and serves the Swagger UI and Redoc pages",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"API spec version history store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianApiDocs;User=svc_apidocs;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianApiDocs;User=svc_apidocs;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ApiDocumentationService"}]},
+        {"key":"Docs:PublicBaseUrl","valueType":"String","description":"Publicly accessible base URL where the developer portal is served","values":[{"scopes":{},"value":"https://api-docs-dev.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://developer.meridian.com"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Developer Portal API",
+      "description": "Backend for the public developer portal; manages API key issuance, usage dashboards, sandbox environments, and developer account management",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Developer account and API key store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDevPortal;User=svc_devportal;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDevPortal;User=svc_devportal;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DeveloperPortalApi"}]},
+        {"key":"Portal:SandboxApiBaseUrl","valueType":"String","description":"Base URL for the sandbox API environment used by developers","values":[{"scopes":{},"value":"https://sandbox-api.meridian.com"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Gateway Analytics",
+      "description": "Captures and aggregates API gateway traffic metrics: request counts, latency percentiles, error rates, and top consumers by client and route",
+      "groupRef": "grp-api-gateway",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:ClickHouse","valueType":"String","sensitive":true,"description":"ClickHouse for high-volume gateway event ingestion","values":[{"scopes":{},"value":"Host=dev-clickhouse.meridian.internal;Port=9000;Database=gateway_analytics;Username=svc_gwanalytics;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Host=prod-clickhouse-cluster.meridian.internal;Port=9000;Database=gateway_analytics;Username=svc_gwanalytics;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"GatewayAnalytics"}]},
+        {"key":"Analytics:FlushIntervalSeconds","valueType":"Int32","description":"How often buffered analytics events are flushed to ClickHouse","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"10"}]}
+      ],
+      "publishSnapshot": true
+    }
+  ]
+}
