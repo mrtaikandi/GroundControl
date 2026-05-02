@@ -184,12 +184,6 @@ function SnapshotsRoute() {
             </div>
 
             <div className="mt-4">{renderSnapshotView()}</div>
-
-            {selectedSnapshot ? (
-              <div className="mt-4 font-mono text-[11.5px] text-fg-caption">
-                POST /api/projects/{projectName}/snapshots/{selectedSnapshot.id}/activate
-              </div>
-            ) : null}
           </div>
         </div>
       ) : null}
