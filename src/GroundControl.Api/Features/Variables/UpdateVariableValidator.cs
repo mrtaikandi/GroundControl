@@ -1,4 +1,5 @@
 using GroundControl.Api.Features.Variables.Contracts;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Stores;
 
 namespace GroundControl.Api.Features.Variables;
@@ -15,6 +16,20 @@ internal sealed class UpdateVariableValidator : IAsyncValidator<UpdateVariableRe
     public async Task<ValidatorResult> ValidateAsync(UpdateVariableRequest instance, ValidationContext context, CancellationToken cancellationToken = default)
     {
         var result = new ValidatorResult();
+
+        if (instance.IsSensitive)
+        {
+            foreach (var sv in instance.Values)
+            {
+                if (SensitiveSourceValueProtector.IsMaskSentinel(sv.Value))
+                {
+                    result.AddError(
+                        "Sensitive values cannot be set to the mask sentinel '***'. Submit the actual secret or omit the value.",
+                        nameof(instance.Values));
+                    return result;
+                }
+            }
+        }
 
         foreach (var sv in instance.Values)
         {

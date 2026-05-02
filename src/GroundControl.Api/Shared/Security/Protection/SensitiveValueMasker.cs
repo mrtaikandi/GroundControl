@@ -61,6 +61,6 @@ internal sealed class SensitiveValueMasker
             return _sourceProtector.UnprotectValues(list, isSensitive: true);
         }
 
-        return SensitiveSourceValueProtector.MaskValues(list, isSensitive: true);
+        return _sourceProtector.MaskValues(list, isSensitive: true);
     }
 }

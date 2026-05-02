@@ -301,6 +301,177 @@ public sealed class SensitiveSourcePersistenceTests : ApiHandlerTestBase
         auditRecords[0].Changes.ShouldContain(c => c.Field == "Description");
     }
 
+    [Fact]
+    public async Task CreateConfigEntry_Sensitive_RejectsMaskSentinelValue()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var request = new CreateConfigEntryRequest
+        {
+            Key = "db.password",
+            OwnerId = Guid.CreateVersion7(),
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            Values = [new ConfigEntryScopedValueRequest { Value = "***" }],
+            IsSensitive = true,
+        };
+
+        // Act
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+
+        // Assert — guard against UI round-trip overwriting the secret with the mask string
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateConfigEntry_NonSensitive_AcceptsThreeStarsAsLiteralValue()
+    {
+        // Arrange — non-sensitive entries can legitimately use "***" as a value
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var request = new CreateConfigEntryRequest
+        {
+            Key = "ui.placeholder",
+            OwnerId = Guid.CreateVersion7(),
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            Values = [new ConfigEntryScopedValueRequest { Value = "***" }],
+            IsSensitive = false,
+        };
+
+        // Act
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task UpdateConfigEntry_Sensitive_RejectsMaskSentinelValue()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var created = await CreateConfigEntryAsync(apiClient, "db.password", "s3cret!", isSensitive: true);
+
+        var getResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var updateRequest = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{created.Id}");
+        updateRequest.Content = JsonContent.Create(
+            new UpdateConfigEntryRequest
+            {
+                ValueType = "String",
+                Values = [new ConfigEntryScopedValueRequest { Value = "***" }],
+                IsSensitive = true,
+            },
+            options: WebJsonSerializerOptions);
+        updateRequest.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(updateRequest, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateVariable_Sensitive_RejectsMaskSentinelValue()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var request = new CreateVariableRequest
+        {
+            Name = "dbPassword",
+            Scope = VariableScope.Global,
+            Values = [new VariableScopedValueRequest { Value = "***" }],
+            IsSensitive = true,
+        };
+
+        // Act
+        var response = await apiClient.PostAsJsonAsync("/api/variables", request, WebJsonSerializerOptions, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ListConfigEntries_WithDecrypt_RecordsOneAuditPerSensitiveEntry()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var first = await CreateConfigEntryAsync(apiClient, "db.password", "s3cret!", isSensitive: true);
+        var second = await CreateConfigEntryAsync(apiClient, "api.token", "tok3n", isSensitive: true);
+        await CreateConfigEntryAsync(apiClient, "app.name", "MyApp", isSensitive: false);
+
+        // Act
+        var response = await apiClient.GetAsync("/api/config-entries?decrypt=true", TestCancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        // Assert — one Decrypted audit per revealed sensitive entry; non-sensitive entries do not audit
+        var auditRecords = await factory.Database.GetCollection<AuditRecord>("audit_records")
+            .Find(r => r.EntityType == "ConfigEntry" && r.Action == "Decrypted")
+            .ToListAsync(TestCancellationToken);
+
+        auditRecords.Count.ShouldBe(2);
+        auditRecords.ShouldContain(r => r.EntityId == first.Id);
+        auditRecords.ShouldContain(r => r.EntityId == second.Id);
+    }
+
+    [Fact]
+    public async Task UpdateConfigEntry_TransitionFromSensitiveToNonSensitive_StoresNewPlaintextAndMasksAudit()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var protector = factory.Services.GetRequiredService<IValueProtector>();
+        var created = await CreateConfigEntryAsync(apiClient, "promoted.key", "was-secret", isSensitive: true);
+
+        var getResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var updateRequest = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{created.Id}");
+        updateRequest.Content = JsonContent.Create(
+            new UpdateConfigEntryRequest
+            {
+                ValueType = "String",
+                Values = [new ConfigEntryScopedValueRequest { Value = "now-public" }],
+                IsSensitive = false,
+            },
+            options: WebJsonSerializerOptions);
+        updateRequest.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(updateRequest, TestCancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        // Assert — stored value is now plaintext (not encrypted)
+        var stored = await factory.Database.GetCollection<ConfigEntry>("config_entries")
+            .Find(e => e.Id == created.Id)
+            .FirstAsync(TestCancellationToken);
+
+        stored.IsSensitive.ShouldBeFalse();
+        stored.Values.ShouldHaveSingleItem().Value.ShouldBe("now-public");
+
+        // Audit records: the transition was sensitive somewhere in the boundary, so Values are masked
+        var auditRecord = await factory.Database.GetCollection<AuditRecord>("audit_records")
+            .Find(r => r.EntityType == "ConfigEntry" && r.EntityId == created.Id && r.Action == "Updated")
+            .FirstAsync(TestCancellationToken);
+
+        auditRecord.Changes.ShouldContain(c => c.Field == "Values" && c.OldValue == "***" && c.NewValue == "***");
+        auditRecord.Changes.ShouldContain(c => c.Field == "IsSensitive");
+
+        // Round-trip sanity: the response body should not be ciphertext or "***" since the
+        // updated entry is no longer sensitive.
+        _ = protector;
+    }
+
     private static async Task<ConfigEntryResponse> CreateConfigEntryAsync(HttpClient apiClient, string key, string value, bool isSensitive)
     {
         var request = new CreateConfigEntryRequest

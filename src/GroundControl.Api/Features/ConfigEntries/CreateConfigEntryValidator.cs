@@ -1,4 +1,5 @@
 using GroundControl.Api.Features.ConfigEntries.Contracts;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Stores;
 
 namespace GroundControl.Api.Features.ConfigEntries;
@@ -14,7 +15,6 @@ internal sealed class CreateConfigEntryValidator : IAsyncValidator<CreateConfigE
 
     public async Task<ValidatorResult> ValidateAsync(CreateConfigEntryRequest instance, ValidationContext context, CancellationToken cancellationToken = default)
     {
-
         if (!ConfigEntryValidation.IsValidValueType(instance.ValueType))
         {
             return ValidatorResult.Fail($"ValueType '{instance.ValueType}' is not supported.", nameof(instance.ValueType));
@@ -23,6 +23,15 @@ internal sealed class CreateConfigEntryValidator : IAsyncValidator<CreateConfigE
         var result = new ValidatorResult();
         foreach (var scopedValue in instance.Values)
         {
+            if (instance.IsSensitive && SensitiveSourceValueProtector.IsMaskSentinel(scopedValue.Value))
+            {
+                result.AddError(
+                    "Sensitive values cannot be set to the mask sentinel '***'. Submit the actual secret or omit the value.",
+                    nameof(instance.Values));
+
+                continue;
+            }
+
             var valueError = ConfigEntryValidation.ValidateValue(scopedValue.Value, instance.ValueType);
             if (valueError is not null)
             {

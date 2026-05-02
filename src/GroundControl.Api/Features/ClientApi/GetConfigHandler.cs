@@ -14,9 +14,9 @@ internal sealed class GetConfigHandler : IEndpointHandler
 {
     private readonly SnapshotCache _cache;
     private readonly IScopeResolver _scopeResolver;
-    private readonly IValueProtector _protector;
+    private readonly SensitiveSourceValueProtector _protector;
 
-    public GetConfigHandler(SnapshotCache cache, IScopeResolver scopeResolver, IValueProtector protector)
+    public GetConfigHandler(SnapshotCache cache, IScopeResolver scopeResolver, SensitiveSourceValueProtector protector)
     {
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _scopeResolver = scopeResolver ?? throw new ArgumentNullException(nameof(scopeResolver));
@@ -76,7 +76,7 @@ internal sealed class GetConfigHandler : IEndpointHandler
                 continue;
             }
 
-            var value = entry.IsSensitive && !string.IsNullOrEmpty(resolved.Value) ? _protector.Unprotect(resolved.Value) : resolved.Value;
+            var value = _protector.UnprotectIfSensitive(resolved.Value, entry.IsSensitive);
             data[entry.Key] = new ConfigValue { Value = value, IsSensitive = entry.IsSensitive };
         }
 

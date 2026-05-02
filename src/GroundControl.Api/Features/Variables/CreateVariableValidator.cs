@@ -1,4 +1,5 @@
 using GroundControl.Api.Features.Variables.Contracts;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 
@@ -19,6 +20,15 @@ internal sealed class CreateVariableValidator : IAsyncValidator<CreateVariableRe
 
     public async Task<ValidatorResult> ValidateAsync(CreateVariableRequest instance, ValidationContext context, CancellationToken cancellationToken = default)
     {
+        if (instance.IsSensitive)
+        {
+            var sentinelResult = ValidateMaskSentinel(instance.Values);
+            if (sentinelResult.IsFailed)
+            {
+                return sentinelResult;
+            }
+        }
+
         var result = await ValidateScopeOwnershipAsync(instance, cancellationToken);
         if (result.IsFailed)
         {
@@ -26,6 +36,23 @@ internal sealed class CreateVariableValidator : IAsyncValidator<CreateVariableRe
         }
 
         return await ValidateScopedValuesAsync(instance, cancellationToken);
+    }
+
+    private static ValidatorResult ValidateMaskSentinel(IReadOnlyList<ScopedValueRequest> values)
+    {
+        var result = new ValidatorResult();
+        foreach (var scopedValue in values)
+        {
+            if (SensitiveSourceValueProtector.IsMaskSentinel(scopedValue.Value))
+            {
+                result.AddError(
+                    "Sensitive values cannot be set to the mask sentinel '***'. Submit the actual secret or omit the value.",
+                    nameof(CreateVariableRequest.Values));
+                return result;
+            }
+        }
+
+        return result;
     }
 
     private async Task<ValidatorResult> ValidateScopeOwnershipAsync(CreateVariableRequest instance, CancellationToken cancellationToken)
