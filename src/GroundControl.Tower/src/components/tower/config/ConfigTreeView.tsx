@@ -1,16 +1,11 @@
-import { useMutation } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Eye, EyeOff, Folder, FolderOpen, Hash, Loader2, Lock, Pencil, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Folder, FolderOpen, Hash, Lock, Pencil, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { getConfigEntry } from '@/api/endpoints/config-entries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/tower/data/Badge';
-import { CopyButton } from '@/components/tower/data/CopyButton';
 import { InlineCode } from '@/components/tower/data/InlineCode';
-import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { type ConfigEntry } from '@/queries/useConfigEntries';
 import { useEffectiveEntries, type EffectiveEntry, type EntrySource } from '@/queries/useEffectiveEntries';
@@ -19,8 +14,9 @@ import { buildKeyTree, type TreeNode } from '@/lib/key-tree';
 import { cn } from '@/lib/utils';
 import { DeleteEntryDialog } from './DeleteEntryDialog';
 import { EntryModal } from './EntryModal';
-
-const SENSITIVE_MASK = '***';
+import { EntryValue } from './EntryValue';
+import { ScopedEntryValue } from './ScopedEntryValue';
+import { scopedValueKey, useEntryReveal } from './use-entry-reveal';
 
 interface ConfigTreeViewProps {
   projectId: string;
@@ -75,7 +71,7 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
 
   return (
     <TooltipProvider>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_460px]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_600px]">
         <div className="grid content-start gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Input className="flex-1" onChange={(event) => setFilter(event.target.value)} placeholder="Filter…" value={filter} />
@@ -215,80 +211,25 @@ interface EntryDetailPanelProps {
 }
 
 function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) {
-  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
-  const [pendingKey, setPendingKey] = useState<null | string>(null);
-  const revealMutation = useMutation({
-    mutationFn: ({ id }: { id: string; key: string }) => getConfigEntry(id, { decrypt: true }),
-    onSuccess: (data, variables) => {
-      const stillMasked = data.values.some((value) => value.value === SENSITIVE_MASK);
-
-      if (stillMasked) {
-        toast.error('You don’t have permission to reveal sensitive values.');
-        setPendingKey(null);
-
-        return;
-      }
-
-      setRevealedKeys((previous) => {
-        const next = new Set(previous);
-        next.add(variables.key);
-
-        return next;
-      });
-      setPendingKey(null);
-    },
-    onError: () => {
-      toast.error('Couldn’t reveal sensitive value.');
-      setPendingKey(null);
-    },
-  });
-  const entryId = item?.entry.id;
-
-  useEffect(() => {
-    setRevealedKeys(new Set());
-    setPendingKey(null);
-    revealMutation.reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entryId]);
-
   if (!item) {
     return null;
   }
 
+  return <EntryDetailPanelBody item={item} key={item.entry.id} onEdit={onEdit} projectName={projectName} />;
+}
+
+interface EntryDetailPanelBodyProps {
+  item: EffectiveEntry;
+  onEdit: (entry: ConfigEntry) => void;
+  projectName: string;
+}
+
+function EntryDetailPanelBody({ item, onEdit, projectName }: EntryDetailPanelBodyProps) {
   const { entry, source } = item;
+  const reveal = useEntryReveal(entry);
   const isInherited = source.kind === 'template';
-  const decryptedByKey = revealMutation.data
-    ? new Map(revealMutation.data.values.map((value) => [scopedValueKey(value.scopes ?? {}), value.value]))
-    : new Map<string, string>();
   const defaultVal = entry.values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0);
   const scopedVals = entry.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0);
-
-  function toggleReveal(scopeKey: string) {
-    if (revealedKeys.has(scopeKey)) {
-      setRevealedKeys((previous) => {
-        const next = new Set(previous);
-        next.delete(scopeKey);
-
-        return next;
-      });
-
-      return;
-    }
-
-    if (decryptedByKey.has(scopeKey)) {
-      setRevealedKeys((previous) => {
-        const next = new Set(previous);
-        next.add(scopeKey);
-
-        return next;
-      });
-
-      return;
-    }
-
-    setPendingKey(scopeKey);
-    revealMutation.mutate({ id: entry.id, key: scopeKey });
-  }
 
   return (
     <div className="rounded-xl border border-stroke-subtle bg-bg-container p-6">
@@ -315,16 +256,7 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
         <div className="text-[11px] font-medium uppercase text-fg-caption">
           Default value <span className="ml-1 normal-case text-fg-caption/80">(scopes: {'{}'})</span>
         </div>
-        <ValueRow
-          ariaLabel="Copy default value"
-          decryptedByKey={decryptedByKey}
-          emptyMessage="No default value."
-          isSensitive={entry.isSensitive}
-          onToggleReveal={toggleReveal}
-          pendingKey={pendingKey}
-          revealedKeys={revealedKeys}
-          scopedValue={defaultVal}
-        />
+        <EntryValue ariaLabel="Copy default value" emptyMessage="No default value." reveal={reveal} scopedValue={defaultVal} />
       </div>
 
       <div className="mt-6">
@@ -333,130 +265,12 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
           {scopedVals.length === 0 ? (
             <div className="rounded-lg border border-dashed border-stroke-subtle p-6 text-center text-[13px] text-fg-caption">No scoped values defined.</div>
           ) : scopedVals.map((value, index) => (
-            <div className="rounded-lg border border-stroke-subtle bg-bg-surface px-4 py-3" key={`${formatScopes(value.scopes ?? {})}-${index}`}>
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(value.scopes ?? {}).map(([dimension, scopeValue]) => (
-                  <ScopeTag dimension={dimension} key={dimension} value={scopeValue} />
-                ))}
-              </div>
-              <div className="mt-2">
-                <ValueRow
-                  ariaLabel="Copy scoped value"
-                  bare
-                  decryptedByKey={decryptedByKey}
-                  emptyMessage="No value."
-                  isSensitive={entry.isSensitive}
-                  onToggleReveal={toggleReveal}
-                  pendingKey={pendingKey}
-                  revealedKeys={revealedKeys}
-                  scopedValue={value}
-                />
-              </div>
-            </div>
+            <ScopedEntryValue key={`${scopedValueKey(value.scopes ?? {})}-${index}`} reveal={reveal} scopedValue={value} />
           ))}
         </div>
       </div>
 
     </div>
-  );
-}
-
-interface ValueRowProps {
-  ariaLabel: string;
-  bare?: boolean;
-  decryptedByKey: Map<string, string>;
-  emptyMessage: string;
-  isSensitive: boolean;
-  onToggleReveal: (scopeKey: string) => void;
-  pendingKey: null | string;
-  revealedKeys: Set<string>;
-  scopedValue: { scopes?: null | Record<string, string>; value: string } | undefined;
-}
-
-function ValueRow({ ariaLabel, bare = false, decryptedByKey, emptyMessage, isSensitive, onToggleReveal, pendingKey, revealedKeys, scopedValue }: ValueRowProps) {
-  const wrapperClass = bare
-    ? 'flex items-center justify-between gap-3 text-[13.5px]'
-    : 'mt-2 flex items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-bg-surface px-4 py-2.5 text-[13.5px]';
-
-  if (!scopedValue) {
-    return (
-      <div className={wrapperClass}>
-        <span className="text-fg-caption">{emptyMessage}</span>
-      </div>
-    );
-  }
-
-  const scopeKey = scopedValueKey(scopedValue.scopes ?? {});
-  const revealed = revealedKeys.has(scopeKey);
-  const masked = isSensitive && !revealed;
-  const displayValue = revealed ? decryptedByKey.get(scopeKey) ?? scopedValue.value : scopedValue.value;
-  const pending = pendingKey === scopeKey;
-
-  if (!displayValue) {
-    return (
-      <div className={wrapperClass}>
-        <span className="text-fg-caption">{emptyMessage}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className={wrapperClass}>
-      <div className="min-w-0">
-        {masked ? (
-          <span className="inline-flex items-center gap-2">
-            <span className="font-mono text-[12.5px] text-syntax-sensitive">••••••••</span>
-            <span aria-label="Sensitive value" className="inline-flex" title="Sensitive value">
-              <Lock aria-hidden="true" className="size-3.5" />
-            </span>
-          </span>
-        ) : (
-          <SensitiveValue className="bg-transparent px-0" isSensitive={false} value={displayValue} />
-        )}
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        {isSensitive ? <RevealToggleButton onToggle={() => onToggleReveal(scopeKey)} pending={pending} revealed={revealed} /> : null}
-        <CopyButton
-          ariaLabel={ariaLabel}
-          disabled={masked || !displayValue}
-          disabledReason={masked ? 'Reveal the value first to copy it' : 'Nothing to copy'}
-          value={displayValue}
-        />
-      </div>
-    </div>
-  );
-}
-
-function scopedValueKey(scopes: Record<string, string>): string {
-  const entries = Object.entries(scopes).sort(([left], [right]) => left.localeCompare(right));
-
-  return JSON.stringify(entries);
-}
-
-function RevealToggleButton({ onToggle, pending, revealed }: { onToggle: () => void; pending: boolean; revealed: boolean }) {
-  const label = revealed ? 'Hide value' : 'Reveal value';
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          aria-label={label}
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-icon-subtle transition-colors hover:bg-bg-selected hover:text-fg-body disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={pending}
-          onClick={onToggle}
-          type="button"
-        >
-          {pending ? (
-            <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
-          ) : revealed ? (
-            <EyeOff aria-hidden="true" className="size-3.5" />
-          ) : (
-            <Eye aria-hidden="true" className="size-3.5" />
-          )}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
   );
 }
 
@@ -530,10 +344,4 @@ function defaultValue(entry: ConfigEntry): string {
 
 function scopedValueCount(entry: ConfigEntry): number {
   return entry.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0).length;
-}
-
-function formatScopes(scopes: Record<string, string>): string {
-  const entries = Object.entries(scopes);
-
-  return entries.length === 0 ? 'default' : entries.map(([dimension, value]) => `${dimension}=${value}`).join(', ');
 }
