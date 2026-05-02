@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/tower/data/Badge';
+import { CopyButton } from '@/components/tower/data/CopyButton';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
@@ -243,8 +244,11 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
         <div className="text-[11px] font-medium uppercase text-fg-caption">
           Default value <span className="ml-1 normal-case text-fg-caption/80">(scopes: {'{}'})</span>
         </div>
-        <div className="mt-2 rounded-lg border border-stroke-subtle bg-bg-surface px-4 py-3 text-[13.5px]">
-          {defaultVal?.value ? <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={defaultVal.value} /> : <span className="text-fg-caption">No default value.</span>}
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-bg-surface px-4 py-2.5 text-[13.5px]">
+          <div className="min-w-0">
+            {defaultVal?.value ? <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={defaultVal.value} /> : <span className="text-fg-caption">No default value.</span>}
+          </div>
+          {defaultVal?.value ? <CopyButton ariaLabel="Copy default value" value={defaultVal.value} /> : null}
         </div>
       </div>
 
@@ -260,8 +264,11 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
                   <ScopeTag dimension={dimension} key={dimension} value={scopeValue} />
                 ))}
               </div>
-              <div className="mt-2 text-[13.5px]">
-                <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={value.value} />
+              <div className="mt-2 flex items-center justify-between gap-3 text-[13.5px]">
+                <div className="min-w-0">
+                  <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={value.value} />
+                </div>
+                {value.value ? <CopyButton ariaLabel="Copy scoped value" value={value.value} /> : null}
               </div>
             </div>
           ))}
