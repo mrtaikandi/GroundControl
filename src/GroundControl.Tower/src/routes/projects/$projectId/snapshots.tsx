@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { GitCompareArrows, Maximize2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/tower/data/Badge';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
-import { ProjectPicker } from '@/components/tower/projects/ProjectPicker';
 import { summarizeChanges } from '@/components/tower/snapshots/PublishModal';
 import { SnapshotDiffView } from '@/components/tower/snapshots/SnapshotDiffView';
 import { SnapshotJsonDiffView } from '@/components/tower/snapshots/SnapshotJsonDiffView';
@@ -31,7 +30,6 @@ export const Route = createFileRoute('/projects/$projectId/snapshots')({
 
 function SnapshotsRoute() {
   const { projectId } = Route.useParams();
-  const navigate = useNavigate();
   const snapshots = useSnapshots(projectId);
   const projects = useProjects();
   const snapshotViewMode = useTweaksStore((state) => state.snapshotViewMode);
@@ -44,7 +42,6 @@ function SnapshotsRoute() {
   const projectName = project?.name ?? '—';
   const activeSnapshotId = project?.activeSnapshotId || undefined;
   const activeSummary = items.find((snapshot) => snapshot.id === activeSnapshotId);
-  const mostRecent = items[0];
   const selectedSnapshot = items.find((snapshot) => snapshot.id === selectedSnapshotId) ?? items[0];
   const selectedIsActive = Boolean(selectedSnapshot && activeSnapshotId && selectedSnapshot.id === activeSnapshotId);
   const selectedIndex = items.findIndex((snapshot) => snapshot.id === selectedSnapshot?.id);
@@ -102,23 +99,10 @@ function SnapshotsRoute() {
   }, [activeSummary, previousSummary, snapshotViewMode]);
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Link className="text-[12.5px] text-fg-caption transition-colors hover:text-fg-body" params={{ projectId }} to="/projects/$projectId">
-            ← {project?.name ?? 'project'}
-          </Link>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Snapshots</h1>
-            <span aria-hidden="true" className="text-[20px] text-fg-caption">·</span>
-            <ProjectPicker
-              onChange={(nextId) => navigate({ params: { projectId: nextId }, to: '/projects/$projectId/snapshots' })}
-              projects={projects.data?.data ?? []}
-              selectedId={projectId}
-            />
-          </div>
-          <p className="mt-2 text-[14.5px] text-fg-caption">A history of every published version of this project's configuration.</p>
-        </div>
+    <div className="grid gap-4">
+      <div>
+        <h2 className="text-[19px] font-semibold text-fg-heading">Snapshots</h2>
+        <p className="mt-1 text-[12.5px] text-fg-caption">A history of every published version of this project's configuration.</p>
       </div>
 
       {snapshots.isLoading ? <Skeleton className="h-96" /> : null}
@@ -140,7 +124,7 @@ function SnapshotsRoute() {
           <div className="min-w-0 rounded-xl border border-stroke-subtle bg-bg-surface p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-[20px] font-semibold text-fg-heading">{detailHeading}</h2>
+                <h3 className="truncate text-[18px] font-semibold text-fg-heading">{detailHeading}</h3>
                 {selectedSnapshot ? (
                   <p className="mt-1 text-[12.5px] text-fg-caption">
                     Published {formatRelative(selectedSnapshot.publishedAt)} by {formatUserId(selectedSnapshot.publishedBy)} · {selectedSnapshot.entryCount} resolved {selectedSnapshot.entryCount === 1 ? 'entry' : 'entries'} · project {projectName}

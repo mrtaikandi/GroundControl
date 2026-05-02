@@ -1,0 +1,126 @@
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
+import { GitCompareArrows } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/tower/data/Badge';
+import { ProjectStatusBar } from '@/components/tower/projects/ProjectStatusBar';
+import { ProjectTabs } from '@/components/tower/projects/ProjectTabs';
+import { PublishModal } from '@/components/tower/snapshots/PublishModal';
+import { useClients } from '@/queries/useClients';
+import { useConfigEntries } from '@/queries/useConfigEntries';
+import { useGroups } from '@/queries/useGroups';
+import { useProjectStatus } from '@/queries/useProjectStatus';
+import { useProjects } from '@/queries/useProjects';
+import { useSnapshots } from '@/queries/useSnapshots';
+
+export const Route = createFileRoute('/projects/$projectId')({
+  component: ProjectLayout,
+});
+
+function ProjectLayout() {
+  const { projectId } = Route.useParams();
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const projects = useProjects();
+  const groups = useGroups();
+  const project = projects.data?.data.find((candidate) => candidate.id === projectId);
+  const snapshots = useSnapshots(projectId);
+  const clients = useClients(projectId);
+  const configEntries = useConfigEntries(projectId);
+  const status = useProjectStatus(projectId);
+  const [publishing, setPublishing] = useState(false);
+  const groupName = project?.groupId ? groups.data?.data.find((g) => g.id === project.groupId)?.name ?? 'group pending' : 'ungrouped';
+  const activeSnapshotId = project?.activeSnapshotId || undefined;
+  const snapshotItems = snapshots.data?.data ?? [];
+  const totalSnapshots = snapshots.data?.totalCount !== undefined ? Number(snapshots.data.totalCount) : snapshotItems.length;
+  const activeSnapshot = activeSnapshotId ? snapshotItems.find((snapshot) => snapshot.id === activeSnapshotId) : undefined;
+  const activeVersion = activeSnapshot ? `v${activeSnapshot.snapshotVersion}` : undefined;
+  const configCount = configEntries.data?.totalCount !== undefined ? Number(configEntries.data.totalCount) : configEntries.data?.data.length;
+  const clientCount = clients.data?.totalCount !== undefined ? Number(clients.data.totalCount) : clients.data?.data.length;
+
+  if (projects.isLoading) {
+    return <Skeleton className="h-96" />;
+  }
+
+  if (!project) {
+    return (
+      <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">
+        Project not found.
+      </div>
+    );
+  }
+
+  function openCompare() {
+    void navigate({ params: { projectId }, to: '/projects/$projectId/snapshots' });
+  }
+
+  function openConfigForReview() {
+    void navigate({ params: { projectId }, to: '/projects/$projectId/config' });
+    setPublishing(false);
+  }
+
+  const isOnSnapshotsTab = pathname.endsWith('/snapshots');
+  const projectRoot = `/projects/${projectId}`;
+  const isOnOverviewTab = pathname === projectRoot || pathname === `${projectRoot}/`;
+
+  return (
+    <div className="grid gap-5">
+      <header className="grid gap-3">
+        <div className="flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-wide text-fg-caption">
+          <Link className="transition-colors hover:text-fg-body" to="/projects">Projects</Link>
+          <span aria-hidden="true">/</span>
+          <span className="text-fg-body">{project.name}</span>
+          <span aria-hidden="true" className="text-fg-icon-subtle">·</span>
+          <span className="text-fg-icon-subtle">GET /api/projects/{'{id}'}</span>
+        </div>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-mono text-[28px] font-bold leading-tight text-fg-heading">{project.name}</h1>
+              <Badge variant="neutral">{groupName}</Badge>
+            </div>
+            <p className="mt-2 max-w-3xl text-[13.5px] text-fg-body">
+              {project.description || 'No description provided.'}
+              {activeVersion ? <span className="text-fg-caption"> · active snap <span className="font-mono text-fg-body">{activeVersion}</span></span> : null}
+              {totalSnapshots > 0 ? <span className="text-fg-caption"> · {totalSnapshots} {totalSnapshots === 1 ? 'publish' : 'publishes'}</span> : null}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              disabled={isOnSnapshotsTab}
+              onClick={openCompare}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              <GitCompareArrows aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+              Compare
+            </Button>
+            <Button onClick={() => setPublishing(true)} size="sm" type="button">Publish snapshot</Button>
+          </div>
+        </div>
+      </header>
+
+      <ProjectTabs
+        clientCount={clientCount}
+        configCount={configCount}
+        projectId={projectId}
+        snapshotCount={totalSnapshots}
+      />
+
+      {isOnOverviewTab ? (
+        <ProjectStatusBar
+          onPublish={() => setPublishing(true)}
+          onReviewDiff={openConfigForReview}
+          projectId={projectId}
+          status={status}
+        />
+      ) : null}
+
+      <Outlet />
+
+      <PublishModal activeSnapshotId={activeSnapshotId} onOpenChange={setPublishing} open={publishing} projectId={projectId} />
+    </div>
+  );
+}

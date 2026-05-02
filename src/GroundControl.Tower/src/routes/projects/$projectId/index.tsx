@@ -1,258 +1,234 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { Braces, FolderTree, List } from 'lucide-react';
-import { useState } from 'react';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Layers3 } from 'lucide-react';
 import { Badge } from '@/components/tower/data/Badge';
-import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
-import { ConfigFlatView } from '@/components/tower/config/ConfigFlatView';
-import { ConfigJsonView } from '@/components/tower/config/ConfigJsonView';
-import { ConfigTreeView } from '@/components/tower/config/ConfigTreeView';
-import { TemplateAttachmentsBar } from '@/components/tower/projects/TemplateAttachmentsBar';
-import { PublishModal } from '@/components/tower/snapshots/PublishModal';
-import { Button } from '@/components/ui/button';
+import { InlineCode } from '@/components/tower/data/InlineCode';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatUserId } from '@/lib/user';
 import { useClients } from '@/queries/useClients';
-import { useGroups } from '@/queries/useGroups';
+import { useConfigEntries } from '@/queries/useConfigEntries';
 import { useProjects } from '@/queries/useProjects';
-import { useSnapshotDetail } from '@/queries/useSnapshots';
-import { useTweaksStore } from '@/store/tweaks';
+import { useSnapshots, type SnapshotSummary } from '@/queries/useSnapshots';
+import { useTemplates, type Template } from '@/queries/useTemplates';
 
 export const Route = createFileRoute('/projects/$projectId/')({
-  component: ProjectDetailRoute,
+  component: ProjectOverviewRoute,
 });
 
-function ProjectDetailRoute() {
+function ProjectOverviewRoute() {
   const { projectId } = Route.useParams();
   const projects = useProjects();
-  const groups = useGroups();
-  const clients = useClients(projectId);
   const project = projects.data?.data.find((candidate) => candidate.id === projectId);
-  const activeSnapshotId = project?.activeSnapshotId || undefined;
-  const activeSnapshot = useSnapshotDetail(projectId, activeSnapshotId);
-  const groupName = project?.groupId ? groups.data?.data.find((g) => g.id === project.groupId)?.name ?? 'group pending' : 'ungrouped';
-  const configViewMode = useTweaksStore((state) => state.configViewMode);
-  const setConfigViewMode = useTweaksStore((state) => state.setConfigViewMode);
-  const [publishing, setPublishing] = useState(false);
-
-  if (projects.isLoading) {
-    return <Skeleton className="h-96" />;
-  }
+  const snapshots = useSnapshots(projectId);
+  const clients = useClients(projectId);
+  const configEntries = useConfigEntries(projectId);
+  const templates = useTemplates();
 
   if (!project) {
-    return (
-      <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">
-        Project not found.
-      </div>
-    );
+    return null;
   }
 
+  const snapshotItems = snapshots.data?.data ?? [];
+  const totalSnapshots = snapshots.data?.totalCount !== undefined ? Number(snapshots.data.totalCount) : snapshotItems.length;
+  const activeSnapshotId = project.activeSnapshotId || undefined;
+  const activeSnapshot = activeSnapshotId ? snapshotItems.find((snapshot) => snapshot.id === activeSnapshotId) : undefined;
+  const latestSnapshot = snapshotItems[0];
   const clientItems = clients.data?.data ?? [];
+  const totalClients = clients.data?.totalCount !== undefined ? Number(clients.data.totalCount) : clientItems.length;
   const activeClients = clientItems.filter((client) => client.isActive).length;
-  const revokedClients = clientItems.length - activeClients;
-  const lastUsedAt = clientItems.reduce<string | null>((acc, client) => {
-    if (!client.lastUsedAt) {
-      return acc;
-    }
-
-    return !acc || new Date(client.lastUsedAt).getTime() > new Date(acc).getTime() ? client.lastUsedAt : acc;
-  }, null);
+  const configItems = configEntries.data?.data ?? [];
+  const projectOwnedConfigCount = configItems.length;
+  const inheritedConfigCount = Math.max(0, (configEntries.data?.totalCount !== undefined ? Number(configEntries.data.totalCount) : projectOwnedConfigCount) - projectOwnedConfigCount);
+  const attachedTemplates = (templates.data?.data ?? []).filter((template) => project.templateIds?.includes(template.id));
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <Link className="text-[12.5px] text-fg-caption transition-colors hover:text-fg-body" to="/projects">
-          ← All projects
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="font-mono text-[34px] font-bold leading-tight text-fg-heading">{project.name}</h1>
-          <Badge variant="neutral">{groupName}</Badge>
-          <Badge variant={activeSnapshotId ? 'info' : 'neutral'}>
-            {activeSnapshotId ? 'active snapshot' : 'no active snapshot'}
-          </Badge>
-        </div>
-        <p className="mt-3 max-w-3xl text-[14.5px] text-fg-body">
-          {project.description || 'No description provided.'}
-        </p>
-        <p className="mt-2 text-[12.5px] text-fg-caption">
-          Created {formatDate(project.createdAt)} · Updated {formatDate(project.updatedAt)}
-        </p>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        <ActiveSnapshotPanel
-          isLoading={Boolean(activeSnapshotId) && activeSnapshot.isLoading}
-          onPublish={() => setPublishing(true)}
-          projectId={projectId}
-          snapshot={activeSnapshot.data}
+    <div className="grid gap-5">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <SummaryCard
+          eyebrow="Active snapshot"
+          isLoading={projects.isLoading || snapshots.isLoading}
+          primary={activeSnapshot ? <span className="font-mono text-[24px] font-bold text-fg-heading">v{activeSnapshot.snapshotVersion}</span> : <span className="text-[15px] text-fg-caption">No active snapshot</span>}
+          secondary={activeSnapshot ? `published ${formatRelative(activeSnapshot.publishedAt)} by ${formatUserId(activeSnapshot.publishedBy)}` : 'Publish a snapshot to make config available to clients.'}
         />
-        <ClientsSummaryPanel
-          activeCount={activeClients}
+        <SummaryCard
+          eyebrow="Config entries"
+          isLoading={configEntries.isLoading}
+          primary={<span className="font-mono text-[24px] font-bold text-fg-heading">{configEntries.data?.totalCount !== undefined ? Number(configEntries.data.totalCount) : projectOwnedConfigCount}</span>}
+          secondary={`${projectOwnedConfigCount} project · ${inheritedConfigCount} inherited`}
+        />
+        <SummaryCard
+          eyebrow="Clients"
           isLoading={clients.isLoading}
-          lastUsedAt={lastUsedAt}
-          projectId={projectId}
-          revokedCount={revokedClients}
-          totalCount={clientItems.length}
+          primary={<span className="font-mono text-[24px] font-bold text-fg-heading">{totalClients}</span>}
+          secondary={`${activeClients} active · bound to ${project.name}`}
         />
       </div>
 
-      <ConfigurationSection
-        projectId={projectId}
-        configViewMode={configViewMode}
-        setConfigViewMode={setConfigViewMode}
-      />
-
-      <PublishModal activeSnapshotId={activeSnapshotId} onOpenChange={setPublishing} open={publishing} projectId={projectId} />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <RecentSnapshotsPanel isLoading={snapshots.isLoading} latestSnapshot={latestSnapshot} projectId={projectId} snapshots={snapshotItems} totalCount={totalSnapshots} />
+        <div className="grid gap-5">
+          <InheritancePanel isLoading={templates.isLoading} templates={attachedTemplates} />
+          <SnapshotsHistoryPanel isLoading={snapshots.isLoading} latestSnapshot={latestSnapshot} projectId={projectId} snapshots={snapshotItems} totalCount={totalSnapshots} />
+        </div>
+      </div>
     </div>
   );
 }
 
-interface ActiveSnapshotPanelProps {
+interface SummaryCardProps {
+  eyebrow: string;
   isLoading: boolean;
-  onPublish: () => void;
-  projectId: string;
-  snapshot: { description?: string | null; entries: unknown[]; publishedAt: string; publishedBy: string; snapshotVersion: number | string } | undefined;
+  primary: React.ReactNode;
+  secondary: string;
 }
 
-function ActiveSnapshotPanel({ isLoading, onPublish, projectId, snapshot }: ActiveSnapshotPanelProps) {
-  const entryCount = snapshot?.entries.length ?? 0;
+function SummaryCard({ eyebrow, isLoading, primary, secondary }: SummaryCardProps) {
   return (
-    <section className="flex flex-col rounded-xl border border-stroke-subtle bg-bg-surface p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[15px] font-semibold text-fg-heading">Active snapshot</h2>
-          <p className="text-[12.5px] text-fg-caption">The snapshot clients receive right now.</p>
-        </div>
-        <Link
-          className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline"
-          params={{ projectId }}
-          to="/projects/$projectId/snapshots"
-        >
-          Open snapshots →
-        </Link>
-      </div>
-
-      <div className="mt-4 min-h-24 flex-1">
-        {isLoading ? <Skeleton className="h-20" /> : null}
-        {!isLoading && !snapshot ? (
-          <div className="rounded-lg border border-dashed border-stroke-subtle bg-bg-container px-4 py-5 text-center text-[12.5px] text-fg-caption">
-            No snapshot has been published yet. Configure entries below and publish to make them available to clients.
-          </div>
-        ) : null}
-        {!isLoading && snapshot ? (
-          <div>
-            <div className="flex flex-wrap items-baseline gap-2">
-              <span className="font-mono text-[18px] font-semibold text-fg-heading">v{String(snapshot.snapshotVersion)}</span>
-              {snapshot.description?.trim() ? <span className="truncate text-[13px] text-fg-body">{snapshot.description.trim()}</span> : null}
-            </div>
-            <p className="mt-2 text-[12.5px] text-fg-caption">
-              Published {formatDate(snapshot.publishedAt)} by {formatUserId(snapshot.publishedBy)} · {entryCount} resolved {entryCount === 1 ? 'entry' : 'entries'}
-            </p>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="mt-5">
-        <Button onClick={onPublish} type="button">Publish new snapshot</Button>
-      </div>
+    <section className="rounded-xl border border-stroke-subtle bg-bg-surface p-4">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-fg-caption">{eyebrow}</div>
+      {isLoading ? <Skeleton className="mt-2 h-7 w-20" /> : <div className="mt-1.5">{primary}</div>}
+      <div className="mt-2 text-[12.5px] text-fg-caption">{secondary}</div>
     </section>
   );
 }
 
-interface ClientsSummaryPanelProps {
-  activeCount: number;
+interface RecentSnapshotsPanelProps {
   isLoading: boolean;
-  lastUsedAt: string | null;
+  latestSnapshot: SnapshotSummary | undefined;
   projectId: string;
-  revokedCount: number;
+  snapshots: SnapshotSummary[];
   totalCount: number;
 }
 
-function ClientsSummaryPanel({ activeCount, isLoading, lastUsedAt, projectId, revokedCount, totalCount }: ClientsSummaryPanelProps) {
+function RecentSnapshotsPanel({ isLoading, latestSnapshot, projectId, snapshots, totalCount }: RecentSnapshotsPanelProps) {
+  const recent = snapshots.slice(0, 5);
+
   return (
-    <section className="flex flex-col rounded-xl border border-stroke-subtle bg-bg-surface p-5">
+    <section className="rounded-xl border border-stroke-subtle bg-bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-[15px] font-semibold text-fg-heading">Clients</h2>
-          <p className="text-[12.5px] text-fg-caption">Credentials that read this project's configuration.</p>
+          <h2 className="text-[15px] font-semibold text-fg-heading">Recent activity</h2>
+          <p className="text-[12.5px] text-fg-caption">Latest snapshot publishes for this project.</p>
         </div>
-        <Link
-          className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline"
-          params={{ projectId }}
-          to="/projects/$projectId/clients"
-        >
-          Manage clients →
+        <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline" to="/audit">
+          open audit →
         </Link>
       </div>
 
-      <div className="mt-4 min-h-24 flex-1">
-        {isLoading ? <Skeleton className="h-20" /> : null}
-        {!isLoading && totalCount === 0 ? (
+      <div className="mt-4 grid gap-2">
+        {isLoading ? <Skeleton className="h-24" /> : null}
+        {!isLoading && recent.length === 0 ? (
           <div className="rounded-lg border border-dashed border-stroke-subtle bg-bg-container px-4 py-5 text-center text-[12.5px] text-fg-caption">
-            No clients have been issued yet. Issue a credential to allow an app to read this project.
+            No snapshot activity yet.
           </div>
         ) : null}
-        {!isLoading && totalCount > 0 ? (
-          <div>
-            <div className="flex flex-wrap items-baseline gap-3">
-              <span className="font-mono text-[18px] font-semibold text-fg-heading">{activeCount}</span>
-              <span className="text-[13px] text-fg-body">active</span>
-              {revokedCount > 0 ? (
-                <>
-                  <span aria-hidden="true" className="text-fg-caption">·</span>
-                  <span className="font-mono text-[14px] text-fg-caption">{revokedCount}</span>
-                  <span className="text-[13px] text-fg-caption">revoked</span>
-                </>
-              ) : null}
+        {!isLoading && recent.map((snapshot) => (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg px-2 py-2 text-[12.5px] hover:bg-bg-container" key={snapshot.id}>
+            <div className="flex min-w-0 items-center gap-3">
+              <Badge variant={snapshot.id === latestSnapshot?.id ? 'success' : 'neutral'}>publish</Badge>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="font-mono text-[13px] font-semibold text-fg-heading">v{snapshot.snapshotVersion}</span>
+                  {snapshot.description?.trim() ? <span className="truncate text-fg-body">{snapshot.description.trim()}</span> : <span className="text-fg-caption">no description</span>}
+                </div>
+              </div>
             </div>
-            <p className="mt-2 text-[12.5px] text-fg-caption">
-              {lastUsedAt ? `Last used ${formatDate(lastUsedAt)}` : 'No activity recorded yet.'}
-            </p>
+            <span className="shrink-0 font-mono text-[11.5px] text-fg-caption">{formatUserId(snapshot.publishedBy)} · {formatRelative(snapshot.publishedAt)}</span>
+          </div>
+        ))}
+      </div>
+
+      {totalCount > recent.length ? (
+        <Link className="mt-3 inline-flex text-[12.5px] font-medium text-fg-link transition-colors hover:underline" params={{ projectId }} to="/projects/$projectId/snapshots">
+          View all {totalCount} snapshots →
+        </Link>
+      ) : null}
+    </section>
+  );
+}
+
+function InheritancePanel({ isLoading, templates }: { isLoading: boolean; templates: Template[] }) {
+  return (
+    <section className="rounded-xl border border-stroke-subtle bg-bg-surface p-5">
+      <h2 className="text-[15px] font-semibold text-fg-heading">Inheritance</h2>
+      <p className="text-[12.5px] text-fg-caption">Templates this project pulls entries from.</p>
+
+      <div className="mt-4 grid gap-2">
+        {isLoading ? <Skeleton className="h-16" /> : null}
+        {!isLoading && templates.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-stroke-subtle bg-bg-container px-4 py-5 text-center text-[12.5px] text-fg-caption">
+            No templates attached.
           </div>
         ) : null}
+        {!isLoading && templates.map((template) => (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2" key={template.id}>
+            <div className="flex min-w-0 items-center gap-2">
+              <Layers3 aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
+              <InlineCode>{template.name}</InlineCode>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
-interface ConfigurationSectionProps {
-  configViewMode: 'flat' | 'json' | 'tree';
-  projectId: string;
-  setConfigViewMode: (mode: 'flat' | 'json' | 'tree') => void;
-}
-
-function ConfigurationSection({ configViewMode, projectId, setConfigViewMode }: ConfigurationSectionProps) {
-  const navigate = useNavigate();
+function SnapshotsHistoryPanel({ isLoading, latestSnapshot, projectId, snapshots, totalCount }: RecentSnapshotsPanelProps) {
+  const recent = snapshots.slice(0, 4);
 
   return (
-    <section className="grid gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className="rounded-xl border border-stroke-subtle bg-bg-surface p-5">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-[19px] font-semibold text-fg-heading">Configuration</h2>
-          <p className="mt-1 text-[12.5px] text-fg-caption">Manage the entries that resolve into the next snapshot.</p>
+          <h2 className="text-[15px] font-semibold text-fg-heading">Recent snapshots</h2>
+          <p className="text-[12.5px] text-fg-caption">{totalCount} total{latestSnapshot ? ` · v${latestSnapshot.snapshotVersion} is the latest` : ''}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <SegmentedControl
-            onChange={setConfigViewMode}
-            options={[{ icon: List, label: 'Flat', value: 'flat' }, { icon: FolderTree, label: 'Tree', value: 'tree' }, { icon: Braces, label: 'JSON', value: 'json' }]}
-            value={configViewMode}
-          />
-          <Button
-            onClick={() => navigate({ params: { projectId }, to: '/projects/$projectId/config' })}
-            type="button"
-            variant="secondary"
-          >
-            Open full editor
-          </Button>
-        </div>
+        <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline" params={{ projectId }} to="/projects/$projectId/snapshots">
+          view all →
+        </Link>
       </div>
-
-      <TemplateAttachmentsBar projectId={projectId} />
-
-      {configViewMode === 'tree' ? <ConfigTreeView projectId={projectId} /> : configViewMode === 'json' ? <ConfigJsonView projectId={projectId} /> : <ConfigFlatView projectId={projectId} />}
+      <div className="mt-3 grid gap-2">
+        {isLoading ? <Skeleton className="h-24" /> : null}
+        {!isLoading && recent.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-stroke-subtle bg-bg-container px-3 py-4 text-center text-[12.5px] text-fg-caption">
+            No snapshots yet.
+          </div>
+        ) : null}
+        {!isLoading && recent.map((snapshot) => (
+          <div className="flex items-start justify-between gap-3 rounded-lg px-2 py-2 hover:bg-bg-container" key={snapshot.id}>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[13px] font-semibold text-fg-heading">v{snapshot.snapshotVersion}</span>
+                {snapshot.description?.trim() ? <span className="truncate text-[12.5px] text-fg-body">{snapshot.description.trim()}</span> : null}
+              </div>
+              <div className="mt-1 truncate text-[11.5px] text-fg-caption">
+                {formatUserId(snapshot.publishedBy)} · {formatRelative(snapshot.publishedAt)}
+              </div>
+            </div>
+            {snapshot.id === latestSnapshot?.id ? <Badge variant="success">latest</Badge> : null}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+function formatRelative(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const now = new Date();
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  const isSameDay = date.toDateString() === now.toDateString();
+  if (isSameDay) {
+    return `${time} today`;
+  }
+
+  const daysDiff = Math.floor((now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000));
+  if (daysDiff < 7 && daysDiff >= 0) {
+    return `${date.toLocaleDateString(undefined, { weekday: 'short' })} ${time}`;
+  }
+
+  return `${date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' })} ${time}`;
 }

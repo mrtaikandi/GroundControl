@@ -7,9 +7,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { buildResolvedDocument } from '@/lib/resolve-config';
 import { snapshotToResolvedDocument } from '@/lib/snapshot-document';
+import { deepEqual, diffDocuments, summarize, type ChangeSummary } from '@/lib/snapshot-diff';
 import { useResolvedConfig } from '@/queries/useResolvedConfig';
 import { usePublishSnapshot, useSnapshotDetail } from '@/queries/useSnapshots';
 import { useTweaksStore } from '@/store/tweaks';
+
+export { deepEqual };
 
 interface PublishModalProps {
   activeSnapshotId?: string;
@@ -58,7 +61,7 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
         ) : (
           <div className="grid gap-4">
             <div className="grid gap-3 rounded-xl border border-stroke-subtle bg-bg-container p-4 md:grid-cols-4">
-              <Metric label="Entries" value={flattenDocument(after).size.toString()} />
+              <Metric label="Entries" value={flattenSize(after).toString()} />
               <Metric label="Additions" value={summary.additions.toString()} />
               <Metric label="Modifications" value={summary.modifications.toString()} />
               <Metric label="Deletions" value={summary.deletions.toString()} />
@@ -105,56 +108,23 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function deepEqual(left: unknown, right: unknown) {
-  return JSON.stringify(left) === JSON.stringify(right);
+export function summarizeChanges(before: Record<string, unknown>, after: Record<string, unknown>): ChangeSummary {
+  return summarize(diffDocuments(before, after));
 }
 
-export function summarizeChanges(before: Record<string, unknown>, after: Record<string, unknown>) {
-  const beforeFlat = flattenDocument(before);
-  const afterFlat = flattenDocument(after);
-  let additions = 0;
-  let modifications = 0;
-  let deletions = 0;
-
-  for (const [key, value] of afterFlat) {
-    if (!beforeFlat.has(key)) {
-      additions += 1;
-    } else if (!deepEqual(beforeFlat.get(key), value)) {
-      modifications += 1;
-    }
-  }
-
-  for (const key of beforeFlat.keys()) {
-    if (!afterFlat.has(key)) {
-      deletions += 1;
-    }
-  }
-
-  return { additions, deletions, modifications };
+function flattenSize(document: Record<string, unknown>): number {
+  return countLeaves(document);
 }
 
-function flattenDocument(value: unknown, prefix = ''): Map<string, unknown> {
-  if (!isRecord(value)) {
-    return new Map([[prefix, value]]);
+function countLeaves(value: unknown): number {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return 1;
   }
 
-  const flattened = new Map<string, unknown>();
-
-  for (const [key, child] of Object.entries(value)) {
-    const path = prefix ? `${prefix}:${key}` : key;
-
-    if (isRecord(child)) {
-      for (const [childKey, childValue] of flattenDocument(child, path)) {
-        flattened.set(childKey, childValue);
-      }
-    } else {
-      flattened.set(path, child);
-    }
+  let total = 0;
+  for (const child of Object.values(value as Record<string, unknown>)) {
+    total += countLeaves(child);
   }
 
-  return flattened;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return total;
 }

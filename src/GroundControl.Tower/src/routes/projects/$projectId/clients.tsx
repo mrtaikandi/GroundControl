@@ -1,5 +1,5 @@
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,10 +8,8 @@ import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { NewClientModal } from '@/components/tower/clients/NewClientModal';
-import { ProjectPicker } from '@/components/tower/projects/ProjectPicker';
 import { RevokeClientDialog } from '@/components/tower/clients/RevokeClientDialog';
 import { useClients, type Client } from '@/queries/useClients';
-import { useProjects } from '@/queries/useProjects';
 
 const columnHelper = createColumnHelper<Client>();
 
@@ -21,9 +19,6 @@ export const Route = createFileRoute('/projects/$projectId/clients')({
 
 function ClientsRoute() {
   const { projectId } = Route.useParams();
-  const navigate = useNavigate();
-  const projects = useProjects();
-  const project = projects.data?.data.find((candidate) => candidate.id === projectId);
   const clients = useClients(projectId);
   const [clientToRevoke, setClientToRevoke] = useState<Client | null>(null);
   const data = clients.data?.data ?? [];
@@ -37,22 +32,11 @@ function ClientsRoute() {
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Link className="text-[12.5px] text-fg-caption transition-colors hover:text-fg-body" params={{ projectId }} to="/projects/$projectId">
-            ← {project?.name ?? 'project'}
-          </Link>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Clients</h1>
-            <span aria-hidden="true" className="text-[20px] text-fg-caption">·</span>
-            <ProjectPicker
-              onChange={(nextId) => navigate({ params: { projectId: nextId }, to: '/projects/$projectId/clients' })}
-              projects={projects.data?.data ?? []}
-              selectedId={projectId}
-            />
-          </div>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Issue and manage the credentials your apps use to read this project's settings.</p>
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[19px] font-semibold text-fg-heading">Clients</h2>
+          <p className="mt-1 text-[12.5px] text-fg-caption">Issue and manage the credentials your apps use to read this project's settings.</p>
         </div>
         <NewClientModal projectId={projectId} />
       </div>
