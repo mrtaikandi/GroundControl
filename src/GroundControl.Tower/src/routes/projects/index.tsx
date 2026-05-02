@@ -1,8 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { NewProjectModal } from '@/components/tower/projects/NewProjectModal';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGroups } from '@/queries/useGroups';
 import { useProjects } from '@/queries/useProjects';
@@ -27,40 +26,44 @@ function ProjectsRoute() {
         <NewProjectModal />
       </div>
 
-      {projects.isLoading ? <ProjectSkeletonGrid /> : null}
+      {projects.isLoading ? <ProjectSkeletonList /> : null}
       {projects.isError ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-6 text-fg-caption">Projects could not be loaded.</div> : null}
       {!projects.isLoading && !projects.isError && projectItems.length === 0 ? <EmptyProjects /> : null}
       {projectItems.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid gap-3">
           {projectItems.map((project) => (
-            <Card key={project.id}>
-              <CardHeader>
-                <CardTitle><InlineCode>{project.name}</InlineCode></CardTitle>
-                <div className="flex flex-wrap gap-2 pt-2">
+            <li key={project.id}>
+              <Link
+                className="block rounded-xl border border-stroke-subtle bg-bg-surface p-5 transition-colors hover:border-stroke-divider hover:bg-bg-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-field-focus"
+                params={{ projectId: project.id }}
+                to="/projects/$projectId"
+              >
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-[15px] font-semibold text-fg-heading">
+                    <InlineCode>{project.name}</InlineCode>
+                  </h2>
                   <Badge variant="neutral">{project.groupId ? groupNames.get(project.groupId) ?? 'group pending' : 'ungrouped'}</Badge>
-                  <Badge variant={project.activeSnapshotId ? 'info' : 'neutral'}>{project.activeSnapshotId ? 'active snapshot' : 'no active snapshot'}</Badge>
+                  <Badge variant={project.activeSnapshotId ? 'info' : 'neutral'}>
+                    {project.activeSnapshotId ? 'active snapshot' : 'no active snapshot'}
+                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="grid gap-4 text-[12.5px] text-fg-caption">
-                <p className="min-h-10 text-fg-body">{project.description || 'No description provided.'}</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Metric label="Entries" value="—" />
-                  <Metric label="Templates" value={project.templateIds.length.toString()} />
+                <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+                  <p className="min-w-0 flex-1 text-[13px] text-fg-body">{project.description || 'No description provided.'}</p>
+                  <span className="shrink-0 text-[12.5px] text-fg-caption">Updated {formatDate(project.updatedAt)}</span>
                 </div>
-                <div>Updated {formatDate(project.updatedAt)}</div>
-              </CardContent>
-            </Card>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : null}
     </div>
   );
 }
 
-function ProjectSkeletonGrid() {
+function ProjectSkeletonList() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: 6 }, (_, index) => <Skeleton className="h-52" key={index} />)}
+    <div className="grid gap-3">
+      {Array.from({ length: 5 }, (_, index) => <Skeleton className="h-24" key={index} />)}
     </div>
   );
 }
@@ -71,15 +74,6 @@ function EmptyProjects() {
       <h2 className="text-[19px] font-semibold text-fg-heading">No projects yet</h2>
       <p className="mx-auto mt-2 max-w-md text-[13px] text-fg-caption">Create the first project to start collecting entries, scopes, variables, templates, and snapshots.</p>
       <div className="mt-5"><NewProjectModal /></div>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-bg-container px-3 py-2">
-      <div className="text-[11.5px] text-fg-caption">{label}</div>
-      <div className="mt-1 font-mono text-[13px] text-fg-heading">{value}</div>
     </div>
   );
 }

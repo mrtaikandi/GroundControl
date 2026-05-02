@@ -1,5 +1,5 @@
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,7 @@ function ClientsRoute() {
   const { projectId } = Route.useParams();
   const navigate = useNavigate();
   const projects = useProjects();
+  const project = projects.data?.data.find((candidate) => candidate.id === projectId);
   const clients = useClients(projectId);
   const [clientToRevoke, setClientToRevoke] = useState<Client | null>(null);
   const data = clients.data?.data ?? [];
@@ -39,7 +40,10 @@ function ClientsRoute() {
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
+          <Link className="text-[12.5px] text-fg-caption transition-colors hover:text-fg-body" params={{ projectId }} to="/projects/$projectId">
+            ← {project?.name ?? 'project'}
+          </Link>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Clients</h1>
             <span aria-hidden="true" className="text-[20px] text-fg-caption">·</span>
             <ProjectPicker

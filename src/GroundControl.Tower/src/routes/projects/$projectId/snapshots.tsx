@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { GitCompareArrows, Maximize2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -105,7 +105,10 @@ function SnapshotsRoute() {
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
+          <Link className="text-[12.5px] text-fg-caption transition-colors hover:text-fg-body" params={{ projectId }} to="/projects/$projectId">
+            ← {project?.name ?? 'project'}
+          </Link>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Snapshots</h1>
             <span aria-hidden="true" className="text-[20px] text-fg-caption">·</span>
             <ProjectPicker

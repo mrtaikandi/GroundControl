@@ -19,6 +19,7 @@ import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminTokensRouteImport } from './routes/admin/tokens'
 import { Route as AdminGroupsRouteImport } from './routes/admin/groups'
+import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as AdminGroupsIndexRouteImport } from './routes/admin/groups.index'
 import { Route as ProjectsProjectIdSnapshotsRouteImport } from './routes/projects/$projectId/snapshots'
 import { Route as ProjectsProjectIdConfigRouteImport } from './routes/projects/$projectId/config'
@@ -75,6 +76,11 @@ const AdminGroupsRoute = AdminGroupsRouteImport.update({
   path: '/admin/groups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
+  id: '/projects/$projectId/',
+  path: '/projects/$projectId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminGroupsIndexRoute = AdminGroupsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
   '/projects/$projectId/snapshots': typeof ProjectsProjectIdSnapshotsRoute
   '/admin/groups/': typeof AdminGroupsIndexRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
   '/projects/$projectId/snapshots': typeof ProjectsProjectIdSnapshotsRoute
   '/admin/groups': typeof AdminGroupsIndexRoute
+  '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
   '/projects/$projectId/snapshots': typeof ProjectsProjectIdSnapshotsRoute
   '/admin/groups/': typeof AdminGroupsIndexRoute
+  '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/config'
     | '/projects/$projectId/snapshots'
     | '/admin/groups/'
+    | '/projects/$projectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/config'
     | '/projects/$projectId/snapshots'
     | '/admin/groups'
+    | '/projects/$projectId'
   id:
     | '__root__'
     | '/'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/config'
     | '/projects/$projectId/snapshots'
     | '/admin/groups/'
+    | '/projects/$projectId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -221,6 +233,7 @@ export interface RootRouteChildren {
   ProjectsProjectIdClientsRoute: typeof ProjectsProjectIdClientsRoute
   ProjectsProjectIdConfigRoute: typeof ProjectsProjectIdConfigRoute
   ProjectsProjectIdSnapshotsRoute: typeof ProjectsProjectIdSnapshotsRoute
+  ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -295,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGroupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/': {
+      id: '/projects/$projectId/'
+      path: '/projects/$projectId'
+      fullPath: '/projects/$projectId/'
+      preLoaderRoute: typeof ProjectsProjectIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/groups/': {
       id: '/admin/groups/'
       path: '/'
@@ -361,6 +381,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsProjectIdClientsRoute: ProjectsProjectIdClientsRoute,
   ProjectsProjectIdConfigRoute: ProjectsProjectIdConfigRoute,
   ProjectsProjectIdSnapshotsRoute: ProjectsProjectIdSnapshotsRoute,
+  ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

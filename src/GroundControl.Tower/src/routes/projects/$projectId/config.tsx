@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { Braces, List, ListTree, FolderTree } from 'lucide-react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { Braces, List, FolderTree } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
@@ -30,7 +30,10 @@ function ConfigRoute() {
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
+          <Link className="text-[12.5px] text-fg-caption transition-colors hover:text-fg-body" params={{ projectId }} to="/projects/$projectId">
+            ← {project?.name ?? 'project'}
+          </Link>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Configuration</h1>
             <span aria-hidden="true" className="text-[20px] text-fg-caption">·</span>
             <ProjectPicker
