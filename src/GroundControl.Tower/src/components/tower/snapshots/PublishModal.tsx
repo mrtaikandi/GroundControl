@@ -141,7 +141,7 @@ function flattenDocument(value: unknown, prefix = ''): Map<string, unknown> {
   const flattened = new Map<string, unknown>();
 
   for (const [key, child] of Object.entries(value)) {
-    const path = prefix ? `${prefix}.${key}` : key;
+    const path = prefix ? `${prefix}:${key}` : key;
 
     if (isRecord(child)) {
       for (const [childKey, childValue] of flattenDocument(child, path)) {

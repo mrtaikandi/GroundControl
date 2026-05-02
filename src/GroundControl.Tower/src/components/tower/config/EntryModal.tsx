@@ -16,7 +16,7 @@ const entrySchema = z.object({
   defaultValue: z.string(),
   description: z.string().max(500, 'Use 500 characters or fewer').optional(),
   isSensitive: z.boolean(),
-  key: z.string().min(1, 'Entry key is required').regex(/^[a-zA-Z0-9._-]+$/, 'Use letters, numbers, dots, underscores, and hyphens only'),
+  key: z.string().min(1, 'Entry key is required').regex(/^[a-zA-Z0-9.:_-]+$/, 'Use letters, numbers, colons, dots, underscores, and hyphens only'),
   scopedValues: z.array(z.object({ dimension: z.string().optional(), scopeValue: z.string().optional(), value: z.string() })),
   type: z.enum(valueTypes),
 });

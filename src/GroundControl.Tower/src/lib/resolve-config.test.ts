@@ -11,25 +11,25 @@ describe('resolveConfigEntries', () => {
       ]),
     ], { Environment: 'dev' });
 
-    expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ feature: { checkout: { enabled: false } } });
+    expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ Feature: { Checkout: { Enabled: false } } });
   });
 
   it('uses the most specific matching scoped value', () => {
     const resolved = resolveConfigEntries([
-      entry('service.replicas', 'number', [
+      entry('Service:Replicas', 'number', [
         { scopes: {}, value: '1' },
         { scopes: { Environment: 'prod' }, value: '2' },
         { scopes: { Environment: 'prod', Region: 'eu-west' }, value: '4' },
       ]),
     ], { Environment: 'prod', Region: 'eu-west' });
 
-    expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ service: { replicas: 4 } });
+    expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ Service: { Replicas: 4 } });
   });
 
   it('masks sensitive values when requested', () => {
-    const resolved = resolveConfigEntries([entry('database.password', 'string', [{ scopes: {}, value: 'secret' }], true)], {});
+    const resolved = resolveConfigEntries([entry('Database:Password', 'string', [{ scopes: {}, value: 'secret' }], true)], {});
 
-    expect(buildResolvedDocument(resolved, { maskSensitive: true })).toEqual({ database: { password: '••••••••' } });
+    expect(buildResolvedDocument(resolved, { maskSensitive: true })).toEqual({ Database: { Password: '••••••••' } });
   });
 });
 

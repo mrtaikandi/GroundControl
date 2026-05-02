@@ -21,6 +21,6 @@ describe('EntryModal', () => {
     await user.type(screen.getByLabelText('Key'), 'bad key!');
     await user.click(screen.getByRole('button', { name: 'Create entry' }));
 
-    expect(await screen.findByText('Use letters, numbers, dots, underscores, and hyphens only')).toBeInTheDocument();
+    expect(await screen.findByText('Use letters, numbers, colons, dots, underscores, and hyphens only')).toBeInTheDocument();
   });
 });

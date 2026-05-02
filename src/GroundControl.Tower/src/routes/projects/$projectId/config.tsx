@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Braces, List, ListTree } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
@@ -41,7 +42,7 @@ function ConfigRoute() {
           <p className="mt-2 text-[14.5px] text-fg-caption">Manage project configurations.</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <SegmentedControl onChange={setConfigViewMode} options={[{ label: 'Flat', value: 'flat' }, { label: 'Tree', value: 'tree' }, { label: 'JSON', value: 'json' }]} value={configViewMode} />
+          <SegmentedControl onChange={setConfigViewMode} options={[{ icon: List, label: 'Flat', value: 'flat' }, { icon: ListTree, label: 'Tree', value: 'tree' }, { icon: Braces, label: 'JSON', value: 'json' }]} value={configViewMode} />
           <Button onClick={() => setPublishing(true)} type="button">Publish snapshot</Button>
         </div>
       </div>

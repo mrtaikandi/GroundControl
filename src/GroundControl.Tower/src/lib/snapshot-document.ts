@@ -4,7 +4,7 @@ export function snapshotToDocument(snapshot?: SnapshotDetail): Record<string, un
   const document: Record<string, unknown> = {};
 
   for (const entry of snapshot?.entries ?? []) {
-    setPath(document, entry.key.split('.').filter(Boolean), entryToValue(entry));
+    setPath(document, entry.key.split(':').filter(Boolean), entryToValue(entry));
   }
 
   return document;
@@ -84,7 +84,7 @@ export function snapshotToResolvedDocument(snapshot: SnapshotDetail | undefined,
   for (const entry of snapshot?.entries ?? []) {
     const value = resolveScopedValue(entry.values, scopes);
 
-    setPath(document, entry.key.split('.').filter(Boolean), options.maskSensitive && entry.isSensitive ? '••••••••' : coerceValue(value?.value ?? null, entry.valueType));
+    setPath(document, entry.key.split(':').filter(Boolean), options.maskSensitive && entry.isSensitive ? '••••••••' : coerceValue(value?.value ?? null, entry.valueType));
   }
 
   return document;

@@ -25,7 +25,7 @@ export function buildResolvedDocument(entries: ResolvedConfigEntry[], options: {
 
   for (const entry of entries) {
     const value = options.maskSensitive && entry.isSensitive ? '••••••••' : coerceValue(entry.value, entry.valueType);
-    setPath(document, entry.key.split('.').filter(Boolean), value);
+    setPath(document, entry.key.split(':').filter(Boolean), value);
   }
 
   return document;
