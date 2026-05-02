@@ -15,7 +15,7 @@ describe('SensitiveValue', () => {
     );
 
     expect(screen.getByText('••••••••')).toBeInTheDocument();
-    expect(screen.getByText('sensitive')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sensitive value')).toBeInTheDocument();
     expect(screen.queryByText('server-password')).not.toBeInTheDocument();
 
     act(() => {
@@ -24,7 +24,7 @@ describe('SensitiveValue', () => {
 
     expect(screen.getByText('server-password')).toBeInTheDocument();
     expect(screen.queryByText('••••••••')).not.toBeInTheDocument();
-    expect(screen.queryByText('sensitive')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Sensitive value')).not.toBeInTheDocument();
   });
 
   it('shows plaintext for non-sensitive values when masking is enabled', () => {

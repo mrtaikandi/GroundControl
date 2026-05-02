@@ -1,4 +1,4 @@
-import { Badge } from '@/components/tower/data/Badge';
+import { Lock } from 'lucide-react';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { useSensitive } from '@/lib/sensitive';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,9 @@ export function SensitiveValue({ className, isSensitive, value }: SensitiveValue
     return (
       <span className={cn('inline-flex items-center gap-2', className)}>
         <span className="font-mono text-[12.5px] text-syntax-sensitive">••••••••</span>
-        <Badge variant="neutral">sensitive</Badge>
+        <span aria-label="Sensitive value" className="inline-flex" title="Sensitive value">
+          <Lock aria-hidden="true" className="size-3.5" />
+        </span>
       </span>
     );
   }
