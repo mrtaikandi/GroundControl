@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCreateEntry, useUpdateEntry, type ConfigEntry, type ConfigEntryOwnerType } from '@/queries/useConfigEntries';
 import { useScopes } from '@/queries/useScopes';
 
-const valueTypes = ['string', 'number', 'boolean', 'json'] as const;
+const valueTypes = ['string', 'integer', 'boolean', 'json'] as const;
 
 const entrySchema = z.object({
   defaultValue: z.string(),
@@ -90,7 +90,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
 
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="entry-default-value">Default value</label>
-            <Input id="entry-default-value" inputMode={selectedType === 'number' ? 'decimal' : undefined} type={isSensitive ? 'password' : selectedType === 'number' ? 'number' : 'text'} {...form.register('defaultValue')} />
+            <Input id="entry-default-value" inputMode={selectedType === 'integer' ? 'numeric' : undefined} type={isSensitive ? 'password' : selectedType === 'integer' ? 'number' : 'text'} {...form.register('defaultValue')} />
           </div>
 
           <div className="grid gap-1.5">
