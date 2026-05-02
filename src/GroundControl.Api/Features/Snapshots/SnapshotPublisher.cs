@@ -17,7 +17,7 @@ internal sealed class SnapshotPublisher
     private readonly IConfigEntryStore _configEntryStore;
     private readonly IVariableStore _variableStore;
     private readonly VariableInterpolator _interpolator;
-    private readonly IValueProtector _valueProtector;
+    private readonly SensitiveSourceValueProtector _sourceProtector;
     private readonly ISnapshotStore _snapshotStore;
     private readonly IChangeNotifier _changeNotifier;
     private readonly IConfiguration _configuration;
@@ -29,7 +29,7 @@ internal sealed class SnapshotPublisher
         IConfigEntryStore configEntryStore,
         IVariableStore variableStore,
         VariableInterpolator interpolator,
-        IValueProtector valueProtector,
+        SensitiveSourceValueProtector sourceProtector,
         ISnapshotStore snapshotStore,
         IChangeNotifier changeNotifier,
         IConfiguration configuration)
@@ -39,7 +39,7 @@ internal sealed class SnapshotPublisher
         _configEntryStore = configEntryStore ?? throw new ArgumentNullException(nameof(configEntryStore));
         _variableStore = variableStore ?? throw new ArgumentNullException(nameof(variableStore));
         _interpolator = interpolator ?? throw new ArgumentNullException(nameof(interpolator));
-        _valueProtector = valueProtector ?? throw new ArgumentNullException(nameof(valueProtector));
+        _sourceProtector = sourceProtector ?? throw new ArgumentNullException(nameof(sourceProtector));
         _snapshotStore = snapshotStore ?? throw new ArgumentNullException(nameof(snapshotStore));
         _changeNotifier = changeNotifier ?? throw new ArgumentNullException(nameof(changeNotifier));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -119,12 +119,19 @@ internal sealed class SnapshotPublisher
 
     private void EncryptSensitiveValues(List<ResolvedEntry> resolvedEntries)
     {
-        foreach (var entry in resolvedEntries.Where(entry => entry.IsSensitive))
+        foreach (var entry in resolvedEntries)
         {
-            for (var i = 0; i < entry.Values.Count; i++)
+            if (!entry.IsSensitive)
             {
-                var value = entry.Values[i];
-                entry.Values[i] = entry.Values[i] with { Value = _valueProtector.Protect(value.Value) };
+                continue;
+            }
+
+            var protectedValues = _sourceProtector.ProtectValues(entry.Values, isSensitive: true);
+            entry.Values.Clear();
+
+            foreach (var value in protectedValues)
+            {
+                entry.Values.Add(value);
             }
         }
     }
@@ -132,10 +139,10 @@ internal sealed class SnapshotPublisher
     private async Task<ResolveResult> ResolveAndInterpolateEntriesAsync(Project project, CancellationToken cancellationToken)
     {
         var projectVariables = await _variableStore.GetProjectVariablesAsync(project.Id, cancellationToken);
-        var projectVariablesDict = projectVariables.ToDictionary(v => v.Name, StringComparer.OrdinalIgnoreCase);
+        var projectVariablesDict = BuildPlaintextVariableLookup(projectVariables);
 
         var globalVariables = await _variableStore.GetGlobalVariablesForGroupAsync(project.GroupId, cancellationToken);
-        var globalVariablesDict = globalVariables.ToDictionary(v => v.Name, StringComparer.OrdinalIgnoreCase);
+        var globalVariablesDict = BuildPlaintextVariableLookup(globalVariables);
 
         var mergedEntries = await CollectAndMergeEntriesAsync(project, cancellationToken);
 
@@ -145,12 +152,20 @@ internal sealed class SnapshotPublisher
 
         foreach (var entry in mergedEntries)
         {
-            var resolvedValues = new List<ScopedValue>();
+            var plaintextValues = _sourceProtector.UnprotectValues(entry.Values, entry.IsSensitive);
 
-            foreach (var scopedValue in entry.Values)
+            var resolvedValues = new List<ScopedValue>(plaintextValues.Count);
+            var entryUsedSensitiveVariable = false;
+
+            foreach (var scopedValue in plaintextValues)
             {
                 var result = _interpolator.Interpolate(scopedValue.Value, EmptyScopes, projectVariablesDict, globalVariablesDict);
                 resolvedValues.Add(new ScopedValue(result.Value, scopedValue.Scopes));
+
+                if (result.UsedSensitiveVariable)
+                {
+                    entryUsedSensitiveVariable = true;
+                }
 
                 foreach (var unresolved in result.UnresolvedPlaceholders)
                 {
@@ -162,12 +177,36 @@ internal sealed class SnapshotPublisher
             {
                 Key = entry.Key,
                 ValueType = entry.ValueType,
-                IsSensitive = entry.IsSensitive,
+                IsSensitive = entry.IsSensitive || entryUsedSensitiveVariable,
                 Values = resolvedValues
             });
         }
 
         return new ResolveResult(resolvedEntries, unresolvedPlaceholders);
+    }
+
+    private Dictionary<string, Variable> BuildPlaintextVariableLookup(IReadOnlyList<Variable> variables)
+    {
+        var lookup = new Dictionary<string, Variable>(StringComparer.OrdinalIgnoreCase);
+        foreach (var variable in variables)
+        {
+            // Snapshot publish operates on plaintext in memory, then encrypts resolved entries that
+            // are flagged sensitive (either by the entry itself or by interpolation). Mutating the
+            // freshly-loaded entity is safe — it is not cached or reused after this method returns.
+            if (variable.IsSensitive)
+            {
+                var plaintextValues = _sourceProtector.UnprotectValues(variable.Values, isSensitive: true);
+                variable.Values.Clear();
+                foreach (var value in plaintextValues)
+                {
+                    variable.Values.Add(value);
+                }
+            }
+
+            lookup[variable.Name] = variable;
+        }
+
+        return lookup;
     }
 
     private async Task<List<ConfigEntry>> CollectAndMergeEntriesAsync(Project project, CancellationToken cancellationToken)

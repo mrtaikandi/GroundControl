@@ -1,6 +1,7 @@
 using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
+using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -12,11 +13,13 @@ internal sealed class CreateVariableHandler : IEndpointHandler
 {
     private readonly IVariableStore _store;
     private readonly AuditRecorder _audit;
+    private readonly SensitiveSourceValueProtector _protector;
 
-    public CreateVariableHandler(IVariableStore store, AuditRecorder audit)
+    public CreateVariableHandler(IVariableStore store, AuditRecorder audit, SensitiveSourceValueProtector protector)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        _protector = protector ?? throw new ArgumentNullException(nameof(protector));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -38,6 +41,9 @@ internal sealed class CreateVariableHandler : IEndpointHandler
     private async Task<IResult> HandleAsync(CreateVariableRequest request, CancellationToken cancellationToken = default)
     {
         var timestamp = DateTimeOffset.UtcNow;
+        var plaintextValues = request.Values.Select(v => new ScopedValue(v.Value, v.Scopes));
+        var protectedValues = _protector.ProtectValues(plaintextValues, request.IsSensitive);
+
         var variable = new Variable
         {
             Id = Guid.CreateVersion7(),
@@ -46,7 +52,7 @@ internal sealed class CreateVariableHandler : IEndpointHandler
             Scope = request.Scope,
             GroupId = request.GroupId,
             ProjectId = request.ProjectId,
-            Values = [.. request.Values.Select(v => new ScopedValue(v.Value, v.Scopes))],
+            Values = [.. protectedValues],
             IsSensitive = request.IsSensitive,
             Version = 1,
             CreatedAt = timestamp,
@@ -68,6 +74,7 @@ internal sealed class CreateVariableHandler : IEndpointHandler
 
         await _audit.RecordAsync("Variable", variable.Id, variable.GroupId, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        return TypedResults.Created($"/api/variables/{variable.Id}", VariableResponse.From(variable));
+        var responseValues = SensitiveSourceValueProtector.MaskValues(variable.Values, variable.IsSensitive);
+        return TypedResults.Created($"/api/variables/{variable.Id}", VariableResponse.From(variable, [.. responseValues]));
     }
 }

@@ -24,7 +24,10 @@ internal sealed partial class VariableInterpolator
     /// <param name="clientScopes">The client's scope dimension-value pairs for resolution.</param>
     /// <param name="projectVariables">Project-level variables keyed by variable name (checked first).</param>
     /// <param name="globalVariables">Global variables keyed by variable name (fallback).</param>
-    /// <returns>The interpolation result containing the resolved value and any unresolved placeholder names.</returns>
+    /// <returns>
+    /// The interpolation result containing the resolved value, any unresolved placeholder names,
+    /// and whether a sensitive variable contributed to the resolved value.
+    /// </returns>
     public InterpolationResult Interpolate(
         string value,
         IReadOnlyDictionary<string, string> clientScopes,
@@ -34,10 +37,11 @@ internal sealed partial class VariableInterpolator
         var matches = PlaceholderPattern.Matches(value);
         if (matches.Count == 0)
         {
-            return new InterpolationResult(value, []);
+            return new InterpolationResult(value, [], UsedSensitiveVariable: false);
         }
 
         var unresolved = new List<string>();
+        var usedSensitive = false;
         var result = PlaceholderPattern.Replace(value, match =>
         {
             var name = match.Groups[1].Value;
@@ -46,17 +50,22 @@ internal sealed partial class VariableInterpolator
             var resolved = TryResolve(name, projectVariables, clientScopes) ?? TryResolve(name, globalVariables, clientScopes);
             if (resolved is not null)
             {
-                return resolved;
+                if (resolved.IsSensitive)
+                {
+                    usedSensitive = true;
+                }
+
+                return resolved.Value;
             }
 
             unresolved.Add(name);
             return match.Value;
         });
 
-        return new InterpolationResult(result, unresolved);
+        return new InterpolationResult(result, unresolved, usedSensitive);
     }
 
-    private string? TryResolve(string variableName, IReadOnlyDictionary<string, Variable> variables, IReadOnlyDictionary<string, string> clientScopes)
+    private ResolvedVariable? TryResolve(string variableName, IReadOnlyDictionary<string, Variable> variables, IReadOnlyDictionary<string, string> clientScopes)
     {
         if (!variables.TryGetValue(variableName, out var variable))
         {
@@ -66,11 +75,13 @@ internal sealed partial class VariableInterpolator
         var values = variable.Values as IReadOnlyList<ScopedValue> ?? [.. variable.Values];
         var scopedValue = _scopeResolver.Resolve(values, clientScopes);
 
-        return scopedValue?.Value;
+        return scopedValue is null ? null : new ResolvedVariable(scopedValue.Value, variable.IsSensitive);
     }
 
     [GeneratedRegex(@"\{\{(\w+)\}\}")]
     private static partial Regex PlaceholderPattern { get; }
+
+    private sealed record ResolvedVariable(string Value, bool IsSensitive);
 }
 
 /// <summary>
@@ -78,7 +89,9 @@ internal sealed partial class VariableInterpolator
 /// </summary>
 /// <param name="Value">The interpolated value string with placeholders replaced where possible.</param>
 /// <param name="UnresolvedPlaceholders">A list of placeholder names that could not be resolved.</param>
-public record InterpolationResult(string Value, IReadOnlyList<string> UnresolvedPlaceholders)
+/// <param name="UsedSensitiveVariable">A value indicating whether a sensitive variable contributed
+/// to the resolved value.</param>
+public record InterpolationResult(string Value, IReadOnlyList<string> UnresolvedPlaceholders, bool UsedSensitiveVariable = false)
 {
     /// <summary>
     /// Gets a value indicating whether all placeholders were successfully resolved.

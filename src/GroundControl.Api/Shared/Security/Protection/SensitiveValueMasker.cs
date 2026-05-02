@@ -5,14 +5,14 @@ namespace GroundControl.Api.Shared.Security.Protection;
 
 internal sealed class SensitiveValueMasker
 {
-    private const string Mask = "***";
     private readonly AuditRecorder _audit;
-
     private readonly IValueProtector _protector;
+    private readonly SensitiveSourceValueProtector _sourceProtector;
 
-    public SensitiveValueMasker(IValueProtector protector, AuditRecorder audit)
+    public SensitiveValueMasker(IValueProtector protector, SensitiveSourceValueProtector sourceProtector, AuditRecorder audit)
     {
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
+        _sourceProtector = sourceProtector ?? throw new ArgumentNullException(nameof(sourceProtector));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
     }
 
@@ -20,24 +20,24 @@ internal sealed class SensitiveValueMasker
         decryptRequested && httpContext.User.HasClaim("permission", Permissions.SensitiveValuesDecrypt);
 
     /// <summary>
-    /// Masks or decrypts an <em>encrypted</em> value (e.g. snapshot entries).
-    /// Calls <see cref="IValueProtector.Unprotect" /> when decryption is permitted.
+    /// Masks or decrypts a single encrypted value (used for snapshot entries that audit once
+    /// per request rather than per value).
     /// </summary>
     public string MaskOrDecrypt(string value, bool isSensitive, bool canDecrypt)
     {
-        if (!isSensitive)
+        if (!isSensitive || string.IsNullOrEmpty(value))
         {
             return value;
         }
 
-        return canDecrypt ? _protector.Unprotect(value) : Mask;
+        return canDecrypt ? _protector.Unprotect(value) : SensitiveSourceValueProtector.MaskValue;
     }
 
     /// <summary>
-    /// Masks or reveals <em>plaintext</em> values (e.g. config entries, variables).
-    /// ConfigEntry/Variable values are stored unencrypted — this method masks or returns
-    /// them as-is without calling <see cref="IValueProtector.Unprotect" />.
-    /// Records an audit entry when values are revealed.
+    /// Masks or decrypts a collection of stored sensitive values for a config entry or variable.
+    /// Sensitive source values are stored encrypted; this method calls
+    /// <see cref="IValueProtector.Unprotect"/> when reveal is permitted and records a reveal audit
+    /// entry. Empty values are preserved verbatim — there is no stored content to hide.
     /// </summary>
     public async Task<IReadOnlyList<ScopedValue>> MaskOrDecryptAsync(
         IEnumerable<ScopedValue> values,
@@ -48,7 +48,7 @@ internal sealed class SensitiveValueMasker
         Guid? groupId,
         CancellationToken cancellationToken = default)
     {
-        var list = values as IReadOnlyList<ScopedValue> ?? values.ToList();
+        var list = values as IReadOnlyList<ScopedValue> ?? [.. values];
 
         if (!isSensitive)
         {
@@ -58,12 +58,9 @@ internal sealed class SensitiveValueMasker
         if (canDecrypt)
         {
             await _audit.RecordAsync(entityType, entityId, groupId, "Decrypted", cancellationToken: cancellationToken).ConfigureAwait(false);
-
-            // ConfigEntry/Variable values are stored in plaintext — just reveal them.
-            // Snapshot values are encrypted and use MaskOrDecrypt (sync) with Unprotect instead.
-            return list;
+            return _sourceProtector.UnprotectValues(list, isSensitive: true);
         }
 
-        return list.Select(v => v with { Value = Mask }).ToList();
+        return SensitiveSourceValueProtector.MaskValues(list, isSensitive: true);
     }
 }
