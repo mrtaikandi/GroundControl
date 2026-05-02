@@ -13,7 +13,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className="grid h-screen min-h-0 grid-rows-[56px_1fr] overflow-hidden">
         <Header />
         <main className="min-h-0 overflow-y-auto bg-bg-page">
-          <div className="mx-auto w-full max-w-[1280px] px-page-h py-page-v">
+          <div className="w-full px-page-h py-page-v 2xl:px-16">
             {children}
           </div>
         </main>
