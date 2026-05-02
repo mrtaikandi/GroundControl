@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Folder, FolderOpen, Hash, Lock, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Folder, FolderOpen, Hash, Lock, Pencil, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +50,22 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
     }
   }, [filter]);
 
+  useEffect(() => {
+    setSelectedEntryId(null);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (selectedEntryId !== null || tree.length === 0) {
+      return;
+    }
+
+    const firstId = firstEntryId(tree);
+
+    if (firstId) {
+      setSelectedEntryId(firstId);
+    }
+  }, [selectedEntryId, tree]);
+
   return (
     <TooltipProvider>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_460px]">
@@ -88,7 +104,7 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
           )}
         </div>
 
-        <EntryDetailPanel item={selectedItem} onAddScope={setEditingEntry} projectName={projectName} />
+        <EntryDetailPanel item={selectedItem} onEdit={setEditingEntry} projectName={projectName} />
 
         <EntryModal mode="create" onOpenChange={setCreating} open={creating} projectId={projectId} />
         <EntryModal entry={editingEntry} mode="edit" onOpenChange={(open) => !open && setEditingEntry(undefined)} open={Boolean(editingEntry)} projectId={projectId} />
@@ -187,13 +203,13 @@ function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selec
 
 interface EntryDetailPanelProps {
   item: EffectiveEntry | null;
-  onAddScope: (entry: ConfigEntry) => void;
+  onEdit: (entry: ConfigEntry) => void;
   projectName: string;
 }
 
-function EntryDetailPanel({ item, onAddScope, projectName }: EntryDetailPanelProps) {
+function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) {
   if (!item) {
-    return <div className="rounded-xl border border-stroke-subtle bg-bg-container p-6 text-fg-caption">Select an entry to inspect details.</div>;
+    return null;
   }
 
   const { entry, source } = item;
@@ -203,8 +219,17 @@ function EntryDetailPanel({ item, onAddScope, projectName }: EntryDetailPanelPro
 
   return (
     <div className="rounded-xl border border-stroke-subtle bg-bg-container p-6">
-      <div className="text-[11px] font-medium uppercase text-fg-caption">Config entry</div>
-      <h2 className="mt-2"><InlineCode className="text-[20px] font-semibold">{entry.key}</InlineCode></h2>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-medium uppercase text-fg-caption">Config entry</div>
+          <h2 className="mt-2"><InlineCode className="text-[20px] font-semibold">{entry.key}</InlineCode></h2>
+        </div>
+        {!isInherited ? (
+          <Button onClick={() => onEdit(entry)} size="sm" type="button" variant="secondary">
+            <Pencil aria-hidden="true" className="size-3.5" />Edit
+          </Button>
+        ) : null}
+      </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Badge variant="neutral">{entry.valueType}</Badge>
@@ -223,14 +248,7 @@ function EntryDetailPanel({ item, onAddScope, projectName }: EntryDetailPanelPro
       </div>
 
       <div className="mt-6">
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] font-medium uppercase text-fg-caption">Scoped values</div>
-          {!isInherited ? (
-            <Button onClick={() => onAddScope(entry)} size="sm" type="button" variant="ghost">
-              <Plus aria-hidden="true" className="size-3.5" />Add
-            </Button>
-          ) : null}
-        </div>
+        <div className="text-[11px] font-medium uppercase text-fg-caption">Scoped values</div>
         <div className="mt-2 grid gap-2">
           {scopedVals.length === 0 ? (
             <div className="rounded-lg border border-dashed border-stroke-subtle p-6 text-center text-[13px] text-fg-caption">No scoped values defined.</div>
@@ -289,6 +307,22 @@ function toggle(collapsed: Set<string>, prefix: string) {
 
 function collectPrefixes(nodes: TreeNode[]): string[] {
   return nodes.flatMap((node) => node.kind === 'group' ? [node.prefix, ...collectPrefixes(node.children)] : []);
+}
+
+function firstEntryId(nodes: TreeNode[]): null | string {
+  for (const node of nodes) {
+    if (node.kind === 'entry') {
+      return node.entry.id;
+    }
+
+    const found = firstEntryId(node.children);
+
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
 }
 
 function lastSegment(key: string): string {
