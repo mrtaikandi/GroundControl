@@ -4,10 +4,13 @@ using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Groups.Contracts;
 using GroundControl.Api.Features.Scopes.Contracts;
 using GroundControl.Api.Features.Templates.Contracts;
+using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Persistence.Contracts;
 using MongoDB.Driver;
 using Shouldly;
 using Xunit;
+using ConfigEntryScopedValueRequest = GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest;
+using VariableScopedValueRequest = GroundControl.Api.Features.Variables.Contracts.ScopedValueRequest;
 
 namespace GroundControl.Api.Tests.Audit;
 
@@ -136,7 +139,7 @@ public sealed class AuditRecordingTests : ApiHandlerTestBase
                 OwnerId = Guid.CreateVersion7(),
                 OwnerType = ConfigEntryOwnerType.Project,
                 ValueType = "String",
-                Values = [new ScopedValueRequest { Value = "secret-value-1", Scopes = [] }],
+                Values = [new ConfigEntryScopedValueRequest { Value = "secret-value-1", Scopes = [] }],
                 IsSensitive = true,
                 Description = "a secret",
             },
@@ -154,7 +157,7 @@ public sealed class AuditRecordingTests : ApiHandlerTestBase
             new UpdateConfigEntryRequest
             {
                 ValueType = "String",
-                Values = [new ScopedValueRequest { Value = "secret-value-2", Scopes = [] }],
+                Values = [new ConfigEntryScopedValueRequest { Value = "secret-value-2", Scopes = [] }],
                 IsSensitive = true,
                 Description = "a secret",
             },
@@ -277,5 +280,58 @@ public sealed class AuditRecordingTests : ApiHandlerTestBase
 
         auditRecords.Count.ShouldBe(1);
         auditRecords[0].GroupId.ShouldBe(group.Id);
+    }
+
+    [Fact]
+    public async Task UpdateVariable_WhenSensitive_MasksFieldChangeValues()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var createResponse = await apiClient.PostAsJsonAsync(
+            "/api/variables",
+            new CreateVariableRequest
+            {
+                Name = "dbPassword",
+                Scope = VariableScope.Global,
+                Values = [new VariableScopedValueRequest { Value = "secret-value-1", Scopes = [] }],
+                IsSensitive = true,
+                Description = "a secret",
+            },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<VariableResponse>(WebJsonSerializerOptions, TestCancellationToken);
+
+        var getResponse = await apiClient.GetAsync($"/api/variables/{created!.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var updateRequest = new HttpRequestMessage(HttpMethod.Put, $"/api/variables/{created.Id}");
+        updateRequest.Content = JsonContent.Create(
+            new UpdateVariableRequest
+            {
+                Values = [new VariableScopedValueRequest { Value = "secret-value-2", Scopes = [] }],
+                IsSensitive = true,
+                Description = "a secret",
+            },
+            options: WebJsonSerializerOptions);
+        updateRequest.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var updateResponse = await apiClient.SendAsync(updateRequest, TestCancellationToken);
+        updateResponse.EnsureSuccessStatusCode();
+
+        // Assert
+        var auditRecords = await factory.Database.GetCollection<AuditRecord>("audit_records")
+            .Find(r => r.EntityType == "Variable" && r.EntityId == created.Id && r.Action == "Updated")
+            .ToListAsync(TestCancellationToken);
+
+        auditRecords.Count.ShouldBe(1);
+        var valuesChange = auditRecords[0].Changes.FirstOrDefault(c => c.Field == "Values");
+        valuesChange.ShouldNotBeNull();
+        valuesChange.OldValue.ShouldBe("***");
+        valuesChange.NewValue.ShouldBe("***");
     }
 }

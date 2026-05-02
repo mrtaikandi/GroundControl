@@ -228,11 +228,124 @@ public sealed class VariableInterpolatorTests
         result.UnresolvedPlaceholders.ShouldBeEmpty();
     }
 
-    private static Variable CreateVariable(string name, string defaultValue) => new()
+    [Fact]
+    public void Interpolate_NoPlaceholders_LeavesUsedSensitiveVariableFalse()
+    {
+        // Arrange
+        Dictionary<string, Variable> projectVariables = [];
+        Dictionary<string, Variable> globalVariables = [];
+
+        // Act
+        var result = _sut.Interpolate("plain literal", new Dictionary<string, string>(), projectVariables, globalVariables);
+
+        // Assert
+        result.UsedSensitiveVariable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Interpolate_ResolvedSensitiveVariable_SetsUsedSensitiveVariableTrue()
+    {
+        // Arrange
+        var variable = CreateVariable("dbPassword", "hunter2", isSensitive: true);
+        var projectVariables = new Dictionary<string, Variable> { ["dbPassword"] = variable };
+        Dictionary<string, Variable> globalVariables = [];
+        var clientScopes = new Dictionary<string, string>();
+
+        SetupResolve(variable, clientScopes, "hunter2");
+
+        // Act
+        var result = _sut.Interpolate("Password={{dbPassword}}", clientScopes, projectVariables, globalVariables);
+
+        // Assert
+        result.Value.ShouldBe("Password=hunter2");
+        result.UsedSensitiveVariable.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Interpolate_ResolvedNonSensitiveVariable_LeavesUsedSensitiveVariableFalse()
+    {
+        // Arrange
+        var variable = CreateVariable("dbHost", "db.local", isSensitive: false);
+        var projectVariables = new Dictionary<string, Variable> { ["dbHost"] = variable };
+        Dictionary<string, Variable> globalVariables = [];
+        var clientScopes = new Dictionary<string, string>();
+
+        SetupResolve(variable, clientScopes, "db.local");
+
+        // Act
+        var result = _sut.Interpolate("Host={{dbHost}}", clientScopes, projectVariables, globalVariables);
+
+        // Assert
+        result.UsedSensitiveVariable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Interpolate_MultiplePlaceholdersOneSensitive_SetsUsedSensitiveVariableTrue()
+    {
+        // Arrange
+        var hostVar = CreateVariable("host", "db.local", isSensitive: false);
+        var passwordVar = CreateVariable("dbPassword", "hunter2", isSensitive: true);
+
+        var projectVariables = new Dictionary<string, Variable>
+        {
+            ["host"] = hostVar,
+            ["dbPassword"] = passwordVar,
+        };
+        Dictionary<string, Variable> globalVariables = [];
+        var clientScopes = new Dictionary<string, string>();
+
+        SetupResolve(hostVar, clientScopes, "db.local");
+        SetupResolve(passwordVar, clientScopes, "hunter2");
+
+        // Act
+        var result = _sut.Interpolate("Server={{host}};Password={{dbPassword}}", clientScopes, projectVariables, globalVariables);
+
+        // Assert
+        result.Value.ShouldBe("Server=db.local;Password=hunter2");
+        result.UsedSensitiveVariable.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Interpolate_UnresolvedPlaceholderOnly_LeavesUsedSensitiveVariableFalse()
+    {
+        // Arrange
+        Dictionary<string, Variable> projectVariables = [];
+        Dictionary<string, Variable> globalVariables = [];
+
+        // Act
+        var result = _sut.Interpolate("{{missing}}", new Dictionary<string, string>(), projectVariables, globalVariables);
+
+        // Assert
+        result.UsedSensitiveVariable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Interpolate_SensitiveProjectVariableOverridesNonSensitiveGlobal_SetsUsedSensitiveVariableTrue()
+    {
+        // Arrange
+        var projectVar = CreateVariable("token", "project-secret", isSensitive: true);
+        var globalVar = CreateVariable("token", "global-public", isSensitive: false);
+
+        var projectVariables = new Dictionary<string, Variable> { ["token"] = projectVar };
+        var globalVariables = new Dictionary<string, Variable> { ["token"] = globalVar };
+        var clientScopes = new Dictionary<string, string>();
+
+        SetupResolve(projectVar, clientScopes, "project-secret");
+
+        // Act
+        var result = _sut.Interpolate("T={{token}}", clientScopes, projectVariables, globalVariables);
+
+        // Assert
+        result.Value.ShouldBe("T=project-secret");
+        result.UsedSensitiveVariable.ShouldBeTrue();
+    }
+
+    private static Variable CreateVariable(string name, string defaultValue, bool isSensitive = false) => new()
     {
         Id = Guid.CreateVersion7(),
         Name = name,
-        Values = [new ScopedValue(defaultValue, [])]
+        Values = [new ScopedValue(defaultValue, [])],
+        IsSensitive = isSensitive,
     };
 
     private void SetupResolve(Variable variable, IReadOnlyDictionary<string, string> clientScopes, string resolvedValue)
