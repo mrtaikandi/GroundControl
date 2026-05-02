@@ -6,14 +6,16 @@ import { cn } from '@/lib/utils';
 interface CopyButtonProps {
   ariaLabel?: string;
   className?: string;
+  disabled?: boolean;
+  disabledReason?: string;
   value: string;
 }
 
-export function CopyButton({ ariaLabel = 'Copy value', className, value }: CopyButtonProps) {
+export function CopyButton({ ariaLabel = 'Copy value', className, disabled = false, disabledReason, value }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    if (!value || !navigator.clipboard) {
+    if (disabled || !value || !navigator.clipboard) {
       return;
     }
 
@@ -27,14 +29,19 @@ export function CopyButton({ ariaLabel = 'Copy value', className, value }: CopyB
       <TooltipTrigger asChild>
         <button
           aria-label={ariaLabel}
-          className={cn('inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-icon-subtle transition-colors hover:bg-bg-selected hover:text-fg-body', className)}
+          className={cn(
+            'inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-icon-subtle transition-colors',
+            disabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-bg-selected hover:text-fg-body',
+            className,
+          )}
+          disabled={disabled}
           onClick={copy}
           type="button"
         >
           {copied ? <Check aria-hidden="true" className="size-3.5" /> : <Copy aria-hidden="true" className="size-3.5" />}
         </button>
       </TooltipTrigger>
-      <TooltipContent>{copied ? 'Copied!' : ariaLabel}</TooltipContent>
+      <TooltipContent>{copied ? 'Copied!' : disabled ? disabledReason ?? ariaLabel : ariaLabel}</TooltipContent>
     </Tooltip>
   );
 }

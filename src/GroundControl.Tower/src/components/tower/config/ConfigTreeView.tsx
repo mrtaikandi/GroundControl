@@ -248,7 +248,7 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
           <div className="min-w-0">
             {defaultVal?.value ? <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={defaultVal.value} /> : <span className="text-fg-caption">No default value.</span>}
           </div>
-          {defaultVal?.value ? <CopyButton ariaLabel="Copy default value" value={defaultVal.value} /> : null}
+          {defaultVal?.value ? <CopyButton ariaLabel="Copy default value" disabled={entry.isSensitive} disabledReason="Copying is disabled for sensitive values" value={defaultVal.value} /> : null}
         </div>
       </div>
 
@@ -268,7 +268,7 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
                 <div className="min-w-0">
                   <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={value.value} />
                 </div>
-                {value.value ? <CopyButton ariaLabel="Copy scoped value" value={value.value} /> : null}
+                {value.value ? <CopyButton ariaLabel="Copy scoped value" disabled={entry.isSensitive} disabledReason="Copying is disabled for sensitive values" value={value.value} /> : null}
               </div>
             </div>
           ))}
