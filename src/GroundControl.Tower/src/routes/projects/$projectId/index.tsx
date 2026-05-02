@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Braces, FolderTree, List } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/tower/data/Badge';
-import { InlineCode } from '@/components/tower/data/InlineCode';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { ConfigFlatView } from '@/components/tower/config/ConfigFlatView';
 import { ConfigJsonView } from '@/components/tower/config/ConfigJsonView';
@@ -65,9 +64,7 @@ function ProjectDetailRoute() {
           ← All projects
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">
-            <InlineCode>{project.name}</InlineCode>
-          </h1>
+          <h1 className="font-mono text-[34px] font-bold leading-tight text-fg-heading">{project.name}</h1>
           <Badge variant="neutral">{groupName}</Badge>
           <Badge variant={activeSnapshotId ? 'info' : 'neutral'}>
             {activeSnapshotId ? 'active snapshot' : 'no active snapshot'}
