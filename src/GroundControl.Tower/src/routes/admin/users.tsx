@@ -12,7 +12,7 @@ import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { useGroups } from '@/queries/useGroups';
 import { useRoles } from '@/queries/useRoles';
-import { useRemoveGrant, useUserGrants, useUsers, type Grant, type User, type UserDetail } from '@/queries/useUsers';
+import { useDeleteUser, useRemoveGrant, useUserGrants, useUsers, type Grant, type User, type UserDetail } from '@/queries/useUsers';
 
 const columnHelper = createColumnHelper<User>();
 
@@ -69,7 +69,7 @@ function UsersRoute() {
           </div>
         )}
 
-        <GrantDetailPanel groupById={groupById} roleById={roleById} user={selectedUser ?? null} />
+        <GrantDetailPanel groupById={groupById} onDeleted={() => setSelectedUserId(null)} roleById={roleById} user={selectedUser ?? null} />
       </div>
     </div>
   );
@@ -89,9 +89,10 @@ function UserIdentity({ user }: { user: User }) {
   );
 }
 
-function GrantDetailPanel({ groupById, roleById, user }: { groupById: Map<string, { name: string }>; roleById: Map<string, { name: string }>; user: User | null }) {
+function GrantDetailPanel({ groupById, onDeleted, roleById, user }: { groupById: Map<string, { name: string }>; onDeleted: () => void; roleById: Map<string, { name: string }>; user: User | null }) {
   const grants = useUserGrants(user?.id ?? null);
   const [grantToRemove, setGrantToRemove] = useState<Grant | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (!user) {
     return <div className="rounded-xl border border-stroke-subtle bg-bg-container p-6 text-fg-caption">Select a user to inspect grants.</div>;
@@ -104,10 +105,13 @@ function GrantDetailPanel({ groupById, roleById, user }: { groupById: Map<string
     <div className="rounded-xl border border-stroke-subtle bg-bg-container p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] font-medium uppercase text-fg-caption">Grant detail</div>
+          <div className="text-[11px] font-medium uppercase text-fg-caption">User details</div>
           <h2 className="mt-2 text-[22px] font-semibold text-fg-heading">{user.username}</h2>
         </div>
-        <AddGrantModal userId={user.id} />
+        <div className="flex items-center gap-2">
+          <AddGrantModal userId={user.id} />
+          <Button onClick={() => setDeleteOpen(true)} size="sm" type="button" variant="ghost">Delete</Button>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3">
@@ -116,7 +120,33 @@ function GrantDetailPanel({ groupById, roleById, user }: { groupById: Map<string
       </div>
 
       <RemoveGrantDialog grant={grantToRemove} groupById={groupById} onOpenChange={(open) => { if (!open) { setGrantToRemove(null); } }} open={grantToRemove !== null} roleById={roleById} user={userDetail ?? null} />
+      <DeleteUserDialog onDeleted={onDeleted} onOpenChange={setDeleteOpen} open={deleteOpen} user={userDetail ?? user} />
     </div>
+  );
+}
+
+function DeleteUserDialog({ onDeleted, onOpenChange, open, user }: { onDeleted: () => void; onOpenChange: (open: boolean) => void; open: boolean; user: { id: string; username: string; version: string | number } }) {
+  const deleteUserMutation = useDeleteUser(user.id);
+
+  async function confirmDelete() {
+    await deleteUserMutation.mutateAsync({ version: user.version.toString() });
+    onOpenChange(false);
+    onDeleted();
+  }
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {user.username}?</AlertDialogTitle>
+          <AlertDialogDescription>This permanently removes the user and revokes all of their grants. This cannot be undone.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleteUserMutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction disabled={deleteUserMutation.isPending} onClick={(event) => { event.preventDefault(); void confirmDelete(); }}>Delete user</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

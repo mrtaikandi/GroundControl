@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { setGroupMember } from '@/api/endpoints/groups';
-import { createUser, getUser, getUsers, updateUser } from '@/api/endpoints/users';
+import { createUser, deleteUser, getUser, getUsers, updateUser } from '@/api/endpoints/users';
 import type { ApiRequestBody, ApiResponse } from '@/api/client';
 import { useConflictMutation } from '@/lib/mutations';
 import { queryClient } from '@/lib/query-client';
@@ -40,6 +40,18 @@ export function useCreateUser() {
       void queryClient.invalidateQueries({ queryKey: usersQueryKey() });
     },
   });
+}
+
+export function useDeleteUser(userId: string) {
+  return useConflictMutation(
+    ({ version }: { version: string }) => deleteUser(userId, version),
+    {
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: usersQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: userGrantsQueryKey(userId) });
+      },
+    },
+  );
 }
 
 export function useAddGrant(userId: string) {
