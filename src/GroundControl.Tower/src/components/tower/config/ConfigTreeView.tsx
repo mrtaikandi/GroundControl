@@ -243,7 +243,7 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
           Default value <span className="ml-1 normal-case text-fg-caption/80">(scopes: {'{}'})</span>
         </div>
         <div className="mt-2 rounded-lg border border-stroke-subtle bg-bg-surface px-4 py-3 text-[13.5px]">
-          {defaultVal?.value ? <SensitiveValue isSensitive={entry.isSensitive} value={defaultVal.value} /> : <span className="text-fg-caption">No default value.</span>}
+          {defaultVal?.value ? <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={defaultVal.value} /> : <span className="text-fg-caption">No default value.</span>}
         </div>
       </div>
 
@@ -256,7 +256,7 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
             <div className="rounded-lg border border-stroke-subtle bg-bg-surface px-4 py-3" key={`${formatScopes(value.scopes ?? {})}-${index}`}>
               <div className="font-mono text-[12px] text-fg-caption">{formatScopes(value.scopes ?? {})}</div>
               <div className="mt-1 text-[13.5px]">
-                <SensitiveValue isSensitive={entry.isSensitive} value={value.value} />
+                <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={value.value} />
               </div>
             </div>
           ))}
