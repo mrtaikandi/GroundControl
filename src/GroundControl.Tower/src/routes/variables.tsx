@@ -13,6 +13,7 @@ import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
+import { cn } from '@/lib/utils';
 import { useGroups } from '@/queries/useGroups';
 import { useProjects } from '@/queries/useProjects';
 import { useCreateVariable, useDeleteVariable, useUpdateVariable, useVariables, type Variable } from '@/queries/useVariables';
@@ -36,8 +37,8 @@ function VariablesRoute() {
   const groupNames = useMemo(() => new Map((groups.data?.data ?? []).map((group) => [group.id, group.name])), [groups.data?.data]);
   const data = variables.data?.data ?? [];
   const columns = useMemo(() => [
-    columnHelper.accessor('name', { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Name' }),
-    columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.isSensitive} value={defaultValue(info.row.original)} />, header: 'Value', id: 'value' }),
+    columnHelper.accessor('name', { cell: (info) => <InlineCode className="bg-transparent px-0">{info.getValue()}</InlineCode>, header: 'Name' }),
+    columnHelper.display({ cell: (info) => <SensitiveValue className="bg-transparent px-0" isSensitive={info.row.original.isSensitive} value={defaultValue(info.row.original)} />, header: 'Value', id: 'value' }),
     columnHelper.accessor('isSensitive', { cell: (info) => <Badge variant={info.getValue() ? 'critical' : 'neutral'}>{info.getValue() ? 'sensitive' : 'plain'}</Badge>, header: 'Mode' }),
     columnHelper.display({ cell: (info) => <Badge variant="info">{ownerLabel(info.row.original, projectNames, groupNames)}</Badge>, header: 'Owner', id: 'owner' }),
     columnHelper.accessor('updatedAt', { cell: (info) => formatDate(info.getValue()), header: 'Updated' }),
@@ -63,12 +64,36 @@ function VariablesRoute() {
                 <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
               ))}
             </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
-              ))}
-              {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No variables found.</TableCell></TableRow> : null}
-            </TableBody>
+            {table.getRowModel().rows.map((row, index, all) => {
+              const description = row.original.description?.trim();
+              const cells = row.getVisibleCells();
+              const mainCells = cells.slice(0, -1);
+              const actionsCell = cells[cells.length - 1];
+              const isLast = index === all.length - 1;
+
+              return (
+                <tbody className={cn('group', isLast && '[&>tr:last-child]:border-b-0')} key={row.id}>
+                  <TableRow className={cn('hover:bg-transparent group-hover:bg-muted/60 [&>td]:pt-3', description ? 'border-b-0 [&>td]:pb-2' : '[&>td]:pb-4')}>
+                    {mainCells.map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                    {actionsCell ? (
+                      <TableCell className="align-middle" rowSpan={description ? 2 : 1}>
+                        {flexRender(actionsCell.column.columnDef.cell, actionsCell.getContext())}
+                      </TableCell>
+                    ) : null}
+                  </TableRow>
+                  {description ? (
+                    <TableRow className="hover:bg-transparent group-hover:bg-muted/60">
+                      <TableCell className="px-3 pb-4 pt-0 text-[12.5px] leading-snug text-fg-caption" colSpan={mainCells.length}>{description}</TableCell>
+                    </TableRow>
+                  ) : null}
+                </tbody>
+              );
+            })}
+            {table.getRowModel().rows.length === 0 ? (
+              <TableBody>
+                <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No variables found.</TableCell></TableRow>
+              </TableBody>
+            ) : null}
           </Table>
         </div>
       )}
