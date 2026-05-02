@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { type ConfigEntry } from '@/queries/useConfigEntries';
 import { useEffectiveEntries, type EffectiveEntry, type EntrySource } from '@/queries/useEffectiveEntries';
@@ -254,8 +255,12 @@ function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) 
             <div className="rounded-lg border border-dashed border-stroke-subtle p-6 text-center text-[13px] text-fg-caption">No scoped values defined.</div>
           ) : scopedVals.map((value, index) => (
             <div className="rounded-lg border border-stroke-subtle bg-bg-surface px-4 py-3" key={`${formatScopes(value.scopes ?? {})}-${index}`}>
-              <div className="font-mono text-[12px] text-fg-caption">{formatScopes(value.scopes ?? {})}</div>
-              <div className="mt-1 text-[13.5px]">
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(value.scopes ?? {}).map(([dimension, scopeValue]) => (
+                  <ScopeTag dimension={dimension} key={dimension} value={scopeValue} />
+                ))}
+              </div>
+              <div className="mt-2 text-[13.5px]">
                 <SensitiveValue className="bg-transparent px-0" isSensitive={entry.isSensitive} value={value.value} />
               </div>
             </div>

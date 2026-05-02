@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AddGrantModal } from '@/components/tower/admin/AddGrantModal';
 import { NewUserModal } from '@/components/tower/admin/NewUserModal';
 import { Badge } from '@/components/tower/data/Badge';
-import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { useGroups } from '@/queries/useGroups';
 import { useRoles } from '@/queries/useRoles';
 import { useDeleteUser, useRemoveGrant, useUserGrants, useUsers, type Grant, type User, type UserDetail } from '@/queries/useUsers';
@@ -160,7 +160,7 @@ function GrantRow({ grant, groupById, onRemove, roleById }: { grant: Grant; grou
       <div className="flex items-start justify-between gap-3">
         <div className="grid gap-2">
           <div className="flex flex-wrap items-center gap-2"><InlineCode>{groupName}</InlineCode><RoleBadge roleName={roleName}>{roleName}</RoleBadge></div>
-          {conditions.length > 0 ? <div className="flex flex-wrap gap-2">{conditions.map(([dimension, values]) => <FilterChip key={dimension} label={`${dimension}=${values.join('|')}`} onToggle={() => undefined} />)}</div> : <span className="text-[12px] text-fg-caption">No additional conditions</span>}
+          {conditions.length > 0 ? <div className="flex flex-wrap gap-1.5">{conditions.map(([dimension, values]) => <ScopeTag dimension={dimension} key={dimension} value={values.join('|')} />)}</div> : <span className="text-[12px] text-fg-caption">No additional conditions</span>}
         </div>
         <Button onClick={onRemove} size="sm" type="button" variant="ghost">Remove</Button>
       </div>

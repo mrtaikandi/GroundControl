@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/tower/data/Badge';
-import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { NewClientModal } from '@/components/tower/clients/NewClientModal';
 import { ProjectPicker } from '@/components/tower/projects/ProjectPicker';
 import { RevokeClientDialog } from '@/components/tower/clients/RevokeClientDialog';
@@ -82,7 +82,7 @@ function ScopeChips({ scopes }: { scopes: Record<string, string> }) {
     return <span className="text-fg-caption">default</span>;
   }
 
-  return <div className="flex flex-wrap gap-2">{entries.map(([dimension, value]) => <FilterChip key={dimension} label={`${dimension}=${value}`} onToggle={() => undefined} />)}</div>;
+  return <div className="flex flex-wrap gap-1.5">{entries.map(([dimension, value]) => <ScopeTag dimension={dimension} key={dimension} value={value} />)}</div>;
 }
 
 function formatDate(value: string) {
