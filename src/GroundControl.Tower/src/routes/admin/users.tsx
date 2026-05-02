@@ -35,14 +35,9 @@ function UsersRoute() {
       header: 'User',
       id: 'user',
     }),
-    columnHelper.display({
-      cell: (info) => <GrantBadges grants={info.row.original.grants} groupById={groupById} roleById={roleById} />,
-      header: 'Roles',
-      id: 'roles',
-    }),
     columnHelper.accessor('email', { cell: (info) => info.getValue(), header: 'Email' }),
     columnHelper.display({ cell: () => <span className="text-fg-caption">not tracked</span>, header: 'Last login', id: 'last-login' }),
-  ], [groupById, roleById]);
+  ], []);
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
   return (
@@ -94,23 +89,6 @@ function UserIdentity({ user }: { user: User }) {
   );
 }
 
-function GrantBadges({ grants, groupById, roleById }: { grants: Grant[]; groupById: Map<string, { name: string }>; roleById: Map<string, { name: string }> }) {
-  if (grants.length === 0) {
-    return <span className="text-fg-caption">none</span>;
-  }
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {grants.map((grant) => {
-        const roleName = roleById.get(grant.roleId)?.name ?? grant.roleId;
-        const groupName = grant.resource ? groupById.get(grant.resource)?.name ?? grant.resource : 'global';
-
-        return <RoleBadge key={`${grant.resource ?? 'global'}-${grant.roleId}`} roleName={roleName}>{roleName} · {groupName}</RoleBadge>;
-      })}
-    </div>
-  );
-}
-
 function GrantDetailPanel({ groupById, roleById, user }: { groupById: Map<string, { name: string }>; roleById: Map<string, { name: string }>; user: User | null }) {
   const grants = useUserGrants(user?.id ?? null);
   const [grantToRemove, setGrantToRemove] = useState<Grant | null>(null);
@@ -128,7 +106,6 @@ function GrantDetailPanel({ groupById, roleById, user }: { groupById: Map<string
         <div>
           <div className="text-[11px] font-medium uppercase text-fg-caption">Grant detail</div>
           <h2 className="mt-2 text-[22px] font-semibold text-fg-heading">{user.username}</h2>
-          <p className="mt-1 text-[13px] text-fg-caption">version {userDetail?.version ?? user.version} · If-Match required on removal</p>
         </div>
         <AddGrantModal userId={user.id} />
       </div>
