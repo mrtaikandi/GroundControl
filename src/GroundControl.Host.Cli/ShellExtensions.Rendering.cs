@@ -97,7 +97,11 @@ public static partial class ShellExtensions
         public void RenderJson<T>(T value)
         {
             var json = JsonSerializer.Serialize(value, JsonOptions);
-            shell.Console.WriteLine(json);
+
+            // Write directly to the underlying writer to bypass Spectre's line wrapping.
+            // Spectre wraps at the profile width (80 chars when stdout is redirected),
+            // which inserts literal newlines inside JSON string values and produces invalid JSON.
+            shell.Console.Profile.Out.Writer.WriteLine(json);
         }
     }
 }
