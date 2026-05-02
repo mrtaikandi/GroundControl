@@ -74,7 +74,7 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
 
         await _audit.RecordAsync("ConfigEntry", entry.Id, null, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var responseValues = SensitiveSourceValueProtector.MaskValues(entry.Values, entry.IsSensitive);
+        var responseValues = _protector.MaskValues(entry.Values, entry.IsSensitive);
         return TypedResults.Created($"/api/config-entries/{entry.Id}", ConfigEntryResponse.From(entry, responseValues));
     }
 }

@@ -97,7 +97,7 @@ internal sealed class UpdateConfigEntryHandler : IEndpointHandler
 
         await _audit.RecordAsync("ConfigEntry", entry.Id, null, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var responseValues = SensitiveSourceValueProtector.MaskValues(entry.Values, entry.IsSensitive);
+        var responseValues = _protector.MaskValues(entry.Values, entry.IsSensitive);
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(entry.Version);
 
         return TypedResults.Ok(ConfigEntryResponse.From(entry, responseValues));

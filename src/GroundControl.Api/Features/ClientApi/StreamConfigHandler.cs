@@ -19,14 +19,14 @@ internal sealed class StreamConfigHandler : IEndpointHandler
 
     private readonly SnapshotCache _cache;
     private readonly IScopeResolver _scopeResolver;
-    private readonly IValueProtector _protector;
+    private readonly SensitiveSourceValueProtector _protector;
     private readonly IChangeNotifier _changeNotifier;
     private readonly IConfiguration _configuration;
 
     public StreamConfigHandler(
         SnapshotCache cache,
         IScopeResolver scopeResolver,
-        IValueProtector protector,
+        SensitiveSourceValueProtector protector,
         IChangeNotifier changeNotifier,
         IConfiguration configuration)
     {
@@ -198,7 +198,7 @@ internal sealed class StreamConfigHandler : IEndpointHandler
                 continue;
             }
 
-            var value = entry.IsSensitive && !string.IsNullOrEmpty(resolved.Value) ? _protector.Unprotect(resolved.Value) : resolved.Value;
+            var value = _protector.UnprotectIfSensitive(resolved.Value, entry.IsSensitive);
             data[entry.Key] = new ConfigValue { Value = value, IsSensitive = entry.IsSensitive };
         }
 

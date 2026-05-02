@@ -74,7 +74,7 @@ internal sealed class CreateVariableHandler : IEndpointHandler
 
         await _audit.RecordAsync("Variable", variable.Id, variable.GroupId, "Created", cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var responseValues = SensitiveSourceValueProtector.MaskValues(variable.Values, variable.IsSensitive);
+        var responseValues = _protector.MaskValues(variable.Values, variable.IsSensitive);
         return TypedResults.Created($"/api/variables/{variable.Id}", VariableResponse.From(variable, [.. responseValues]));
     }
 }

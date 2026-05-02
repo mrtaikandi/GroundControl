@@ -91,7 +91,7 @@ internal sealed class UpdateVariableHandler : IEndpointHandler
 
         await _audit.RecordAsync("Variable", variable.Id, variable.GroupId, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var responseValues = SensitiveSourceValueProtector.MaskValues(variable.Values, variable.IsSensitive);
+        var responseValues = _protector.MaskValues(variable.Values, variable.IsSensitive);
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(variable.Version);
         return TypedResults.Ok(VariableResponse.From(variable, [.. responseValues]));
     }

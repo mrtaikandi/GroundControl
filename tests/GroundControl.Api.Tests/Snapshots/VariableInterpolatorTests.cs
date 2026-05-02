@@ -21,9 +21,9 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_SinglePlaceholderResolved_ReturnsSubstitutedValue()
     {
         // Arrange
-        var variable = CreateVariable("envName", "Production");
-        var projectVariables = new Dictionary<string, Variable> { ["envName"] = variable };
-        Dictionary<string, Variable> globalVariables = [];
+        var variable = CreateVariable("Production");
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["envName"] = variable };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string> { ["env"] = "prod" };
 
         SetupResolve(variable, clientScopes, "Production");
@@ -41,11 +41,11 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_ProjectVariableOverridesGlobal_UsesProjectVariableValue()
     {
         // Arrange
-        var projectVariable = CreateVariable("dbHost", "project-db.local");
-        var globalVariable = CreateVariable("dbHost", "global-db.local");
+        var projectVariable = CreateVariable("project-db.local");
+        var globalVariable = CreateVariable("global-db.local");
 
-        var projectVariables = new Dictionary<string, Variable> { ["dbHost"] = projectVariable };
-        var globalVariables = new Dictionary<string, Variable> { ["dbHost"] = globalVariable };
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["dbHost"] = projectVariable };
+        var globalVariables = new Dictionary<string, PlaintextVariable> { ["dbHost"] = globalVariable };
         var clientScopes = new Dictionary<string, string> { ["env"] = "prod" };
 
         SetupResolve(projectVariable, clientScopes, "project-db.local");
@@ -67,9 +67,9 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_FallsBackToGlobalVariable_WhenProjectVariableNotFound()
     {
         // Arrange
-        var globalVariable = CreateVariable("apiKey", "global-key-123");
-        Dictionary<string, Variable> projectVariables = [];
-        var globalVariables = new Dictionary<string, Variable> { ["apiKey"] = globalVariable };
+        var globalVariable = CreateVariable("global-key-123");
+        Dictionary<string, PlaintextVariable> projectVariables = [];
+        var globalVariables = new Dictionary<string, PlaintextVariable> { ["apiKey"] = globalVariable };
         var clientScopes = new Dictionary<string, string> { ["env"] = "prod" };
 
         SetupResolve(globalVariable, clientScopes, "global-key-123");
@@ -86,8 +86,8 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_UnresolvedPlaceholder_ReturnsNameInUnresolvedList()
     {
         // Arrange
-        Dictionary<string, Variable> projectVariables = [];
-        Dictionary<string, Variable> globalVariables = [];
+        Dictionary<string, PlaintextVariable> projectVariables = [];
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string>();
 
         // Act
@@ -103,15 +103,15 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_MultiplePlaceholders_AllSubstituted()
     {
         // Arrange
-        var hostVar = CreateVariable("host", "db.local");
-        var portVar = CreateVariable("port", "5432");
+        var hostVar = CreateVariable("db.local");
+        var portVar = CreateVariable("5432");
 
-        var projectVariables = new Dictionary<string, Variable>
+        var projectVariables = new Dictionary<string, PlaintextVariable>
         {
             ["host"] = hostVar,
             ["port"] = portVar
         };
-        Dictionary<string, Variable> globalVariables = [];
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string> { ["env"] = "prod" };
 
         SetupResolve(hostVar, clientScopes, "db.local");
@@ -130,8 +130,8 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_NoPlaceholders_ReturnsOriginalStringUnchanged()
     {
         // Arrange
-        Dictionary<string, Variable> projectVariables = [];
-        Dictionary<string, Variable> globalVariables = [];
+        Dictionary<string, PlaintextVariable> projectVariables = [];
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string>();
 
         // Act
@@ -147,9 +147,9 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_ScopeAwareResolution_CallsScopeResolverWithClientScopes()
     {
         // Arrange
-        var variable = CreateVariable("region", "eu-west-1");
-        var projectVariables = new Dictionary<string, Variable> { ["region"] = variable };
-        Dictionary<string, Variable> globalVariables = [];
+        var variable = CreateVariable("eu-west-1");
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["region"] = variable };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string>
         {
             ["environment"] = "Production",
@@ -171,9 +171,9 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_MixedResolvedAndUnresolved_ReturnsPartialResult()
     {
         // Arrange
-        var knownVar = CreateVariable("known", "resolved-value");
-        var projectVariables = new Dictionary<string, Variable> { ["known"] = knownVar };
-        Dictionary<string, Variable> globalVariables = [];
+        var knownVar = CreateVariable("resolved-value");
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["known"] = knownVar };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string>();
 
         SetupResolve(knownVar, clientScopes, "resolved-value");
@@ -191,9 +191,9 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_VariableExistsButScopeResolverReturnsNull_TreatedAsUnresolved()
     {
         // Arrange
-        var variable = CreateVariable("envName", "Production");
-        var projectVariables = new Dictionary<string, Variable> { ["envName"] = variable };
-        Dictionary<string, Variable> globalVariables = [];
+        var variable = CreateVariable("Production");
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["envName"] = variable };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string> { ["env"] = "staging" };
 
         // ScopeResolver returns null (no matching scope)
@@ -213,9 +213,9 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_DuplicatePlaceholder_ResolvedOnce()
     {
         // Arrange
-        var variable = CreateVariable("env", "prod");
-        var projectVariables = new Dictionary<string, Variable> { ["env"] = variable };
-        Dictionary<string, Variable> globalVariables = [];
+        var variable = CreateVariable("prod");
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["env"] = variable };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string>();
 
         SetupResolve(variable, clientScopes, "prod");
@@ -232,8 +232,8 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_NoPlaceholders_LeavesUsedSensitiveVariableFalse()
     {
         // Arrange
-        Dictionary<string, Variable> projectVariables = [];
-        Dictionary<string, Variable> globalVariables = [];
+        Dictionary<string, PlaintextVariable> projectVariables = [];
+        Dictionary<string, PlaintextVariable> globalVariables = [];
 
         // Act
         var result = _sut.Interpolate("plain literal", new Dictionary<string, string>(), projectVariables, globalVariables);
@@ -246,9 +246,9 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_ResolvedSensitiveVariable_SetsUsedSensitiveVariableTrue()
     {
         // Arrange
-        var variable = CreateVariable("dbPassword", "hunter2", isSensitive: true);
-        var projectVariables = new Dictionary<string, Variable> { ["dbPassword"] = variable };
-        Dictionary<string, Variable> globalVariables = [];
+        var variable = CreateVariable("hunter2", isSensitive: true);
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["dbPassword"] = variable };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string>();
 
         SetupResolve(variable, clientScopes, "hunter2");
@@ -265,9 +265,9 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_ResolvedNonSensitiveVariable_LeavesUsedSensitiveVariableFalse()
     {
         // Arrange
-        var variable = CreateVariable("dbHost", "db.local", isSensitive: false);
-        var projectVariables = new Dictionary<string, Variable> { ["dbHost"] = variable };
-        Dictionary<string, Variable> globalVariables = [];
+        var variable = CreateVariable("db.local", isSensitive: false);
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["dbHost"] = variable };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string>();
 
         SetupResolve(variable, clientScopes, "db.local");
@@ -283,15 +283,15 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_MultiplePlaceholdersOneSensitive_SetsUsedSensitiveVariableTrue()
     {
         // Arrange
-        var hostVar = CreateVariable("host", "db.local", isSensitive: false);
-        var passwordVar = CreateVariable("dbPassword", "hunter2", isSensitive: true);
+        var hostVar = CreateVariable("db.local", isSensitive: false);
+        var passwordVar = CreateVariable("hunter2", isSensitive: true);
 
-        var projectVariables = new Dictionary<string, Variable>
+        var projectVariables = new Dictionary<string, PlaintextVariable>
         {
             ["host"] = hostVar,
             ["dbPassword"] = passwordVar,
         };
-        Dictionary<string, Variable> globalVariables = [];
+        Dictionary<string, PlaintextVariable> globalVariables = [];
         var clientScopes = new Dictionary<string, string>();
 
         SetupResolve(hostVar, clientScopes, "db.local");
@@ -309,8 +309,8 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_UnresolvedPlaceholderOnly_LeavesUsedSensitiveVariableFalse()
     {
         // Arrange
-        Dictionary<string, Variable> projectVariables = [];
-        Dictionary<string, Variable> globalVariables = [];
+        Dictionary<string, PlaintextVariable> projectVariables = [];
+        Dictionary<string, PlaintextVariable> globalVariables = [];
 
         // Act
         var result = _sut.Interpolate("{{missing}}", new Dictionary<string, string>(), projectVariables, globalVariables);
@@ -323,11 +323,11 @@ public sealed class VariableInterpolatorTests
     public void Interpolate_SensitiveProjectVariableOverridesNonSensitiveGlobal_SetsUsedSensitiveVariableTrue()
     {
         // Arrange
-        var projectVar = CreateVariable("token", "project-secret", isSensitive: true);
-        var globalVar = CreateVariable("token", "global-public", isSensitive: false);
+        var projectVar = CreateVariable("project-secret", isSensitive: true);
+        var globalVar = CreateVariable("global-public", isSensitive: false);
 
-        var projectVariables = new Dictionary<string, Variable> { ["token"] = projectVar };
-        var globalVariables = new Dictionary<string, Variable> { ["token"] = globalVar };
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["token"] = projectVar };
+        var globalVariables = new Dictionary<string, PlaintextVariable> { ["token"] = globalVar };
         var clientScopes = new Dictionary<string, string>();
 
         SetupResolve(projectVar, clientScopes, "project-secret");
@@ -340,15 +340,13 @@ public sealed class VariableInterpolatorTests
         result.UsedSensitiveVariable.ShouldBeTrue();
     }
 
-    private static Variable CreateVariable(string name, string defaultValue, bool isSensitive = false) => new()
+    private static PlaintextVariable CreateVariable(string defaultValue, bool isSensitive = false) => new()
     {
-        Id = Guid.CreateVersion7(),
-        Name = name,
         Values = [new ScopedValue(defaultValue, [])],
         IsSensitive = isSensitive,
     };
 
-    private void SetupResolve(Variable variable, IReadOnlyDictionary<string, string> clientScopes, string resolvedValue)
+    private void SetupResolve(PlaintextVariable variable, IReadOnlyDictionary<string, string> clientScopes, string resolvedValue)
     {
         _scopeResolver.Resolve(
                 Arg.Is<IReadOnlyList<ScopedValue>>(v => v.SequenceEqual(variable.Values)),

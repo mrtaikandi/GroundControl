@@ -185,25 +185,20 @@ internal sealed class SnapshotPublisher
         return new ResolveResult(resolvedEntries, unresolvedPlaceholders);
     }
 
-    private Dictionary<string, Variable> BuildPlaintextVariableLookup(IReadOnlyList<Variable> variables)
+    private Dictionary<string, PlaintextVariable> BuildPlaintextVariableLookup(IReadOnlyList<Variable> variables)
     {
-        var lookup = new Dictionary<string, Variable>(StringComparer.OrdinalIgnoreCase);
+        // Eager: every sensitive variable is decrypted up front, even ones no entry references.
+        // For typical inventories this is cheap, and a lazy alternative would require pushing the
+        // protector into the interpolator. Revisit if profiling shows it is meaningful.
+        var lookup = new Dictionary<string, PlaintextVariable>(StringComparer.OrdinalIgnoreCase);
         foreach (var variable in variables)
         {
-            // Snapshot publish operates on plaintext in memory, then encrypts resolved entries that
-            // are flagged sensitive (either by the entry itself or by interpolation). Mutating the
-            // freshly-loaded entity is safe — it is not cached or reused after this method returns.
-            if (variable.IsSensitive)
+            var plaintextValues = _sourceProtector.UnprotectValues(variable.Values, variable.IsSensitive);
+            lookup[variable.Name] = new PlaintextVariable
             {
-                var plaintextValues = _sourceProtector.UnprotectValues(variable.Values, isSensitive: true);
-                variable.Values.Clear();
-                foreach (var value in plaintextValues)
-                {
-                    variable.Values.Add(value);
-                }
-            }
-
-            lookup[variable.Name] = variable;
+                Values = plaintextValues,
+                IsSensitive = variable.IsSensitive,
+            };
         }
 
         return lookup;

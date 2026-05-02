@@ -100,7 +100,21 @@ Cookie-based authentication uses a double-submit cookie pattern (`XSRF-TOKEN` co
 
 ### Encryption at Rest
 
-Configuration entries and variables marked as `isSensitive = true` have their values encrypted before storage in MongoDB.
+Configuration entries and variables marked as `isSensitive = true` have their values encrypted before storage in MongoDB. Empty string values are preserved verbatim — there is nothing to protect, and storing ciphertext for an empty value would mislead later readers into thinking a value exists.
+
+#### Sensitivity Propagation Through Interpolation
+
+Snapshot resolution propagates sensitivity from variables into resolved entries:
+
+- A `ConfigEntry` whose `isSensitive = true` always produces a sensitive resolved snapshot entry.
+- A `ConfigEntry` whose `isSensitive = false` becomes sensitive in the snapshot if any `{{variableName}}` placeholder it contains resolves to a variable whose `isSensitive = true`.
+- The OR is per-entry across every placeholder: a single sensitive contributor flips the resolved entry to sensitive, and that entry is then encrypted before persistence.
+
+This matches the principle that a derived value is at least as sensitive as its most sensitive input, and prevents secrets from leaking into the snapshot through indirect references.
+
+#### Mask Sentinel On Write
+
+The mask sentinel `"***"` is reserved for masked GET responses. Write requests (`POST`/`PUT` for config entries and variables) are rejected when `isSensitive = true` and any submitted value equals `"***"`. This prevents UI round-trips of a masked GET response from silently overwriting the stored secret with the literal string `"***"`. Callers that need to keep an existing secret should omit the value or perform a partial update; callers that legitimately want to set a value should submit the actual secret.
 
 **Protection interface (pluggable):**
 
