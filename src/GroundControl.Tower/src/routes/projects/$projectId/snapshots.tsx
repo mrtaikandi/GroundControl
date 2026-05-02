@@ -101,21 +101,6 @@ function SnapshotsRoute() {
     return null;
   }, [activeSummary, previousSummary, snapshotViewMode]);
 
-  const headerSummary = useMemo(() => {
-    const parts: string[] = [];
-    parts.push(`${items.length} ${items.length === 1 ? 'publish' : 'publishes'}`);
-
-    if (activeSummary) {
-      parts.push(`active v${activeSummary.snapshotVersion}`);
-    }
-
-    if (mostRecent) {
-      parts.push(`most recent ${formatRelative(mostRecent.publishedAt)}`);
-    }
-
-    return parts.join(' · ');
-  }, [activeSummary, items.length, mostRecent]);
-
   return (
     <div className="grid gap-6">
       <div className="flex items-start justify-between gap-4">
@@ -129,9 +114,7 @@ function SnapshotsRoute() {
               selectedId={projectId}
             />
           </div>
-          {!snapshots.isLoading && items.length > 0 ? (
-            <p className="mt-1.5 text-[12.5px] text-fg-caption">{headerSummary}</p>
-          ) : null}
+          <p className="mt-2 text-[14.5px] text-fg-caption">A history of every published version of this project's configuration.</p>
         </div>
       </div>
 

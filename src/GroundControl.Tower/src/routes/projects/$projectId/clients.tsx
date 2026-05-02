@@ -26,8 +26,6 @@ function ClientsRoute() {
   const clients = useClients(projectId);
   const [clientToRevoke, setClientToRevoke] = useState<Client | null>(null);
   const data = clients.data?.data ?? [];
-  const activeCount = data.filter((client) => client.isActive).length;
-  const summary = clients.isLoading ? null : `${data.length} ${data.length === 1 ? 'credential' : 'credentials'} · ${activeCount} active`;
   const columns = useMemo(() => [
     columnHelper.accessor('name', { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Name' }),
     columnHelper.display({ cell: (info) => <ScopeChips scopes={info.row.original.scopes} />, header: 'Scope context', id: 'scopes' }),
@@ -50,7 +48,7 @@ function ClientsRoute() {
               selectedId={projectId}
             />
           </div>
-          {summary ? <p className="mt-1.5 text-[12.5px] text-fg-caption">{summary}</p> : null}
+          <p className="mt-2 text-[14.5px] text-fg-caption">Issue and manage the credentials your apps use to read this project's settings.</p>
         </div>
         <NewClientModal projectId={projectId} />
       </div>

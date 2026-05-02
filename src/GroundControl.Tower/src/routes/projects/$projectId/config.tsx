@@ -8,7 +8,6 @@ import { ConfigTreeView } from '@/components/tower/config/ConfigTreeView';
 import { ProjectPicker } from '@/components/tower/projects/ProjectPicker';
 import { TemplateAttachmentsBar } from '@/components/tower/projects/TemplateAttachmentsBar';
 import { PublishModal } from '@/components/tower/snapshots/PublishModal';
-import { useEffectiveEntries } from '@/queries/useEffectiveEntries';
 import { useProjects } from '@/queries/useProjects';
 import { useTweaksStore } from '@/store/tweaks';
 
@@ -24,12 +23,7 @@ function ConfigRoute() {
   const projects = useProjects();
   const project = projects.data?.data.find((candidate) => candidate.id === projectId);
   const activeSnapshotId = project?.activeSnapshotId || undefined;
-  const effective = useEffectiveEntries(projectId);
   const [publishing, setPublishing] = useState(false);
-
-  const summary = effective.isLoading
-    ? null
-    : buildSummary(effective.ownCount, effective.inheritedCount, effective.attachedTemplates.length, effective.overrideCount);
 
   return (
     <div className="grid gap-6">
@@ -44,7 +38,7 @@ function ConfigRoute() {
               selectedId={projectId}
             />
           </div>
-          {summary ? <p className="mt-1.5 text-[12.5px] text-fg-caption">{summary}</p> : null}
+          <p className="mt-2 text-[14.5px] text-fg-caption">Manage project configurations.</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <SegmentedControl onChange={setConfigViewMode} options={[{ label: 'Flat', value: 'flat' }, { label: 'Tree', value: 'tree' }, { label: 'JSON', value: 'json' }]} value={configViewMode} />
@@ -61,17 +55,3 @@ function ConfigRoute() {
   );
 }
 
-function buildSummary(ownCount: number, inheritedCount: number, templateCount: number, overrideCount: number): string {
-  const parts: string[] = [];
-  parts.push(`${ownCount} own ${ownCount === 1 ? 'entry' : 'entries'}`);
-
-  if (templateCount > 0) {
-    parts.push(`${inheritedCount} inherited from ${templateCount} ${templateCount === 1 ? 'template' : 'templates'}`);
-  }
-
-  if (overrideCount > 0) {
-    parts.push(`${overrideCount} ${overrideCount === 1 ? 'override' : 'overrides'}`);
-  }
-
-  return parts.join(' · ');
-}
