@@ -123,7 +123,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
 
         var updateRequest = new GroundControl.Api.Features.ConfigEntries.Contracts.UpdateConfigEntryRequest
         {
-            ValueType = "Integer",
+            ValueType = "Int64",
             Values = [new GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest { Value = "30" }],
             IsSensitive = true,
             Description = "Connection timeout"
@@ -138,7 +138,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var updated = await ReadRequiredJsonAsync<ConfigEntryResponse>(response, TestCancellationToken);
-        updated.ValueType.ShouldBe("Integer");
+        updated.ValueType.ShouldBe("Int64");
         updated.IsSensitive.ShouldBeTrue();
         updated.Description.ShouldBe("Connection timeout");
         updated.Version.ShouldBe(2);

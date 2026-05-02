@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -11,13 +10,15 @@ internal static class ConfigEntryValidation
     private static readonly HashSet<string> AllowedValueTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "String",
-        "Integer",
+        "Int32",
+        "Int64",
+        "Double",
+        "Decimal",
         "Boolean",
-        "Json",
         "DateTime",
         "DateTimeOffset",
-        "TimeOnly",
-        "DateOnly"
+        "DateOnly",
+        "TimeOnly"
     };
 
     public static bool IsValidValueType(string valueType) => AllowedValueTypes.Contains(valueType);
@@ -27,13 +28,15 @@ internal static class ConfigEntryValidation
         return valueType.ToUpperInvariant() switch
         {
             "STRING" => null,
-            "INTEGER" => long.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Integer.",
+            "INT32" => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Int32.",
+            "INT64" => long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Int64.",
+            "DOUBLE" => double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Double.",
+            "DECIMAL" => decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Decimal.",
             "BOOLEAN" => bool.TryParse(value, out _) ? null : $"Value '{value}' is not a valid Boolean.",
-            "JSON" => ValidateJson(value),
             "DATETIME" => DateTime.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateTime.",
             "DATETIMEOFFSET" => DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateTimeOffset.",
-            "TIMEONLY" => TimeOnly.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid TimeOnly.",
             "DATEONLY" => DateOnly.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateOnly.",
+            "TIMEONLY" => TimeOnly.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid TimeOnly.",
             _ => $"ValueType '{valueType}' is not supported."
         };
     }
@@ -68,18 +71,5 @@ internal static class ConfigEntryValidation
         }
 
         return null;
-    }
-
-    private static string? ValidateJson(string value)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(value);
-            return null;
-        }
-        catch (JsonException)
-        {
-            return $"Value '{value}' is not valid JSON.";
-        }
     }
 }
