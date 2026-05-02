@@ -1,7 +1,8 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { NotificationsPopover } from '@/components/tower/shell/NotificationsPopover';
 import { SYSTEM_USER_LABEL } from '@/lib/user';
 import { useTweaksStore, type Theme } from '@/store/tweaks';
-import { Bell, Moon, Search, Sun } from 'lucide-react';
+import { Moon, Search, Sun } from 'lucide-react';
 
 export function Header() {
   const theme = useTweaksStore((state) => state.theme);
@@ -23,10 +24,7 @@ export function Header() {
       </label>
 
       <div className="flex items-center gap-3">
-        <button className="grid size-8 place-items-center rounded-lg text-fg-icon-subtle transition-colors hover:bg-bg-container hover:text-fg-body" type="button">
-          <span className="sr-only">Notifications</span>
-          <Bell aria-hidden="true" className="size-4" strokeWidth={1.8} />
-        </button>
+        <NotificationsPopover />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
