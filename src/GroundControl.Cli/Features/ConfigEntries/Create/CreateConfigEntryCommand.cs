@@ -11,7 +11,7 @@ internal sealed class CreateConfigEntryCommand : Command<CreateConfigEntryHandle
         var keyOption = new Option<string?>("--key") { Description = "The configuration key (e.g., Database:ConnectionString) (Required)" };
         var ownerIdOption = new Option<Guid?>("--owner-id") { Description = "The owning template or project ID (Required)" };
         var ownerTypeOption = new Option<ConfigEntryOwnerType?>("--owner-type") { Description = "The owner type (Template or Project) (Required)" };
-        var valueTypeOption = new Option<string?>("--value-type") { Description = "The value type name (e.g., String, Int32, Boolean) (Required)" };
+        var valueTypeOption = new Option<string?>("--value-type") { Description = "The value type name. Allowed: String, Int32, Int64, Double, Decimal, Boolean, DateTime, DateTimeOffset, DateOnly, TimeOnly. (Required)" };
         var sensitiveOption = new Option<bool?>("--sensitive") { Description = "Whether the entry contains sensitive data" };
         var descriptionOption = new Option<string?>("--description") { Description = "The entry description" };
         var valueOption = new Option<string[]?>("--value")
