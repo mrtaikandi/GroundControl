@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AddGrantModal } from '@/components/tower/admin/AddGrantModal';
+import { NewUserModal } from '@/components/tower/admin/NewUserModal';
 import { Badge } from '@/components/tower/data/Badge';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
@@ -46,9 +47,12 @@ function UsersRoute() {
 
   return (
     <div className="grid gap-8">
-      <div>
-        <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Users</h1>
-        <p className="mt-2 text-[14.5px] text-fg-caption">Users receive roles through grants scoped to groups.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Users</h1>
+          <p className="mt-2 text-[14.5px] text-fg-caption">Users receive roles through grants scoped to groups.</p>
+        </div>
+        <NewUserModal />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_460px]">

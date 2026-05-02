@@ -104,7 +104,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
                 <div className="text-[13px] font-semibold text-fg-heading">Scoped values</div>
                 <div className="text-[11.5px] text-fg-caption">Overrides apply when a client matches the selected scope.</div>
               </div>
-              <Button onClick={() => scopedValues.append({ dimension: '', scopeValue: '', value: '' })} type="button" variant="secondary">Add scope override</Button>
+              <Button onClick={() => scopedValues.append({ dimension: '', scopeValue: '', value: '' })} type="button" variant="secondary">Add scope</Button>
             </div>
 
             {scopedValues.fields.map((field, index) => {

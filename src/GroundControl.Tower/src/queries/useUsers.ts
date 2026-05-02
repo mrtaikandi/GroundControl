@@ -1,13 +1,14 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { setGroupMember } from '@/api/endpoints/groups';
-import { getUser, getUsers, updateUser } from '@/api/endpoints/users';
-import type { ApiResponse } from '@/api/client';
+import { createUser, getUser, getUsers, updateUser } from '@/api/endpoints/users';
+import type { ApiRequestBody, ApiResponse } from '@/api/client';
 import { useConflictMutation } from '@/lib/mutations';
 import { queryClient } from '@/lib/query-client';
 
 export type User = NonNullable<ApiResponse<'ListUsersHandler'>>['data'][number];
 export type UserDetail = ApiResponse<'GetUserHandler'>;
 export type Grant = UserDetail['grants'][number];
+export type CreateUserRequest = ApiRequestBody<'CreateUserHandler'>;
 
 export function usersQueryKey() {
   return ['users'] as const;
@@ -29,6 +30,15 @@ export function useUserGrants(userId: string | null) {
     enabled: !!userId,
     queryFn: () => getUser(userId!),
     queryKey: userId ? userGrantsQueryKey(userId) : ['users', 'none', 'grants'],
+  });
+}
+
+export function useCreateUser() {
+  return useMutation({
+    mutationFn: (body: CreateUserRequest) => createUser(body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: usersQueryKey() });
+    },
   });
 }
 
