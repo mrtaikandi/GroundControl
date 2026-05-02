@@ -265,6 +265,152 @@ public sealed class SnapshotPublisherTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task PublishAsync_NonSensitiveEntryReferencingSensitiveVariable_ProducesSensitiveEncryptedSnapshotEntry()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var group = await CreateGroupAsync(apiClient);
+        var project = await CreateProjectAsync(apiClient, groupId: group.Id);
+
+        // Non-sensitive ConfigEntry that references a sensitive variable.
+        await CreateConfigEntryAsync(
+            apiClient,
+            "db.connection",
+            project.Id,
+            ConfigEntryOwnerType.Project,
+            value: "Server=db.local;Password={{dbPassword}}",
+            isSensitive: false);
+
+        await CreateVariableAsync(apiClient, "dbPassword", VariableScope.Global, groupId: group.Id, value: "hunter2", isSensitive: true);
+
+        var publisher = factory.Services.GetRequiredService<SnapshotPublisher>();
+
+        // Act
+        var result = await publisher.PublishAsync(project.Id, Guid.CreateVersion7(), cancellationToken: TestCancellationToken);
+
+        // Assert
+        var created = result.Result.ShouldBeOfType<Created<Snapshot>>();
+        var snapshot = created.Value.ShouldNotBeNull();
+
+        var entry = snapshot.Entries.ShouldHaveSingleItem();
+        entry.Key.ShouldBe("db.connection");
+        entry.IsSensitive.ShouldBeTrue();
+
+        var storedValue = entry.Values.ShouldHaveSingleItem().Value;
+        storedValue.ShouldNotBe("Server=db.local;Password=hunter2");
+        storedValue.ShouldNotBeNullOrEmpty();
+
+        var protector = factory.Services.GetRequiredService<IValueProtector>();
+        protector.Unprotect(storedValue).ShouldBe("Server=db.local;Password=hunter2");
+    }
+
+    [Fact]
+    public async Task PublishAsync_NonSensitiveEntryReferencingNonSensitiveVariable_RemainsNonSensitivePlaintext()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var group = await CreateGroupAsync(apiClient);
+        var project = await CreateProjectAsync(apiClient, groupId: group.Id);
+
+        await CreateConfigEntryAsync(apiClient, "db.host", project.Id, ConfigEntryOwnerType.Project, value: "Server={{dbHost}}");
+        await CreateVariableAsync(apiClient, "dbHost", VariableScope.Global, groupId: group.Id, value: "db.local", isSensitive: false);
+
+        var publisher = factory.Services.GetRequiredService<SnapshotPublisher>();
+
+        // Act
+        var result = await publisher.PublishAsync(project.Id, Guid.CreateVersion7(), cancellationToken: TestCancellationToken);
+
+        // Assert
+        var created = result.Result.ShouldBeOfType<Created<Snapshot>>();
+        var snapshot = created.Value.ShouldNotBeNull();
+
+        var entry = snapshot.Entries.ShouldHaveSingleItem();
+        entry.IsSensitive.ShouldBeFalse();
+        entry.Values.ShouldHaveSingleItem().Value.ShouldBe("Server=db.local");
+    }
+
+    [Fact]
+    public async Task PublishAsync_SensitiveEntryWithNonSensitiveVariable_StaysSensitiveAndEncrypted()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var group = await CreateGroupAsync(apiClient);
+        var project = await CreateProjectAsync(apiClient, groupId: group.Id);
+
+        await CreateConfigEntryAsync(
+            apiClient,
+            "db.password",
+            project.Id,
+            ConfigEntryOwnerType.Project,
+            value: "{{prefix}}-hunter2",
+            isSensitive: true);
+
+        await CreateVariableAsync(apiClient, "prefix", VariableScope.Global, groupId: group.Id, value: "prod", isSensitive: false);
+
+        var publisher = factory.Services.GetRequiredService<SnapshotPublisher>();
+
+        // Act
+        var result = await publisher.PublishAsync(project.Id, Guid.CreateVersion7(), cancellationToken: TestCancellationToken);
+
+        // Assert
+        var created = result.Result.ShouldBeOfType<Created<Snapshot>>();
+        var snapshot = created.Value.ShouldNotBeNull();
+
+        var entry = snapshot.Entries.ShouldHaveSingleItem();
+        entry.IsSensitive.ShouldBeTrue();
+
+        var storedValue = entry.Values.ShouldHaveSingleItem().Value;
+        storedValue.ShouldNotBe("prod-hunter2");
+
+        var protector = factory.Services.GetRequiredService<IValueProtector>();
+        protector.Unprotect(storedValue).ShouldBe("prod-hunter2");
+    }
+
+    [Fact]
+    public async Task PublishAsync_SensitiveSourceConfigEntry_DecryptsBeforeInterpolation()
+    {
+        // Arrange — proves the publisher decrypts source values before feeding them into
+        // interpolation. Without that, the placeholder would be searched for inside ciphertext
+        // and never resolve, leaving an unresolved-placeholders error.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var group = await CreateGroupAsync(apiClient);
+        var project = await CreateProjectAsync(apiClient, groupId: group.Id);
+
+        await CreateConfigEntryAsync(
+            apiClient,
+            "db.password",
+            project.Id,
+            ConfigEntryOwnerType.Project,
+            value: "before-{{suffix}}-after",
+            isSensitive: true);
+
+        await CreateVariableAsync(apiClient, "suffix", VariableScope.Global, groupId: group.Id, value: "MIDDLE", isSensitive: false);
+
+        var publisher = factory.Services.GetRequiredService<SnapshotPublisher>();
+
+        // Act
+        var result = await publisher.PublishAsync(project.Id, Guid.CreateVersion7(), cancellationToken: TestCancellationToken);
+
+        // Assert
+        var created = result.Result.ShouldBeOfType<Created<Snapshot>>();
+        var snapshot = created.Value.ShouldNotBeNull();
+
+        var entry = snapshot.Entries.ShouldHaveSingleItem();
+        entry.IsSensitive.ShouldBeTrue();
+
+        var protector = factory.Services.GetRequiredService<IValueProtector>();
+        protector.Unprotect(entry.Values.ShouldHaveSingleItem().Value).ShouldBe("before-MIDDLE-after");
+    }
+
+    [Fact]
     public async Task PublishAsync_WithGlobalVariables_ResolvesPlaceholders()
     {
         // Arrange
@@ -374,7 +520,8 @@ public sealed class SnapshotPublisherTests : ApiHandlerTestBase
         VariableScope scope,
         Guid? projectId = null,
         Guid? groupId = null,
-        string value = "default")
+        string value = "default",
+        bool isSensitive = false)
     {
         var request = new CreateVariableRequest
         {
@@ -383,6 +530,7 @@ public sealed class SnapshotPublisherTests : ApiHandlerTestBase
             ProjectId = projectId,
             GroupId = groupId,
             Values = [new Features.Variables.Contracts.ScopedValueRequest { Value = value }],
+            IsSensitive = isSensitive,
         };
 
         var response = await apiClient.PostAsJsonAsync("/api/variables", request, WebJsonSerializerOptions, TestCancellationToken);
