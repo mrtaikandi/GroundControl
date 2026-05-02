@@ -10,7 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCreateEntry, useUpdateEntry, type ConfigEntry, type ConfigEntryOwnerType } from '@/queries/useConfigEntries';
 import { useScopes } from '@/queries/useScopes';
 
-const valueTypes = ['string', 'integer', 'boolean', 'json'] as const;
+const valueTypes = ['String', 'Int32', 'Int64', 'Double', 'Decimal', 'Boolean', 'DateTime', 'DateTimeOffset', 'DateOnly', 'TimeOnly'] as const;
+const integerTypes: ReadonlySet<EntryFormValues['type']> = new Set(['Int32', 'Int64']);
+const decimalTypes: ReadonlySet<EntryFormValues['type']> = new Set(['Double', 'Decimal']);
 
 const entrySchema = z.object({
   defaultValue: z.string(),
@@ -90,7 +92,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
 
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="entry-default-value">Default value</label>
-            <Input id="entry-default-value" inputMode={selectedType === 'integer' ? 'numeric' : undefined} type={isSensitive ? 'password' : selectedType === 'integer' ? 'number' : 'text'} {...form.register('defaultValue')} />
+            <Input id="entry-default-value" inputMode={integerTypes.has(selectedType) ? 'numeric' : decimalTypes.has(selectedType) ? 'decimal' : undefined} type={isSensitive ? 'password' : integerTypes.has(selectedType) || decimalTypes.has(selectedType) ? 'number' : 'text'} {...form.register('defaultValue')} />
           </div>
 
           <div className="grid gap-1.5">
@@ -162,5 +164,11 @@ function toRequest(values: EntryFormValues) {
 }
 
 function normalizeType(value?: string): EntryFormValues['type'] {
-  return valueTypes.includes(value as EntryFormValues['type']) ? value as EntryFormValues['type'] : 'string';
+  if (!value) {
+    return 'String';
+  }
+
+  const match = valueTypes.find((type) => type.toLowerCase() === value.toLowerCase());
+
+  return match ?? 'String';
 }

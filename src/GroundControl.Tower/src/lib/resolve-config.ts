@@ -84,32 +84,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+const numericValueTypes: ReadonlySet<string> = new Set(['int32', 'int64', 'double', 'decimal']);
+
 function coerceValue(value: null | string, valueType: string): unknown {
   if (value === null) {
     return null;
   }
 
-  if (valueType === 'number') {
+  const normalized = valueType.toLowerCase();
+
+  if (numericValueTypes.has(normalized)) {
     const numberValue = Number(value);
 
     return Number.isFinite(numberValue) ? numberValue : value;
   }
 
-  if (valueType === 'boolean') {
+  if (normalized === 'boolean') {
     if (value.toLowerCase() === 'true') {
       return true;
     }
 
     if (value.toLowerCase() === 'false') {
       return false;
-    }
-  }
-
-  if (valueType === 'json') {
-    try {
-      return JSON.parse(value) as unknown;
-    } catch {
-      return value;
     }
   }
 

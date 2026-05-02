@@ -16,7 +16,7 @@ describe('resolveConfigEntries', () => {
 
   it('uses the most specific matching scoped value', () => {
     const resolved = resolveConfigEntries([
-      entry('Service:Replicas', 'number', [
+      entry('Service:Replicas', 'Int32', [
         { scopes: {}, value: '1' },
         { scopes: { Environment: 'prod' }, value: '2' },
         { scopes: { Environment: 'prod', Region: 'eu-west' }, value: '4' },
@@ -24,6 +24,22 @@ describe('resolveConfigEntries', () => {
     ], { Environment: 'prod', Region: 'eu-west' });
 
     expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ Service: { Replicas: 4 } });
+  });
+
+  it('coerces double values to JS numbers', () => {
+    const resolved = resolveConfigEntries([
+      entry('Service:LoadFactor', 'Double', [{ scopes: {}, value: '0.75' }]),
+    ], {});
+
+    expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ Service: { LoadFactor: 0.75 } });
+  });
+
+  it('matches value type case-insensitively', () => {
+    const resolved = resolveConfigEntries([
+      entry('Service:Threshold', 'decimal', [{ scopes: {}, value: '12.5' }]),
+    ], {});
+
+    expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ Service: { Threshold: 12.5 } });
   });
 
   it('masks sensitive values when requested', () => {
