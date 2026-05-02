@@ -51,7 +51,7 @@ export function Sidebar() {
         <LogoMark />
         <div className="min-w-0">
           <div className="truncate text-[14px] font-semibold text-fg-heading">GroundControl</div>
-          <div className="text-[11.5px] text-fg-caption">Admin · v1.4.0</div>
+          <div className="text-[11.5px] text-fg-caption">Tower</div>
         </div>
       </div>
 
