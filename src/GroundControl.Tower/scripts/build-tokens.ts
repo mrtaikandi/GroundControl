@@ -18,7 +18,7 @@ interface CssToken {
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectDirectory = resolve(scriptDirectory, '..');
-const tokenSourcePath = resolve(projectDirectory, '../../artifacts/Design/groundcontrol/project/tower/tokens.json');
+const tokenSourcePath = resolve(projectDirectory, 'design-tokens/tokens.json');
 const outputPath = resolve(projectDirectory, 'src/styles/tokens.css');
 
 function isObject(value: JsonValue | undefined): value is JsonObject {
