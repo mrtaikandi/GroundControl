@@ -284,6 +284,58 @@ public sealed class SnapshotResolverTests : ApiHandlerTestBase
         result.PlaintextEntries.Single(e => e.Key == "from.template").Values.ShouldHaveSingleItem().Value.ShouldBe("template-value");
     }
 
+    [Fact]
+    public async Task ResolveAsync_PreservesScopeVariants_OnTemplateEntries()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        await apiClient.PostAsJsonAsync(
+            "/api/scopes",
+            new GroundControl.Api.Features.Scopes.Contracts.CreateScopeRequest { Dimension = "Environment", AllowedValues = ["dev", "prod"] },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        var template = await CreateTemplateAsync(apiClient);
+        await apiClient.PostAsJsonAsync(
+            "/api/config-entries",
+            new CreateConfigEntryRequest
+            {
+                Key = "Jwt:Authority",
+                OwnerId = template.Id,
+                OwnerType = ConfigEntryOwnerType.Template,
+                ValueType = "String",
+                IsSensitive = false,
+                Values =
+                [
+                    new ScopedValueRequest { Value = "https://default" },
+                    new ScopedValueRequest { Value = "https://dev", Scopes = new Dictionary<string, string> { ["Environment"] = "dev" } },
+                    new ScopedValueRequest { Value = "https://prod", Scopes = new Dictionary<string, string> { ["Environment"] = "prod" } },
+                ],
+            },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        var project = await CreateProjectAsync(apiClient, templateIds: [template.Id]);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var result = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert
+        var jwt = result.PlaintextEntries.ShouldHaveSingleItem();
+        jwt.Key.ShouldBe("Jwt:Authority");
+        jwt.Values.Count.ShouldBe(3);
+        jwt.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "https://default");
+        jwt.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "dev" && v.Value == "https://dev");
+        jwt.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "prod" && v.Value == "https://prod");
+    }
+
     private static async Task<TemplateResponse> CreateTemplateAsync(HttpClient apiClient)
     {
         var request = new CreateTemplateRequest

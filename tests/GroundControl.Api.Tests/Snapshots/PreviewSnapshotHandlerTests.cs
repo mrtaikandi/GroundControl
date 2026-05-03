@@ -168,6 +168,58 @@ public sealed class PreviewSnapshotHandlerTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task Preview_TemplateEntries_PreserveScopeVariantsOverTheWire()
+    {
+        // Arrange — guards the JSON view from receiving template entries with collapsed
+        // scope variants. Mirrors what Tower's ConfigJsonView does over the network.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var scopeResponse = await apiClient.PostAsJsonAsync(
+            "/api/scopes",
+            new GroundControl.Api.Features.Scopes.Contracts.CreateScopeRequest { Dimension = "Environment", AllowedValues = ["dev", "prod"] },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+        scopeResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var template = await CreateTemplateAsync(apiClient);
+        var entryResponse = await apiClient.PostAsJsonAsync(
+            "/api/config-entries",
+            new CreateConfigEntryRequest
+            {
+                Key = "Jwt:Authority",
+                OwnerId = template.Id,
+                OwnerType = ConfigEntryOwnerType.Template,
+                ValueType = "String",
+                IsSensitive = false,
+                Values =
+                [
+                    new ScopedValueRequest { Value = "https://default" },
+                    new ScopedValueRequest { Value = "https://dev", Scopes = new Dictionary<string, string> { ["Environment"] = "dev" } },
+                    new ScopedValueRequest { Value = "https://prod", Scopes = new Dictionary<string, string> { ["Environment"] = "prod" } },
+                ],
+            },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+        entryResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var project = await CreateProjectAsync(apiClient, templateIds: [template.Id]);
+
+        // Act
+        var response = await apiClient.PostAsync($"/api/projects/{project.Id}/snapshots/preview", content: null, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var preview = await ReadRequiredJsonAsync<PreviewSnapshotResponse>(response, TestCancellationToken);
+        var jwt = preview.Entries.ShouldHaveSingleItem();
+        jwt.Key.ShouldBe("Jwt:Authority");
+        jwt.Values.Count.ShouldBe(3);
+        jwt.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "https://default");
+        jwt.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "dev" && v.Value == "https://dev");
+        jwt.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "prod" && v.Value == "https://prod");
+    }
+
+    [Fact]
     public async Task Preview_DiffHash_IsStableAcrossCallsOnUnchangedProject()
     {
         // Arrange
@@ -235,12 +287,13 @@ public sealed class PreviewSnapshotHandlerTests : ApiHandlerTestBase
         return count;
     }
 
-    private static async Task<ProjectResponse> CreateProjectAsync(HttpClient apiClient)
+    private static async Task<ProjectResponse> CreateProjectAsync(HttpClient apiClient, List<Guid>? templateIds = null)
     {
         var request = new CreateProjectRequest
         {
             Name = $"Project-{Guid.CreateVersion7():N}",
             Description = "Test project",
+            TemplateIds = templateIds,
         };
 
         var response = await apiClient.PostAsJsonAsync("/api/projects", request, WebJsonSerializerOptions, TestCancellationToken);
@@ -250,6 +303,23 @@ public sealed class PreviewSnapshotHandlerTests : ApiHandlerTestBase
         project.ShouldNotBeNull();
 
         return project;
+    }
+
+    private static async Task<GroundControl.Api.Features.Templates.Contracts.TemplateResponse> CreateTemplateAsync(HttpClient apiClient)
+    {
+        var request = new GroundControl.Api.Features.Templates.Contracts.CreateTemplateRequest
+        {
+            Name = $"Template-{Guid.CreateVersion7():N}",
+            Description = "Test template",
+        };
+
+        var response = await apiClient.PostAsJsonAsync("/api/templates", request, WebJsonSerializerOptions, TestCancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var template = await response.Content.ReadFromJsonAsync<GroundControl.Api.Features.Templates.Contracts.TemplateResponse>(WebJsonSerializerOptions, TestCancellationToken);
+        template.ShouldNotBeNull();
+
+        return template;
     }
 
     private static async Task CreateConfigEntryAsync(HttpClient apiClient, string key, Guid ownerId, string value = "default", bool isSensitive = false)
