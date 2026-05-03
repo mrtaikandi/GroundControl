@@ -79,7 +79,7 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
       )}
 
       <div className="font-mono text-[11.5px] text-fg-caption">
-        {(preview.data?.entries ?? []).length} entries resolved · sensitive values {masked ? 'masked' : 'shown'} · change scope dims above to preview what different clients see.
+        {(preview.data?.entries ?? []).length} entries resolved · sensitive values {masked ? 'masked' : 'shown'} · change scope dimensions above to preview what different clients see.
       </div>
     </div>
   );
