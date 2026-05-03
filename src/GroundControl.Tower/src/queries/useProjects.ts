@@ -6,7 +6,7 @@ import { queryClient } from '@/lib/query-client';
 
 export type CreateProjectRequest = ApiRequestBody<'CreateProjectHandler'>;
 
-export function useProjects() {
+export function useProjects(query?: ProjectsQuery) {
   const request = buildProjectsQuery(query);
 
   return useQuery({
