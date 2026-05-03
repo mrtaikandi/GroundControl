@@ -155,10 +155,12 @@ function ActivityRow({ item }: { item: ActivityItem }) {
   const style = ACTIVITY_KIND_STYLES[item.kind];
 
   return (
-    <div className="grid grid-cols-[20px_92px_1fr_auto] items-center gap-3 rounded-lg px-2 py-2 text-[12.5px] hover:bg-bg-container">
-      <style.Icon aria-hidden="true" className={cn('size-4', style.iconClass)} strokeWidth={1.8} />
-      <span className={cn('font-mono text-[11px] font-semibold uppercase tracking-wide', style.iconClass)}>{style.label}</span>
-      <div className="min-w-0 truncate text-fg-body">{item.description}</div>
+    <div className="flex items-center gap-3 rounded-lg px-2 py-2 text-[12.5px] hover:bg-bg-container">
+      <div className={cn('flex shrink-0 items-center gap-1.5 min-w-[72px]', style.iconClass)}>
+        <style.Icon aria-hidden="true" className="size-4" strokeWidth={1.8} />
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-wide">{style.label}</span>
+      </div>
+      <div className="min-w-0 flex-1 truncate text-fg-body">{item.description}</div>
       <span className="shrink-0 font-mono text-[11.5px] text-fg-caption">{formatRelative(item.performedAt)}</span>
     </div>
   );
