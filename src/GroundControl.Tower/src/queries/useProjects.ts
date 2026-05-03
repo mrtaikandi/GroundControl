@@ -1,17 +1,33 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { addProjectTemplate, createProject, getProjects, removeProjectTemplate } from '@/api/endpoints/projects';
-import type { ApiRequestBody } from '@/api/client';
+import type { ApiQuery, ApiRequestBody } from '@/api/client';
 import { useConflictMutation } from '@/lib/mutations';
 import { queryClient } from '@/lib/query-client';
 
 export type CreateProjectRequest = ApiRequestBody<'CreateProjectHandler'>;
 
 export function useProjects() {
+  const request = buildProjectsQuery(query);
+
   return useQuery({
-    queryFn: () => getProjects({ Limit: 100, SortField: 'updatedAt', SortOrder: 'desc' }),
-    queryKey: ['projects'],
+    queryFn: () => getProjects(request),
+    queryKey: ['projects', request],
   });
 }
+
+function buildProjectsQuery(query?: ProjectsQuery): ProjectsQuery {
+  return {
+    Limit: query?.Limit ?? 100,
+    SortField: query?.SortField ?? 'name',
+    SortOrder: query?.SortOrder ?? 'asc',
+    After: query?.After,
+    Before: query?.Before,
+    GroupId: query?.GroupId,
+    Search: query?.Search,
+  };
+}
+
+export type ProjectsQuery = ApiQuery<'ListProjectsHandler'>;
 
 export function useCreateProject() {
   return useMutation({
