@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Features.Snapshots;
+using GroundControl.Api.Features.Templates.Contracts;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
@@ -255,6 +256,71 @@ public sealed class SnapshotResolverTests : ApiHandlerTestBase
         // Assert
         oneEntry.BsonSizeBytes.ShouldBeGreaterThan(0);
         twoEntries.BsonSizeBytes.ShouldBeGreaterThan(oneEntry.BsonSizeBytes);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_IncludesTemplateEntries_FromAttachedTemplates()
+    {
+        // Arrange — guards the JSON view from quietly omitting inherited template entries.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var template = await CreateTemplateAsync(apiClient);
+        await CreateOwnedConfigEntryAsync(apiClient, "from.template", template.Id, ConfigEntryOwnerType.Template, value: "template-value");
+
+        var project = await CreateProjectAsync(apiClient, templateIds: [template.Id]);
+        await CreateConfigEntryAsync(apiClient, "from.project", project.Id, value: "project-value");
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var result = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert
+        result.PlaintextEntries.Select(e => e.Key).ShouldBe(["from.template", "from.project"], ignoreOrder: true);
+        result.PlaintextEntries.Single(e => e.Key == "from.template").Values.ShouldHaveSingleItem().Value.ShouldBe("template-value");
+    }
+
+    private static async Task<TemplateResponse> CreateTemplateAsync(HttpClient apiClient)
+    {
+        var request = new CreateTemplateRequest
+        {
+            Name = $"Template-{Guid.CreateVersion7():N}",
+            Description = "Test template",
+        };
+
+        var response = await apiClient.PostAsJsonAsync("/api/templates", request, WebJsonSerializerOptions, TestCancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var template = await response.Content.ReadFromJsonAsync<TemplateResponse>(WebJsonSerializerOptions, TestCancellationToken);
+        template.ShouldNotBeNull();
+
+        return template;
+    }
+
+    private static async Task CreateOwnedConfigEntryAsync(
+        HttpClient apiClient,
+        string key,
+        Guid ownerId,
+        ConfigEntryOwnerType ownerType,
+        string value = "default",
+        bool isSensitive = false)
+    {
+        var request = new CreateConfigEntryRequest
+        {
+            Key = key,
+            OwnerId = ownerId,
+            OwnerType = ownerType,
+            ValueType = "String",
+            Values = [new ScopedValueRequest { Value = value }],
+            IsSensitive = isSensitive,
+        };
+
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
     private static async Task<ProjectResponse> CreateProjectAsync(HttpClient apiClient, List<Guid>? templateIds = null, Guid? groupId = null)
