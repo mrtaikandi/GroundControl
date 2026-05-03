@@ -12,7 +12,7 @@ export function AppShell({ children }: AppShellProps) {
       <Sidebar />
       <div className="grid h-screen min-h-0 grid-rows-[56px_1fr] overflow-hidden">
         <Header />
-        <main className="min-h-0 overflow-y-auto bg-bg-page">
+        <main className="min-h-0 overflow-y-auto bg-bg-page [scrollbar-gutter:stable]">
           <div className="w-full px-page-h py-page-v 2xl:px-16">
             {children}
           </div>
