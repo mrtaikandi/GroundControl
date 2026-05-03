@@ -20,7 +20,6 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
   const preview = useSnapshotPreview(projectId);
   const { masked } = useSensitive();
   const resolvedDocument = useMemo(() => entriesToResolvedDocument(preview.data?.entries, selectedScopes, { maskSensitive: masked }), [masked, preview.data?.entries, selectedScopes]);
-  const scopeEcho = Object.entries(selectedScopes).map(([dimension, value]) => `${dimension}=${value}`).join('&');
 
   useEffect(() => {
     setSelectedScopes((current) => {
@@ -63,7 +62,6 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
           ))}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <div className="font-mono text-[11.5px] text-fg-caption">GET /client/config{scopeEcho ? `?${scopeEcho}` : ''}</div>
           <Button disabled={preview.isLoading} onClick={exportDocument} type="button" variant="secondary">
             <Download aria-hidden="true" className="size-3.5" />
             Export
