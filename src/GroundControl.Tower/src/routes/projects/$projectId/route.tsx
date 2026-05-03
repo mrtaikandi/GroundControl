@@ -34,8 +34,6 @@ function ProjectLayout() {
   const activeSnapshotId = project?.activeSnapshotId || undefined;
   const snapshotItems = snapshots.data?.data ?? [];
   const totalSnapshots = snapshots.data?.totalCount !== undefined ? Number(snapshots.data.totalCount) : snapshotItems.length;
-  const activeSnapshot = activeSnapshotId ? snapshotItems.find((snapshot) => snapshot.id === activeSnapshotId) : undefined;
-  const activeVersion = activeSnapshot ? `v${activeSnapshot.snapshotVersion}` : undefined;
   const configCount = configEntries.data?.totalCount !== undefined ? Number(configEntries.data.totalCount) : configEntries.data?.data.length;
   const clientCount = clients.data?.totalCount !== undefined ? Number(clients.data.totalCount) : clients.data?.data.length;
 
@@ -77,8 +75,6 @@ function ProjectLayout() {
             </div>
             <p className="mt-2 max-w-3xl text-[13.5px] text-fg-body">
               {project.description || 'No description provided.'}
-              {activeVersion ? <span className="text-fg-caption"> · active snap <span className="font-mono text-fg-body">{activeVersion}</span></span> : null}
-              {totalSnapshots > 0 ? <span className="text-fg-caption"> · {totalSnapshots} {totalSnapshots === 1 ? 'publish' : 'publishes'}</span> : null}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
