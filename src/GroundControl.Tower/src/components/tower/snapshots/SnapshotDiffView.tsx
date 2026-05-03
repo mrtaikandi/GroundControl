@@ -1,3 +1,4 @@
+import { Maximize2 } from 'lucide-react';
 import { DiffLayoutToggle } from '@/components/tower/code/DiffLayoutToggle';
 import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,11 +10,12 @@ interface SnapshotDiffViewProps {
   baseline?: SnapshotDetail;
   changeCount: number;
   isLoading?: boolean;
+  onExpand?: () => void;
   snapshot?: SnapshotDetail;
   targetLabel: string;
 }
 
-export function SnapshotDiffView({ baseline, changeCount, isLoading = false, snapshot, targetLabel }: SnapshotDiffViewProps) {
+export function SnapshotDiffView({ baseline, changeCount, isLoading = false, onExpand, snapshot, targetLabel }: SnapshotDiffViewProps) {
   const diffLayout = useTweaksStore((state) => state.diffLayout);
 
   if (isLoading) {
@@ -27,6 +29,16 @@ export function SnapshotDiffView({ baseline, changeCount, isLoading = false, sna
         <div className="flex items-center gap-3">
           <span>{changeCount} {changeCount === 1 ? 'change' : 'changes'}</span>
           <DiffLayoutToggle size="sm" />
+          {onExpand ? (
+            <button
+              aria-label="Expand snapshot detail"
+              className="grid size-7 shrink-0 place-items-center rounded-md text-fg-icon-subtle transition-colors hover:bg-bg-container hover:text-fg-body"
+              onClick={onExpand}
+              type="button"
+            >
+              <Maximize2 aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+            </button>
+          ) : null}
         </div>
       </div>
       <JsonDiff after={snapshotToDocument(snapshot)} before={snapshotToDocument(baseline)} className="min-h-[440px]" mode={diffLayout} />

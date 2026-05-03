@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { GitCompareArrows, Maximize2 } from 'lucide-react';
+import { GitCompareArrows } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
@@ -149,15 +149,6 @@ function SnapshotsRoute() {
                 >
                   Export JSON
                 </Button>
-                <button
-                  aria-label="Expand snapshot detail"
-                  className="grid size-8 shrink-0 place-items-center rounded-lg text-fg-icon-subtle transition-colors hover:bg-bg-container hover:text-fg-body disabled:opacity-40"
-                  disabled={!selectedSnapshot}
-                  onClick={() => setDetailExpanded(true)}
-                  type="button"
-                >
-                  <Maximize2 aria-hidden="true" className="size-4" strokeWidth={1.8} />
-                </button>
               </div>
             </div>
 
@@ -226,6 +217,7 @@ function SnapshotsRoute() {
           baseline={activeDetail.data}
           changeCount={countChanges(activeChangeSummary)}
           isLoading={selectedDetail.isLoading || activeDetail.isLoading}
+          onExpand={detailExpanded ? undefined : () => setDetailExpanded(true)}
           snapshot={selectedDetail.data}
           targetLabel={activeSummary ? `active v${activeSummary.snapshotVersion}` : 'active snapshot'}
         />
@@ -237,6 +229,7 @@ function SnapshotsRoute() {
         baseline={previousDetail.data}
         changeCount={countChanges(previousChangeSummary)}
         isLoading={selectedDetail.isLoading || previousDetail.isLoading}
+        onExpand={detailExpanded ? undefined : () => setDetailExpanded(true)}
         snapshot={selectedDetail.data}
         targetLabel={previousSummary ? `previous v${previousSummary.snapshotVersion}` : 'previous snapshot'}
       />
