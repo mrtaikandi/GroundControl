@@ -36,8 +36,8 @@ export function Sidebar() {
       <div className="flex items-center gap-3 px-2 pb-6 pt-1">
         <LogoMark />
         <div className="min-w-0">
-          <div className="truncate text-[14px] font-semibold text-fg-heading">GroundControl</div>
-          <div className="text-[11.5px] text-fg-caption">Tower</div>
+          <div className="truncate text-[14px] font-semibold text-fg-heading">Control Tower</div>
+          <div className="text-[11.5px] text-fg-caption">GroundControl</div>
         </div>
       </div>
 

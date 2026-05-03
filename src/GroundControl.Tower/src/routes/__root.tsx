@@ -15,7 +15,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       {
-        title: 'GroundControl Tower',
+        title: 'Control Tower - GroundControl',
       },
     ],
   }),
