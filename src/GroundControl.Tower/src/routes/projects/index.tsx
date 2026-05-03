@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useDeferredValue, useMemo } from 'react';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { NewProjectModal } from '@/components/tower/projects/NewProjectModal';
@@ -29,18 +29,42 @@ type PageState = {
 };
 
 type SortValue = keyof typeof SortOptions;
+type ProjectsSearch = {
+  after?: string;
+  before?: string;
+  group?: string;
+  page: number;
+  query: string;
+  sort: SortValue;
+};
+
+export const DefaultProjectsSearch: ProjectsSearch = {
+  page: 0,
+  query: '',
+  sort: DefaultSortValue,
+};
 
 export const Route = createFileRoute('/projects/')({
+  validateSearch: (search): ProjectsSearch => ({
+    after: readOptionalString(search.after),
+    before: readOptionalString(search.before),
+    group: readOptionalString(search.group),
+    page: readPageIndex(search.page),
+    query: readOptionalString(search.query) ?? DefaultProjectsSearch.query,
+    sort: readSortValue(search.sort),
+  }),
   component: ProjectsRoute,
 });
 
 function ProjectsRoute() {
-  const [searchText, setSearchText] = useState('');
-  const [selectedGroupId, setSelectedGroupId] = useState(AllGroupsValue);
-  const [selectedSort, setSelectedSort] = useState<SortValue>(DefaultSortValue);
-  const [page, setPage] = useState<PageState>({ index: 0 });
+  const navigate = useNavigate({ from: Route.fullPath });
+  const routeSearch = Route.useSearch();
+  const searchText = routeSearch.query;
+  const selectedGroupId = routeSearch.group ?? AllGroupsValue;
+  const selectedSort = routeSearch.sort;
+  const page: PageState = useMemo(() => ({ after: routeSearch.after, before: routeSearch.before, index: routeSearch.page }), [routeSearch.after, routeSearch.before, routeSearch.page]);
   const deferredSearch = useDeferredValue(searchText.trim());
-  const groupFilter = selectedGroupId === AllGroupsValue ? undefined : selectedGroupId;
+  const groupFilter = routeSearch.group;
   const sort = SortOptions[selectedSort];
   const projects = useProjects({
     After: page.after,
@@ -61,13 +85,18 @@ function ProjectsRoute() {
   const summaryText = projects.isLoading ? 'Loading projects...' : `${showingFrom}-${showingTo} of ${totalCount} project${totalCount === 1 ? '' : 's'}`;
   const pendingFilterChange = searchText.trim() !== deferredSearch;
 
-  useEffect(() => {
-    setPage((current) => current.after || current.before || current.index !== 0 ? { index: 0 } : current);
-  }, [deferredSearch, groupFilter, selectedSort]);
-
   function clearFilters() {
-    setSearchText('');
-    setSelectedGroupId(AllGroupsValue);
+    void navigate({
+      replace: true,
+      search: (current) => normalizeSearch({
+        ...current,
+        after: undefined,
+        before: undefined,
+        group: undefined,
+        page: 0,
+        query: '',
+      }),
+    });
   }
 
   function goToNextPage() {
@@ -75,7 +104,14 @@ function ProjectsRoute() {
       return;
     }
 
-    setPage((current) => ({ after: projects.data?.nextCursor ?? undefined, before: undefined, index: current.index + 1 }));
+    void navigate({
+      search: (current) => normalizeSearch({
+        ...current,
+        after: projects.data?.nextCursor ?? undefined,
+        before: undefined,
+        page: current.page + 1,
+      }),
+    });
   }
 
   function goToPreviousPage() {
@@ -83,7 +119,57 @@ function ProjectsRoute() {
       return;
     }
 
-    setPage((current) => ({ after: undefined, before: projects.data?.previousCursor ?? undefined, index: Math.max(0, current.index - 1) }));
+    void navigate({
+      search: (current) => normalizeSearch({
+        ...current,
+        after: undefined,
+        before: projects.data?.previousCursor ?? undefined,
+        page: Math.max(0, current.page - 1),
+      }),
+    });
+  }
+
+  function updateQuery(query: string) {
+    void navigate({
+      replace: true,
+      search: (current) => normalizeSearch({
+        ...current,
+        after: undefined,
+        before: undefined,
+        page: 0,
+        query,
+      }),
+    });
+  }
+
+  function updateGroup(group: string) {
+    void navigate({
+      replace: true,
+      search: (current) => normalizeSearch({
+        ...current,
+        after: undefined,
+        before: undefined,
+        group: group === AllGroupsValue ? undefined : group,
+        page: 0,
+      }),
+    });
+  }
+
+  function updateSort(sortValue: string) {
+    if (!isSortValue(sortValue)) {
+      return;
+    }
+
+    void navigate({
+      replace: true,
+      search: (current) => normalizeSearch({
+        ...current,
+        after: undefined,
+        before: undefined,
+        page: 0,
+        sort: sortValue,
+      }),
+    });
   }
 
   return (
@@ -104,7 +190,7 @@ function ProjectsRoute() {
               <Input
                 aria-label="Search projects"
                 className="pl-9"
-                onChange={(event) => setSearchText(event.target.value)}
+                onChange={(event) => updateQuery(event.target.value)}
                 placeholder="Search project names"
                 value={searchText}
               />
@@ -112,7 +198,7 @@ function ProjectsRoute() {
           </div>
 
           <div>
-            <Select onValueChange={setSelectedGroupId} value={selectedGroupId}>
+            <Select onValueChange={updateGroup} value={selectedGroupId}>
               <SelectTrigger aria-label="Filter projects by group">
                 <SelectValue placeholder="All groups" />
               </SelectTrigger>
@@ -126,7 +212,7 @@ function ProjectsRoute() {
           </div>
 
           <div>
-            <Select onValueChange={(value) => setSelectedSort(value as SortValue)} value={selectedSort}>
+            <Select onValueChange={updateSort} value={selectedSort}>
               <SelectTrigger aria-label="Sort projects">
                 <SelectValue placeholder="Sort projects" />
               </SelectTrigger>
@@ -228,4 +314,40 @@ function EmptyProjects({ hasFilters, onClearFilters }: { hasFilters: boolean; on
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function isSortValue(value: unknown): value is SortValue {
+  return typeof value === 'string' && value in SortOptions;
+}
+
+function normalizeSearch(search: ProjectsSearch): ProjectsSearch {
+  return {
+    after: readOptionalString(search.after),
+    before: readOptionalString(search.before),
+    group: readOptionalString(search.group),
+    page: search.page > 0 ? search.page : DefaultProjectsSearch.page,
+    query: readOptionalString(search.query) ?? DefaultProjectsSearch.query,
+    sort: search.sort,
+  };
+}
+
+function readOptionalString(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
+function readPageIndex(value: unknown) {
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 0) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+  }
+
+  return 0;
+}
+
+function readSortValue(value: unknown): SortValue {
+  return isSortValue(value) ? value : DefaultSortValue;
 }

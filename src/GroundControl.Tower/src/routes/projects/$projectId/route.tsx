@@ -14,6 +14,7 @@ import { useGroups } from '@/queries/useGroups';
 import { useProjectStatus } from '@/queries/useProjectStatus';
 import { useProjects } from '@/queries/useProjects';
 import { useSnapshots } from '@/queries/useSnapshots';
+import { DefaultProjectsSearch } from '@/routes/projects';
 
 export const Route = createFileRoute('/projects/$projectId')({
   component: ProjectLayout,
@@ -57,7 +58,7 @@ function ProjectLayout() {
     <div className="grid gap-5">
       <header className="grid gap-3">
         <div className="flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-wide text-fg-caption">
-          <Link className="transition-colors hover:text-fg-body" to="/projects">Projects</Link>
+          <Link className="transition-colors hover:text-fg-body" search={DefaultProjectsSearch} to="/projects">Projects</Link>
           <span aria-hidden="true">/</span>
           <span className="text-fg-body">{project.name}</span>
           <span aria-hidden="true" className="text-fg-icon-subtle">·</span>

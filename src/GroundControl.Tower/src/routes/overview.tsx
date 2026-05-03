@@ -8,6 +8,7 @@ import { maxLiveAuditRecords } from '@/lib/live-audit';
 import { isSystemUser, SYSTEM_USER_LABEL } from '@/lib/user';
 import { useAuditRecords, type AuditRecord } from '@/queries/useAuditRecords';
 import { useOverviewStats } from '@/queries/useOverviewStats';
+import { DefaultProjectsSearch } from '@/routes/projects';
 import { useTweaksStore } from '@/store/tweaks';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useAtomValue } from 'jotai';
@@ -104,7 +105,7 @@ function StatCard({ href, icon: Icon, label, loading = false, value }: { href?: 
     </Card>
   );
 
-  return href ? <Link to={href}>{content}</Link> : content;
+  return href ? <Link search={DefaultProjectsSearch} to={href}>{content}</Link> : content;
 }
 
 function ActivityItem({ animate, record }: { animate: boolean; record: AuditRecord }) {
