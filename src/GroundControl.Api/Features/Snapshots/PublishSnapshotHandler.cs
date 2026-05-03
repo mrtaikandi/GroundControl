@@ -34,6 +34,7 @@ internal sealed class PublishSnapshotHandler : IEndpointHandler
             .WithDescription("Resolves the project's current configuration entries and templates into a point-in-time snapshot.")
             .Produces<SnapshotSummaryResponse>(StatusCodes.Status201Created)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName(nameof(PublishSnapshotHandler));
     }
@@ -42,7 +43,7 @@ internal sealed class PublishSnapshotHandler : IEndpointHandler
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var result = await _publisher.PublishAsync(projectId, Guid.Empty, request.Description, cancellationToken).ConfigureAwait(false);
+        var result = await _publisher.PublishAsync(projectId, Guid.Empty, request.Description, request.ExpectedHash, cancellationToken).ConfigureAwait(false);
 
         return result.Result switch
         {

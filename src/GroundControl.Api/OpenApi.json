@@ -2675,6 +2675,16 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity",
             "content": {
@@ -2765,6 +2775,66 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{projectId}/snapshots/preview": {
+      "post": {
+        "tags": [
+          "Snapshots"
+        ],
+        "summary": "Preview a snapshot",
+        "description": "Resolves the project's current configuration into a snapshot-shaped payload without persisting it. Returns a diff hash that publish will use to detect drift.",
+        "operationId": "PreviewSnapshotHandler",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "decrypt",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewSnapshotResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5362,6 +5432,53 @@
           }
         }
       },
+      "PreviewSnapshotResponse": {
+        "required": [
+          "projectId",
+          "nextVersion",
+          "bsonSizeBytes",
+          "diffHash",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "description": "Gets the project identifier the preview was computed against.",
+            "format": "uuid"
+          },
+          "nextVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the snapshot version that would be assigned if a publish call were made now.",
+            "format": "int64"
+          },
+          "bsonSizeBytes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the BSON size of the would-be snapshot in bytes. Surfaces the same 16MB limit that\r\npublish would enforce so callers can fail fast.",
+            "format": "int64"
+          },
+          "diffHash": {
+            "type": "string",
+            "description": "Gets a deterministic SHA-256 hex digest over the preview's resolved entries. Pass back to\r\nthe publish endpoint as `expectedHash` to detect drift between preview and publish."
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedEntryResponse"
+            },
+            "description": "Gets the resolved entries that would be written to the snapshot, masking sensitive values\r\nunless the caller has the `SensitiveValuesDecrypt` permission and supplied\r\n`?decrypt=true`."
+          }
+        },
+        "description": "Represents the API response body for a snapshot preview. Mirrors the shape of a published\r\nsnapshot so callers can diff the preview's IReadOnlyList&lt;ResolvedEntryResponse&gt; PreviewSnapshotResponse.Entries against an active snapshot's\r\nentries directly."
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -5495,6 +5612,14 @@
               "string"
             ],
             "description": "Gets the optional publication description."
+          },
+          "expectedHash": {
+            "maxLength": 128,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional diff hash returned by a prior preview call. When supplied, the publish call\r\nfails with 409 if the resolved configuration's hash differs at publish time, indicating that\r\nthe project was mutated since the preview was generated."
           }
         },
         "description": "Represents the request body for publishing a new snapshot."
