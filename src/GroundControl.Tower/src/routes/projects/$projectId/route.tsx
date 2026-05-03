@@ -55,11 +55,6 @@ function ProjectLayout() {
     void navigate({ params: { projectId }, to: '/projects/$projectId/snapshots' });
   }
 
-  function openConfigForReview() {
-    void navigate({ params: { projectId }, to: '/projects/$projectId/config' });
-    setPublishing(false);
-  }
-
   const isOnSnapshotsTab = pathname.endsWith('/snapshots');
   const projectRoot = `/projects/${projectId}`;
   const isOnOverviewTab = pathname === projectRoot || pathname === `${projectRoot}/`;
@@ -112,7 +107,6 @@ function ProjectLayout() {
       {isOnOverviewTab ? (
         <ProjectStatusBar
           onPublish={() => setPublishing(true)}
-          onReviewDiff={openConfigForReview}
           projectId={projectId}
           status={status}
         />

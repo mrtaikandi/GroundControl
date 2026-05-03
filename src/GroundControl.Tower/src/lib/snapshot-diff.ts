@@ -42,20 +42,6 @@ export function summarize(changes: ChangeSet): ChangeSummary {
   };
 }
 
-export function totalChanges(changes: ChangeSet | ChangeSummary): number {
-  if ('additions' in changes && Array.isArray((changes as ChangeSet).additions)) {
-    const set = changes as ChangeSet;
-    return set.additions.length + set.deletions.length + set.modifications.length;
-  }
-
-  const summary = changes as ChangeSummary;
-  return summary.additions + summary.deletions + summary.modifications;
-}
-
-export function listChangedKeys(changes: ChangeSet): string[] {
-  return [...changes.modifications, ...changes.additions, ...changes.deletions];
-}
-
 export function deepEqual(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
