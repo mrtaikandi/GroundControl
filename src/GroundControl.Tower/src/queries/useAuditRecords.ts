@@ -1,4 +1,4 @@
-import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, type InfiniteData } from '@tanstack/react-query';
 import { getAuditRecords } from '@/api/endpoints/audit';
 import type { ApiQuery, ApiResponse } from '@/api/client';
 
@@ -41,4 +41,15 @@ function buildQuery(filters: AuditFilters, pageParam?: string): ApiQuery<'ListAu
     limit: 50,
     to: filters.to || undefined,
   };
+}
+
+export function useEntityAuditRecords(entityId: string | undefined, options: { enabled?: boolean; from?: string; limit?: number } = {}) {
+  const { enabled = true, from, limit = 20 } = options;
+
+  return useQuery({
+    enabled: enabled && Boolean(entityId),
+    queryFn: () => getAuditRecords({ entityId: entityId!, from: from || undefined, limit }),
+    queryKey: ['audit', 'entity', entityId, from, limit] as const,
+    staleTime: 30_000,
+  });
 }
