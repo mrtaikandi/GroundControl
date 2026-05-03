@@ -20,8 +20,6 @@ export function TemplateAttachmentsBar({ projectId }: TemplateAttachmentsBarProp
   const attachedIds = useMemo(() => new Set(project?.templateIds ?? []), [project?.templateIds]);
   const attached = allTemplates.filter((template) => attachedIds.has(template.id));
   const available = allTemplates.filter((template) => !attachedIds.has(template.id));
-  const projectGroupId = project?.groupId ?? null;
-  const visibleAvailable = available.filter((template) => template.groupId === null || template.groupId === projectGroupId);
 
   const attach = useAttachProjectTemplate(projectId);
   const detach = useDetachProjectTemplate(projectId);
@@ -38,11 +36,11 @@ export function TemplateAttachmentsBar({ projectId }: TemplateAttachmentsBarProp
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
     if (!needle) {
-      return visibleAvailable;
+      return available;
     }
 
-    return visibleAvailable.filter((template) => template.name.toLowerCase().includes(needle));
-  }, [search, visibleAvailable]);
+    return available.filter((template) => template.name.toLowerCase().includes(needle));
+  }, [search, available]);
 
   if (!project) {
     return null;
@@ -77,7 +75,7 @@ export function TemplateAttachmentsBar({ projectId }: TemplateAttachmentsBarProp
         )}
         <Popover onOpenChange={setOpen} open={open}>
           <PopoverTrigger asChild>
-            <Button disabled={visibleAvailable.length === 0 || attach.isPending} size="sm" type="button" variant="ghost">
+            <Button disabled={available.length === 0 || attach.isPending} size="sm" type="button" variant="ghost">
               <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
               Attach template
             </Button>
@@ -86,7 +84,7 @@ export function TemplateAttachmentsBar({ projectId }: TemplateAttachmentsBarProp
             <Input className="h-8 text-[12.5px]" onChange={(event) => setSearch(event.target.value)} placeholder="Search templates" ref={inputRef} value={search} />
             <div className="mt-2 max-h-72 overflow-auto">
               {filtered.length === 0 ? (
-                <div className="px-3 py-2 text-[12.5px] text-fg-caption">{visibleAvailable.length === 0 ? 'No templates available to attach' : `No templates match "${search}"`}</div>
+                <div className="px-3 py-2 text-[12.5px] text-fg-caption">{available.length === 0 ? 'No templates available to attach' : `No templates match "${search}"`}</div>
               ) : (
                 filtered.map((template) => (
                   <TemplateRow
