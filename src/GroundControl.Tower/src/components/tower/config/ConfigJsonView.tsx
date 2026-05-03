@@ -5,9 +5,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { JsonPreview } from '@/components/tower/code/JsonPreview';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { useSensitive } from '@/lib/sensitive';
-import { buildResolvedDocument } from '@/lib/resolve-config';
-import { useResolvedConfig } from '@/queries/useResolvedConfig';
+import { entriesToResolvedDocument } from '@/lib/snapshot-document';
 import { useScopes } from '@/queries/useScopes';
+import { useSnapshotPreview } from '@/queries/useSnapshots';
 
 interface ConfigJsonViewProps {
   projectId: string;
@@ -17,9 +17,9 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
   const scopes = useScopes();
   const scopeDefinitions = useMemo(() => scopes.data?.data.filter((scope) => scope.allowedValues.length > 0) ?? [], [scopes.data?.data]);
   const [selectedScopes, setSelectedScopes] = useState<Record<string, string>>({});
-  const resolvedConfig = useResolvedConfig(projectId, selectedScopes);
+  const preview = useSnapshotPreview(projectId);
   const { masked } = useSensitive();
-  const resolvedDocument = useMemo(() => buildResolvedDocument(resolvedConfig.data ?? [], { maskSensitive: masked }), [masked, resolvedConfig.data]);
+  const resolvedDocument = useMemo(() => entriesToResolvedDocument(preview.data?.entries, selectedScopes, { maskSensitive: masked }), [masked, preview.data?.entries, selectedScopes]);
   const scopeEcho = Object.entries(selectedScopes).map(([dimension, value]) => `${dimension}=${value}`).join('&');
 
   useEffect(() => {
@@ -64,14 +64,14 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="font-mono text-[11.5px] text-fg-caption">GET /client/config{scopeEcho ? `?${scopeEcho}` : ''}</div>
-          <Button disabled={resolvedConfig.isLoading} onClick={exportDocument} type="button" variant="secondary">
+          <Button disabled={preview.isLoading} onClick={exportDocument} type="button" variant="secondary">
             <Download aria-hidden="true" className="size-3.5" />
             Export
           </Button>
         </div>
       </div>
 
-      {resolvedConfig.isLoading ? (
+      {preview.isLoading ? (
         <Skeleton className="h-[460px]" />
       ) : (
         <div className="relative">
@@ -81,7 +81,7 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
       )}
 
       <div className="font-mono text-[11.5px] text-fg-caption">
-        {(resolvedConfig.data ?? []).length} entries resolved · sensitive values {masked ? 'masked' : 'shown'} · change scope dims above to preview what different clients see.
+        {(preview.data?.entries ?? []).length} entries resolved · sensitive values {masked ? 'masked' : 'shown'} · change scope dims above to preview what different clients see.
       </div>
     </div>
   );

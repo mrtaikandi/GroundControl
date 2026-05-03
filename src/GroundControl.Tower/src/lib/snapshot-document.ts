@@ -1,16 +1,22 @@
 import type { SnapshotDetail } from '@/queries/useSnapshots';
 
+export type SnapshotEntry = SnapshotDetail['entries'][number];
+
 export function snapshotToDocument(snapshot?: SnapshotDetail): Record<string, unknown> {
+  return entriesToDocument(snapshot?.entries);
+}
+
+export function entriesToDocument(entries: readonly SnapshotEntry[] | undefined): Record<string, unknown> {
   const document: Record<string, unknown> = {};
 
-  for (const entry of snapshot?.entries ?? []) {
+  for (const entry of entries ?? []) {
     setPath(document, entry.key.split(':').filter(Boolean), entryToValue(entry));
   }
 
   return document;
 }
 
-function entryToValue(entry: SnapshotDetail['entries'][number]): unknown {
+function entryToValue(entry: SnapshotEntry): unknown {
   if (entry.values.length === 1 && Object.keys(entry.values[0]?.scopes ?? {}).length === 0) {
     return coerceValue(entry.values[0]?.value ?? null, entry.valueType);
   }
@@ -75,9 +81,17 @@ function coerceValue(value: null | string, valueType: string): unknown {
 }
 
 export function snapshotToResolvedDocument(snapshot: SnapshotDetail | undefined, scopes: Record<string, string>, options: { maskSensitive?: boolean } = {}): Record<string, unknown> {
+  return entriesToResolvedDocument(snapshot?.entries, scopes, options);
+}
+
+export function entriesToResolvedDocument(
+  entries: readonly SnapshotEntry[] | undefined,
+  scopes: Record<string, string>,
+  options: { maskSensitive?: boolean } = {},
+): Record<string, unknown> {
   const document: Record<string, unknown> = {};
 
-  for (const entry of snapshot?.entries ?? []) {
+  for (const entry of entries ?? []) {
     const value = resolveScopedValue(entry.values, scopes);
 
     setPath(document, entry.key.split(':').filter(Boolean), options.maskSensitive && entry.isSensitive ? '••••••••' : coerceValue(value?.value ?? null, entry.valueType));
@@ -86,9 +100,9 @@ export function snapshotToResolvedDocument(snapshot: SnapshotDetail | undefined,
   return document;
 }
 
-function resolveScopedValue(values: SnapshotDetail['entries'][number]['values'], scopes: Record<string, string>) {
-  let unscopedDefault: SnapshotDetail['entries'][number]['values'][number] | undefined;
-  let bestMatch: SnapshotDetail['entries'][number]['values'][number] | undefined;
+function resolveScopedValue(values: SnapshotEntry['values'], scopes: Record<string, string>) {
+  let unscopedDefault: SnapshotEntry['values'][number] | undefined;
+  let bestMatch: SnapshotEntry['values'][number] | undefined;
   let bestSpecificity = 0;
 
   for (const candidate of values) {

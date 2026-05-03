@@ -596,6 +596,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{projectId}/snapshots/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview a snapshot
+         * @description Resolves the project's current configuration into a snapshot-shaped payload without persisting it. Returns a diff hash that publish will use to detect drift.
+         */
+        post: operations["PreviewSnapshotHandler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{projectId}/snapshots/{id}/activate": {
         parameters: {
             query?: never;
@@ -1376,6 +1396,40 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /**
+         * @description Represents the API response body for a snapshot preview. Mirrors the shape of a published
+         *     snapshot so callers can diff the preview's IReadOnlyList&lt;ResolvedEntryResponse&gt; PreviewSnapshotResponse.Entries against an active snapshot's
+         *     entries directly.
+         */
+        PreviewSnapshotResponse: {
+            /**
+             * Format: uuid
+             * @description Gets the project identifier the preview was computed against.
+             */
+            projectId: string;
+            /**
+             * Format: int64
+             * @description Gets the snapshot version that would be assigned if a publish call were made now.
+             */
+            nextVersion: number | string;
+            /**
+             * Format: int64
+             * @description Gets the BSON size of the would-be snapshot in bytes. Surfaces the same 16MB limit that
+             *     publish would enforce so callers can fail fast.
+             */
+            bsonSizeBytes: number | string;
+            /**
+             * @description Gets a deterministic SHA-256 hex digest over the preview's resolved entries. Pass back to
+             *     the publish endpoint as `expectedHash` to detect drift between preview and publish.
+             */
+            diffHash: string;
+            /**
+             * @description Gets the resolved entries that would be written to the snapshot, masking sensitive values
+             *     unless the caller has the `SensitiveValuesDecrypt` permission and supplied
+             *     `?decrypt=true`.
+             */
+            entries: components["schemas"]["ResolvedEntryResponse"][];
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -1437,6 +1491,12 @@ export interface components {
         PublishSnapshotRequest: {
             /** @description Gets the optional publication description. */
             description?: null | string;
+            /**
+             * @description Gets the optional diff hash returned by a prior preview call. When supplied, the publish call
+             *     fails with 409 if the resolved configuration's hash differs at publish time, indicating that
+             *     the project was mutated since the preview was generated.
+             */
+            expectedHash?: null | string;
         };
         /** @description Represents a resolved configuration entry in a snapshot response. */
         ResolvedEntryResponse: {
@@ -3764,6 +3824,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SnapshotSummaryResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PreviewSnapshotHandler: {
+        parameters: {
+            query?: {
+                decrypt?: boolean;
+            };
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewSnapshotResponse"];
                 };
             };
             /** @description Not Found */

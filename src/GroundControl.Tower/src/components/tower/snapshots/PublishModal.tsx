@@ -1,15 +1,14 @@
+import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { buildResolvedDocument } from '@/lib/resolve-config';
-import { snapshotToResolvedDocument } from '@/lib/snapshot-document';
+import { ApiError } from '@/api/client';
+import { entriesToResolvedDocument } from '@/lib/snapshot-document';
 import { deepEqual, diffDocuments, summarize, type ChangeSummary } from '@/lib/snapshot-diff';
-import { useResolvedConfig } from '@/queries/useResolvedConfig';
-import { usePublishSnapshot, useSnapshotDetail } from '@/queries/useSnapshots';
+import { usePublishSnapshot, useSnapshotDetail, useSnapshotPreview } from '@/queries/useSnapshots';
 import { useTweaksStore } from '@/store/tweaks';
 
 export { deepEqual };
@@ -26,26 +25,45 @@ type PublishStep = 'diff' | 'confirm';
 export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }: PublishModalProps) {
   const [step, setStep] = useState<PublishStep>('diff');
   const [comment, setComment] = useState('');
+  const [staleBanner, setStaleBanner] = useState(false);
   const masked = useTweaksStore((state) => state.sensitiveMasked);
   const activeSnapshot = useSnapshotDetail(projectId, activeSnapshotId);
-  const resolvedConfig = useResolvedConfig(projectId, {});
+  const preview = useSnapshotPreview(projectId, { enabled: open });
   const publishSnapshot = usePublishSnapshot(projectId);
-  const before = useMemo(() => snapshotToResolvedDocument(activeSnapshot.data, {}, { maskSensitive: masked }), [activeSnapshot.data, masked]);
-  const after = useMemo(() => buildResolvedDocument(resolvedConfig.data ?? [], { maskSensitive: masked }), [masked, resolvedConfig.data]);
-  const loading = activeSnapshot.isLoading || resolvedConfig.isLoading;
+  const before = useMemo(() => entriesToResolvedDocument(activeSnapshot.data?.entries, {}, { maskSensitive: masked }), [activeSnapshot.data?.entries, masked]);
+  const after = useMemo(() => entriesToResolvedDocument(preview.data?.entries, {}, { maskSensitive: masked }), [preview.data?.entries, masked]);
+  const loading = activeSnapshot.isLoading || preview.isLoading || preview.isFetching;
   const hasChanges = !loading && !deepEqual(before, after);
   const summary = useMemo(() => summarizeChanges(before, after), [after, before]);
+  const previewError = preview.isError ? toErrorMessage(preview.error) : null;
 
   useEffect(() => {
     if (open) {
       setStep('diff');
       setComment('');
+      setStaleBanner(false);
     }
   }, [open]);
 
   async function publish() {
-    await publishSnapshot.mutateAsync({ description: comment.trim() || null, version: '0' });
-    onOpenChange(false);
+    try {
+      await publishSnapshot.mutateAsync({
+        description: comment.trim() || null,
+        expectedHash: preview.data?.diffHash ?? null,
+        version: '0',
+      });
+      onOpenChange(false);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setStep('diff');
+        setStaleBanner(true);
+      }
+    }
+  }
+
+  async function refreshPreview() {
+    setStaleBanner(false);
+    await preview.refetch();
   }
 
   return (
@@ -56,12 +74,22 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
           <DialogDescription>{step === 'diff' ? 'Review the resolved configuration diff before creating an immutable snapshot.' : 'Add an optional comment and publish the snapshot.'}</DialogDescription>
         </DialogHeader>
 
+        {staleBanner ? <StaleBanner onRefresh={() => void refreshPreview()} pending={preview.isFetching} /> : null}
+
         {step === 'diff' ? (
-          loading ? <Skeleton className="h-[520px]" /> : <JsonDiff after={after} before={before} className="max-h-[560px] border border-stroke-subtle bg-bg-container" mode="split" />
+          previewError ? (
+            <div className="rounded-xl border border-stroke-subtle bg-badge-critical-bg px-4 py-3 text-[12.5px] text-badge-critical-fg">
+              {previewError}
+            </div>
+          ) : loading ? (
+            <Skeleton className="h-[520px]" />
+          ) : (
+            <JsonDiff after={after} before={before} className="max-h-[560px] border border-stroke-subtle bg-bg-container" mode="split" />
+          )
         ) : (
           <div className="grid gap-4">
             <div className="grid gap-3 rounded-xl border border-stroke-subtle bg-bg-container p-4 md:grid-cols-4">
-              <Metric label="Entries" value={flattenSize(after).toString()} />
+              <Metric label="Entries" value={(preview.data?.entries.length ?? 0).toString()} />
               <Metric label="Additions" value={summary.additions.toString()} />
               <Metric label="Modifications" value={summary.modifications.toString()} />
               <Metric label="Deletions" value={summary.deletions.toString()} />
@@ -78,14 +106,7 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
           {step === 'diff' ? (
             <>
               <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">Cancel</Button>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span><Button disabled={!hasChanges} onClick={() => setStep('confirm')} type="button">Continue</Button></span>
-                  </TooltipTrigger>
-                  {!hasChanges ? <TooltipContent>No changes to publish</TooltipContent> : null}
-                </Tooltip>
-              </TooltipProvider>
+              <Button disabled={!hasChanges || !preview.data || staleBanner} onClick={() => setStep('confirm')} type="button">Continue</Button>
             </>
           ) : (
             <>
@@ -96,6 +117,20 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function StaleBanner({ onRefresh, pending }: { onRefresh: () => void; pending: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-stroke-subtle bg-badge-warning-bg px-4 py-3">
+      <span className="flex-1 text-[12.5px] text-badge-warning-fg">
+        Configuration changed while you were reviewing. Refresh the diff before publishing.
+      </span>
+      <Button disabled={pending} onClick={onRefresh} size="sm" type="button" variant="secondary">
+        <RefreshCcw aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+        {pending ? 'Refreshing…' : 'Refresh'}
+      </Button>
+    </div>
   );
 }
 
@@ -112,19 +147,24 @@ export function summarizeChanges(before: Record<string, unknown>, after: Record<
   return summarize(diffDocuments(before, after));
 }
 
-function flattenSize(document: Record<string, unknown>): number {
-  return countLeaves(document);
+function toErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    const detail = readProblemDetail(error.body);
+    if (detail) {
+      return detail;
+    }
+
+    return `Preview failed (${error.status}).`;
+  }
+
+  return 'Preview failed.';
 }
 
-function countLeaves(value: unknown): number {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return 1;
+function readProblemDetail(body: unknown): string | undefined {
+  if (typeof body !== 'object' || body === null) {
+    return undefined;
   }
 
-  let total = 0;
-  for (const child of Object.values(value as Record<string, unknown>)) {
-    total += countLeaves(child);
-  }
-
-  return total;
+  const detail = (body as { detail?: unknown }).detail;
+  return typeof detail === 'string' ? detail : undefined;
 }
