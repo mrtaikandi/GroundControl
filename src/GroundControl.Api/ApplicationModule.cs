@@ -2,6 +2,7 @@ using System.Net;
 using Asp.Versioning;
 using GroundControl.Api.Features.Roles;
 using GroundControl.Api.Shared.Audit;
+using GroundControl.Api.Shared.OpenApi;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Host.Api;
@@ -34,7 +35,11 @@ internal sealed class ApplicationModule : IWebApiModule
                 .AllowCredentials());
         });
 
-        builder.Services.AddGroundControlMongo();
+        if (!OpenApiGenerator.IsGeneratingDocument)
+        {
+            builder.Services.AddGroundControlMongo();
+            builder.Services.AddHostedService<RoleSeedService>();
+        }
 
         builder.Services.AddSingleton<IScopeResolver, ScopeResolver>();
         builder.Services.AddScoped<AuditRecorder>();
@@ -48,8 +53,6 @@ internal sealed class ApplicationModule : IWebApiModule
             options.ReportApiVersions = true;
             options.ApiVersionReader = new HeaderApiVersionReader("api-version");
         });
-
-        builder.Services.AddHostedService<RoleSeedService>();
     }
 
     private static bool IsLocalDevelopmentOrigin(string origin)
