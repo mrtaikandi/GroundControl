@@ -250,6 +250,127 @@ public sealed class SnapshotsHandlerTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task PublishSnapshot_WithMatchingExpectedHash_Returns201()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var project = await CreateProjectAsync(apiClient);
+        await CreateConfigEntryAsync(apiClient, "app.name", project.Id, ConfigEntryOwnerType.Project, value: "MyApp");
+
+        var previewResponse = await apiClient.PostAsync($"/api/projects/{project.Id}/snapshots/preview", content: null, TestCancellationToken);
+        previewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var preview = await ReadRequiredJsonAsync<PreviewSnapshotResponse>(previewResponse, TestCancellationToken);
+
+        // Act
+        var publishResponse = await apiClient.PostAsJsonAsync(
+            $"/api/projects/{project.Id}/snapshots",
+            new PublishSnapshotRequest { Description = "with hash", ExpectedHash = preview.DiffHash },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        // Assert
+        publishResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var summary = await ReadRequiredJsonAsync<SnapshotSummaryResponse>(publishResponse, TestCancellationToken);
+        summary.SnapshotVersion.ShouldBe(preview.NextVersion);
+    }
+
+    [Fact]
+    public async Task PublishSnapshot_WithMismatchingExpectedHash_Returns409()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var project = await CreateProjectAsync(apiClient);
+        await CreateConfigEntryAsync(apiClient, "app.name", project.Id, ConfigEntryOwnerType.Project, value: "MyApp");
+
+        // Act
+        var publishResponse = await apiClient.PostAsJsonAsync(
+            $"/api/projects/{project.Id}/snapshots",
+            new PublishSnapshotRequest { Description = "stale", ExpectedHash = new string('0', 64) },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        // Assert
+        publishResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var body = await publishResponse.Content.ReadAsStringAsync(TestCancellationToken);
+        body.ShouldContain("preview");
+    }
+
+    [Fact]
+    public async Task PublishSnapshot_WithoutExpectedHash_Returns201_RegressionGuard()
+    {
+        // Arrange — guards the existing CLI/API contract: callers that don't supply ExpectedHash
+        // continue to publish unchanged. This is the path the CLI and any external integrations use.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var project = await CreateProjectAsync(apiClient);
+        await CreateConfigEntryAsync(apiClient, "app.name", project.Id, ConfigEntryOwnerType.Project, value: "MyApp");
+
+        // Act
+        var publishResponse = await apiClient.PostAsJsonAsync(
+            $"/api/projects/{project.Id}/snapshots",
+            new PublishSnapshotRequest { Description = "no hash" },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        // Assert
+        publishResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task PublishSnapshot_AfterEntryChange_RejectsStaleHash()
+    {
+        // Arrange — simulates the race we built ExpectedHash to catch: user previews, another user
+        // edits an entry, original user clicks Publish with the now-stale hash.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var project = await CreateProjectAsync(apiClient);
+        var entryResponse = await apiClient.PostAsJsonAsync("/api/config-entries", new CreateConfigEntryRequest
+        {
+            Key = "app.name",
+            OwnerId = project.Id,
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            Values = [new ScopedValueRequest { Value = "Original" }],
+        }, WebJsonSerializerOptions, TestCancellationToken);
+        entryResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var entry = await ReadRequiredJsonAsync<ConfigEntryResponse>(entryResponse, TestCancellationToken);
+
+        var previewResponse = await apiClient.PostAsync($"/api/projects/{project.Id}/snapshots/preview", content: null, TestCancellationToken);
+        var preview = await ReadRequiredJsonAsync<PreviewSnapshotResponse>(previewResponse, TestCancellationToken);
+
+        using (var update = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{entry.Id}")
+        {
+            Content = JsonContent.Create(new UpdateConfigEntryRequest
+            {
+                ValueType = entry.ValueType,
+                Values = [new ScopedValueRequest { Value = "Changed" }],
+                IsSensitive = entry.IsSensitive,
+            }, options: WebJsonSerializerOptions),
+        })
+        {
+            update.Headers.IfMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue($"\"{entry.Version}\""));
+            var updateResponse = await apiClient.SendAsync(update, TestCancellationToken);
+            updateResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        // Act
+        var publishResponse = await apiClient.PostAsJsonAsync(
+            $"/api/projects/{project.Id}/snapshots",
+            new PublishSnapshotRequest { Description = "stale", ExpectedHash = preview.DiffHash },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+
+        // Assert
+        publishResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
     public async Task ListSnapshots_ReturnsNewestFirstWithSummaryOnly()
     {
         // Arrange
