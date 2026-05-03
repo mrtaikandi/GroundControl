@@ -59,7 +59,23 @@ function resolveScopedValue(values: ConfigEntry['values'], scopes: Record<string
 }
 
 function isFullMatch(candidateScopes: Record<string, string>, scopes: Record<string, string>) {
-  return Object.entries(candidateScopes).every(([dimension, value]) => scopes[dimension] === value);
+  return Object.entries(candidateScopes).every(([dimension, value]) => lookupScope(scopes, dimension) === value);
+}
+
+function lookupScope(scopes: Record<string, string>, dimension: string): string | undefined {
+  if (dimension in scopes) {
+    return scopes[dimension];
+  }
+
+  const lower = dimension.toLowerCase();
+
+  for (const key in scopes) {
+    if (key.toLowerCase() === lower) {
+      return scopes[key];
+    }
+  }
+
+  return undefined;
 }
 
 function setPath(document: Record<string, unknown>, path: string[], value: unknown) {

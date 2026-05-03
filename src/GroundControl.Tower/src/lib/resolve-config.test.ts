@@ -42,6 +42,17 @@ describe('resolveConfigEntries', () => {
     expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ Service: { Threshold: 12.5 } });
   });
 
+  it('matches scope dimension keys case-insensitively', () => {
+    const resolved = resolveConfigEntries([
+      entry('Jwt:Authority', 'String', [
+        { scopes: {}, value: 'https://default' },
+        { scopes: { environment: 'prod' }, value: 'https://prod' },
+      ]),
+    ], { Environment: 'prod' });
+
+    expect(buildResolvedDocument(resolved, { maskSensitive: false })).toEqual({ Jwt: { Authority: 'https://prod' } });
+  });
+
   it('masks sensitive values when requested', () => {
     const resolved = resolveConfigEntries([entry('Database:Password', 'string', [{ scopes: {}, value: 'secret' }], true)], {});
 

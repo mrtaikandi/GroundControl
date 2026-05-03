@@ -114,11 +114,27 @@ function resolveScopedValue(values: SnapshotEntry['values'], scopes: Record<stri
       continue;
     }
 
-    if (Object.entries(candidateScopes).every(([dimension, value]) => scopes[dimension] === value) && specificity > bestSpecificity) {
+    if (Object.entries(candidateScopes).every(([dimension, value]) => lookupScope(scopes, dimension) === value) && specificity > bestSpecificity) {
       bestMatch = candidate;
       bestSpecificity = specificity;
     }
   }
 
   return bestMatch ?? unscopedDefault;
+}
+
+function lookupScope(scopes: Record<string, string>, dimension: string): string | undefined {
+  if (dimension in scopes) {
+    return scopes[dimension];
+  }
+
+  const lower = dimension.toLowerCase();
+
+  for (const key in scopes) {
+    if (key.toLowerCase() === lower) {
+      return scopes[key];
+    }
+  }
+
+  return undefined;
 }
