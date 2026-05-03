@@ -1,9 +1,10 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
-import { GitCompareArrows } from 'lucide-react';
+import { createFileRoute, Link, Outlet, useRouterState } from '@tanstack/react-router';
+import { Pencil, Rocket } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/tower/data/Badge';
+import { EditProjectModal } from '@/components/tower/projects/EditProjectModal';
 import { ProjectStatusBar } from '@/components/tower/projects/ProjectStatusBar';
 import { ProjectTabs } from '@/components/tower/projects/ProjectTabs';
 import { PublishModal } from '@/components/tower/snapshots/PublishModal';
@@ -20,7 +21,6 @@ export const Route = createFileRoute('/projects/$projectId')({
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
-  const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const projects = useProjects();
   const groups = useGroups();
@@ -30,6 +30,7 @@ function ProjectLayout() {
   const configEntries = useConfigEntries(projectId);
   const status = useProjectStatus(projectId);
   const [publishing, setPublishing] = useState(false);
+  const [editing, setEditing] = useState(false);
   const groupName = project?.groupId ? groups.data?.data.find((g) => g.id === project.groupId)?.name ?? 'group pending' : 'ungrouped';
   const activeSnapshotId = project?.activeSnapshotId || undefined;
   const snapshotItems = snapshots.data?.data ?? [];
@@ -49,11 +50,6 @@ function ProjectLayout() {
     );
   }
 
-  function openCompare() {
-    void navigate({ params: { projectId }, to: '/projects/$projectId/snapshots' });
-  }
-
-  const isOnSnapshotsTab = pathname.endsWith('/snapshots');
   const projectRoot = `/projects/${projectId}`;
   const isOnOverviewTab = pathname === projectRoot || pathname === `${projectRoot}/`;
 
@@ -78,17 +74,14 @@ function ProjectLayout() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button
-              disabled={isOnSnapshotsTab}
-              onClick={openCompare}
-              size="sm"
-              type="button"
-              variant="secondary"
-            >
-              <GitCompareArrows aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
-              Compare
+            <Button onClick={() => setEditing(true)} size="sm" type="button" variant="secondary">
+              <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+              Edit
             </Button>
-            <Button onClick={() => setPublishing(true)} size="sm" type="button">Publish snapshot</Button>
+            <Button onClick={() => setPublishing(true)} size="sm" type="button">
+              <Rocket aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+              Publish snapshot
+            </Button>
           </div>
         </div>
       </header>
@@ -111,6 +104,7 @@ function ProjectLayout() {
       <Outlet />
 
       <PublishModal activeSnapshotId={activeSnapshotId} onOpenChange={setPublishing} open={publishing} projectId={projectId} />
+      <EditProjectModal onOpenChange={setEditing} open={editing} project={project} />
     </div>
   );
 }
