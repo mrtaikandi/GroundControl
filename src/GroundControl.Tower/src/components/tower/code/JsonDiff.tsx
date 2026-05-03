@@ -8,7 +8,7 @@ interface JsonDiffProps {
   after: unknown;
   before: unknown;
   className?: string;
-  mode?: 'unified' | 'split';
+  mode?: 'inline' | 'split';
 }
 
 interface DiffLine {
@@ -20,7 +20,7 @@ interface HighlightedDiffLine extends DiffLine {
   html: string;
 }
 
-export function JsonDiff({ after, before, className, mode = 'unified' }: JsonDiffProps) {
+export function JsonDiff({ after, before, className, mode = 'inline' }: JsonDiffProps) {
   const theme = useTweaksStore((state) => state.theme);
   const lines = useMemo(() => buildDiffLines(before, after), [after, before]);
   const [highlightedLines, setHighlightedLines] = useState<HighlightedDiffLine[]>([]);

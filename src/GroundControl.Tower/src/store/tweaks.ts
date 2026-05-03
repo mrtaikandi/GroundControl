@@ -4,13 +4,16 @@ import { persist } from 'zustand/middleware';
 export type Theme = 'light' | 'dark';
 export type ConfigViewMode = 'flat' | 'tree' | 'json';
 export type SnapshotViewMode = 'diff' | 'json' | 'json-diff';
+export type DiffLayout = 'inline' | 'split';
 
 interface TweaksState {
   applyToDocument: () => void;
   configViewMode: ConfigViewMode;
+  diffLayout: DiffLayout;
   driftBannerVisible: boolean;
   sensitiveMasked: boolean;
   setConfigViewMode: (mode: ConfigViewMode) => void;
+  setDiffLayout: (layout: DiffLayout) => void;
   setDriftBannerVisible: (visible: boolean) => void;
   setSensitiveMasked: (masked: boolean) => void;
   setSnapshotViewMode: (mode: SnapshotViewMode) => void;
@@ -24,9 +27,11 @@ export const useTweaksStore = create<TweaksState>()(
     (set, get) => ({
       applyToDocument: () => applyToDocument(get().theme),
       configViewMode: 'flat',
+      diffLayout: 'inline',
       driftBannerVisible: true,
       sensitiveMasked: true,
       setConfigViewMode: (configViewMode) => set({ configViewMode }),
+      setDiffLayout: (diffLayout) => set({ diffLayout }),
       setDriftBannerVisible: (driftBannerVisible) => set({ driftBannerVisible }),
       setSensitiveMasked: (sensitiveMasked) => set({ sensitiveMasked }),
       setSnapshotViewMode: (snapshotViewMode) => set({ snapshotViewMode }),

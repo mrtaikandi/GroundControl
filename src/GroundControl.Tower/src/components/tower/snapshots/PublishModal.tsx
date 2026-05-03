@@ -1,5 +1,6 @@
 import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { DiffLayoutToggle } from '@/components/tower/code/DiffLayoutToggle';
 import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -27,6 +28,7 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
   const [comment, setComment] = useState('');
   const [staleBanner, setStaleBanner] = useState(false);
   const masked = useTweaksStore((state) => state.sensitiveMasked);
+  const diffLayout = useTweaksStore((state) => state.diffLayout);
   const activeSnapshot = useSnapshotDetail(projectId, activeSnapshotId);
   const preview = useSnapshotPreview(projectId, { enabled: open });
   const publishSnapshot = usePublishSnapshot(projectId);
@@ -84,7 +86,12 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
           ) : loading ? (
             <Skeleton className="h-[520px]" />
           ) : (
-            <JsonDiff after={after} before={before} className="max-h-[560px] border border-stroke-subtle bg-bg-container" mode="split" />
+            <div className="grid gap-2">
+              <div className="flex justify-end">
+                <DiffLayoutToggle />
+              </div>
+              <JsonDiff after={after} before={before} className="max-h-[560px] border border-stroke-subtle bg-bg-container" mode={diffLayout} />
+            </div>
           )
         ) : (
           <div className="grid gap-4">

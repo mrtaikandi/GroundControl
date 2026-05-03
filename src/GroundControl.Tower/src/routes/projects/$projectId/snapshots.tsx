@@ -9,7 +9,6 @@ import { Badge } from '@/components/tower/data/Badge';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { summarizeChanges } from '@/components/tower/snapshots/PublishModal';
 import { SnapshotDiffView } from '@/components/tower/snapshots/SnapshotDiffView';
-import { SnapshotJsonDiffView } from '@/components/tower/snapshots/SnapshotJsonDiffView';
 import { SnapshotJsonView } from '@/components/tower/snapshots/SnapshotJsonView';
 import { snapshotToDocument } from '@/lib/snapshot-document';
 import { formatUserId } from '@/lib/user';
@@ -224,7 +223,7 @@ function SnapshotsRoute() {
     if (snapshotViewMode === 'diff') {
       return (
         <SnapshotDiffView
-          activeSnapshot={activeDetail.data}
+          baseline={activeDetail.data}
           changeCount={countChanges(activeChangeSummary)}
           isLoading={selectedDetail.isLoading || activeDetail.isLoading}
           snapshot={selectedDetail.data}
@@ -234,10 +233,10 @@ function SnapshotsRoute() {
     }
 
     return (
-      <SnapshotJsonDiffView
+      <SnapshotDiffView
+        baseline={previousDetail.data}
         changeCount={countChanges(previousChangeSummary)}
         isLoading={selectedDetail.isLoading || previousDetail.isLoading}
-        previousSnapshot={previousDetail.data}
         snapshot={selectedDetail.data}
         targetLabel={previousSummary ? `previous v${previousSummary.snapshotVersion}` : 'previous snapshot'}
       />
