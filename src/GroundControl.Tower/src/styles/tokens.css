@@ -1,8 +1,8 @@
 /* AUTO-GENERATED — do not edit. Source: tokens.json */
 
 :root {
-  --tower-bg-page: #fcfcfc;
-  --tower-bg-container: #f8f7fa;
+  --tower-bg-page: #fbfbfc;
+  --tower-bg-container: #f5f4f8;
   --tower-bg-surface: #ffffff;
   --tower-bg-selected: #f4f1fb;
   --tower-bg-selected-strong: #e7e1f6;
@@ -14,11 +14,11 @@
   --tower-fg-icon-subtle: #a5a3b0;
   --tower-fg-on-selected: #452a92;
   --tower-fg-chip-selected: #ffffff;
-  --tower-stroke-divider: #e7e6eb;
-  --tower-stroke-subtle: #f4f4f6;
+  --tower-stroke-divider: #dfdde6;
+  --tower-stroke-subtle: #eceaf0;
   --tower-stroke-field-initial: #d1d0d8;
   --tower-stroke-field-focus: #6e4ad8;
-  --tower-badge-neutral-bg: #f4f4f6;
+  --tower-badge-neutral-bg: #eceaf0;
   --tower-badge-neutral-fg: #3c3a44;
   --tower-badge-info-bg: #f4f1fb;
   --tower-badge-info-fg: #452a92;

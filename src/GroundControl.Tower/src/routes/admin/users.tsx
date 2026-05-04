@@ -9,6 +9,7 @@ import { AddGrantModal } from '@/components/tower/admin/AddGrantModal';
 import { NewUserModal } from '@/components/tower/admin/NewUserModal';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { useGroups } from '@/queries/useGroups';
 import { useRoles } from '@/queries/useRoles';
@@ -42,13 +43,7 @@ function UsersRoute() {
 
   return (
     <div className="grid gap-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Users</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Manage the people who can sign in and use GroundControl.</p>
-        </div>
-        <NewUserModal />
-      </div>
+      <PageHeader actions={<NewUserModal />} align="start" description="Manage the people who can sign in and use GroundControl." title="Users" />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_460px]">
         {users.isLoading ? <Skeleton className="h-96" /> : (

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { DeleteEntryDialog } from '@/components/tower/config/DeleteEntryDialog';
 import { EntryModal } from '@/components/tower/config/EntryModal';
 import { EntryValue } from '@/components/tower/config/EntryValue';
@@ -39,13 +40,7 @@ function TemplatesRoute() {
 
   return (
     <div className="grid gap-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Templates</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Share common settings across multiple projects.</p>
-        </div>
-        <Button onClick={() => setCreating(true)} type="button">New template</Button>
-      </div>
+      <PageHeader actions={<Button onClick={() => setCreating(true)} type="button">New template</Button>} description="Share common settings across multiple projects." title="Templates" />
 
       {templates.isLoading ? <Skeleton className="h-96" /> : null}
       {!templates.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No templates yet.</div> : null}

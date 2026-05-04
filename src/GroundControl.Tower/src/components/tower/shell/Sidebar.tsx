@@ -32,8 +32,8 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
-    <aside className="flex h-screen flex-col border-r border-stroke-subtle bg-bg-container px-3 py-4">
-      <div className="flex items-center gap-3 px-2 pb-6 pt-1">
+    <aside className="flex h-screen flex-col border-r border-stroke-divider bg-bg-container px-3 py-4">
+      <div className="flex items-center gap-3 border-b border-stroke-divider px-2 pb-5 pt-1">
         <LogoMark />
         <div className="min-w-0">
           <div className="truncate text-[14px] font-semibold text-fg-heading">Control Tower</div>
@@ -41,12 +41,12 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1">
+      <nav className="flex flex-1 flex-col gap-1 pt-4">
         {primaryNavItems.map((item) => (
           <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} />
         ))}
 
-        <div className="mt-5 px-3 pb-1 pt-2 text-[11px] font-medium uppercase text-fg-caption">Admin</div>
+        <div className="mt-6 border-t border-stroke-divider px-3 pb-1 pt-4 text-[11px] font-medium uppercase text-fg-caption">Admin</div>
         {adminNavItems.map((item) => (
           <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} />
         ))}
@@ -61,7 +61,7 @@ function NavLink({ active, item }: { active: boolean; item: NavItem }) {
   return (
     <Link
       className={`relative flex h-9 items-center gap-3 rounded-lg px-3 text-[13px] transition-colors ${
-        active ? 'bg-bg-surface font-semibold text-fg-heading' : 'text-fg-body hover:bg-bg-surface hover:text-fg-heading'
+        active ? 'bg-bg-surface font-semibold text-fg-heading shadow-[0_1px_2px_rgba(0,0,40,0.04)]' : 'text-fg-body hover:bg-bg-surface hover:text-fg-heading'
       }`}
       to={item.to}
     >

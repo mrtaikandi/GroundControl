@@ -13,7 +13,7 @@ import { useUpdateProject } from '@/queries/useProjects';
 const projectSchema = z.object({
   description: z.string().max(500, 'Use 500 characters or fewer').optional(),
   groupId: z.string().uuid('Select a group'),
-  name: z.string().min(1, 'Project name is required').max(100, 'Use 100 characters or fewer').regex(/^[a-z0-9-]+$/, 'Lowercase, numbers, and hyphens only'),
+  name: z.string().min(1, 'Project name is required').max(100, 'Use 100 characters or fewer'),
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;

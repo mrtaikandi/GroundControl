@@ -11,6 +11,7 @@ import { PATRevealModal } from '@/components/tower/clients/PATRevealModal';
 import { Badge } from '@/components/tower/data/Badge';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { useCreateToken, useRevokeToken, useTokens, type Token } from '@/queries/useTokens';
 
 const columnHelper = createColumnHelper<Token>();
@@ -38,13 +39,7 @@ function TokensRoute() {
 
   return (
     <div className="grid gap-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Access tokens</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Create personal tokens to use GroundControl from scripts and tools.</p>
-        </div>
-        <NewTokenModal />
-      </div>
+      <PageHeader actions={<NewTokenModal />} align="start" description="Create personal tokens to use GroundControl from scripts and tools." title="Access tokens" />
 
       {tokens.isLoading ? <Skeleton className="h-96" /> : (
         <div className="grid gap-3">

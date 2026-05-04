@@ -9,6 +9,7 @@ import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Badge } from '@/components/tower/data/Badge';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { useAuditRecords, type AuditRecord } from '@/queries/useAuditRecords';
 import { formatUserId } from '@/lib/user';
 
@@ -68,10 +69,7 @@ function AuditRoute() {
 
   return (
     <div className="grid gap-8">
-      <div>
-        <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Audit trail</h1>
-        <p className="mt-2 text-[14.5px] text-fg-caption">Track every change made in GroundControl.</p>
-      </div>
+      <PageHeader description="Track every change made in GroundControl." title="Audit trail" />
 
       <div className="grid gap-4">
         <div className="flex flex-wrap gap-2">

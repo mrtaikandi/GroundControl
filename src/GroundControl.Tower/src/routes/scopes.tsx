@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { useCreateScope, useDeleteScope, useScopes, useUpdateScope, type Scope } from '@/queries/useScopes';
 
 export const Route = createFileRoute('/scopes')({
@@ -23,13 +24,7 @@ function ScopesRoute() {
 
   return (
     <div className="grid gap-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Scopes</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Decide which settings each app sees based on where it's running.</p>
-        </div>
-        <Button onClick={() => setCreating(true)} type="button">New scope</Button>
-      </div>
+      <PageHeader actions={<Button onClick={() => setCreating(true)} type="button">New scope</Button>} description="Decide which settings each app sees based on where it's running." title="Scopes" />
 
       {scopes.isLoading ? <Skeleton className="h-80" /> : null}
       {!scopes.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No scope dimensions yet.</div> : null}

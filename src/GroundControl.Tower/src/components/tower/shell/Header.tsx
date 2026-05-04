@@ -11,8 +11,8 @@ export function Header() {
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <header className="flex h-14 items-center justify-between gap-5 border-b border-stroke-subtle bg-bg-surface px-6">
-      <label className="flex h-9 w-full max-w-[540px] items-center gap-2 rounded-lg border border-stroke-field-initial bg-bg-surface px-3 text-fg-caption focus-within:border-stroke-field-focus">
+    <header className="flex h-14 items-center justify-between gap-5 border-b border-stroke-divider bg-bg-surface px-6">
+      <label className="flex h-9 w-full max-w-[540px] items-center gap-2 rounded-lg border border-stroke-divider bg-bg-surface px-3 text-fg-caption focus-within:border-stroke-field-focus focus-within:ring-2 focus-within:ring-stroke-field-focus/10">
         <Search aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
         <span className="sr-only">Search</span>
         <input
@@ -20,7 +20,7 @@ export function Header() {
           placeholder="Search projects, keys, snapshots…"
           type="search"
         />
-        <kbd className="rounded-md border border-stroke-subtle bg-bg-container px-1.5 py-0.5 font-mono text-[11px] text-fg-caption">⌘K</kbd>
+        <kbd className="rounded-md border border-stroke-divider bg-bg-container px-1.5 py-0.5 font-mono text-[11px] text-fg-caption">⌘K</kbd>
       </label>
 
       <div className="flex items-center gap-3">

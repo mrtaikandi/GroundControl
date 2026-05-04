@@ -33,11 +33,7 @@ function ClientsRoute() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[19px] font-semibold text-fg-heading">Clients</h2>
-          <p className="mt-1 text-[12.5px] text-fg-caption">Issue and manage the credentials your apps use to read this project's settings.</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-end">    
         <NewClientModal projectId={projectId} />
       </div>
 

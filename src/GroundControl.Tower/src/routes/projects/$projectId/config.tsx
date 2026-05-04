@@ -18,19 +18,15 @@ function ConfigRoute() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[19px] font-semibold text-fg-heading">Configuration</h2>
-          <p className="mt-1 text-[12.5px] text-fg-caption">Manage the entries that resolve into the next snapshot.</p>
-        </div>
+      <TemplateAttachmentsBar projectId={projectId} />
+
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <SegmentedControl
           onChange={setConfigViewMode}
           options={[{ icon: List, label: 'Flat', value: 'flat' }, { icon: FolderTree, label: 'Tree', value: 'tree' }, { icon: Braces, label: 'JSON', value: 'json' }]}
           value={configViewMode}
         />
       </div>
-
-      <TemplateAttachmentsBar projectId={projectId} />
 
       {configViewMode === 'tree' ? <ConfigTreeView projectId={projectId} /> : configViewMode === 'json' ? <ConfigJsonView projectId={projectId} /> : <ConfigFlatView projectId={projectId} />}
     </div>

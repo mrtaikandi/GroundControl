@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { cn } from '@/lib/utils';
 import { useGroups } from '@/queries/useGroups';
@@ -48,13 +49,7 @@ function VariablesRoute() {
 
   return (
     <div className="grid gap-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Variables</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Reusable values for interpolation during snapshot publishing</p>
-        </div>
-        <Button onClick={() => setCreating(true)} type="button">New variable</Button>
-      </div>
+      <PageHeader actions={<Button onClick={() => setCreating(true)} type="button">New variable</Button>} description="Reusable values for interpolation during snapshot publishing" title="Variables" />
 
       {variables.isLoading ? <Skeleton className="h-96" /> : (
         <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">

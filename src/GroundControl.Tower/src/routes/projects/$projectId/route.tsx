@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/tower/data/Badge';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { EditProjectModal } from '@/components/tower/projects/EditProjectModal';
 import { ProjectStatusBar } from '@/components/tower/projects/ProjectStatusBar';
 import { ProjectTabs } from '@/components/tower/projects/ProjectTabs';
@@ -55,23 +56,9 @@ function ProjectLayout() {
   const isOnOverviewTab = pathname === projectRoot || pathname === `${projectRoot}/`;
 
   return (
-    <div className="grid gap-5">
-      <header className="grid gap-3">
-        <div className="flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-wide text-fg-caption">
-          <Link className="transition-colors hover:text-fg-body" search={DefaultProjectsSearch} to="/projects">Projects</Link>
-          <span aria-hidden="true">/</span>
-          <span className="text-fg-body">{project.name}</span>
-        </div>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-mono text-[28px] font-bold leading-tight text-fg-heading">{project.name}</h1>
-              <Badge variant="neutral">{groupName}</Badge>
-            </div>
-            <p className="mt-2 max-w-3xl text-[13.5px] text-fg-body">
-              {project.description || 'No description provided.'}
-            </p>
-          </div>
+    <div className="grid">
+      <PageHeader
+        actions={(
           <div className="flex shrink-0 items-center gap-2">
             <Button onClick={() => setEditing(true)} size="sm" type="button" variant="secondary">
               <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
@@ -82,8 +69,26 @@ function ProjectLayout() {
               Publish snapshot
             </Button>
           </div>
-        </div>
-      </header>
+        )}
+        align="start"
+        description={project.description || 'No description provided.'}
+        descriptionClassName="max-w-3xl text-[13.5px] text-fg-body"
+        eyebrow={(
+          <div className="flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-wide">
+            <Link className="transition-colors hover:text-fg-body" search={DefaultProjectsSearch} to="/projects">Projects</Link>
+            <span aria-hidden="true">/</span>
+            <span className="text-fg-body">{project.name}</span>
+          </div>
+        )}
+        eyebrowClassName="normal-case"
+        title={(
+          <span className="flex flex-wrap items-center gap-3">
+            <span>{project.name}</span>
+            <Badge variant="neutral">{groupName}</Badge>
+          </span>
+        )}
+        titleClassName="font-mono text-[28px]"
+      />
 
       <ProjectTabs
         clientCount={clientCount}
@@ -100,7 +105,9 @@ function ProjectLayout() {
         />
       ) : null}
 
-      <Outlet />
+      <div className="mt-5">
+        <Outlet />
+      </div>
 
       <PublishModal activeSnapshotId={activeSnapshotId} onOpenChange={setPublishing} open={publishing} projectId={projectId} />
       <EditProjectModal onOpenChange={setEditing} open={editing} project={project} />

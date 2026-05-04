@@ -99,11 +99,6 @@ function SnapshotsRoute() {
 
   return (
     <div className="grid gap-4">
-      <div>
-        <h2 className="text-[19px] font-semibold text-fg-heading">Snapshots</h2>
-        <p className="mt-1 text-[12.5px] text-fg-caption">A history of every published version of this project's configuration.</p>
-      </div>
-
       {snapshots.isLoading ? <Skeleton className="h-96" /> : null}
       {!snapshots.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No snapshots have been published for this project.</div> : null}
       {items.length > 0 ? (

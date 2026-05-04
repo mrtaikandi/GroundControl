@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { useAllClients, type ClientWithProject } from '@/queries/useAllClients';
 import { useProjects } from '@/queries/useProjects';
@@ -72,10 +73,7 @@ function ClientsRoute() {
 
   return (
     <div className="grid gap-6">
-      <div>
-        <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Clients</h1>
-        <p className="mt-2 text-[14.5px] text-fg-caption">All credentials issued across projects. {allClients.data.length} total · {totalActive} active.</p>
-      </div>
+      <PageHeader description={`All credentials issued across projects. ${allClients.data.length} total · ${totalActive} active.`} title="Clients" />
 
       <div className="flex flex-wrap items-center gap-3">
         <Input

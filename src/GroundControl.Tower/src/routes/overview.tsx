@@ -3,6 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DriftBanner } from '@/components/tower/feedback/DriftBanner';
 import { Badge } from '@/components/tower/data/Badge';
 import { StatusDot } from '@/components/tower/data/StatusDot';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { liveActivityAtom, liveAuditRecordsAtom } from '@/lib/atoms';
 import { maxLiveAuditRecords } from '@/lib/live-audit';
 import { isSystemUser, SYSTEM_USER_LABEL } from '@/lib/user';
@@ -31,16 +32,17 @@ function OverviewRoute() {
 
   return (
     <div className="grid gap-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Overview</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Live operations, recent changes and deployment health across GroundControl.</p>
-        </div>
-        <div className="flex items-center gap-2 rounded-full border border-stroke-subtle bg-bg-surface px-3 py-2 text-[12.5px] text-fg-caption">
+      <PageHeader
+        actions={(
+          <div className="flex items-center gap-2 rounded-full border border-stroke-subtle bg-bg-surface px-3 py-2 text-[12.5px] text-fg-caption">
           <StatusDot pulse={liveActivity.isConnected} status={liveActivity.isConnected ? 'live' : liveActivity.lastEventAt ? 'warning' : 'offline'} />
           <span>{liveActivity.isConnected ? 'Live' : liveActivity.lastEventAt ? 'Reconnecting' : 'Offline'}</span>
-        </div>
-      </div>
+          </div>
+        )}
+        align="start"
+        description="Live operations, recent changes and deployment health across GroundControl."
+        title="Overview"
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <StatCard href="/projects" icon={FolderKanban} label="Active projects" loading={stats.isLoading} value={stats.activeProjects} />

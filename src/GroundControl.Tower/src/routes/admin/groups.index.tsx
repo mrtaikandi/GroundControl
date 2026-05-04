@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { useGroups, type Group } from '@/queries/useGroups';
 import { useProjects } from '@/queries/useProjects';
 import { useUsers } from '@/queries/useUsers';
@@ -54,11 +55,7 @@ function GroupsRoute() {
 
   return (
     <div className="grid gap-8">
-      <div>
-        <div className="text-[11px] font-medium uppercase text-fg-caption">Admin</div>
-        <h1 className="mt-2 text-[34px] font-bold leading-tight text-fg-heading">Groups & roles</h1>
-        <p className="mt-2 text-[14.5px] text-fg-caption">Group people together and control what they can access.</p>
-      </div>
+      <PageHeader description="Group people together and control what they can access." eyebrow="Admin" title="Groups & roles" />
 
       {groups.isLoading ? <Skeleton className="h-96" /> : (
         <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">

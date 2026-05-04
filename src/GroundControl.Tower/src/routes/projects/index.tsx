@@ -4,6 +4,7 @@ import { useDeferredValue, useMemo } from 'react';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { NewProjectModal } from '@/components/tower/projects/NewProjectModal';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -173,15 +174,9 @@ function ProjectsRoute() {
 
   return (
     <div className="grid gap-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] font-bold leading-tight text-fg-heading">Projects</h1>
-          <p className="mt-2 text-[14.5px] text-fg-caption">Manage your configuration projects</p>
-        </div>
-        <NewProjectModal />
-      </div>
+      <PageHeader actions={<NewProjectModal />} description="Manage your configuration projects" title="Projects" />
 
-      <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-4">
+      <div className="rounded-xl border border-stroke-divider bg-bg-surface p-4 shadow-[0_1px_2px_rgba(0,0,40,0.03)]">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
           <div>
             <div className="relative">
@@ -238,7 +233,7 @@ function ProjectsRoute() {
       </div>
 
       {projects.isLoading ? <ProjectSkeletonList /> : null}
-      {projects.isError ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-6 text-fg-caption">Projects could not be loaded.</div> : null}
+      {projects.isError ? <div className="rounded-xl border border-stroke-divider bg-bg-surface p-6 text-fg-caption">Projects could not be loaded.</div> : null}
       {!projects.isLoading && !projects.isError && projectItems.length === 0 ? <EmptyProjects hasFilters={hasFilters} onClearFilters={clearFilters} /> : null}
       {projectItems.length > 0 ? (
         <ul className="grid gap-3">
@@ -266,7 +261,7 @@ function ProjectsRoute() {
       ) : null}
 
       {!projects.isLoading && !projects.isError && (projectItems.length > 0 || hasFilters) ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stroke-subtle bg-bg-surface px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stroke-divider bg-bg-surface px-4 py-3">
           <div>
             <div className="text-[12.5px] text-fg-caption">{summaryText}</div>
           </div>
@@ -296,7 +291,7 @@ function ProjectSkeletonList() {
 
 function EmptyProjects({ hasFilters, onClearFilters }: { hasFilters: boolean; onClearFilters: () => void }) {
   return (
-    <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center">
+    <div className="rounded-xl border border-stroke-divider bg-bg-surface p-8 text-center">
       <h2 className="text-[19px] font-semibold text-fg-heading">{hasFilters ? 'No matching projects' : 'No projects yet'}</h2>
       <p className="mx-auto mt-2 max-w-md text-[13px] text-fg-caption">
         {hasFilters ? 'Try clearing the current search or group filter to see more projects.' : 'Create the first project to start collecting entries, scopes, variables, templates, and snapshots.'}
