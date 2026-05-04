@@ -57,7 +57,7 @@ function RootComponent() {
         <Outlet />
       </AppShell>
       <Toaster position="bottom-right" richColors={false} />
-      <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />
+      <ReactQueryDevtools buttonPosition="bottom-right" initialIsOpen={false} />
     </SensitiveProvider>
   );
 }

@@ -1,5 +1,9 @@
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { NotificationsPopover } from '@/components/tower/shell/NotificationsPopover';
+import { SYSTEM_USER_LABEL } from '@/lib/user';
+import { useTweaksStore, type Theme } from '@/store/tweaks';
 import { Link, useRouterState } from '@tanstack/react-router';
-import { Activity, CircleGauge, FolderKanban, KeyRound, Layers3, ListTree, MonitorSmartphone, ShieldCheck, Users, Variable } from 'lucide-react';
+import { Activity, CircleGauge, FolderKanban, KeyRound, Layers3, ListTree, MonitorSmartphone, Moon, ShieldCheck, Sun, Users, Variable } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 type NavRoute = '/admin/groups' | '/admin/tokens' | '/admin/users' | '/audit' | '/clients' | '/overview' | '/projects' | '/scopes' | '/templates' | '/variables';
@@ -30,10 +34,14 @@ const primaryNavItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const theme = useTweaksStore((state) => state.theme);
+  const setTheme = useTweaksStore((state) => state.setTheme);
+  const userName = SYSTEM_USER_LABEL;
+  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <aside className="flex h-screen flex-col border-r border-stroke-divider bg-bg-page px-3 py-4">
-      <div className="flex items-center gap-3 border-b border-stroke-divider px-2 pb-5 pt-1">
+      <div className="flex items-center gap-3 px-2 pb-5 pt-1">
         <LogoMark />
         <div className="min-w-0">
           <div className="truncate text-[14px] font-semibold text-fg-heading">Control Tower</div>
@@ -46,11 +54,44 @@ export function Sidebar() {
           <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} />
         ))}
 
-        <div className="mt-6 border-t border-stroke-divider px-3 pb-1 pt-4 text-[11px] font-medium uppercase text-fg-caption">Admin</div>
+        <div className="mt-6 px-3 pb-1 pt-4 text-[11px] font-medium uppercase text-fg-caption">Admin</div>
         {adminNavItems.map((item) => (
           <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} />
         ))}
       </nav>
+
+      <div className="mt-auto flex items-center gap-2 px-2 pt-4">        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              aria-label={`Account menu for ${userName}`}
+              className="grid size-8 place-items-center rounded-full bg-bg-chip-selected text-[12px] font-semibold text-fg-chip-selected outline-none transition-colors hover:brightness-105 focus-visible:ring-2 focus-visible:ring-stroke-field-focus"
+              type="button"
+            >
+              {userInitial}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-52">
+            <DropdownMenuLabel>
+              <div className="text-[12.5px] font-medium text-fg-heading">{userName}</div>
+              <div className="text-[11px] font-normal text-fg-caption">Signed in</div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Theme</DropdownMenuLabel>
+            <DropdownMenuRadioGroup onValueChange={(value) => setTheme(value as Theme)} value={theme}>
+              <DropdownMenuRadioItem value="light">
+                <Sun aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
+                Light
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="dark">
+                <Moon aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
+                Dark
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <NotificationsPopover />
+      </div>
     </aside>
   );
 }

@@ -25,7 +25,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className="border-b border-stroke-divider">
-      <PageContent className="pb-6 2xl:px-16">
+      <PageContent className="pb-6">
         <div className={`flex flex-wrap justify-between gap-4 ${align === 'start' ? 'items-start' : 'items-end'}`}>
           <div className="min-w-0">
             {eyebrow ? <div className={cn('text-[11px] font-medium uppercase text-fg-caption', eyebrowClassName)}>{eyebrow}</div> : null}
