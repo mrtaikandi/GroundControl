@@ -32,7 +32,7 @@ export function ConfigFlatView({ projectId }: ConfigFlatViewProps) {
     [effective.entries, search],
   );
   const columns = useMemo(() => [
-    columnHelper.accessor((row) => row.entry.key, { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Key', id: 'key' }),
+    columnHelper.accessor((row) => row.entry.key, { cell: (info) => <span className="font-semibold text-fg-heading">{info.getValue()}</span>, header: 'Key', id: 'key' }),
     columnHelper.accessor((row) => row.entry.valueType, { cell: (info) => <Badge variant="neutral">{info.getValue()}</Badge>, header: 'Type', id: 'valueType' }),
     columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.entry.isSensitive} value={defaultValue(info.row.original.entry)} />, header: 'Default value', id: 'defaultValue' }),
     columnHelper.display({ cell: (info) => <Badge variant="info">{scopeCount(info.row.original.entry)} scopes</Badge>, header: 'Scopes', id: 'scopes' }),
@@ -108,7 +108,7 @@ export function ConfigFlatView({ projectId }: ConfigFlatViewProps) {
 
 function OwnerBadge({ source }: { source: EffectiveEntry['source'] }) {
   if (source.kind === 'project') {
-    return <Badge variant="neutral">project</Badge>;
+    return <Badge variant="neutral">Project</Badge>;
   }
 
   if (source.kind === 'template') {
@@ -125,7 +125,7 @@ function OwnerBadge({ source }: { source: EffectiveEntry['source'] }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span><Badge variant="warning">overrides · {source.templateName}</Badge></span>
+        <span><Badge variant="warning">Overrides · {source.templateName}</Badge></span>
       </TooltipTrigger>
       <TooltipContent>Project entry overrides {source.templateName}</TooltipContent>
     </Tooltip>
