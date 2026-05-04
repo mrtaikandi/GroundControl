@@ -83,7 +83,6 @@ function ProjectsRoute() {
   const showingFrom = totalCount === 0 ? 0 : page.index * PageSize + 1;
   const showingTo = totalCount === 0 ? 0 : page.index * PageSize + projectItems.length;
   const summaryText = projects.isLoading ? 'Loading projects...' : `${showingFrom}-${showingTo} of ${totalCount} project${totalCount === 1 ? '' : 's'}`;
-  const pendingFilterChange = searchText.trim() !== deferredSearch;
 
   function clearFilters() {
     void navigate({
@@ -183,17 +182,27 @@ function ProjectsRoute() {
       </div>
 
       <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
           <div>
             <div className="relative">
               <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-icon-subtle" />
               <Input
                 aria-label="Search projects"
-                className="pl-9"
+                className="px-9"
                 onChange={(event) => updateQuery(event.target.value)}
                 placeholder="Search project names"
                 value={searchText}
               />
+              {searchText ? (
+                <button
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-fg-icon-subtle transition-colors hover:bg-bg-container hover:text-fg-body"
+                  onClick={() => updateQuery('')}
+                  type="button"
+                >
+                  <X aria-hidden="true" className="size-3.5" />
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -224,17 +233,8 @@ function ProjectsRoute() {
             </Select>
           </div>
 
-          <div className="flex items-end justify-start lg:justify-end">
-            <Button disabled={!hasFilters && !searchText} onClick={clearFilters} type="button" variant="ghost">
-              <X aria-hidden="true" className="size-3.5" />
-              Clear filters
-            </Button>
-          </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-end gap-3 border-t border-stroke-subtle/70 pt-3 text-[12.5px] text-fg-caption">
-          <span>{pendingFilterChange ? 'Updating results...' : summaryText}</span>
-        </div>
       </div>
 
       {projects.isLoading ? <ProjectSkeletonList /> : null}
