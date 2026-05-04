@@ -250,13 +250,10 @@ function ProjectsRoute() {
                 to="/projects/$projectId"
               >
                 <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="text-[15px] font-semibold text-fg-heading">
-                    <InlineCode>{project.name}</InlineCode>
-                  </h2>
-                  <Badge variant="neutral">{project.groupId ? groupNames.get(project.groupId) ?? 'group pending' : 'ungrouped'}</Badge>
-                  <Badge variant={project.activeSnapshotId ? 'info' : 'neutral'}>
-                    {project.activeSnapshotId ? 'active snapshot' : 'no active snapshot'}
-                  </Badge>
+                  <h3 className="text-[15px] font-semibold text-fg-heading">
+                    {project.name}
+                  </h3>
+                  <Badge variant="neutral">{project.groupId ? groupNames.get(project.groupId) ?? 'group pending' : 'ungrouped'}</Badge>                  
                 </div>
                 <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
                   <p className="min-w-0 flex-1 text-[13px] text-fg-body">{project.description || 'No description provided.'}</p>
