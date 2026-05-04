@@ -32,7 +32,7 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
-    <aside className="flex h-screen flex-col border-r border-stroke-divider bg-bg-container px-3 py-4">
+    <aside className="flex h-screen flex-col border-r border-stroke-divider bg-bg-page px-3 py-4">
       <div className="flex items-center gap-3 border-b border-stroke-divider px-2 pb-5 pt-1">
         <LogoMark />
         <div className="min-w-0">
