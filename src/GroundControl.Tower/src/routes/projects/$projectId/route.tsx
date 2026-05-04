@@ -61,8 +61,6 @@ function ProjectLayout() {
           <Link className="transition-colors hover:text-fg-body" search={DefaultProjectsSearch} to="/projects">Projects</Link>
           <span aria-hidden="true">/</span>
           <span className="text-fg-body">{project.name}</span>
-          <span aria-hidden="true" className="text-fg-icon-subtle">·</span>
-          <span className="text-fg-icon-subtle">GET /api/projects/{'{id}'}</span>
         </div>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
