@@ -92,12 +92,7 @@ function ProjectLayout() {
         titleClassName="font-mono text-[28px]"
       />
 
-      <ProjectTabs
-        clientCount={clientCount}
-        configCount={configCount}
-        projectId={projectId}
-        snapshotCount={totalSnapshots}
-      />
+      <ProjectTabs projectId={projectId} />
 
         <PageContent>
           {isOnOverviewTab ? (
