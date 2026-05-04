@@ -1,21 +1,18 @@
 import { createFileRoute, Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { Pencil, Rocket } from 'lucide-react';
+import { LayoutGrid, MonitorSmartphone, Pencil, Rocket, ScrollText, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, type TabsItem } from '@/components/ui/tabs';
 import { Badge } from '@/components/tower/data/Badge';
 import { PageContent } from '@/components/tower/shell/PageContent';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { EditProjectModal } from '@/components/tower/projects/EditProjectModal';
 import { ProjectStatusBar } from '@/components/tower/projects/ProjectStatusBar';
-import { ProjectTabs } from '@/components/tower/projects/ProjectTabs';
 import { PublishModal } from '@/components/tower/snapshots/PublishModal';
-import { useClients } from '@/queries/useClients';
-import { useConfigEntries } from '@/queries/useConfigEntries';
 import { useGroups } from '@/queries/useGroups';
 import { useProjectStatus } from '@/queries/useProjectStatus';
 import { useProjects } from '@/queries/useProjects';
-import { useSnapshots } from '@/queries/useSnapshots';
 import { DefaultProjectsSearch } from '@/routes/projects';
 
 export const Route = createFileRoute('/projects/$projectId')({
@@ -28,18 +25,11 @@ function ProjectLayout() {
   const projects = useProjects();
   const groups = useGroups();
   const project = projects.data?.data.find((candidate) => candidate.id === projectId);
-  const snapshots = useSnapshots(projectId);
-  const clients = useClients(projectId);
-  const configEntries = useConfigEntries(projectId);
   const status = useProjectStatus(projectId);
   const [publishing, setPublishing] = useState(false);
   const [editing, setEditing] = useState(false);
   const groupName = project?.groupId ? groups.data?.data.find((g) => g.id === project.groupId)?.name ?? 'group pending' : 'ungrouped';
   const activeSnapshotId = project?.activeSnapshotId || undefined;
-  const snapshotItems = snapshots.data?.data ?? [];
-  const totalSnapshots = snapshots.data?.totalCount !== undefined ? Number(snapshots.data.totalCount) : snapshotItems.length;
-  const configCount = configEntries.data?.totalCount !== undefined ? Number(configEntries.data.totalCount) : configEntries.data?.data.length;
-  const clientCount = clients.data?.totalCount !== undefined ? Number(clients.data.totalCount) : clients.data?.data.length;
 
   if (projects.isLoading) {
     return <Skeleton className="h-96" />;
@@ -55,6 +45,12 @@ function ProjectLayout() {
 
   const projectRoot = `/projects/${projectId}`;
   const isOnOverviewTab = pathname === projectRoot || pathname === `${projectRoot}/`;
+  const tabs: TabsItem[] = [
+    { exact: true, icon: LayoutGrid, label: 'Overview', params: { projectId }, to: '/projects/$projectId' },
+    { icon: SlidersHorizontal, label: 'Configuration', params: { projectId }, to: '/projects/$projectId/config' },
+    { icon: ScrollText, label: 'Snapshots', params: { projectId }, to: '/projects/$projectId/snapshots' },
+    { icon: MonitorSmartphone, label: 'Clients', params: { projectId }, to: '/projects/$projectId/clients' },
+  ];
 
   return (
     <>
@@ -92,7 +88,7 @@ function ProjectLayout() {
         titleClassName="font-mono text-[28px]"
       />
 
-      <ProjectTabs projectId={projectId} />
+      <Tabs ariaLabel="Project sections" items={tabs} />
 
         <PageContent>
           {isOnOverviewTab ? (
