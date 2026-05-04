@@ -48,22 +48,24 @@ function UsersRoute() {
 
       <PageContent>
         <div className="grid gap-8 pt-8">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_460px]">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,460px)]">
             {users.isLoading ? <Skeleton className="h-96" /> : (
               <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-                <Table>
-                  <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {table.getRowModel().rows.map((row) => (
-                      <TableRow className={row.original.id === selectedUser?.id ? 'bg-bg-selected' : undefined} key={row.id} onClick={() => setSelectedUserId(row.original.id)}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
-                    ))}
-                    {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No users found.</TableCell></TableRow> : null}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows.map((row) => (
+                        <TableRow className={row.original.id === selectedUser?.id ? 'bg-bg-selected' : undefined} key={row.id} onClick={() => setSelectedUserId(row.original.id)}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
+                      ))}
+                      {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No users found.</TableCell></TableRow> : null}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
 
@@ -83,7 +85,7 @@ function UserIdentity({ user }: { user: User }) {
       <div className="grid size-8 place-items-center rounded-full bg-bg-container text-[11px] font-semibold text-fg-heading">{initials}</div>
       <div className="min-w-0">
         <InlineCode>{user.username}</InlineCode>
-        <div className="mt-1 truncate text-[12px] text-fg-caption">{user.email}</div>
+        <div className="mt-1 text-[12px] text-fg-caption [overflow-wrap:anywhere]">{user.email}</div>
       </div>
     </div>
   );

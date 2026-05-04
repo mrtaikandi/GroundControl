@@ -102,7 +102,7 @@ function SnapshotsRoute() {
       {snapshots.isLoading ? <Skeleton className="h-96" /> : null}
       {!snapshots.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No snapshots have been published for this project.</div> : null}
       {items.length > 0 ? (
-        <div className="grid gap-5 xl:grid-cols-[340px_1fr]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
           <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface p-2">
             {items.map((snapshot) => (
               <SnapshotRow
@@ -118,7 +118,7 @@ function SnapshotsRoute() {
           <div className="min-w-0 rounded-xl border border-stroke-subtle bg-bg-surface p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-[18px] font-semibold text-fg-heading">{detailHeading}</h3>
+                <h3 className="text-[18px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{detailHeading}</h3>
                 {selectedSnapshot ? (
                   <p className="mt-1 text-[12.5px] text-fg-caption">
                     Published {formatRelative(selectedSnapshot.publishedAt)} by {formatUserId(selectedSnapshot.publishedBy)} · {selectedSnapshot.entryCount} resolved {selectedSnapshot.entryCount === 1 ? 'entry' : 'entries'} · project {projectName}
@@ -149,7 +149,7 @@ function SnapshotsRoute() {
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
               <SegmentedControl onChange={setSnapshotViewMode} options={[...snapshotViewOptions]} value={snapshotViewMode} />
-              {comparisonLabel ? <span className="text-[12.5px] text-fg-caption">{comparisonLabel}</span> : null}
+              {comparisonLabel ? <span className="text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{comparisonLabel}</span> : null}
             </div>
 
             <div className="mt-4">{renderSnapshotView()}</div>
@@ -169,7 +169,7 @@ function SnapshotsRoute() {
           </DialogHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <SegmentedControl onChange={setSnapshotViewMode} options={[...snapshotViewOptions]} value={snapshotViewMode} />
-            {comparisonLabel ? <span className="text-[12.5px] text-fg-caption">{comparisonLabel}</span> : null}
+            {comparisonLabel ? <span className="text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{comparisonLabel}</span> : null}
           </div>
           <div className="max-h-[calc(100vh-220px)] overflow-auto">
             {renderSnapshotView()}
@@ -249,8 +249,8 @@ function SnapshotRow({ active, onSelect, selected, snapshot }: { active: boolean
         </div>
         <span className="shrink-0 font-mono text-[11.5px] text-fg-caption">{formatRelative(snapshot.publishedAt)}</span>
       </div>
-      {snapshot.description?.trim() ? <div className="mt-1 truncate text-[13px] text-fg-body">{snapshot.description.trim()}</div> : null}
-      <div className="mt-2 truncate text-[11.5px] text-fg-caption">
+      {snapshot.description?.trim() ? <div className="mt-1 text-[13px] text-fg-body [overflow-wrap:anywhere]">{snapshot.description.trim()}</div> : null}
+      <div className="mt-2 text-[11.5px] text-fg-caption [overflow-wrap:anywhere]">
         {formatUserId(snapshot.publishedBy)} · {snapshot.entryCount} {snapshot.entryCount === 1 ? 'entry' : 'entries'}
       </div>
     </button>

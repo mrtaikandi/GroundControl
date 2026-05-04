@@ -34,15 +34,15 @@ function ScopesRoute() {
           {items.length > 0 ? (
             <div className="grid gap-3">
               {items.map((scope) => (
-                <div className="grid gap-4 rounded-xl border border-stroke-subtle bg-bg-surface p-5 md:grid-cols-[220px_1fr_auto]" key={scope.id}>
-                  <div>
-                    <InlineCode>{scope.dimension}</InlineCode>
-                    <p className="mt-2 text-[12.5px] text-fg-caption">{scope.description || 'No description provided.'}</p>
+                <div className="grid gap-4 rounded-xl border border-stroke-subtle bg-bg-surface p-5 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)_auto]" key={scope.id}>
+                  <div className="min-w-0">
+                    <span className="block font-semibold [overflow-wrap:anywhere]">{scope.dimension}</span>
+                    <p className="mt-2 text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{scope.description || 'No description provided.'}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="min-w-0 flex flex-wrap gap-2">
                     {scope.allowedValues.map((value) => <FilterChip key={value} label={value} onToggle={() => undefined} />)}
                   </div>
-                  <div className="flex items-start justify-end gap-2">
+                  <div className="flex flex-wrap items-start justify-start gap-2 lg:justify-end">
                     <Button onClick={() => setEditingScope(scope)} type="button" variant="secondary">Edit</Button>
                     <Button onClick={() => setDeletingScope(scope)} type="button" variant="ghost">Delete</Button>
                   </div>
@@ -121,13 +121,14 @@ function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edi
           </div>
           <div className="grid gap-2 rounded-xl border border-stroke-subtle p-4">
             <div className="text-[13px] font-semibold text-fg-heading">Allowed values</div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input onChange={(event) => setNewValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addValue(); } }} placeholder="prod" value={newValue} />
               <Button onClick={addValue} type="button" variant="secondary">Add</Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {allowedValues.map((value) => <FilterChip key={value} label={value} onToggle={() => setAllowedValues((current) => current.filter((item) => item !== value))} selected />)}
             </div>
+            {allowedValues.length === 0 ? <div className="text-[12.5px] text-fg-caption">Add at least one allowed value before saving this scope.</div> : null}
           </div>
         </div>
         <DialogFooter>

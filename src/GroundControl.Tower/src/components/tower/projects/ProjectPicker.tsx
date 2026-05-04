@@ -38,14 +38,14 @@ export function ProjectPicker({ onChange, projects, selectedId }: ProjectPickerP
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="inline-flex h-8 items-center gap-2 rounded-lg border border-stroke-field-initial bg-bg-surface px-3 text-[13px] font-medium text-fg-body outline-none transition-colors hover:bg-bg-container focus-visible:ring-2 focus-visible:ring-stroke-field-focus"
+          className="inline-flex h-9 w-full max-w-full items-center justify-between gap-2 rounded-lg border border-stroke-field-initial bg-bg-surface px-3 text-[13px] font-medium text-fg-body outline-none transition-colors hover:bg-bg-container focus-visible:ring-2 focus-visible:ring-stroke-field-focus sm:w-auto sm:max-w-72"
           type="button"
         >
-          <span className="font-mono">{selected?.name ?? 'Select project'}</span>
+          <span className="min-w-0 truncate font-mono">{selected?.name ?? 'Select project'}</span>
           <ChevronDown aria-hidden="true" className="size-3.5 text-fg-icon-subtle" strokeWidth={1.8} />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 p-2" onOpenAutoFocus={(event) => { event.preventDefault(); inputRef.current?.focus(); }}>
+      <PopoverContent align="start" className="w-[min(24rem,calc(100vw-24px))] p-2 sm:w-72" onOpenAutoFocus={(event) => { event.preventDefault(); inputRef.current?.focus(); }}>
         <Input className="h-8 text-[12.5px]" onChange={(event) => setSearch(event.target.value)} placeholder="Search projects" ref={inputRef} value={search} />
         <div className="mt-2 max-h-72 overflow-auto">
           {filtered.length === 0 ? (
@@ -61,7 +61,7 @@ export function ProjectPicker({ onChange, projects, selectedId }: ProjectPickerP
                 onClick={() => { onChange(project.id); setOpen(false); }}
                 type="button"
               >
-                <span className="truncate font-mono">{project.name}</span>
+                <span className="min-w-0 font-mono [overflow-wrap:anywhere]">{project.name}</span>
                 {project.id === selectedId ? <Check aria-hidden="true" className="size-4 shrink-0 text-stroke-field-focus" strokeWidth={2} /> : null}
               </button>
             ))

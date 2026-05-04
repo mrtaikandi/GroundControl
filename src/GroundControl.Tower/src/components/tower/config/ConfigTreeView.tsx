@@ -71,10 +71,10 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
 
   return (
     <TooltipProvider>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_600px]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,600px)]">
         <div className="grid content-start gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Input className="flex-1" onChange={(event) => setFilter(event.target.value)} placeholder="Filter…" value={filter} />
+            <Input className="w-full sm:flex-1 sm:max-w-sm" onChange={(event) => setFilter(event.target.value)} placeholder="Filter…" value={filter} />
             <Button onClick={() => setCreating(true)} type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
           </div>
           <div className="flex justify-end gap-1">
@@ -144,8 +144,8 @@ function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selec
         >
           {isCollapsed ? <ChevronRight className="size-4 text-fg-icon-subtle" /> : <ChevronDown className="size-4 text-fg-icon-subtle" />}
           {isCollapsed ? <Folder aria-hidden="true" className="size-4 text-fg-icon-subtle" /> : <FolderOpen aria-hidden="true" className="size-4 text-fg-icon-subtle" />}
-          <span className="font-semibold text-fg-heading">{segmentName}</span>
-          <span className="text-[12px] text-fg-caption">
+          <span className="min-w-0 font-semibold text-fg-heading [overflow-wrap:anywhere]">{segmentName}</span>
+          <span className="text-[12px] text-fg-caption [overflow-wrap:anywhere]">
             {node.count} {node.count === 1 ? 'key' : 'keys'}
             {node.sensitiveCount > 0 ? ` · ${node.sensitiveCount} sensitive` : ''}
           </span>
@@ -179,7 +179,7 @@ function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selec
     <div
       className={cn(
         'group relative grid w-full cursor-pointer items-center gap-3 border-b border-stroke-subtle px-4 py-2.5 text-left text-[13px] last:border-b-0 hover:bg-bg-container',
-        'grid-cols-[16px_minmax(0,1fr)_auto_auto]',
+        'grid-cols-[16px_minmax(0,1fr)] sm:grid-cols-[16px_minmax(0,1fr)_auto_auto]',
         isSelected && 'bg-bg-selected before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-primary',
       )}
       onClick={() => onSelect(node.entry.id)}
@@ -190,15 +190,15 @@ function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selec
           ? <Layers3 aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />
           : <Hash aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />}
       <span className="flex min-w-0 items-center gap-2">
-        <span className="truncate font-semibold text-fg-heading">{segmentName}</span>
+        <span className="font-semibold text-fg-heading [overflow-wrap:anywhere]">{segmentName}</span>
         <Badge variant="neutral">{node.entry.valueType}</Badge>
       </span>
-      <div className="flex items-center gap-2 text-fg-body">
+      <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-2 text-fg-body sm:col-start-auto sm:justify-end">
         {defaultVal ? <SensitiveValue isSensitive={node.entry.isSensitive} value={defaultVal} /> : null}
         {scopes > 0 ? <Badge variant="info">+{scopes}</Badge> : null}
       </div>
       {isInherited ? <span /> : (
-        <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="col-start-2 flex flex-wrap justify-start gap-1 opacity-100 transition-opacity sm:col-start-auto sm:justify-end sm:opacity-0 sm:group-hover:opacity-100">
           <Button onClick={(event) => { event.stopPropagation(); onEdit(node.entry); }} size="sm" type="button" variant="ghost">Edit</Button>
           <Button onClick={(event) => { event.stopPropagation(); onDelete(node.entry); }} size="sm" type="button" variant="ghost">Delete</Button>
         </div>
@@ -239,7 +239,7 @@ function EntryDetailPanelBody({ item, onEdit, projectName }: EntryDetailPanelBod
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[11px] font-medium uppercase text-fg-caption">Config entry</div>
-          <h2 className="mt-2"><InlineCode className="text-[20px] font-semibold">{entry.key}</InlineCode></h2>
+          <h2 className="mt-2"><InlineCode className="text-[20px] font-semibold [overflow-wrap:anywhere]">{entry.key}</InlineCode></h2>
         </div>
         {!isInherited ? (
           <Button onClick={() => onEdit(entry)} size="sm" type="button" variant="secondary">
@@ -253,7 +253,7 @@ function EntryDetailPanelBody({ item, onEdit, projectName }: EntryDetailPanelBod
         <OwnerPill projectName={projectName} source={source} />
       </div>
 
-      {entry.description ? <p className="mt-4 text-[13.5px] text-fg-body">{entry.description}</p> : null}
+      {entry.description ? <p className="mt-4 text-[13.5px] text-fg-body [overflow-wrap:anywhere]">{entry.description}</p> : null}
 
       <div className="mt-6">
         <div className="text-[11px] font-medium uppercase text-fg-caption">

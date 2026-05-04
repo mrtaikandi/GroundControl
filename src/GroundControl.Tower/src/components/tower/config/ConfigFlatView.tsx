@@ -32,7 +32,7 @@ export function ConfigFlatView({ projectId }: ConfigFlatViewProps) {
     [effective.entries, search],
   );
   const columns = useMemo(() => [
-    columnHelper.accessor((row) => row.entry.key, { cell: (info) => <span className="font-semibold text-fg-heading">{info.getValue()}</span>, header: 'Key', id: 'key' }),
+    columnHelper.accessor((row) => row.entry.key, { cell: (info) => <span className="font-semibold text-fg-heading [overflow-wrap:anywhere]">{info.getValue()}</span>, header: 'Key', id: 'key' }),
     columnHelper.accessor((row) => row.entry.valueType, { cell: (info) => <Badge variant="neutral">{info.getValue()}</Badge>, header: 'Type', id: 'valueType' }),
     columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.entry.isSensitive} value={defaultValue(info.row.original.entry)} />, header: 'Default value', id: 'defaultValue' }),
     columnHelper.display({ cell: (info) => <Badge variant="info">{scopeCount(info.row.original.entry)} scopes</Badge>, header: 'Scopes', id: 'scopes' }),
@@ -66,36 +66,38 @@ export function ConfigFlatView({ projectId }: ConfigFlatViewProps) {
     <TooltipProvider>
       <div className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Input className="max-w-sm" onChange={(event) => setSearch(event.target.value)} placeholder="Filter entries…" value={search} />
+          <Input className="w-full sm:max-w-sm" onChange={(event) => setSearch(event.target.value)} placeholder="Filter entries…" value={search} />
           <Button onClick={() => setCreating(true)} type="button">New entry</Button>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => {
-                const isInherited = row.original.source.kind === 'template';
-
-                return (
-                  <TableRow
-                    className={isInherited ? 'group cursor-default' : 'group cursor-pointer'}
-                    key={row.id}
-                    onClick={isInherited ? undefined : () => setEditingEntry(row.original.entry)}
-                  >
-                    {row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
                   </TableRow>
-                );
-              })}
-              {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No entries found.</TableCell></TableRow> : null}
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map((row) => {
+                  const isInherited = row.original.source.kind === 'template';
+
+                  return (
+                    <TableRow
+                      className={isInherited ? 'group cursor-default' : 'group cursor-pointer'}
+                      key={row.id}
+                      onClick={isInherited ? undefined : () => setEditingEntry(row.original.entry)}
+                    >
+                      {row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                    </TableRow>
+                  );
+                })}
+                {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No entries found.</TableCell></TableRow> : null}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         <EntryModal mode="create" onOpenChange={setCreating} open={creating} projectId={projectId} />

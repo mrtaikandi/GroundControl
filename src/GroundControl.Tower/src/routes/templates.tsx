@@ -48,7 +48,7 @@ function TemplatesRoute() {
           {templates.isLoading ? <Skeleton className="h-96" /> : null}
           {!templates.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No templates yet.</div> : null}
           {items.length > 0 ? (
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_600px]">
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,600px)]">
               <div className="grid gap-3">
                 {items.map((template) => (
                   <TemplateRow inheritedBy={projects.data?.data.filter((project) => project.templateIds.includes(template.id)).map((project) => project.name) ?? []} key={template.id} onDelete={() => setDeletingTemplate(template)} onEdit={() => setEditingTemplate(template)} onSelect={() => setSelectedTemplateId(template.id)} selected={template.id === selectedTemplate?.id} template={template} />
@@ -77,7 +77,7 @@ function TemplateRow({ inheritedBy, onDelete, onEdit, onSelect, selected, templa
           <InlineCode>{template.name}</InlineCode>
           <Badge variant="neutral">{entries.data?.data.length ?? 0} entries</Badge>
         </div>
-        <p className="text-[12.5px] text-fg-caption">{template.description || 'No description provided.'}</p>
+        <p className="text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{template.description || 'No description provided.'}</p>
         <div className="flex flex-wrap gap-2">
           {inheritedBy.length === 0 ? <Badge variant="neutral">not inherited</Badge> : inheritedBy.map((project) => <Badge key={project} variant="info">{project}</Badge>)}
         </div>
@@ -99,9 +99,9 @@ function TemplateDetail({ template }: { template: Template }) {
   return (
     <div className="rounded-xl border border-stroke-subtle bg-bg-container p-5">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="text-[11px] font-medium uppercase text-fg-caption">Template detail</div>
-          <h2 className="mt-1 font-mono text-[19px] font-semibold text-fg-heading">{template.name}</h2>
+          <h2 className="mt-1 font-mono text-[19px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{template.name}</h2>
         </div>
         <Button onClick={() => setCreatingEntry(true)} type="button" variant="secondary">Add entry</Button>
       </div>
@@ -153,7 +153,7 @@ function TemplateEntryCard({ entry, onDelete, onEdit }: TemplateEntryCardProps) 
         </div>
       </div>
 
-      {entry.description ? <p className="text-[13px] text-fg-body">{entry.description}</p> : null}
+      {entry.description ? <p className="text-[13px] text-fg-body [overflow-wrap:anywhere]">{entry.description}</p> : null}
 
       <div>
         <div className="text-[11px] font-medium uppercase text-fg-caption">

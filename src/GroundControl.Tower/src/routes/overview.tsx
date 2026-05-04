@@ -35,13 +35,14 @@ function OverviewRoute() {
     <>
       <PageHeader
         actions={(
-          <div className="flex items-center gap-2 rounded-full border border-stroke-subtle bg-bg-surface px-3 py-2 text-[12.5px] text-fg-caption">
+          <div aria-atomic="true" aria-live="polite" className="ui-text-body-sm flex items-center gap-2 rounded-full border border-stroke-subtle bg-bg-surface px-3 py-2 font-medium text-fg-caption" role="status">
             <StatusDot pulse={liveActivity.isConnected} status={liveActivity.isConnected ? 'live' : liveActivity.lastEventAt ? 'warning' : 'offline'} />
             <span>{liveActivity.isConnected ? 'Live' : liveActivity.lastEventAt ? 'Reconnecting' : 'Offline'}</span>
           </div>
         )}
         align="start"
         description="Live operations, recent changes and deployment health across GroundControl."
+        descriptionClassName="max-w-[70ch]"
         title="Overview"
       />
 
@@ -53,17 +54,17 @@ function OverviewRoute() {
             <StatCard icon={FileClock} label="Snapshots today" loading={stats.isLoading} value={stats.snapshotsToday} />
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
             <Card className="overflow-hidden rounded-xl border-stroke-subtle bg-bg-surface">
               <CardHeader className="border-b border-stroke-subtle p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-[18px]">Live activity</CardTitle>
+                  <CardTitle>Live activity</CardTitle>
                   <Badge variant={audit.isFetching ? 'warning' : 'success'}>{audit.isFetching ? 'syncing' : 'current'}</Badge>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 {audit.isLoading ? <ActivitySkeleton /> : null}
-                {!audit.isLoading && records.length === 0 ? <div className="px-5 py-12 text-center text-[13px] text-fg-caption">No audit records yet.</div> : null}
+                {!audit.isLoading && records.length === 0 ? <div className="ui-text-body px-5 py-12 text-center text-fg-caption">No audit records yet.</div> : null}
                 <div className="divide-y divide-stroke-subtle">
                   {records.map((record) => <ActivityItem animate={liveIds.has(record.id)} key={record.id} record={record} />)}
                 </div>
@@ -73,20 +74,20 @@ function OverviewRoute() {
             <div className="grid content-start gap-6">
               <section className="grid gap-3">
                 <div>
-                  <h2 className="text-[18px] font-semibold text-fg-heading">Alerts</h2>
-                  <p className="mt-1 text-[13px] text-fg-caption">Current operator attention items.</p>
+                  <h2 className="ui-text-section-title text-fg-heading">Alerts</h2>
+                  <p className="ui-text-body mt-1 text-fg-caption">Current operator attention items.</p>
                 </div>
-                {driftBannerVisible ? <DriftBanner /> : <div className="rounded-xl border border-stroke-subtle bg-bg-surface px-4 py-5 text-[13px] text-fg-caption">No active alerts.</div>}
+                {driftBannerVisible ? <DriftBanner /> : <div className="ui-text-body rounded-xl border border-dashed border-stroke-subtle bg-bg-container px-4 py-5 text-center text-fg-caption">No active alerts right now.</div>}
               </section>
 
               <Card className="rounded-xl border-stroke-subtle bg-bg-surface">
                 <CardHeader className="p-5 pb-3">
-                  <CardTitle className="text-[18px]">Snapshot pulse</CardTitle>
+                  <CardTitle>Snapshot pulse</CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-3 p-5 pt-0 text-[13px] text-fg-caption">
-                  <div className="flex items-center justify-between gap-3"><span>Projects scanned</span><span className="font-mono text-fg-heading">{formatCount(stats.projects.length)}</span></div>
-                  <div className="flex items-center justify-between gap-3"><span>Stats refresh</span><span className="font-mono text-fg-heading">{stats.isFetching ? 'active' : 'idle'}</span></div>
-                  <div className="flex items-center justify-between gap-3"><span>Events/sec</span><span className="font-mono text-fg-heading">{formatRate(liveActivity.eventsPerSecond)}</span></div>
+                <CardContent className="ui-text-body grid gap-3 p-5 pt-0 text-fg-caption">
+                  <div className="flex items-center justify-between gap-3"><span>Projects scanned</span><span className="tabular-nums text-fg-heading">{formatCount(stats.projects.length)}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Stats refresh</span><span className="text-fg-heading">{stats.isFetching ? 'active' : 'idle'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Events/sec</span><span className="tabular-nums text-fg-heading">{formatRate(liveActivity.eventsPerSecond)}</span></div>
                 </CardContent>
               </Card>
             </div>
@@ -99,11 +100,11 @@ function OverviewRoute() {
 
 function StatCard({ href, icon: Icon, label, loading = false, value }: { href?: '/projects'; icon: typeof FolderKanban; label: string; loading?: boolean; value: number }) {
   const content = (
-    <Card className="rounded-xl border-stroke-subtle bg-bg-surface transition-colors hover:border-stroke-field-initial">
+    <Card className={`rounded-xl border-stroke-subtle bg-bg-surface transition-colors ${href ? 'group-hover:border-stroke-field-initial group-focus-visible:border-stroke-field-focus' : ''}`}>
       <CardContent className="flex items-center justify-between gap-5 p-5">
         <div>
-          <div className="text-[12px] font-medium text-fg-caption">{label}</div>
-          {loading ? <Skeleton className="mt-3 h-9 w-20" /> : <div className="mt-2 text-[32px] font-semibold leading-none text-fg-heading">{formatCount(value)}</div>}
+          <div className="ui-text-caption font-medium uppercase tracking-[0.08em] text-fg-caption">{label}</div>
+          {loading ? <Skeleton className="mt-3 h-9 w-20" /> : <div className="mt-2 tabular-nums text-[32px] font-semibold leading-none tracking-[-0.02em] text-fg-heading">{formatCount(value)}</div>}
         </div>
         <div className="grid size-10 place-items-center rounded-lg bg-bg-selected text-fg-on-selected">
           <Icon aria-hidden="true" className="size-5" strokeWidth={1.8} />
@@ -112,25 +113,29 @@ function StatCard({ href, icon: Icon, label, loading = false, value }: { href?: 
     </Card>
   );
 
-  return href ? <Link search={DefaultProjectsSearch} to={href}>{content}</Link> : content;
+  return href ? (
+    <Link className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-field-focus focus-visible:ring-offset-2 focus-visible:ring-offset-bg-page" search={DefaultProjectsSearch} to={href}>
+      {content}
+    </Link>
+  ) : content;
 }
 
 function ActivityItem({ animate, record }: { animate: boolean; record: AuditRecord }) {
   const Icon = iconForEntityType(record.entityType);
 
   return (
-    <div className={`grid grid-cols-[32px_1fr_auto] gap-3 px-5 py-4 ${animate ? 'animate-tower-fade-in bg-bg-selected/50' : ''}`}>
+    <div className={`grid gap-3 px-5 py-4 sm:grid-cols-[32px_minmax(0,1fr)_auto] ${animate ? 'animate-tower-fade-in bg-bg-selected/50' : ''}`}>
       <div className="grid size-8 place-items-center rounded-lg bg-bg-container text-fg-icon-subtle">
         <Icon aria-hidden="true" className="size-4" strokeWidth={1.8} />
       </div>
       <div className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="font-medium text-fg-heading">{record.entityType} {labelForAction(record.action)}</span>
+          <span className="ui-text-body font-medium text-fg-heading">{record.entityType} {labelForAction(record.action)}</span>
           <Badge variant="neutral">{record.action}</Badge>
         </div>
-        <div className="mt-1 truncate text-[12.5px] text-fg-caption">Actor <span className="font-mono">{isSystemUser(record.performedBy) ? SYSTEM_USER_LABEL : shortId(record.performedBy)}</span> · Entity <span className="font-mono">{shortId(record.entityId)}</span></div>
+        <div className="ui-text-body-sm mt-1 text-fg-caption [overflow-wrap:anywhere]">Actor <span className="font-mono">{isSystemUser(record.performedBy) ? SYSTEM_USER_LABEL : shortId(record.performedBy)}</span> · Entity <span className="font-mono">{shortId(record.entityId)}</span></div>
       </div>
-      <time className="whitespace-nowrap pt-1 text-[12px] text-fg-caption" dateTime={record.performedAt}>{formatRelativeTime(record.performedAt)}</time>
+      <time className="ui-text-caption tabular-nums pt-1 text-fg-caption sm:justify-self-end sm:whitespace-nowrap" dateTime={record.performedAt}>{formatRelativeTime(record.performedAt)}</time>
     </div>
   );
 }

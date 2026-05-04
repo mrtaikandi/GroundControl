@@ -53,7 +53,7 @@ export function NewClientModal({ projectId }: { projectId: string }) {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild><Button type="button">New client</Button></DialogTrigger>
-        <DialogContent className="w-[min(calc(100vw-32px),680px)]">
+        <DialogContent className="max-h-[min(760px,calc(100vh-32px))] overflow-y-auto w-[min(calc(100vw-32px),680px)]">
           <DialogHeader>
             <DialogTitle>New client credential</DialogTitle>
             <DialogDescription>Choose the fixed scope context this credential will use when fetching config.</DialogDescription>
@@ -67,9 +67,11 @@ export function NewClientModal({ projectId }: { projectId: string }) {
             <div className="grid gap-4 rounded-xl border border-stroke-subtle p-4">
               {scopeDefinitions.length === 0 ? <div className="text-[12px] text-fg-caption">No scope dimensions are configured.</div> : null}
               {scopeDefinitions.map((scope) => (
-                <div className="grid gap-1.5" key={scope.id}>
-                  <div className="font-mono text-[11px] uppercase text-fg-caption">{scope.dimension}</div>
-                  <SegmentedControl onChange={(value) => form.setValue(`scopes.${scope.dimension}`, value)} options={scope.allowedValues.map((value) => ({ label: value, value }))} size="sm" value={selectedScopes[scope.dimension] ?? scope.allowedValues[0]!} />
+                <div className="grid gap-1.5 min-w-0" key={scope.id}>
+                  <div className="font-mono text-[11px] uppercase text-fg-caption [overflow-wrap:anywhere]">{scope.dimension}</div>
+                  <div className="overflow-x-auto pb-1">
+                    <SegmentedControl onChange={(value) => form.setValue(`scopes.${scope.dimension}`, value)} options={scope.allowedValues.map((value) => ({ label: value, value }))} size="sm" value={selectedScopes[scope.dimension] ?? scope.allowedValues[0]!} />
+                  </div>
                 </div>
               ))}
             </div>

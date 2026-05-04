@@ -45,7 +45,7 @@ function ClientsRoute() {
         const projectId = info.row.original.projectId;
         const name = projectNames.get(projectId) ?? projectId;
         return (
-          <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline" params={{ projectId }} to="/projects/$projectId">
+          <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline [overflow-wrap:anywhere]" params={{ projectId }} to="/projects/$projectId">
             {name}
           </Link>
         );
@@ -80,7 +80,7 @@ function ClientsRoute() {
         <div className="grid gap-6 pt-8">
           <div className="flex flex-wrap items-center gap-3">
             <Input
-              className="h-9 max-w-xs"
+              className="h-9 w-full sm:max-w-xs"
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Filter by client or project"
               value={search}
@@ -89,19 +89,21 @@ function ClientsRoute() {
 
           {allClients.isLoading ? <Skeleton className="h-96" /> : (
             <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows.map((row) => (
-                    <TableRow className={row.original.isActive ? undefined : 'opacity-60'} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
-                  ))}
-                  {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No clients found.</TableCell></TableRow> : null}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {table.getRowModel().rows.map((row) => (
+                      <TableRow className={row.original.isActive ? undefined : 'opacity-60'} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
+                    ))}
+                    {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No clients found.</TableCell></TableRow> : null}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </div>

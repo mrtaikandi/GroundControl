@@ -1,6 +1,8 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { NotificationsPopover } from '@/components/tower/shell/NotificationsPopover';
+import { Button } from '@/components/ui/button';
 import { SYSTEM_USER_LABEL } from '@/lib/user';
+import { cn } from '@/lib/utils';
 import { useTweaksStore, type Theme } from '@/store/tweaks';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { Activity, CircleGauge, FolderKanban, KeyRound, Layers3, ListTree, MonitorSmartphone, Moon, ShieldCheck, Sun, Users, Variable } from 'lucide-react';
@@ -14,6 +16,11 @@ interface NavItem {
   label: string;
   match: string[];
   to: NavRoute;
+}
+
+interface SidebarProps {
+  className?: string;
+  onNavigate?: () => void;
 }
 
 const adminNavItems: NavItem[] = [
@@ -32,15 +39,11 @@ const primaryNavItems: NavItem[] = [
   { icon: Activity, label: 'Audit trail', match: ['/audit'], to: '/audit' },
 ];
 
-export function Sidebar() {
+export function Sidebar({ className, onNavigate }: SidebarProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const theme = useTweaksStore((state) => state.theme);
-  const setTheme = useTweaksStore((state) => state.setTheme);
-  const userName = SYSTEM_USER_LABEL;
-  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <aside className="flex h-screen flex-col border-r border-stroke-divider bg-bg-page px-3 py-4">
+    <aside className={cn('flex h-full min-h-0 flex-col overflow-y-auto border-r border-stroke-divider bg-bg-page px-3 py-4', className)}>
       <div className="flex items-center gap-3 px-2 pb-5 pt-1">
         <LogoMark />
         <div className="min-w-0">
@@ -51,59 +54,72 @@ export function Sidebar() {
 
       <nav className="flex flex-1 flex-col gap-1 pt-4">
         {primaryNavItems.map((item) => (
-          <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} />
+          <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} onNavigate={onNavigate} />
         ))}
 
         <div className="mt-6 px-3 pb-1 pt-4 text-[11px] font-medium uppercase text-fg-caption">Admin</div>
         {adminNavItems.map((item) => (
-          <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} />
+          <NavLink active={isActive(pathname, item.match, item.exact)} item={item} key={item.label} onNavigate={onNavigate} />
         ))}
       </nav>
 
-      <div className="mt-auto flex items-center gap-2 px-2 pt-4">        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              aria-label={`Account menu for ${userName}`}
-              className="grid size-8 place-items-center rounded-full bg-bg-chip-selected text-[12px] font-semibold text-fg-chip-selected outline-none transition-colors hover:brightness-105 focus-visible:ring-2 focus-visible:ring-stroke-field-focus"
-              type="button"
-            >
-              {userInitial}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-52">
-            <DropdownMenuLabel>
-              <div className="text-[12.5px] font-medium text-fg-heading">{userName}</div>
-              <div className="text-[11px] font-normal text-fg-caption">Signed in</div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Theme</DropdownMenuLabel>
-            <DropdownMenuRadioGroup onValueChange={(value) => setTheme(value as Theme)} value={theme}>
-              <DropdownMenuRadioItem value="light">
-                <Sun aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
-                Light
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="dark">
-                <Moon aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
-                Dark
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="mt-auto flex items-center gap-2 px-2 pt-4">
+        <AccountMenu />
         <NotificationsPopover />
       </div>
     </aside>
   );
 }
 
-function NavLink({ active, item }: { active: boolean; item: NavItem }) {
+export function AccountMenu() {
+  const theme = useTweaksStore((state) => state.theme);
+  const setTheme = useTweaksStore((state) => state.setTheme);
+  const userName = SYSTEM_USER_LABEL;
+  const userInitial = userName.charAt(0).toUpperCase();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          aria-label={`Account menu for ${userName}`}
+          className="size-11 rounded-full bg-bg-chip-selected text-[12px] font-semibold text-fg-chip-selected hover:bg-bg-chip-selected/90 hover:text-fg-chip-selected"
+          size={null}
+          variant="ghost"
+        >
+          {userInitial}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-52">
+        <DropdownMenuLabel>
+          <div className="text-[12.5px] font-medium text-fg-heading">{userName}</div>
+          <div className="text-[11px] font-normal text-fg-caption">Signed in</div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Theme</DropdownMenuLabel>
+        <DropdownMenuRadioGroup onValueChange={(value) => setTheme(value as Theme)} value={theme}>
+          <DropdownMenuRadioItem value="light">
+            <Sun aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
+            Light
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">
+            <Moon aria-hidden="true" className="size-4 text-fg-icon-subtle" strokeWidth={1.8} />
+            Dark
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function NavLink({ active, item, onNavigate }: { active: boolean; item: NavItem; onNavigate?: () => void }) {
   const Icon = item.icon;
 
   return (
     <Link
-      className={`relative flex h-9 items-center gap-3 rounded-lg px-3 text-[13px] transition-colors ${
+      className={`relative flex min-h-11 items-center gap-3 rounded-lg px-3 text-[13px] transition-colors sm:min-h-10 lg:min-h-9 ${
         active ? 'bg-bg-surface font-semibold text-fg-heading shadow-ui-button-subtle' : 'text-fg-body hover:bg-bg-surface hover:text-fg-heading'
       }`}
+      onClick={onNavigate}
       to={item.to}
     >
       <span className={`absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full ${active ? 'bg-stroke-field-focus' : 'bg-transparent'}`} />

@@ -97,7 +97,7 @@ function SummaryCard({ eyebrow, isLoading, primary, secondary }: SummaryCardProp
     <section className="rounded-xl border border-stroke-subtle bg-bg-surface p-4">
       <div className="text-[11px] font-medium uppercase tracking-wide text-fg-caption">{eyebrow}</div>
       {isLoading ? <Skeleton className="mt-2 h-7 w-20" /> : <div className="mt-1.5">{primary}</div>}
-      <div className="mt-2 text-[12.5px] text-fg-caption">{secondary}</div>
+      <div className="mt-2 text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{secondary}</div>
     </section>
   );
 }
@@ -131,7 +131,7 @@ function RecentActivityPanel({ activity, isLoading }: { activity: ActivityItem[]
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-[15px] font-semibold text-fg-heading">Recent activity</h2>
-          <p className="text-[12.5px] text-fg-caption">Last {ACTIVITY_WINDOW_DAYS} days · drawn from /api/audit-records</p>
+          <p className="text-[12.5px] text-fg-caption">Last {ACTIVITY_WINDOW_DAYS} days</p>
         </div>
         <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline" to="/audit">
           open audit →
@@ -155,13 +155,13 @@ function ActivityRow({ item }: { item: ActivityItem }) {
   const style = ACTIVITY_KIND_STYLES[item.kind];
 
   return (
-    <div className="flex items-center gap-3 rounded-lg px-2 py-2 text-[12.5px] hover:bg-bg-container">
+    <div className="flex items-start gap-3 rounded-lg py-2 text-[12.5px] hover:bg-bg-container">
       <div className={cn('flex shrink-0 items-center gap-1.5 min-w-[72px]', style.iconClass)}>
         <style.Icon aria-hidden="true" className="size-4" strokeWidth={1.8} />
         <span className="font-mono text-[11px] font-semibold uppercase tracking-wide">{style.label}</span>
       </div>
-      <div className="min-w-0 flex-1 truncate text-fg-body">{item.description}</div>
-      <span className="shrink-0 font-mono text-[11.5px] text-fg-caption">{formatRelative(item.performedAt)}</span>
+      <div className="min-w-0 flex-1 text-fg-body [overflow-wrap:anywhere]">{item.description}</div>
+      <span className="shrink-0 pt-0.5 font-mono text-[11.5px] text-fg-caption">{formatRelative(item.performedAt)}</span>
     </div>
   );
 }
@@ -226,9 +226,9 @@ function SnapshotsHistoryPanel({ isLoading, latestSnapshot, projectId, snapshots
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[13px] font-semibold text-fg-heading">v{snapshot.snapshotVersion}</span>
-                {snapshot.description?.trim() ? <span className="truncate text-[12.5px] text-fg-body">{snapshot.description.trim()}</span> : null}
+                {snapshot.description?.trim() ? <span className="text-[12.5px] text-fg-body [overflow-wrap:anywhere]">{snapshot.description.trim()}</span> : null}
               </div>
-              <div className="mt-1 truncate text-[11.5px] text-fg-caption">
+              <div className="mt-1 text-[11.5px] text-fg-caption [overflow-wrap:anywhere]">
                 {formatUserId(snapshot.publishedBy)} · {formatRelative(snapshot.publishedAt)}
               </div>
             </div>
@@ -310,7 +310,7 @@ function SnapshotDescription({ snapshot }: { snapshot: SnapshotSummary }) {
   return (
     <span className="flex min-w-0 items-baseline gap-2">
       <span className="font-mono font-semibold text-fg-heading">v{snapshot.snapshotVersion}</span>
-      <span className="truncate">{description || 'no description'}</span>
+      <span className="[overflow-wrap:anywhere]">{description || 'no description'}</span>
     </span>
   );
 }

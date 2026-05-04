@@ -86,25 +86,27 @@ function AuditRoute() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row, index) => {
-                  const isLastRow = index === table.getRowModel().rows.length - 1;
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row, index) => {
+                    const isLastRow = index === table.getRowModel().rows.length - 1;
 
-                  return (
-                    <FragmentRows expanded={expandedIds.has(row.original.id)} key={row.id} refCallback={isLastRow ? lastRowRef : undefined} row={row} />
-                  );
-                })}
-                {audit.isLoading ? <SkeletonRows colSpan={columns.length} /> : null}
-                {audit.isFetchingNextPage ? <SkeletonRows colSpan={columns.length} /> : null}
-                {!audit.isLoading && table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No audit records found.</TableCell></TableRow> : null}
-              </TableBody>
-            </Table>
+                    return (
+                      <FragmentRows expanded={expandedIds.has(row.original.id)} key={row.id} refCallback={isLastRow ? lastRowRef : undefined} row={row} />
+                    );
+                  })}
+                  {audit.isLoading ? <SkeletonRows colSpan={columns.length} /> : null}
+                  {audit.isFetchingNextPage ? <SkeletonRows colSpan={columns.length} /> : null}
+                  {!audit.isLoading && table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No audit records found.</TableCell></TableRow> : null}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       </PageContent>

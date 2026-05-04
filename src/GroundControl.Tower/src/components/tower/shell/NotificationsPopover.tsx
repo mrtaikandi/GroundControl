@@ -3,6 +3,7 @@ import { Bell, X } from 'lucide-react';
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/tower/data/Badge';
+import { Button } from '@/components/ui/button';
 import { clearAllNotifications, dismissNotification, markAllNotificationsRead, notificationsAtom, unreadCountAtom, type ErrorNotification } from '@/lib/notifications';
 
 export function NotificationsPopover() {
@@ -21,9 +22,11 @@ export function NotificationsPopover() {
   return (
     <Popover onOpenChange={handleOpenChange} open={open}>
       <PopoverTrigger asChild>
-        <button
+        <Button
           aria-label={ariaLabel}
-          className="relative grid size-8 place-items-center rounded-lg text-fg-icon-subtle transition-colors hover:bg-bg-container hover:text-fg-body"
+          className="relative size-11 text-fg-icon-subtle"
+          size={null}
+          variant="ghost"
           type="button"
         >
           <Bell aria-hidden="true" className="size-4" strokeWidth={1.8} />
@@ -35,9 +38,9 @@ export function NotificationsPopover() {
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           ) : null}
-        </button>
+        </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[360px] p-0">
+      <PopoverContent align="end" className="w-[min(360px,calc(100vw-24px))] p-0 sm:w-[min(360px,calc(100vw-32px))]">
         <div className="flex items-center justify-between border-b border-stroke-subtle px-3 py-2">
           <span className="text-[12px] font-semibold uppercase tracking-wider text-fg-heading">Notifications</span>
           {notifications.length > 0 ? (
@@ -77,13 +80,13 @@ function NotificationItem({ notification }: NotificationItemProps) {
         {badgeLabelForStatus(notification.status)}
       </Badge>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-medium text-fg-heading">{notification.title}</div>
-        <div className="mt-0.5 whitespace-pre-line text-[12px] text-fg-caption">{notification.description}</div>
+        <div className="text-[13px] font-medium text-fg-heading [overflow-wrap:anywhere]">{notification.title}</div>
+        <div className="mt-0.5 whitespace-pre-line text-[12px] text-fg-caption [overflow-wrap:anywhere]">{notification.description}</div>
         <div className="mt-1 text-[11px] text-fg-caption">{formatRelativeTime(notification.createdAt)}</div>
       </div>
       <button
         aria-label="Dismiss notification"
-        className="shrink-0 rounded text-fg-icon-subtle transition-colors hover:text-fg-body"
+        className="grid size-9 shrink-0 place-items-center rounded-lg text-fg-icon-subtle transition-colors hover:bg-bg-container hover:text-fg-body"
         onClick={() => dismissNotification(notification.id)}
         type="button"
       >

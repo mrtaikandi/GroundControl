@@ -42,9 +42,9 @@ function VariablesRoute() {
     columnHelper.accessor('name', { cell: (info) => <InlineCode className="bg-transparent px-0">{info.getValue()}</InlineCode>, header: 'Name' }),
     columnHelper.display({ cell: (info) => <SensitiveValue className="bg-transparent px-0" isSensitive={info.row.original.isSensitive} value={defaultValue(info.row.original)} />, header: 'Value', id: 'value' }),
     columnHelper.accessor('isSensitive', { cell: (info) => <Badge variant={info.getValue() ? 'critical' : 'neutral'}>{info.getValue() ? 'sensitive' : 'plain'}</Badge>, header: 'Mode' }),
-    columnHelper.display({ cell: (info) => <Badge variant="info">{ownerLabel(info.row.original, projectNames, groupNames)}</Badge>, header: 'Owner', id: 'owner' }),
+    columnHelper.display({ cell: (info) => <Badge className="max-w-full [overflow-wrap:anywhere]" variant="info">{ownerLabel(info.row.original, projectNames, groupNames)}</Badge>, header: 'Owner', id: 'owner' }),
     columnHelper.accessor('updatedAt', { cell: (info) => formatDate(info.getValue()), header: 'Updated' }),
-    columnHelper.display({ cell: (info) => <div className="flex justify-end gap-1"><Button onClick={() => setEditingVariable(info.row.original)} size="sm" type="button" variant="ghost">Edit</Button><Button onClick={() => setDeletingVariable(info.row.original)} size="sm" type="button" variant="ghost">Delete</Button></div>, header: '', id: 'actions' }),
+    columnHelper.display({ cell: (info) => <div className="flex flex-wrap justify-end gap-1"><Button onClick={() => setEditingVariable(info.row.original)} size="sm" type="button" variant="ghost">Edit</Button><Button onClick={() => setDeletingVariable(info.row.original)} size="sm" type="button" variant="ghost">Delete</Button></div>, header: '', id: 'actions' }),
   ], [groupNames, projectNames]);
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
@@ -56,43 +56,45 @@ function VariablesRoute() {
         <div className="grid gap-8 pt-8">
           {variables.isLoading ? <Skeleton className="h-96" /> : (
             <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-                  ))}
-                </TableHeader>
-                {table.getRowModel().rows.map((row, index, all) => {
-                  const description = row.original.description?.trim();
-                  const cells = row.getVisibleCells();
-                  const mainCells = cells.slice(0, -1);
-                  const actionsCell = cells[cells.length - 1];
-                  const isLast = index === all.length - 1;
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                    ))}
+                  </TableHeader>
+                  {table.getRowModel().rows.map((row, index, all) => {
+                    const description = row.original.description?.trim();
+                    const cells = row.getVisibleCells();
+                    const mainCells = cells.slice(0, -1);
+                    const actionsCell = cells[cells.length - 1];
+                    const isLast = index === all.length - 1;
 
-                  return (
-                    <tbody className={cn('group', isLast && '[&>tr:last-child]:border-b-0')} key={row.id}>
-                      <TableRow className={cn('hover:bg-transparent group-hover:bg-muted/60 [&>td]:pt-3', description ? 'border-b-0 [&>td]:pb-2' : '[&>td]:pb-4')}>
-                        {mainCells.map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                        {actionsCell ? (
-                          <TableCell className="align-middle" rowSpan={description ? 2 : 1}>
-                            {flexRender(actionsCell.column.columnDef.cell, actionsCell.getContext())}
-                          </TableCell>
-                        ) : null}
-                      </TableRow>
-                      {description ? (
-                        <TableRow className="hover:bg-transparent group-hover:bg-muted/60">
-                          <TableCell className="px-3 pb-4 pt-0 text-[12.5px] leading-snug text-fg-caption" colSpan={mainCells.length}>{description}</TableCell>
+                    return (
+                      <tbody className={cn('group', isLast && '[&>tr:last-child]:border-b-0')} key={row.id}>
+                        <TableRow className={cn('hover:bg-transparent group-hover:bg-muted/60 [&>td]:pt-3', description ? 'border-b-0 [&>td]:pb-2' : '[&>td]:pb-4')}>
+                          {mainCells.map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                          {actionsCell ? (
+                            <TableCell className="align-middle" rowSpan={description ? 2 : 1}>
+                              {flexRender(actionsCell.column.columnDef.cell, actionsCell.getContext())}
+                            </TableCell>
+                          ) : null}
                         </TableRow>
-                      ) : null}
-                    </tbody>
-                  );
-                })}
-                {table.getRowModel().rows.length === 0 ? (
-                  <TableBody>
-                    <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No variables found.</TableCell></TableRow>
-                  </TableBody>
-                ) : null}
-              </Table>
+                        {description ? (
+                          <TableRow className="hover:bg-transparent group-hover:bg-muted/60">
+                            <TableCell className="px-3 pb-4 pt-0 text-[12.5px] leading-snug text-fg-caption [overflow-wrap:anywhere]" colSpan={mainCells.length}>{description}</TableCell>
+                          </TableRow>
+                        ) : null}
+                      </tbody>
+                    );
+                  })}
+                  {table.getRowModel().rows.length === 0 ? (
+                    <TableBody>
+                      <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No variables found.</TableCell></TableRow>
+                    </TableBody>
+                  ) : null}
+                </Table>
+              </div>
             </div>
           )}
         </div>
@@ -182,7 +184,7 @@ function VariableModal({ mode, onOpenChange, open, variable }: { mode: 'create' 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(calc(100vw-32px),620px)]">
+      <DialogContent className="max-h-[min(760px,calc(100vh-32px))] overflow-y-auto w-[min(calc(100vw-32px),620px)]">
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'New variable' : 'Edit variable'}</DialogTitle>
           <DialogDescription>Variables are resolved before snapshots are published. Project-tier variables override group-tier variables on key collision.</DialogDescription>
@@ -213,7 +215,7 @@ function VariableModal({ mode, onOpenChange, open, variable }: { mode: 'create' 
             <div className="grid gap-1.5">
               <label className="text-[12px] font-medium text-fg-body" htmlFor="variable-group">Group</label>
               {isEdit ? (
-                <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption">
+                <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">
                   {groupId ? groups.data?.data.find((g) => g.id === groupId)?.name ?? groupId : 'Global (no group)'}
                 </div>
               ) : (
@@ -230,7 +232,7 @@ function VariableModal({ mode, onOpenChange, open, variable }: { mode: 'create' 
             <div className="grid gap-1.5">
               <label className="text-[12px] font-medium text-fg-body" htmlFor="variable-project">Project</label>
               {isEdit ? (
-                <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption">
+                <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">
                   {projectId ? projects.data?.data.find((p) => p.id === projectId)?.name ?? projectId : '—'}
                 </div>
               ) : (
