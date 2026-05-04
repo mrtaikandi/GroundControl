@@ -38,6 +38,16 @@
   --tower-syntax-diff-add-fg: #1f561d;
   --tower-syntax-diff-del-bg: rgba(221, 92, 76, 0.10);
   --tower-syntax-diff-del-fg: #a53929;
+  --tower-overlay-scrim: rgba(22, 21, 26, 0.35);
+  --tower-shadow-button: 0 1px 2px rgba(0, 0, 40, 0.16);
+  --tower-shadow-button-danger: 0 1px 2px rgba(0, 0, 40, 0.12);
+  --tower-shadow-button-subtle: 0 1px 2px rgba(0, 0, 40, 0.06);
+  --tower-shadow-floating: 0 18px 40px -16px rgba(0, 0, 40, 0.25);
+  --tower-shadow-modal: 0 30px 70px -20px rgba(0, 0, 40, 0.45);
+  --tower-interaction-button-active-brightness: 0.97;
+  --tower-interaction-button-hover-brightness: 1.04;
+  --tower-interaction-button-danger-active-brightness: 0.96;
+  --tower-interaction-button-danger-hover-brightness: 1.03;
 }
 
 [data-tower-theme="dark"] {
@@ -78,6 +88,16 @@
   --tower-syntax-diff-add-fg: #9ed79a;
   --tower-syntax-diff-del-bg: rgba(221, 92, 76, 0.22);
   --tower-syntax-diff-del-fg: #eaa098;
+  --tower-overlay-scrim: rgba(22, 21, 26, 0.35);
+  --tower-shadow-button: 0 1px 2px rgba(0, 0, 40, 0.16);
+  --tower-shadow-button-danger: 0 1px 2px rgba(0, 0, 40, 0.12);
+  --tower-shadow-button-subtle: 0 1px 2px rgba(0, 0, 40, 0.06);
+  --tower-shadow-floating: 0 18px 40px -16px rgba(0, 0, 40, 0.25);
+  --tower-shadow-modal: 0 30px 70px -20px rgba(0, 0, 40, 0.45);
+  --tower-interaction-button-active-brightness: 0.97;
+  --tower-interaction-button-hover-brightness: 1.04;
+  --tower-interaction-button-danger-active-brightness: 0.96;
+  --tower-interaction-button-danger-hover-brightness: 1.03;
 }
 
 :root {

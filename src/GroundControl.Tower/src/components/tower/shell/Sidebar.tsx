@@ -61,7 +61,7 @@ function NavLink({ active, item }: { active: boolean; item: NavItem }) {
   return (
     <Link
       className={`relative flex h-9 items-center gap-3 rounded-lg px-3 text-[13px] transition-colors ${
-        active ? 'bg-bg-surface font-semibold text-fg-heading shadow-[0_1px_2px_rgba(0,0,40,0.04)]' : 'text-fg-body hover:bg-bg-surface hover:text-fg-heading'
+        active ? 'bg-bg-surface font-semibold text-fg-heading shadow-ui-button-subtle' : 'text-fg-body hover:bg-bg-surface hover:text-fg-heading'
       }`}
       to={item.to}
     >

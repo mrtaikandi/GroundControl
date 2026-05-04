@@ -16,11 +16,11 @@ function AlertDialogPortal({ ...props }: React.ComponentProps<typeof AlertDialog
 }
 
 function AlertDialogOverlay({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
-  return <AlertDialogPrimitive.Overlay className={cn('fixed inset-0 z-50 bg-fg-heading/35', className)} data-slot="alert-dialog-overlay" {...props} />;
+  return <AlertDialogPrimitive.Overlay className={cn('ui-overlay-scrim fixed inset-0 z-50', className)} data-slot="alert-dialog-overlay" {...props} />;
 }
 
 function AlertDialogContent({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
-  return <AlertDialogPortal><AlertDialogOverlay /><AlertDialogPrimitive.Content className={cn('fixed left-1/2 top-1/2 z-50 grid w-[min(calc(100vw-32px),480px)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-border bg-popover p-6 text-[13px] text-popover-foreground shadow-[0_30px_70px_-20px_rgba(0,0,40,.45)] outline-none', className)} data-slot="alert-dialog-content" {...props} /></AlertDialogPortal>;
+  return <AlertDialogPortal><AlertDialogOverlay /><AlertDialogPrimitive.Content className={cn('ui-surface-modal ui-text-body fixed left-1/2 top-1/2 z-50 grid w-[min(calc(100vw-32px),480px)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl p-6 outline-none', className)} data-slot="alert-dialog-content" {...props} /></AlertDialogPortal>;
 }
 
 function AlertDialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
@@ -32,11 +32,11 @@ function AlertDialogFooter({ className, ...props }: React.ComponentProps<'div'>)
 }
 
 function AlertDialogTitle({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
-  return <AlertDialogPrimitive.Title className={cn('text-[22px] font-medium leading-tight text-fg-heading', className)} data-slot="alert-dialog-title" {...props} />;
+  return <AlertDialogPrimitive.Title className={cn('ui-text-modal-title text-fg-heading', className)} data-slot="alert-dialog-title" {...props} />;
 }
 
 function AlertDialogDescription({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Description>) {
-  return <AlertDialogPrimitive.Description className={cn('text-[13px] text-fg-caption', className)} data-slot="alert-dialog-description" {...props} />;
+  return <AlertDialogPrimitive.Description className={cn('ui-text-body text-fg-caption', className)} data-slot="alert-dialog-description" {...props} />;
 }
 
 function AlertDialogAction({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {

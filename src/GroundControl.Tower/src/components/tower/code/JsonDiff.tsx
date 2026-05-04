@@ -41,7 +41,7 @@ export function JsonDiff({ after, before, className, mode = 'inline' }: JsonDiff
 
   if (mode === 'split') {
     return (
-      <div className={cn('grid gap-3 rounded-xl bg-bg-surface p-4 font-mono text-[12.5px] md:grid-cols-2', className)}>
+      <div className={cn('ui-surface-card ui-text-code grid gap-3 p-4 md:grid-cols-2', className)}>
         <DiffColumn lines={highlightedLines.filter((line) => line.kind !== 'add')} title="Before" />
         <DiffColumn lines={highlightedLines.filter((line) => line.kind !== 'del')} title="After" />
       </div>
@@ -49,7 +49,7 @@ export function JsonDiff({ after, before, className, mode = 'inline' }: JsonDiff
   }
 
   return (
-    <div className={cn('overflow-auto rounded-xl bg-bg-surface py-4 font-mono text-[12.5px]', className)}>
+    <div className={cn('ui-surface-card ui-text-code overflow-auto py-4', className)}>
       <div className="min-w-max">
         {highlightedLines.map((line, index) => <DiffRow index={index} key={`${line.kind}-${index}-${line.content}`} line={line} />)}
       </div>
@@ -59,8 +59,8 @@ export function JsonDiff({ after, before, className, mode = 'inline' }: JsonDiff
 
 function DiffColumn({ lines, title }: { lines: HighlightedDiffLine[]; title: string }) {
   return (
-    <div className="min-w-0 overflow-auto rounded-lg border border-stroke-subtle">
-      <div className="border-b border-stroke-subtle px-3 py-2 text-[11.5px] font-medium text-fg-caption">{title}</div>
+    <div className="ui-surface-panel min-w-0 overflow-auto">
+      <div className="ui-text-caption border-b border-stroke-subtle px-3 py-2 font-medium text-fg-caption">{title}</div>
       <div>{lines.map((line, index) => <DiffRow index={index} key={`${title}-${line.kind}-${index}-${line.content}`} line={line} />)}</div>
     </div>
   );

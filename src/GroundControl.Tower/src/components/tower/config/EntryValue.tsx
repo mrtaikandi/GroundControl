@@ -15,8 +15,8 @@ interface EntryValueProps {
 
 export function EntryValue({ ariaLabel = 'Copy value', bare = false, emptyMessage = 'No value.', reveal, scopedValue }: EntryValueProps) {
   const wrapperClass = bare
-    ? 'flex items-start justify-between gap-3 text-[13.5px]'
-    : 'mt-2 flex items-start justify-between gap-3 rounded-lg border border-stroke-subtle bg-bg-surface px-4 py-2.5 text-[13.5px]';
+    ? 'ui-text-body flex items-start justify-between gap-3'
+    : 'ui-surface-panel ui-text-body mt-2 flex items-start justify-between gap-3 px-4 py-2.5';
   const scopeKey = scopedValue ? scopedValueKey(scopedValue.scopes ?? {}) : '';
   const revealed = scopedValue ? reveal.isRevealed(scopeKey) : false;
   const masked = scopedValue ? reveal.isSensitive && !revealed : false;
@@ -33,7 +33,7 @@ export function EntryValue({ ariaLabel = 'Copy value', bare = false, emptyMessag
             <div className="min-w-0 flex-1 break-all">
               {masked ? (
                 <span className="inline-flex items-center gap-2">
-                  <span className="font-mono text-[12.5px] text-syntax-sensitive">••••••••</span>
+                  <span className="ui-text-code text-syntax-sensitive">••••••••</span>
                   <span aria-label="Sensitive value" className="inline-flex" title="Sensitive value">
                     <Lock aria-hidden="true" className="size-3.5" />
                   </span>

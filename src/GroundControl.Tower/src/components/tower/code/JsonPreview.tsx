@@ -32,7 +32,7 @@ export function JsonPreview({ className, maxHeight = 'none', sensitive = false, 
   }, [source, theme]);
 
   return (
-    <div className={cn('overflow-auto rounded-xl bg-bg-surface p-6 font-mono text-[12.5px]', className)} style={{ maxHeight }}>
+    <div className={cn('ui-surface-card ui-text-code overflow-auto p-6', className)} style={{ maxHeight }}>
       <div className="[&_pre]:!m-0 [&_pre]:!bg-transparent [&_pre]:!p-0" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );

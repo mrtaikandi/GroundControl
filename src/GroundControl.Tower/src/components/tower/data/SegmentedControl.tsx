@@ -15,8 +15,8 @@ interface SegmentedControlProps<TValue extends string> {
 }
 
 const sizeClassNames = {
-  md: 'h-7 px-3 text-[12.5px]',
-  sm: 'h-6 px-2.5 text-[11.5px]',
+  md: 'ui-text-body-sm h-7 px-3',
+  sm: 'ui-text-caption h-6 px-2.5',
 } as const;
 
 export function SegmentedControl<TValue extends string>({ onChange, options, size = 'md', value }: SegmentedControlProps<TValue>) {
@@ -32,7 +32,7 @@ export function SegmentedControl<TValue extends string>({ onChange, options, siz
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full font-medium transition-colors duration-150 ease-out',
               sizeClassNames[size],
-              active ? 'bg-bg-surface font-semibold text-fg-heading shadow-[0_1px_2px_rgba(0,0,40,.12)]' : 'text-fg-caption hover:text-fg-body',
+              active ? 'bg-bg-surface font-semibold text-fg-heading shadow-ui-button-subtle' : 'text-fg-caption hover:text-fg-body',
             )}
             key={option.value}
             onClick={() => onChange(option.value)}

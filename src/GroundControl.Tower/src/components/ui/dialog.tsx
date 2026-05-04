@@ -20,14 +20,14 @@ function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.C
 }
 
 function DialogOverlay({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
-  return <DialogPrimitive.Overlay className={cn('fixed inset-0 z-50 bg-fg-heading/35', className)} data-slot="dialog-overlay" {...props} />;
+  return <DialogPrimitive.Overlay className={cn('ui-overlay-scrim fixed inset-0 z-50', className)} data-slot="dialog-overlay" {...props} />;
 }
 
 function DialogContent({ children, className, showCloseButton = true, ...props }: React.ComponentProps<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }) {
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Content className={cn('fixed left-1/2 top-1/2 z-50 grid w-[min(calc(100vw-32px),520px)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-border bg-popover p-6 text-[13px] text-popover-foreground shadow-[0_30px_70px_-20px_rgba(0,0,40,.45)] outline-none', className)} data-slot="dialog-content" {...props}>
+      <DialogPrimitive.Content className={cn('ui-surface-modal ui-text-body fixed left-1/2 top-1/2 z-50 grid w-[min(calc(100vw-32px),520px)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl p-6 outline-none', className)} data-slot="dialog-content" {...props}>
         {children}
         {showCloseButton ? (
           <DialogPrimitive.Close className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg text-fg-icon-subtle hover:bg-muted hover:text-fg-body">
@@ -49,11 +49,11 @@ function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title className={cn('text-[22px] font-medium leading-tight text-fg-heading', className)} data-slot="dialog-title" {...props} />;
+  return <DialogPrimitive.Title className={cn('ui-text-modal-title text-fg-heading', className)} data-slot="dialog-title" {...props} />;
 }
 
 function DialogDescription({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Description>) {
-  return <DialogPrimitive.Description className={cn('text-[13px] text-fg-caption', className)} data-slot="dialog-description" {...props} />;
+  return <DialogPrimitive.Description className={cn('ui-text-body text-fg-caption', className)} data-slot="dialog-description" {...props} />;
 }
 
 export { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger };

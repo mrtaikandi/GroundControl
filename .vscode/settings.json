@@ -14,6 +14,7 @@
             "matchCommandLine": true
         },
         "npm run typecheck": true,
-        "npx tsc": true
+        "npx tsc": true,
+        "npm run build": true
     }
 }

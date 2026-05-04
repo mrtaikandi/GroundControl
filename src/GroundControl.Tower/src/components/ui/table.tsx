@@ -2,7 +2,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
-  return <table className={cn('w-full caption-bottom text-[13px]', className)} data-slot="table" {...props} />;
+  return <table className={cn('ui-text-body w-full caption-bottom', className)} data-slot="table" {...props} />;
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
@@ -22,7 +22,7 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
 }
 
 function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
-  return <th className={cn('h-10 px-3 text-left align-middle text-[11.5px] font-medium text-muted-foreground', className)} data-slot="table-head" {...props} />;
+  return <th className={cn('ui-text-caption h-10 px-3 text-left align-middle font-medium text-muted-foreground', className)} data-slot="table-head" {...props} />;
 }
 
 function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
@@ -30,7 +30,7 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
 }
 
 function TableCaption({ className, ...props }: React.ComponentProps<'caption'>) {
-  return <caption className={cn('mt-4 text-[11.5px] text-muted-foreground', className)} data-slot="table-caption" {...props} />;
+  return <caption className={cn('ui-text-caption mt-4 text-muted-foreground', className)} data-slot="table-caption" {...props} />;
 }
 
 export { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow };
