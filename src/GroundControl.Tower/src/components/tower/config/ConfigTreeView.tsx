@@ -72,22 +72,22 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
   return (
     <TooltipProvider>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,600px)]">
-        <div className="grid content-start gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="grid items-center gap-3 xl:col-span-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex flex-wrap items-center gap-3">
             <Input className="w-full sm:flex-1 sm:max-w-sm" onChange={(event) => setFilter(event.target.value)} placeholder="Filter…" value={filter} />
-            <Button onClick={() => setCreating(true)} type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
+            <div className="flex justify-end gap-1">
+              <Button onClick={() => setCollapsed(new Set())} size="sm" type="button" variant="ghost">
+                <ChevronsDown aria-hidden="true" className="size-4" />
+              </Button>
+              <Button onClick={() => setCollapsed(new Set(allPrefixes))} size="sm" type="button" variant="ghost">
+                <ChevronsUp aria-hidden="true" className="size-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-end gap-1">
-            <Button onClick={() => setCollapsed(new Set())} size="sm" type="button" variant="ghost">
-              <ChevronsDown aria-hidden="true" className="size-4" />
-              Expand
-            </Button>
-            <Button onClick={() => setCollapsed(new Set(allPrefixes))} size="sm" type="button" variant="ghost">
-              <ChevronsUp aria-hidden="true" className="size-4" />
-              Collapse
-            </Button>
-          </div>
+          <Button className="sm:justify-self-end" onClick={() => setCreating(true)} type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
+        </div>
 
+        <div className="grid content-start gap-3">
           {effective.isLoading ? <Skeleton className="h-96" /> : (
             <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
               {tree.length === 0 ? <div className="p-10 text-center text-fg-caption">No entries found.</div> : tree.map((node) => (
