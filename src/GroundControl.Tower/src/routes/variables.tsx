@@ -13,6 +13,7 @@ import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { cn } from '@/lib/utils';
 import { useGroups } from '@/queries/useGroups';
@@ -48,55 +49,59 @@ function VariablesRoute() {
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
   return (
-    <div className="grid gap-8">
+    <>
       <PageHeader actions={<Button onClick={() => setCreating(true)} type="button">New variable</Button>} description="Reusable values for interpolation during snapshot publishing" title="Variables" />
 
-      {variables.isLoading ? <Skeleton className="h-96" /> : (
-        <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-              ))}
-            </TableHeader>
-            {table.getRowModel().rows.map((row, index, all) => {
-              const description = row.original.description?.trim();
-              const cells = row.getVisibleCells();
-              const mainCells = cells.slice(0, -1);
-              const actionsCell = cells[cells.length - 1];
-              const isLast = index === all.length - 1;
+      <PageContent>
+        <div className="grid gap-8 pt-8">
+          {variables.isLoading ? <Skeleton className="h-96" /> : (
+            <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                  ))}
+                </TableHeader>
+                {table.getRowModel().rows.map((row, index, all) => {
+                  const description = row.original.description?.trim();
+                  const cells = row.getVisibleCells();
+                  const mainCells = cells.slice(0, -1);
+                  const actionsCell = cells[cells.length - 1];
+                  const isLast = index === all.length - 1;
 
-              return (
-                <tbody className={cn('group', isLast && '[&>tr:last-child]:border-b-0')} key={row.id}>
-                  <TableRow className={cn('hover:bg-transparent group-hover:bg-muted/60 [&>td]:pt-3', description ? 'border-b-0 [&>td]:pb-2' : '[&>td]:pb-4')}>
-                    {mainCells.map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
-                    {actionsCell ? (
-                      <TableCell className="align-middle" rowSpan={description ? 2 : 1}>
-                        {flexRender(actionsCell.column.columnDef.cell, actionsCell.getContext())}
-                      </TableCell>
-                    ) : null}
-                  </TableRow>
-                  {description ? (
-                    <TableRow className="hover:bg-transparent group-hover:bg-muted/60">
-                      <TableCell className="px-3 pb-4 pt-0 text-[12.5px] leading-snug text-fg-caption" colSpan={mainCells.length}>{description}</TableCell>
-                    </TableRow>
-                  ) : null}
-                </tbody>
-              );
-            })}
-            {table.getRowModel().rows.length === 0 ? (
-              <TableBody>
-                <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No variables found.</TableCell></TableRow>
-              </TableBody>
-            ) : null}
-          </Table>
+                  return (
+                    <tbody className={cn('group', isLast && '[&>tr:last-child]:border-b-0')} key={row.id}>
+                      <TableRow className={cn('hover:bg-transparent group-hover:bg-muted/60 [&>td]:pt-3', description ? 'border-b-0 [&>td]:pb-2' : '[&>td]:pb-4')}>
+                        {mainCells.map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                        {actionsCell ? (
+                          <TableCell className="align-middle" rowSpan={description ? 2 : 1}>
+                            {flexRender(actionsCell.column.columnDef.cell, actionsCell.getContext())}
+                          </TableCell>
+                        ) : null}
+                      </TableRow>
+                      {description ? (
+                        <TableRow className="hover:bg-transparent group-hover:bg-muted/60">
+                          <TableCell className="px-3 pb-4 pt-0 text-[12.5px] leading-snug text-fg-caption" colSpan={mainCells.length}>{description}</TableCell>
+                        </TableRow>
+                      ) : null}
+                    </tbody>
+                  );
+                })}
+                {table.getRowModel().rows.length === 0 ? (
+                  <TableBody>
+                    <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No variables found.</TableCell></TableRow>
+                  </TableBody>
+                ) : null}
+              </Table>
+            </div>
+          )}
         </div>
-      )}
+      </PageContent>
 
       <VariableModal mode="create" onOpenChange={setCreating} open={creating} />
       <VariableModal mode="edit" onOpenChange={(open) => !open && setEditingVariable(undefined)} open={Boolean(editingVariable)} variable={editingVariable} />
       <DeleteVariableDialog onOpenChange={(open) => !open && setDeletingVariable(undefined)} open={Boolean(deletingVariable)} variable={deletingVariable} />
-    </div>
+    </>
   );
 }
 

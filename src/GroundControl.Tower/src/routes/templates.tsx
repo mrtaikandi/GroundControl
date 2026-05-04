@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { DeleteEntryDialog } from '@/components/tower/config/DeleteEntryDialog';
 import { EntryModal } from '@/components/tower/config/EntryModal';
 import { EntryValue } from '@/components/tower/config/EntryValue';
@@ -39,26 +40,30 @@ function TemplatesRoute() {
   }, [items, selectedTemplateId]);
 
   return (
-    <div className="grid gap-8">
+    <>
       <PageHeader actions={<Button onClick={() => setCreating(true)} type="button">New template</Button>} description="Share common settings across multiple projects." title="Templates" />
 
-      {templates.isLoading ? <Skeleton className="h-96" /> : null}
-      {!templates.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No templates yet.</div> : null}
-      {items.length > 0 ? (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_600px]">
-          <div className="grid gap-3">
-            {items.map((template) => (
-              <TemplateRow inheritedBy={projects.data?.data.filter((project) => project.templateIds.includes(template.id)).map((project) => project.name) ?? []} key={template.id} onDelete={() => setDeletingTemplate(template)} onEdit={() => setEditingTemplate(template)} onSelect={() => setSelectedTemplateId(template.id)} selected={template.id === selectedTemplate?.id} template={template} />
-            ))}
-          </div>
-          {selectedTemplate ? <TemplateDetail template={selectedTemplate} /> : null}
+      <PageContent>
+        <div className="grid gap-8 pt-8">
+          {templates.isLoading ? <Skeleton className="h-96" /> : null}
+          {!templates.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No templates yet.</div> : null}
+          {items.length > 0 ? (
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_600px]">
+              <div className="grid gap-3">
+                {items.map((template) => (
+                  <TemplateRow inheritedBy={projects.data?.data.filter((project) => project.templateIds.includes(template.id)).map((project) => project.name) ?? []} key={template.id} onDelete={() => setDeletingTemplate(template)} onEdit={() => setEditingTemplate(template)} onSelect={() => setSelectedTemplateId(template.id)} selected={template.id === selectedTemplate?.id} template={template} />
+                ))}
+              </div>
+              {selectedTemplate ? <TemplateDetail template={selectedTemplate} /> : null}
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      </PageContent>
 
       <TemplateModal mode="create" onOpenChange={setCreating} open={creating} />
       <TemplateModal mode="edit" onOpenChange={(open) => !open && setEditingTemplate(undefined)} open={Boolean(editingTemplate)} template={editingTemplate} />
       <DeleteTemplateDialog onOpenChange={(open) => !open && setDeletingTemplate(undefined)} open={Boolean(deletingTemplate)} template={deletingTemplate} />
-    </div>
+    </>
   );
 }
 

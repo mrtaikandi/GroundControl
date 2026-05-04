@@ -1,6 +1,7 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import { LayoutGrid, MonitorSmartphone, ScrollText, SlidersHorizontal } from 'lucide-react';
 import type { ComponentType } from 'react';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { cn } from '@/lib/utils';
 
 type TabRoute =
@@ -35,8 +36,9 @@ export function ProjectTabs({ clientCount, configCount, projectId, snapshotCount
   ];
 
   return (
-    <div className="-mx-page-h border-b border-stroke-divider px-page-h 2xl:-mx-8 2xl:px-8">
-      <nav aria-label="Project sections" className="flex flex-wrap gap-1">
+    <div className="border-b border-stroke-divider">
+      <PageContent>
+        <nav aria-label="Project sections" className="flex flex-wrap gap-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const target = tab.to.replace('/projects/$projectId', projectRoot);
@@ -64,7 +66,8 @@ export function ProjectTabs({ clientCount, configCount, projectId, snapshotCount
             </Link>
           );
         })}
-      </nav>
+        </nav>
+      </PageContent>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/tower/data/Badge';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { EditProjectModal } from '@/components/tower/projects/EditProjectModal';
 import { ProjectStatusBar } from '@/components/tower/projects/ProjectStatusBar';
@@ -56,8 +57,9 @@ function ProjectLayout() {
   const isOnOverviewTab = pathname === projectRoot || pathname === `${projectRoot}/`;
 
   return (
-    <div className="grid">
-      <PageHeader
+    <>
+      <div className="grid">
+        <PageHeader
         actions={(
           <div className="flex shrink-0 items-center gap-2">
             <Button onClick={() => setEditing(true)} size="sm" type="button" variant="secondary">
@@ -97,20 +99,23 @@ function ProjectLayout() {
         snapshotCount={totalSnapshots}
       />
 
-      {isOnOverviewTab ? (
-        <ProjectStatusBar
-          onPublish={() => setPublishing(true)}
-          projectId={projectId}
-          status={status}
-        />
-      ) : null}
+        <PageContent>
+          {isOnOverviewTab ? (
+            <ProjectStatusBar
+              onPublish={() => setPublishing(true)}
+              projectId={projectId}
+              status={status}
+            />
+          ) : null}
 
-      <div className="mt-5">
-        <Outlet />
+          <div className="mt-5">
+            <Outlet />
+          </div>
+        </PageContent>
       </div>
 
       <PublishModal activeSnapshotId={activeSnapshotId} onOpenChange={setPublishing} open={publishing} projectId={projectId} />
       <EditProjectModal onOpenChange={setEditing} open={editing} project={project} />
-    </div>
+    </>
   );
 }

@@ -12,6 +12,7 @@ import { Badge } from '@/components/tower/data/Badge';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { useCreateToken, useRevokeToken, useTokens, type Token } from '@/queries/useTokens';
 
 const columnHelper = createColumnHelper<Token>();
@@ -38,32 +39,36 @@ function TokensRoute() {
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
   return (
-    <div className="grid gap-8">
+    <>
       <PageHeader actions={<NewTokenModal />} align="start" description="Create personal tokens to use GroundControl from scripts and tools." title="Access tokens" />
 
-      {tokens.isLoading ? <Skeleton className="h-96" /> : (
-        <div className="grid gap-3">
-          <div className="flex justify-end"><FilterChip count={revokedCount} label="show revoked" onToggle={() => setShowRevoked((current) => !current)} selected={showRevoked} /></div>
-          <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow className={row.original.isRevoked ? 'opacity-60' : undefined} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
-              ))}
-              {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No personal access tokens found.</TableCell></TableRow> : null}
-            </TableBody>
-          </Table>
-          </div>
+      <PageContent>
+        <div className="grid gap-8 pt-8">
+          {tokens.isLoading ? <Skeleton className="h-96" /> : (
+            <div className="grid gap-3">
+              <div className="flex justify-end"><FilterChip count={revokedCount} label="show revoked" onToggle={() => setShowRevoked((current) => !current)} selected={showRevoked} /></div>
+              <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+                <Table>
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {table.getRowModel().rows.map((row) => (
+                      <TableRow className={row.original.isRevoked ? 'opacity-60' : undefined} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
+                    ))}
+                    {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No personal access tokens found.</TableCell></TableRow> : null}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </PageContent>
 
       <RevokeTokenDialog onOpenChange={(open) => { if (!open) { setTokenToRevoke(null); } }} open={tokenToRevoke !== null} token={tokenToRevoke} />
-    </div>
+    </>
   );
 }
 

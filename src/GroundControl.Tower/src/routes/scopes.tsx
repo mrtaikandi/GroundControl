@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { useCreateScope, useDeleteScope, useScopes, useUpdateScope, type Scope } from '@/queries/useScopes';
 
 export const Route = createFileRoute('/scopes')({
@@ -23,35 +24,39 @@ function ScopesRoute() {
   const items = scopes.data?.data ?? [];
 
   return (
-    <div className="grid gap-8">
+    <>
       <PageHeader actions={<Button onClick={() => setCreating(true)} type="button">New scope</Button>} description="Decide which settings each app sees based on where it's running." title="Scopes" />
 
-      {scopes.isLoading ? <Skeleton className="h-80" /> : null}
-      {!scopes.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No scope dimensions yet.</div> : null}
-      {items.length > 0 ? (
-        <div className="grid gap-3">
-          {items.map((scope) => (
-            <div className="grid gap-4 rounded-xl border border-stroke-subtle bg-bg-surface p-5 md:grid-cols-[220px_1fr_auto]" key={scope.id}>
-              <div>
-                <InlineCode>{scope.dimension}</InlineCode>
-                <p className="mt-2 text-[12.5px] text-fg-caption">{scope.description || 'No description provided.'}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {scope.allowedValues.map((value) => <FilterChip key={value} label={value} onToggle={() => undefined} />)}
-              </div>
-              <div className="flex items-start justify-end gap-2">
-                <Button onClick={() => setEditingScope(scope)} type="button" variant="secondary">Edit</Button>
-                <Button onClick={() => setDeletingScope(scope)} type="button" variant="ghost">Delete</Button>
-              </div>
+      <PageContent>
+        <div className="grid gap-8 pt-8">
+          {scopes.isLoading ? <Skeleton className="h-80" /> : null}
+          {!scopes.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No scope dimensions yet.</div> : null}
+          {items.length > 0 ? (
+            <div className="grid gap-3">
+              {items.map((scope) => (
+                <div className="grid gap-4 rounded-xl border border-stroke-subtle bg-bg-surface p-5 md:grid-cols-[220px_1fr_auto]" key={scope.id}>
+                  <div>
+                    <InlineCode>{scope.dimension}</InlineCode>
+                    <p className="mt-2 text-[12.5px] text-fg-caption">{scope.description || 'No description provided.'}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {scope.allowedValues.map((value) => <FilterChip key={value} label={value} onToggle={() => undefined} />)}
+                  </div>
+                  <div className="flex items-start justify-end gap-2">
+                    <Button onClick={() => setEditingScope(scope)} type="button" variant="secondary">Edit</Button>
+                    <Button onClick={() => setDeletingScope(scope)} type="button" variant="ghost">Delete</Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : null}
         </div>
-      ) : null}
+      </PageContent>
 
       <ScopeModal mode="create" onOpenChange={setCreating} open={creating} />
       <ScopeModal mode="edit" onOpenChange={(open) => !open && setEditingScope(undefined)} open={Boolean(editingScope)} scope={editingScope} />
       <DeleteScopeDialog onOpenChange={(open) => !open && setDeletingScope(undefined)} open={Boolean(deletingScope)} scope={deletingScope} />
-    </div>
+    </>
   );
 }
 

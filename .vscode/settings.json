@@ -13,6 +13,7 @@
             "approve": true,
             "matchCommandLine": true
         },
-        "npm run typecheck": true
+        "npm run typecheck": true,
+        "npx tsc": true
     }
 }

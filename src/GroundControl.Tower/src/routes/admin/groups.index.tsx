@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { useGroups, type Group } from '@/queries/useGroups';
 import { useProjects } from '@/queries/useProjects';
 import { useUsers } from '@/queries/useUsers';
@@ -54,27 +55,31 @@ function GroupsRoute() {
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
   return (
-    <div className="grid gap-8">
+    <>
       <PageHeader description="Group people together and control what they can access." eyebrow="Admin" title="Groups & roles" />
 
-      {groups.isLoading ? <Skeleton className="h-96" /> : (
-        <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow className="cursor-pointer" key={row.id} onClick={() => navigate({ params: { groupId: row.original.id }, to: '/admin/groups/$groupId' })}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
-              ))}
-              {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No groups found.</TableCell></TableRow> : null}
-            </TableBody>
-          </Table>
+      <PageContent>
+        <div className="grid gap-8 pt-8">
+          {groups.isLoading ? <Skeleton className="h-96" /> : (
+            <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow className="cursor-pointer" key={row.id} onClick={() => navigate({ params: { groupId: row.original.id }, to: '/admin/groups/$groupId' })}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
+                  ))}
+                  {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No groups found.</TableCell></TableRow> : null}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </PageContent>
+    </>
   );
 }
 

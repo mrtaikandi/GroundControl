@@ -5,6 +5,7 @@ import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { NewProjectModal } from '@/components/tower/projects/NewProjectModal';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -173,9 +174,11 @@ function ProjectsRoute() {
   }
 
   return (
-    <div className="grid gap-8">
+    <>
       <PageHeader actions={<NewProjectModal />} description="Manage your configuration projects" title="Projects" />
 
+      <PageContent>
+        <div className="grid gap-8 pt-8">
       <div className="rounded-xl border border-stroke-divider bg-bg-surface p-4 shadow-[0_1px_2px_rgba(0,0,40,0.03)]">
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
           <div>
@@ -277,7 +280,9 @@ function ProjectsRoute() {
           </div>
         </div>
       ) : null}
-    </div>
+        </div>
+      </PageContent>
+    </>
   );
 }
 

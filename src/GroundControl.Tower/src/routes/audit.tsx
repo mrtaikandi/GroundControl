@@ -9,6 +9,7 @@ import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Badge } from '@/components/tower/data/Badge';
 import { FilterChip } from '@/components/tower/data/FilterChip';
 import { InlineCode } from '@/components/tower/data/InlineCode';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { useAuditRecords, type AuditRecord } from '@/queries/useAuditRecords';
 import { formatUserId } from '@/lib/user';
@@ -68,42 +69,46 @@ function AuditRoute() {
   const table = useReactTable({ columns, data: rows, getCoreRowModel: getCoreRowModel() });
 
   return (
-    <div className="grid gap-8">
+    <>
       <PageHeader description="Track every change made in GroundControl." title="Audit trail" />
 
-      <div className="grid gap-4">
-        <div className="flex flex-wrap gap-2">
-          {entityTypeOptions.map((option) => <FilterChip key={option.value} label={option.label} onToggle={() => toggleEntityType(setEntityTypes, option.value)} selected={entityTypes.includes(option.value)} />)}
-        </div>
-        <div className="grid gap-3 sm:grid-cols-[180px_180px]">
-          <label className="grid gap-1.5 text-[12px] font-medium text-fg-caption">From<Input onChange={(event) => setFrom(event.target.value)} type="date" value={from} /></label>
-          <label className="grid gap-1.5 text-[12px] font-medium text-fg-caption">To<Input onChange={(event) => setTo(event.target.value)} type="date" value={to} /></label>
-        </div>
-        {dateRangeInvalid ? <div className="text-[12px] text-badge-critical-fg">From date must be before or equal to To date.</div> : null}
-      </div>
+      <PageContent>
+        <div className="grid gap-8 pt-8">
+          <div className="grid gap-4">
+            <div className="flex flex-wrap gap-2">
+              {entityTypeOptions.map((option) => <FilterChip key={option.value} label={option.label} onToggle={() => toggleEntityType(setEntityTypes, option.value)} selected={entityTypes.includes(option.value)} />)}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[180px_180px]">
+              <label className="grid gap-1.5 text-[12px] font-medium text-fg-caption">From<Input onChange={(event) => setFrom(event.target.value)} type="date" value={from} /></label>
+              <label className="grid gap-1.5 text-[12px] font-medium text-fg-caption">To<Input onChange={(event) => setTo(event.target.value)} type="date" value={to} /></label>
+            </div>
+            {dateRangeInvalid ? <div className="text-[12px] text-badge-critical-fg">From date must be before or equal to To date.</div> : null}
+          </div>
 
-      <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.map((row, index) => {
-              const isLastRow = index === table.getRowModel().rows.length - 1;
+          <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map((row, index) => {
+                  const isLastRow = index === table.getRowModel().rows.length - 1;
 
-              return (
-                <FragmentRows expanded={expandedIds.has(row.original.id)} key={row.id} refCallback={isLastRow ? lastRowRef : undefined} row={row} />
-              );
-            })}
-            {audit.isLoading ? <SkeletonRows colSpan={columns.length} /> : null}
-            {audit.isFetchingNextPage ? <SkeletonRows colSpan={columns.length} /> : null}
-            {!audit.isLoading && table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No audit records found.</TableCell></TableRow> : null}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+                  return (
+                    <FragmentRows expanded={expandedIds.has(row.original.id)} key={row.id} refCallback={isLastRow ? lastRowRef : undefined} row={row} />
+                  );
+                })}
+                {audit.isLoading ? <SkeletonRows colSpan={columns.length} /> : null}
+                {audit.isFetchingNextPage ? <SkeletonRows colSpan={columns.length} /> : null}
+                {!audit.isLoading && table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No audit records found.</TableCell></TableRow> : null}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </PageContent>
+    </>
   );
 }
 

@@ -4,6 +4,7 @@ import { DriftBanner } from '@/components/tower/feedback/DriftBanner';
 import { Badge } from '@/components/tower/data/Badge';
 import { StatusDot } from '@/components/tower/data/StatusDot';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { liveActivityAtom, liveAuditRecordsAtom } from '@/lib/atoms';
 import { maxLiveAuditRecords } from '@/lib/live-audit';
 import { isSystemUser, SYSTEM_USER_LABEL } from '@/lib/user';
@@ -31,12 +32,12 @@ function OverviewRoute() {
   const liveIds = useMemo(() => new Set(liveAuditRecords.map((record) => record.id)), [liveAuditRecords]);
 
   return (
-    <div className="grid gap-8">
+    <>
       <PageHeader
         actions={(
           <div className="flex items-center gap-2 rounded-full border border-stroke-subtle bg-bg-surface px-3 py-2 text-[12.5px] text-fg-caption">
-          <StatusDot pulse={liveActivity.isConnected} status={liveActivity.isConnected ? 'live' : liveActivity.lastEventAt ? 'warning' : 'offline'} />
-          <span>{liveActivity.isConnected ? 'Live' : liveActivity.lastEventAt ? 'Reconnecting' : 'Offline'}</span>
+            <StatusDot pulse={liveActivity.isConnected} status={liveActivity.isConnected ? 'live' : liveActivity.lastEventAt ? 'warning' : 'offline'} />
+            <span>{liveActivity.isConnected ? 'Live' : liveActivity.lastEventAt ? 'Reconnecting' : 'Offline'}</span>
           </div>
         )}
         align="start"
@@ -44,51 +45,55 @@ function OverviewRoute() {
         title="Overview"
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <StatCard href="/projects" icon={FolderKanban} label="Active projects" loading={stats.isLoading} value={stats.activeProjects} />
-        <StatCard icon={KeyRound} label="Active clients" value={liveActivity.clientCount} />
-        <StatCard icon={FileClock} label="Snapshots today" loading={stats.isLoading} value={stats.snapshotsToday} />
-      </div>
+      <PageContent>
+        <div className="grid gap-8 pt-8">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <StatCard href="/projects" icon={FolderKanban} label="Active projects" loading={stats.isLoading} value={stats.activeProjects} />
+            <StatCard icon={KeyRound} label="Active clients" value={liveActivity.clientCount} />
+            <StatCard icon={FileClock} label="Snapshots today" loading={stats.isLoading} value={stats.snapshotsToday} />
+          </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <Card className="overflow-hidden rounded-xl border-stroke-subtle bg-bg-surface">
-          <CardHeader className="border-b border-stroke-subtle p-5">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-[18px]">Live activity</CardTitle>
-              <Badge variant={audit.isFetching ? 'warning' : 'success'}>{audit.isFetching ? 'syncing' : 'current'}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {audit.isLoading ? <ActivitySkeleton /> : null}
-            {!audit.isLoading && records.length === 0 ? <div className="px-5 py-12 text-center text-[13px] text-fg-caption">No audit records yet.</div> : null}
-            <div className="divide-y divide-stroke-subtle">
-              {records.map((record) => <ActivityItem animate={liveIds.has(record.id)} key={record.id} record={record} />)}
-            </div>
-          </CardContent>
-        </Card>
+          <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+            <Card className="overflow-hidden rounded-xl border-stroke-subtle bg-bg-surface">
+              <CardHeader className="border-b border-stroke-subtle p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-[18px]">Live activity</CardTitle>
+                  <Badge variant={audit.isFetching ? 'warning' : 'success'}>{audit.isFetching ? 'syncing' : 'current'}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {audit.isLoading ? <ActivitySkeleton /> : null}
+                {!audit.isLoading && records.length === 0 ? <div className="px-5 py-12 text-center text-[13px] text-fg-caption">No audit records yet.</div> : null}
+                <div className="divide-y divide-stroke-subtle">
+                  {records.map((record) => <ActivityItem animate={liveIds.has(record.id)} key={record.id} record={record} />)}
+                </div>
+              </CardContent>
+            </Card>
 
-        <div className="grid content-start gap-6">
-          <section className="grid gap-3">
-            <div>
-              <h2 className="text-[18px] font-semibold text-fg-heading">Alerts</h2>
-              <p className="mt-1 text-[13px] text-fg-caption">Current operator attention items.</p>
-            </div>
-            {driftBannerVisible ? <DriftBanner /> : <div className="rounded-xl border border-stroke-subtle bg-bg-surface px-4 py-5 text-[13px] text-fg-caption">No active alerts.</div>}
-          </section>
+            <div className="grid content-start gap-6">
+              <section className="grid gap-3">
+                <div>
+                  <h2 className="text-[18px] font-semibold text-fg-heading">Alerts</h2>
+                  <p className="mt-1 text-[13px] text-fg-caption">Current operator attention items.</p>
+                </div>
+                {driftBannerVisible ? <DriftBanner /> : <div className="rounded-xl border border-stroke-subtle bg-bg-surface px-4 py-5 text-[13px] text-fg-caption">No active alerts.</div>}
+              </section>
 
-          <Card className="rounded-xl border-stroke-subtle bg-bg-surface">
-            <CardHeader className="p-5 pb-3">
-              <CardTitle className="text-[18px]">Snapshot pulse</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 p-5 pt-0 text-[13px] text-fg-caption">
-              <div className="flex items-center justify-between gap-3"><span>Projects scanned</span><span className="font-mono text-fg-heading">{formatCount(stats.projects.length)}</span></div>
-              <div className="flex items-center justify-between gap-3"><span>Stats refresh</span><span className="font-mono text-fg-heading">{stats.isFetching ? 'active' : 'idle'}</span></div>
-              <div className="flex items-center justify-between gap-3"><span>Events/sec</span><span className="font-mono text-fg-heading">{formatRate(liveActivity.eventsPerSecond)}</span></div>
-            </CardContent>
-          </Card>
+              <Card className="rounded-xl border-stroke-subtle bg-bg-surface">
+                <CardHeader className="p-5 pb-3">
+                  <CardTitle className="text-[18px]">Snapshot pulse</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-3 p-5 pt-0 text-[13px] text-fg-caption">
+                  <div className="flex items-center justify-between gap-3"><span>Projects scanned</span><span className="font-mono text-fg-heading">{formatCount(stats.projects.length)}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Stats refresh</span><span className="font-mono text-fg-heading">{stats.isFetching ? 'active' : 'idle'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Events/sec</span><span className="font-mono text-fg-heading">{formatRate(liveActivity.eventsPerSecond)}</span></div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </PageContent>
+    </>
   );
 }
 

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { useAllClients, type ClientWithProject } from '@/queries/useAllClients';
 import { useProjects } from '@/queries/useProjects';
@@ -72,36 +73,40 @@ function ClientsRoute() {
   const totalActive = allClients.data.filter((client) => client.isActive).length;
 
   return (
-    <div className="grid gap-6">
+    <>
       <PageHeader description={`All credentials issued across projects. ${allClients.data.length} total · ${totalActive} active.`} title="Clients" />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          className="h-9 max-w-xs"
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Filter by client or project"
-          value={search}
-        />
-      </div>
+      <PageContent>
+        <div className="grid gap-6 pt-8">
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              className="h-9 max-w-xs"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Filter by client or project"
+              value={search}
+            />
+          </div>
 
-      {allClients.isLoading ? <Skeleton className="h-96" /> : (
-        <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow className={row.original.isActive ? undefined : 'opacity-60'} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
-              ))}
-              {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No clients found.</TableCell></TableRow> : null}
-            </TableBody>
-          </Table>
+          {allClients.isLoading ? <Skeleton className="h-96" /> : (
+            <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow className={row.original.isActive ? undefined : 'opacity-60'} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
+                  ))}
+                  {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No clients found.</TableCell></TableRow> : null}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </PageContent>
+    </>
   );
 }
 

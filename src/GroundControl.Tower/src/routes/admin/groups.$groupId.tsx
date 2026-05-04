@@ -1,3 +1,4 @@
+import { PageContent } from '@/components/tower/shell/PageContent';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useMemo } from 'react';
@@ -23,7 +24,8 @@ function GroupDetailRoute() {
   const memberIds = useMemo(() => new Set((members.data ?? []).map((member) => member.id)), [members.data]);
 
   return (
-    <div className="grid gap-8">
+    <PageContent>
+      <div className="grid gap-8">
       <div>
         <Link className="inline-flex items-center gap-1.5 text-[12px] font-medium text-fg-caption hover:text-fg-body" to="/admin/groups">
           <ArrowLeft className="size-3.5" />
@@ -54,7 +56,8 @@ function GroupDetailRoute() {
           <RolesReference roles={roles.data ?? []} />
         </div>
       )}
-    </div>
+      </div>
+    </PageContent>
   );
 }
 
