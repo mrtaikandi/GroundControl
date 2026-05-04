@@ -163,10 +163,22 @@
 	box-shadow: var(--tower-shadow-button);
 }
 
+@utility shadow-ui-button-hover {
+	box-shadow: var(--tower-shadow-button-hover);
+}
+
 @utility shadow-ui-button-danger {
 	box-shadow: var(--tower-shadow-button-danger);
 }
 
+@utility shadow-ui-button-danger-hover {
+	box-shadow: var(--tower-shadow-button-danger-hover);
+}
+
 @utility shadow-ui-button-subtle {
 	box-shadow: var(--tower-shadow-button-subtle);
+}
+
+@utility shadow-ui-button-subtle-hover {
+	box-shadow: var(--tower-shadow-button-subtle-hover);
 }

@@ -17,7 +17,7 @@
   --tower-stroke-divider: #dfdde6;
   --tower-stroke-subtle: #eceaf0;
   --tower-stroke-field-initial: #d1d0d8;
-  --tower-stroke-field-focus: #6e4ad8;
+  --tower-stroke-field-focus: #633fc9;
   --tower-badge-neutral-bg: #eceaf0;
   --tower-badge-neutral-fg: #3c3a44;
   --tower-badge-info-bg: #f4f1fb;
@@ -40,14 +40,19 @@
   --tower-syntax-diff-del-fg: #a53929;
   --tower-overlay-scrim: rgba(22, 21, 26, 0.35);
   --tower-shadow-button: 0 1px 2px rgba(0, 0, 40, 0.16);
+  --tower-shadow-button-hover: 0 6px 14px -8px rgba(67, 53, 120, 0.32);
   --tower-shadow-button-danger: 0 1px 2px rgba(0, 0, 40, 0.12);
+  --tower-shadow-button-danger-hover: 0 6px 14px -8px rgba(169, 57, 41, 0.28);
   --tower-shadow-button-subtle: 0 1px 2px rgba(0, 0, 40, 0.06);
+  --tower-shadow-button-subtle-hover: 0 4px 10px -8px rgba(67, 53, 120, 0.18);
   --tower-shadow-floating: 0 18px 40px -16px rgba(0, 0, 40, 0.25);
   --tower-shadow-modal: 0 30px 70px -20px rgba(0, 0, 40, 0.45);
   --tower-interaction-button-active-brightness: 0.97;
-  --tower-interaction-button-hover-brightness: 1.04;
+  --tower-interaction-button-hover-brightness: 1.10;
   --tower-interaction-button-danger-active-brightness: 0.96;
-  --tower-interaction-button-danger-hover-brightness: 1.03;
+  --tower-interaction-button-danger-hover-brightness: 1.08;
+  --tower-interaction-button-subtle-hover-background: #f4f1fb;
+  --tower-interaction-button-subtle-hover-border: #cdc1ee;
 }
 
 [data-tower-theme="dark"] {
@@ -67,7 +72,7 @@
   --tower-stroke-divider: #403d4a;
   --tower-stroke-subtle: #35333d;
   --tower-stroke-field-initial: #524d61;
-  --tower-stroke-field-focus: #926bff;
+  --tower-stroke-field-focus: #8459f3;
   --tower-badge-neutral-bg: #35333d;
   --tower-badge-neutral-fg: #ddd6e8;
   --tower-badge-info-bg: rgba(146, 107, 255, 0.14);
@@ -90,14 +95,19 @@
   --tower-syntax-diff-del-fg: #f2b3b3;
   --tower-overlay-scrim: rgba(10, 10, 14, 0.58);
   --tower-shadow-button: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --tower-shadow-button-hover: 0 10px 20px -12px rgba(0, 0, 0, 0.50);
   --tower-shadow-button-danger: 0 1px 2px rgba(0, 0, 0, 0.26);
+  --tower-shadow-button-danger-hover: 0 10px 20px -12px rgba(0, 0, 0, 0.48);
   --tower-shadow-button-subtle: 0 1px 2px rgba(0, 0, 0, 0.20);
+  --tower-shadow-button-subtle-hover: 0 8px 16px -12px rgba(0, 0, 0, 0.40);
   --tower-shadow-floating: 0 16px 36px -18px rgba(0, 0, 0, 0.52);
   --tower-shadow-modal: 0 28px 72px -28px rgba(0, 0, 0, 0.68);
   --tower-interaction-button-active-brightness: 0.97;
-  --tower-interaction-button-hover-brightness: 1.04;
+  --tower-interaction-button-hover-brightness: 1.10;
   --tower-interaction-button-danger-active-brightness: 0.96;
-  --tower-interaction-button-danger-hover-brightness: 1.03;
+  --tower-interaction-button-danger-hover-brightness: 1.08;
+  --tower-interaction-button-subtle-hover-background: rgba(146, 107, 255, 0.18);
+  --tower-interaction-button-subtle-hover-border: #926bff;
 }
 
 :root {

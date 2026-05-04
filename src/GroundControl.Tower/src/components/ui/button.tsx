@@ -20,11 +20,11 @@ const buttonVariants = cva(
     variants: {
       size: buttonSizeClasses,
       variant: {
-        default: 'border-primary bg-primary text-primary-foreground shadow-ui-button hover:brightness-[var(--tower-interaction-button-hover-brightness)] active:brightness-[var(--tower-interaction-button-active-brightness)]',
-        destructive: 'border-destructive bg-destructive text-destructive-foreground shadow-ui-button-danger hover:brightness-[var(--tower-interaction-button-danger-hover-brightness)] active:brightness-[var(--tower-interaction-button-danger-active-brightness)]',
-        ghost: 'border-transparent bg-transparent text-fg-caption shadow-none hover:bg-bg-container hover:text-fg-body',
-        outline: 'border-stroke-field-initial bg-transparent text-fg-body shadow-none hover:border-stroke-divider hover:bg-bg-container',
-        secondary: 'border-input bg-background text-fg-body shadow-ui-button-subtle hover:border-stroke-divider hover:bg-bg-container',
+        default: 'border-primary bg-primary text-primary-foreground shadow-ui-button hover:shadow-ui-button-hover hover:brightness-[var(--tower-interaction-button-hover-brightness)] active:brightness-[var(--tower-interaction-button-active-brightness)]',
+        destructive: 'border-destructive bg-destructive text-destructive-foreground shadow-ui-button-danger hover:shadow-ui-button-danger-hover hover:brightness-[var(--tower-interaction-button-danger-hover-brightness)] active:brightness-[var(--tower-interaction-button-danger-active-brightness)]',
+        ghost: 'border-transparent bg-transparent text-fg-caption shadow-none hover:bg-[var(--tower-interaction-button-subtle-hover-background)] hover:text-fg-heading',
+        outline: 'border-stroke-field-initial bg-transparent text-fg-body shadow-none hover:border-[var(--tower-interaction-button-subtle-hover-border)] hover:bg-[var(--tower-interaction-button-subtle-hover-background)] hover:text-fg-heading',
+        secondary: 'border-input bg-background text-fg-body shadow-ui-button-subtle hover:border-[var(--tower-interaction-button-subtle-hover-border)] hover:bg-[var(--tower-interaction-button-subtle-hover-background)] hover:text-fg-heading hover:shadow-ui-button-subtle-hover',
       },
     },
   },
