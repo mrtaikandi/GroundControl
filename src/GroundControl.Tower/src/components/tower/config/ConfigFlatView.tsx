@@ -1,4 +1,5 @@
 import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type SortingState } from '@tanstack/react-table';
+import { Layers3 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
@@ -114,9 +115,9 @@ function OwnerBadge({ source }: { source: EffectiveEntry['source'] }) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span><Badge variant="info">inherited · {source.templateName}</Badge></span>
+          <span><Badge className="gap-1.5" variant="info"><Layers3 aria-hidden="true" className="size-3.5" strokeWidth={1.8} />{source.templateName}</Badge></span>
         </TooltipTrigger>
-        <TooltipContent>Edit in the Templates page</TooltipContent>
+        <TooltipContent>Inherited from {source.templateName} template</TooltipContent>
       </Tooltip>
     );
   }

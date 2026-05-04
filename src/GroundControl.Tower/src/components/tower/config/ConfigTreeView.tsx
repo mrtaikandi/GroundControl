@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Folder, FolderOpen, Hash, Lock, Pencil, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Layers3, Folder, FolderOpen, Hash, Lock, Pencil, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -185,7 +185,10 @@ function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selec
       onClick={() => onSelect(node.entry.id)}
       style={{ paddingLeft: 16 + depth * 20 }}
     >
-      {node.entry.isSensitive ? <Lock aria-hidden="true" className="size-3.5 text-fg-icon-subtle" /> : <Hash aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />}
+      {node.entry.isSensitive ? <Lock aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />
+        : isInherited
+          ? <Layers3 aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />
+          : <Hash aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />}
       <span className="flex min-w-0 items-center gap-2">
         <span className="truncate font-semibold text-fg-heading">{segmentName}</span>
         <Badge variant="neutral">{node.entry.valueType}</Badge>
@@ -283,9 +286,9 @@ function OwnerPill({ projectName, source }: { projectName: string; source: Entry
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span><Badge variant="info">inherited · {source.templateName}</Badge></span>
+          <span><Badge className="gap-1.5" variant="info"><Layers3 aria-hidden="true" className="size-3.5" strokeWidth={1.8} />{source.templateName}</Badge></span>
         </TooltipTrigger>
-        <TooltipContent>Edit in the Templates page</TooltipContent>
+        <TooltipContent>Inherited from {source.templateName} template</TooltipContent>
       </Tooltip>
     );
   }
