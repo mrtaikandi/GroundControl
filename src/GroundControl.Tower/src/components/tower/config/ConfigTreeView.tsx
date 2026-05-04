@@ -257,7 +257,7 @@ function EntryDetailPanelBody({ item, onEdit, projectName }: EntryDetailPanelBod
 
       <div className="mt-6">
         <div className="text-[11px] font-medium uppercase text-fg-caption">
-          Default value <span className="ml-1 normal-case text-fg-caption/80">(scopes: {'{}'})</span>
+          Default value <span className="ml-1 normal-case text-fg-caption/80"></span>
         </div>
         <EntryValue ariaLabel="Copy default value" emptyMessage="No default value." reveal={reveal} scopedValue={defaultVal} />
       </div>

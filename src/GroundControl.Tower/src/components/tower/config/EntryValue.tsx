@@ -16,7 +16,7 @@ interface EntryValueProps {
 export function EntryValue({ ariaLabel = 'Copy value', bare = false, emptyMessage = 'No value.', reveal, scopedValue }: EntryValueProps) {
   const wrapperClass = bare
     ? 'ui-text-body flex items-start justify-between gap-3'
-    : 'ui-surface-panel ui-text-body mt-2 flex items-start justify-between gap-3 px-4 py-2.5';
+    : 'ui-surface-panel ui-text-body mt-2 flex items-center justify-between gap-3 px-4 py-2.5';
   const scopeKey = scopedValue ? scopedValueKey(scopedValue.scopes ?? {}) : '';
   const revealed = scopedValue ? reveal.isRevealed(scopeKey) : false;
   const masked = scopedValue ? reveal.isSensitive && !revealed : false;
@@ -43,7 +43,7 @@ export function EntryValue({ ariaLabel = 'Copy value', bare = false, emptyMessag
               )}
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              {reveal.isSensitive ? <RevealEyeButton onToggle={() => reveal.toggleReveal(scopeKey)} pending={pending} revealed={revealed} /> : null}
+              {reveal.isSensitive ? <RevealButton onToggle={() => reveal.toggleReveal(scopeKey)} pending={pending} revealed={revealed} /> : null}
               <CopyButton
                 ariaLabel={ariaLabel}
                 disabled={masked || !displayValue}
@@ -58,13 +58,13 @@ export function EntryValue({ ariaLabel = 'Copy value', bare = false, emptyMessag
   );
 }
 
-interface RevealEyeButtonProps {
+interface RevealButtonProps {
   onToggle: () => void;
   pending: boolean;
   revealed: boolean;
 }
 
-function RevealEyeButton({ onToggle, pending, revealed }: RevealEyeButtonProps) {
+function RevealButton({ onToggle, pending, revealed }: RevealButtonProps) {
   const label = revealed ? 'Hide value' : 'Reveal value';
 
   return (
