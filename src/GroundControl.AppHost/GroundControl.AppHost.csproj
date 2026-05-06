@@ -15,6 +15,7 @@
 
     <ItemGroup>
       <PackageReference Include="Aspire.Hosting.MongoDB" />
+      <PackageReference Include="Aspire.Hosting.NodeJs" />
     </ItemGroup>
 
 </Project>

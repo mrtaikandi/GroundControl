@@ -42,7 +42,7 @@ public sealed class SnapshotPublisherTests : ApiHandlerTestBase
         var publisher = factory.Services.GetRequiredService<SnapshotPublisher>();
 
         // Act
-        var result = await publisher.PublishAsync(project.Id, Guid.CreateVersion7(), "test publish", TestCancellationToken);
+        var result = await publisher.PublishAsync(project.Id, Guid.CreateVersion7(), "test publish", cancellationToken: TestCancellationToken);
 
         // Assert
         var created = result.Result.ShouldBeOfType<Created<Snapshot>>();

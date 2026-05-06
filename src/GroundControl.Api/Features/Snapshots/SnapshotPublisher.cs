@@ -1,24 +1,17 @@
 using GroundControl.Api.Core.ChangeNotification;
-using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
-using MongoDB.Bson;
 
 namespace GroundControl.Api.Features.Snapshots;
 
 internal sealed class SnapshotPublisher
 {
-    private const int MaxBsonSizeBytes = 16_777_216; // 16MB
     private const int DefaultRetentionCount = 50;
-    private static readonly Dictionary<string, string> EmptyScopes = [];
 
     private readonly IProjectStore _projectStore;
-    private readonly IConfigEntryStore _configEntryStore;
-    private readonly IVariableStore _variableStore;
-    private readonly VariableInterpolator _interpolator;
-    private readonly SensitiveSourceValueProtector _sourceProtector;
     private readonly ISnapshotStore _snapshotStore;
+    private readonly SnapshotResolver _resolver;
     private readonly IChangeNotifier _changeNotifier;
     private readonly IConfiguration _configuration;
     private readonly ILogger<SnapshotPublisher> _logger;
@@ -26,21 +19,15 @@ internal sealed class SnapshotPublisher
     public SnapshotPublisher(
         ILogger<SnapshotPublisher> logger,
         IProjectStore projectStore,
-        IConfigEntryStore configEntryStore,
-        IVariableStore variableStore,
-        VariableInterpolator interpolator,
-        SensitiveSourceValueProtector sourceProtector,
         ISnapshotStore snapshotStore,
+        SnapshotResolver resolver,
         IChangeNotifier changeNotifier,
         IConfiguration configuration)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _projectStore = projectStore ?? throw new ArgumentNullException(nameof(projectStore));
-        _configEntryStore = configEntryStore ?? throw new ArgumentNullException(nameof(configEntryStore));
-        _variableStore = variableStore ?? throw new ArgumentNullException(nameof(variableStore));
-        _interpolator = interpolator ?? throw new ArgumentNullException(nameof(interpolator));
-        _sourceProtector = sourceProtector ?? throw new ArgumentNullException(nameof(sourceProtector));
         _snapshotStore = snapshotStore ?? throw new ArgumentNullException(nameof(snapshotStore));
+        _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
         _changeNotifier = changeNotifier ?? throw new ArgumentNullException(nameof(changeNotifier));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
@@ -49,49 +36,52 @@ internal sealed class SnapshotPublisher
         Guid projectId,
         Guid publishedBy,
         string? description = null,
+        string? expectedHash = null,
         CancellationToken cancellationToken = default)
     {
-        var project = await _projectStore.GetByIdAsync(projectId, cancellationToken);
+        var project = await _projectStore.GetByIdAsync(projectId, cancellationToken).ConfigureAwait(false);
         if (project is null)
         {
             return TypedResults.NotFound();
         }
 
-        var (resolvedEntries, allUnresolved) = await ResolveAndInterpolateEntriesAsync(project, cancellationToken);
-        if (allUnresolved.Count > 0)
+        var resolved = await _resolver.ResolveAsync(project, description, cancellationToken).ConfigureAwait(false);
+
+        if (resolved.UnresolvedPlaceholders.Count > 0)
         {
             return TypedResults.Problem(
-                detail: $"Unresolved variable placeholders: {string.Join(", ", allUnresolved.Order())}",
+                detail: $"Unresolved variable placeholders: {string.Join(", ", resolved.UnresolvedPlaceholders.Order())}",
                 statusCode: StatusCodes.Status422UnprocessableEntity);
         }
 
-        EncryptSensitiveValues(resolvedEntries);
+        if (resolved.BsonSizeBytes > SnapshotResolver.MaxBsonSizeBytes)
+        {
+            return TypedResults.Problem(
+                detail: $"Snapshot BSON size ({resolved.BsonSizeBytes:N0} bytes) exceeds the 16MB MongoDB document limit.",
+                statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
 
-        // Build snapshot and check BSON size
-        var snapshotVersion = await _snapshotStore.GetNextVersionAsync(projectId, cancellationToken);
+        if (expectedHash is not null && !string.Equals(expectedHash, resolved.DiffHash, StringComparison.OrdinalIgnoreCase))
+        {
+            return TypedResults.Problem(
+                detail: "Configuration changed since the preview was generated. Refresh the diff and try again.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
         var snapshot = new Snapshot
         {
             Id = Guid.CreateVersion7(),
             ProjectId = projectId,
-            SnapshotVersion = snapshotVersion,
-            Entries = resolvedEntries,
+            SnapshotVersion = resolved.NextVersion,
+            Entries = [.. resolved.EncryptedEntries],
             PublishedAt = DateTimeOffset.UtcNow,
             PublishedBy = publishedBy,
-            Description = description
+            Description = description,
         };
 
-        var bsonBytes = snapshot.ToBsonDocument().ToBson();
-        var bsonSize = bsonBytes.Length;
-        if (bsonSize > MaxBsonSizeBytes)
-        {
-            return TypedResults.Problem(
-                detail: $"Snapshot BSON size ({bsonSize:N0} bytes) exceeds the 16MB MongoDB document limit.",
-                statusCode: StatusCodes.Status422UnprocessableEntity);
-        }
+        await _snapshotStore.CreateAsync(snapshot, cancellationToken).ConfigureAwait(false);
 
-        await _snapshotStore.CreateAsync(snapshot, cancellationToken);
-
-        var activated = await _projectStore.ActivateSnapshotAsync(projectId, snapshot.Id, project.Version, cancellationToken);
+        var activated = await _projectStore.ActivateSnapshotAsync(projectId, snapshot.Id, project.Version, cancellationToken).ConfigureAwait(false);
         if (!activated)
         {
             return TypedResults.Problem(
@@ -99,14 +89,14 @@ internal sealed class SnapshotPublisher
                 statusCode: StatusCodes.Status409Conflict);
         }
 
-        await _changeNotifier.NotifyAsync(projectId, snapshot.Id, cancellationToken);
+        await _changeNotifier.NotifyAsync(projectId, snapshot.Id, cancellationToken).ConfigureAwait(false);
 
         try
         {
             var retentionCount = _configuration.GetValue("Snapshots:RetentionCount", DefaultRetentionCount);
             if (retentionCount > 0)
             {
-                await _snapshotStore.DeleteOldSnapshotsAsync(projectId, retentionCount, snapshot.Id, cancellationToken);
+                await _snapshotStore.DeleteOldSnapshotsAsync(projectId, retentionCount, snapshot.Id, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -116,121 +106,6 @@ internal sealed class SnapshotPublisher
 
         return TypedResults.Created($"/api/snapshots/{snapshot.Id}", snapshot);
     }
-
-    private void EncryptSensitiveValues(List<ResolvedEntry> resolvedEntries)
-    {
-        foreach (var entry in resolvedEntries)
-        {
-            if (!entry.IsSensitive)
-            {
-                continue;
-            }
-
-            var protectedValues = _sourceProtector.ProtectValues(entry.Values, isSensitive: true);
-            entry.Values.Clear();
-
-            foreach (var value in protectedValues)
-            {
-                entry.Values.Add(value);
-            }
-        }
-    }
-
-    private async Task<ResolveResult> ResolveAndInterpolateEntriesAsync(Project project, CancellationToken cancellationToken)
-    {
-        var projectVariables = await _variableStore.GetProjectVariablesAsync(project.Id, cancellationToken);
-        var projectVariablesDict = BuildPlaintextVariableLookup(projectVariables);
-
-        var globalVariables = await _variableStore.GetGlobalVariablesForGroupAsync(project.GroupId, cancellationToken);
-        var globalVariablesDict = BuildPlaintextVariableLookup(globalVariables);
-
-        var mergedEntries = await CollectAndMergeEntriesAsync(project, cancellationToken);
-
-        // Interpolate and validate variables
-        var resolvedEntries = new List<ResolvedEntry>();
-        var unresolvedPlaceholders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var entry in mergedEntries)
-        {
-            var plaintextValues = _sourceProtector.UnprotectValues(entry.Values, entry.IsSensitive);
-
-            var resolvedValues = new List<ScopedValue>(plaintextValues.Count);
-            var entryUsedSensitiveVariable = false;
-
-            foreach (var scopedValue in plaintextValues)
-            {
-                var result = _interpolator.Interpolate(scopedValue.Value, EmptyScopes, projectVariablesDict, globalVariablesDict);
-                resolvedValues.Add(new ScopedValue(result.Value, scopedValue.Scopes));
-
-                if (result.UsedSensitiveVariable)
-                {
-                    entryUsedSensitiveVariable = true;
-                }
-
-                foreach (var unresolved in result.UnresolvedPlaceholders)
-                {
-                    unresolvedPlaceholders.Add(unresolved);
-                }
-            }
-
-            resolvedEntries.Add(new ResolvedEntry
-            {
-                Key = entry.Key,
-                ValueType = entry.ValueType,
-                IsSensitive = entry.IsSensitive || entryUsedSensitiveVariable,
-                Values = resolvedValues
-            });
-        }
-
-        return new ResolveResult(resolvedEntries, unresolvedPlaceholders);
-    }
-
-    private Dictionary<string, PlaintextVariable> BuildPlaintextVariableLookup(IReadOnlyList<Variable> variables)
-    {
-        // Eager: every sensitive variable is decrypted up front, even ones no entry references.
-        // For typical inventories this is cheap, and a lazy alternative would require pushing the
-        // protector into the interpolator. Revisit if profiling shows it is meaningful.
-        var lookup = new Dictionary<string, PlaintextVariable>(StringComparer.OrdinalIgnoreCase);
-        foreach (var variable in variables)
-        {
-            var plaintextValues = _sourceProtector.UnprotectValues(variable.Values, variable.IsSensitive);
-            lookup[variable.Name] = new PlaintextVariable
-            {
-                Values = plaintextValues,
-                IsSensitive = variable.IsSensitive,
-            };
-        }
-
-        return lookup;
-    }
-
-    private async Task<List<ConfigEntry>> CollectAndMergeEntriesAsync(Project project, CancellationToken cancellationToken)
-    {
-        // Collect template entries in order (later templates override earlier ones)
-        var entryMap = new Dictionary<string, ConfigEntry>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var templateId in project.TemplateIds)
-        {
-            var templateEntries = await _configEntryStore.GetAllByOwnerAsync(templateId, ConfigEntryOwnerType.Template, cancellationToken);
-
-            foreach (var entry in templateEntries)
-            {
-                entryMap[entry.Key] = entry;
-            }
-        }
-
-        // Project entries override template entries
-        var projectEntries = await _configEntryStore.GetAllByOwnerAsync(project.Id, ConfigEntryOwnerType.Project, cancellationToken);
-
-        foreach (var entry in projectEntries)
-        {
-            entryMap[entry.Key] = entry;
-        }
-
-        return [.. entryMap.Values];
-    }
-
-    private readonly record struct ResolveResult(List<ResolvedEntry> ResolvedEntries, HashSet<string> UnresolvedPlaceholders);
 }
 
 internal static partial class SnapshotPublisherLogs

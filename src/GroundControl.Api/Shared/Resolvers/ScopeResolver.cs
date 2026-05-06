@@ -65,13 +65,38 @@ internal sealed class ScopeResolver : IScopeResolver
     {
         foreach (var scope in candidateScopes)
         {
-            if (!clientScopes.TryGetValue(scope.Key, out var clientValue) || !string.Equals(clientValue, scope.Value, StringComparison.Ordinal))
+            if (!TryGetClientValue(clientScopes, scope.Key, out var clientValue) || !string.Equals(clientValue, scope.Value, StringComparison.Ordinal))
             {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Case-insensitive lookup of a scope dimension. Scope dimensions are stored case-insensitively
+    /// (the validator looks them up via the unique-by-dimension index with case-insensitive collation),
+    /// so resolution must match that contract regardless of the casing the producer happened to use.
+    /// </summary>
+    private static bool TryGetClientValue(IReadOnlyDictionary<string, string> clientScopes, string dimension, out string? value)
+    {
+        if (clientScopes.TryGetValue(dimension, out value))
+        {
+            return true;
+        }
+
+        foreach (var entry in clientScopes)
+        {
+            if (string.Equals(entry.Key, dimension, StringComparison.OrdinalIgnoreCase))
+            {
+                value = entry.Value;
+                return true;
+            }
+        }
+
+        value = null;
+        return false;
     }
 }
 

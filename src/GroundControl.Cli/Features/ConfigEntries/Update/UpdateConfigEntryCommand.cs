@@ -8,7 +8,7 @@ internal sealed class UpdateConfigEntryCommand : Command<UpdateConfigEntryHandle
         : base("update", "Update a configuration entry")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The configuration entry ID" };
-        var valueTypeOption = new Option<string?>("--value-type") { Description = "The new value type name" };
+        var valueTypeOption = new Option<string?>("--value-type") { Description = "The new value type name. Allowed: String, Int32, Int64, Double, Decimal, Boolean, DateTime, DateTimeOffset, DateOnly, TimeOnly." };
         var sensitiveOption = new Option<bool?>("--sensitive") { Description = "Whether the entry contains sensitive data" };
         var descriptionOption = new Option<string?>("--description") { Description = "The new description" };
         var valueOption = new Option<string[]?>("--value")

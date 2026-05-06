@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using GroundControl.Api.Shared.Activity;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 
@@ -10,11 +11,13 @@ internal sealed class AuditRecorder
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
     private readonly IAuditStore _auditStore;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILiveActivityTracker _activityTracker;
 
-    public AuditRecorder(IAuditStore auditStore, IHttpContextAccessor httpContextAccessor)
+    public AuditRecorder(IAuditStore auditStore, IHttpContextAccessor httpContextAccessor, ILiveActivityTracker activityTracker)
     {
         _auditStore = auditStore ?? throw new ArgumentNullException(nameof(auditStore));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        _activityTracker = activityTracker ?? throw new ArgumentNullException(nameof(activityTracker));
     }
 
     public async Task RecordAsync(
@@ -41,6 +44,7 @@ internal sealed class AuditRecorder
         };
 
         await _auditStore.CreateAsync(record, cancellationToken).ConfigureAwait(false);
+        _activityTracker.RecordAuditRecord(record);
     }
 
     internal static List<FieldChange> CompareCollections<T>(string field, IReadOnlyCollection<T> oldValues, IReadOnlyCollection<T> newValues, bool isSensitive = false)

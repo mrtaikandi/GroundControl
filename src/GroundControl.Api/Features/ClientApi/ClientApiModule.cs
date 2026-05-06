@@ -1,6 +1,7 @@
 using GroundControl.Api.Core.Authentication;
 using GroundControl.Api.Core.ChangeNotification;
 using GroundControl.Api.Features.Clients;
+using GroundControl.Api.Shared.OpenApi;
 using GroundControl.Host.Api;
 
 namespace GroundControl.Api.Features.ClientApi;
@@ -13,6 +14,11 @@ internal sealed class ClientApiModule : IWebApiModule
     {
         builder.Services.AddTransient<GetConfigHandler>();
         builder.Services.AddTransient<StreamConfigHandler>();
+
+        if (OpenApiGenerator.IsGeneratingDocument)
+        {
+            return;
+        }
 
         builder.Services.AddSingleton<SnapshotCache>();
         builder.Services.AddHostedService<SnapshotCacheInvalidator>();

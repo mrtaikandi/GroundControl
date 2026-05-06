@@ -1,0 +1,322 @@
+{
+  "projects": [
+    {
+      "name": "Customer Profile Service",
+      "description": "Manages the canonical customer profile: personal details, contact preferences, delivery addresses, and account status for all Meridian products",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Customer profile and address store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCustomerProfile;User=svc_custprofile;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCustomerProfile;User=svc_custprofile;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for profile lookup cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CustomerProfileService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Preferences Service",
+      "description": "Stores and serves per-customer UI preferences, communication opt-in/out settings, and accessibility configurations across all channels",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Customer preference store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPreferences;User=svc_prefs;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPreferences;User=svc_prefs;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PreferencesService"}]},
+        {"key":"Preferences:CacheTtlSeconds","valueType":"Int32","description":"Duration to cache resolved customer preferences","values":[{"scopes":{},"value":"300"},{"scopes":{"environment":"prod"},"value":"600"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Feedback Service",
+      "description": "Collects and routes structured customer feedback via in-app surveys, CSAT ratings, and free-text comments; feeds into the NPS service and CRM",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Feedback submission store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianFeedback;User=svc_feedback;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianFeedback;User=svc_feedback;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"FeedbackService"}]},
+        {"key":"Feedback:MaxResponseCharacters","valueType":"Int32","description":"Maximum character length allowed in free-text feedback responses","values":[{"scopes":{},"value":"2000"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Support Tickets Service",
+      "description": "Manages customer support ticket lifecycle: creation, triage, agent assignment, SLA tracking, and resolution; integrates with Zendesk for agent tooling",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Ticket and escalation workflow store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSupportTickets;User=svc_tickets;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSupportTickets;User=svc_tickets;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SupportTicketsService"}]},
+        {"key":"Support:FirstResponseSlaHours","valueType":"Int32","description":"Target SLA for first agent response on new support tickets","values":[{"scopes":{},"value":"24"},{"scopes":{"environment":"prod"},"value":"4"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Live Chat API",
+      "description": "Backend API for real-time customer chat: session management, message persistence, agent routing, typing indicators, and bot handoff orchestration",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Chat session and message history store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianLiveChat;User=svc_livechat;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianLiveChat;User=svc_livechat;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis Pub/Sub for real-time message delivery","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"LiveChatApi"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Knowledge Base API",
+      "description": "Serves the self-service knowledge base: article search, category browsing, article helpfulness ratings, and personalised suggestions based on the customer's open tickets",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Knowledge base article and category store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianKnowledgeBase;User=svc_kb;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianKnowledgeBase;User=svc_kb;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"KnowledgeBaseApi"}]},
+        {"key":"KnowledgeBase:ArticleCacheTtlSeconds","valueType":"Int32","description":"Duration to cache published knowledge base articles","values":[{"scopes":{},"value":"600"},{"scopes":{"environment":"prod"},"value":"3600"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Survey Engine",
+      "description": "Builds and delivers targeted customer surveys (NPS, CSAT, product feedback) with branching logic, multi-channel delivery, and response analytics",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Survey definition and response store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSurveyEngine;User=svc_surveys;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSurveyEngine;User=svc_surveys;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SurveyEngine"}]},
+        {"key":"Survey:MaxQuestionsPerSurvey","valueType":"Int32","description":"Maximum number of questions in a single survey","values":[{"scopes":{},"value":"20"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "NPS Service",
+      "description": "Manages Net Promoter Score collection campaigns: timing rules, cohort selection, score calculation, and longitudinal trend reporting for the CX team",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"NPS response and trend store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianNps;User=svc_nps;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianNps;User=svc_nps;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"NpsService"}]},
+        {"key":"Nps:MinDaysBetweenSurveys","valueType":"Int32","description":"Minimum days before the same customer can be sent another NPS survey","values":[{"scopes":{},"value":"90"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Customer Journey Service",
+      "description": "Tracks customers across channels and touchpoints to build journey maps, identify friction points, and trigger personalised interventions at key lifecycle moments",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Journey event and stage store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCustomerJourney;User=svc_journey;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCustomerJourney;User=svc_journey;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:RabbitMq","valueType":"String","sensitive":true,"description":"RabbitMQ for journey event consumption","values":[{"scopes":{},"value":"amqp://svc_journey:CHANGEME@dev-rabbitmq.meridian.internal/meridian"},{"scopes":{"environment":"prod"},"value":"amqps://svc_journey:CHANGEME@prod-rabbitmq-cluster.meridian.internal/meridian"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CustomerJourneyService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Communication Preferences API",
+      "description": "Exposes a unified API for customers to manage marketing and transactional communication opt-ins across email, SMS, push, and post channels",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Communication preference and consent store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCommPrefs;User=svc_commprefs;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCommPrefs;User=svc_commprefs;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CommunicationPreferencesApi"}]},
+        {"key":"Preferences:PropagateToDownstreamSystems","valueType":"Boolean","description":"Whether preference changes are synchronised to external ESPs and SMS providers","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Customer Portal",
+      "description": "Primary self-service web application for Meridian customers: account management, order history, returns, and support access",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Base URL for the backend API used by this web application","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Browser tab title and og:title for the application","values":[{"scopes":{},"value":"Meridian Customer Portal"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Help Center",
+      "description": "Public-facing knowledge base and FAQ web application with article search, guided troubleshooters, and contextual in-app widget embedding",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Knowledge Base API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title for the help center","values":[{"scopes":{},"value":"Meridian Help Center"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Support Dashboard",
+      "description": "Internal React web application for customer support agents: ticket queue management, customer 360 view, macro application, and CSAT scores",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Support API base URL used by agents","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title for the support agent dashboard","values":[{"scopes":{},"value":"Meridian Support Agent Dashboard"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Account Settings",
+      "description": "Self-service account management web app: password change, 2FA setup, address book, payment methods, and notification preferences",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Account API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title for account settings","values":[{"scopes":{},"value":"Meridian Account Settings"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Order History",
+      "description": "Customer-facing order history web app: past order browsing, invoice download, reorder, and returns initiation with full order line detail",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Order API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title for the order history app","values":[{"scopes":{},"value":"Meridian Order History"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Loyalty Dashboard",
+      "description": "Web application for customers to view loyalty points balance, tier status, reward history, and redeem vouchers",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Loyalty API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title for the loyalty dashboard","values":[{"scopes":{},"value":"Meridian Rewards"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Meridian iOS App",
+      "description": "Main Meridian consumer iOS application: product browsing, checkout, order tracking, loyalty, and customer support features",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-mobile-app"],
+      "entries": [
+        {"key":"AppStoreId","valueType":"String","description":"Apple App Store application identifier","values":[{"scopes":{},"value":"com.meridian.ios"}]},
+        {"key":"SupportEmail","valueType":"String","description":"Customer support email address surfaced in the app's help section","values":[{"scopes":{},"value":"support@meridian.com"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MeridianIosApp"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Meridian Android App",
+      "description": "Main Meridian consumer Android application: product browsing, checkout, order tracking, loyalty, and customer support features",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-mobile-app"],
+      "entries": [
+        {"key":"AppStoreId","valueType":"String","description":"Google Play Store package name","values":[{"scopes":{},"value":"com.meridian.android"}]},
+        {"key":"SupportEmail","valueType":"String","description":"Customer support email address surfaced in the app's help section","values":[{"scopes":{},"value":"support@meridian.com"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MeridianAndroidApp"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Meridian React Native App",
+      "description": "Cross-platform React Native app targeting iOS and Android: serves markets where maintaining separate native codebases is not cost-effective",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-mobile-app"],
+      "entries": [
+        {"key":"AppStoreId","valueType":"String","description":"Primary store identifier (Play Store package name)","values":[{"scopes":{},"value":"com.meridian.reactnative"}]},
+        {"key":"SupportEmail","valueType":"String","description":"In-app support email","values":[{"scopes":{},"value":"support@meridian.com"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MeridianReactNativeApp"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Driver App iOS",
+      "description": "iOS application for delivery drivers: route navigation, delivery confirmation, customer signature capture, and shift management",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-mobile-app"],
+      "entries": [
+        {"key":"AppStoreId","valueType":"String","description":"App Store identifier for the driver app","values":[{"scopes":{},"value":"com.meridian.driver.ios"}]},
+        {"key":"SupportEmail","valueType":"String","description":"Operational support email for drivers","values":[{"scopes":{},"value":"driversupport@meridian.com"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DriverAppIos"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Driver App Android",
+      "description": "Android application for delivery drivers: route navigation, delivery confirmation, customer signature capture, and shift management",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-mobile-app"],
+      "entries": [
+        {"key":"AppStoreId","valueType":"String","description":"Play Store package name for the driver app","values":[{"scopes":{},"value":"com.meridian.driver.android"}]},
+        {"key":"SupportEmail","valueType":"String","description":"Operational support email for drivers","values":[{"scopes":{},"value":"driversupport@meridian.com"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DriverAppAndroid"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Merchant App iOS",
+      "description": "iOS application for Meridian marketplace sellers: inventory management, order processing, payout tracking, and customer message handling",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-mobile-app"],
+      "entries": [
+        {"key":"AppStoreId","valueType":"String","description":"App Store identifier for the merchant app","values":[{"scopes":{},"value":"com.meridian.merchant.ios"}]},
+        {"key":"SupportEmail","valueType":"String","description":"Merchant support email","values":[{"scopes":{},"value":"sellersupport@meridian.com"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MerchantAppIos"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Merchant App Android",
+      "description": "Android application for Meridian marketplace sellers: inventory management, order processing, payout tracking, and customer message handling",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-mobile-app"],
+      "entries": [
+        {"key":"AppStoreId","valueType":"String","description":"Play Store package name for the merchant app","values":[{"scopes":{},"value":"com.meridian.merchant.android"}]},
+        {"key":"SupportEmail","valueType":"String","description":"Merchant support email","values":[{"scopes":{},"value":"sellersupport@meridian.com"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MerchantAppAndroid"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Mobile API Gateway",
+      "description": "Dedicated API gateway optimised for mobile clients: response compression, request batching, offline delta sync, and adaptive payload size based on connection quality",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for mobile session and request deduplication","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MobileApiGateway"}]},
+        {"key":"Mobile:MaxRequestBatchSize","valueType":"Int32","description":"Maximum number of requests in a single mobile batch request","values":[{"scopes":{},"value":"10"},{"scopes":{"environment":"prod"},"value":"20"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Push Notification Service",
+      "description": "Sends Apple APNs and Google FCM push notifications to iOS and Android apps; handles device token registration, topic subscriptions, and delivery receipts",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Device token registry and delivery log","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPushNotifications;User=svc_push;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPushNotifications;User=svc_push;Password=CHANGEME"}]},
+        {"key":"Fcm:ServerKey","valueType":"String","sensitive":true,"description":"Firebase Cloud Messaging server key for Android push delivery","values":[{"scopes":{},"value":"fcm_server_key_dev_CHANGEME"},{"scopes":{"environment":"prod"},"value":"fcm_server_key_prod_CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PushNotificationService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Device Registry",
+      "description": "Manages registered user device records: device fingerprints, OS versions, app versions, and push token associations for security and support purposes",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Device registration and token store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDeviceRegistry;User=svc_devices;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDeviceRegistry;User=svc_devices;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DeviceRegistry"}]},
+        {"key":"Device:MaxDevicesPerUser","valueType":"Int32","description":"Maximum number of registered devices per user account","values":[{"scopes":{},"value":"5"},{"scopes":{"environment":"prod"},"value":"10"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Remote Config Service",
+      "description": "Serves mobile app configuration values (feature flags, A/B test assignments, UI copy) as a lightweight JSON payload polled by app clients",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for compiled config payload cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RemoteConfigService"}]},
+        {"key":"Config:PayloadCacheTtlSeconds","valueType":"Int32","description":"How long a compiled config payload is served from cache before recomputing","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"300"}]}
+      ],
+      "publishSnapshot": true
+    }
+  ]
+}

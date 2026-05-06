@@ -12,6 +12,33 @@ public sealed class ScopeResolverTests
     private readonly ScopeResolver _sut = new(NullLogger<ScopeResolver>.Instance);
 
     [Fact]
+    public void Resolve_DimensionKeyCasingDiffers_StillMatches()
+    {
+        // Arrange — scope dimensions are persisted under the case-insensitive collation, and the
+        // create/update validator looks them up case-insensitively, so producers can write entries
+        // with any casing of the dimension key. Resolution must match that contract or callers
+        // silently fall back to the unscoped default.
+        var scopedValues = new List<ScopedValue>
+        {
+            new("default", []),
+            new("dev-value", new Dictionary<string, string> { ["environment"] = "dev" }),
+            new("prod-value", new Dictionary<string, string> { ["environment"] = "prod" })
+        };
+
+        var clientScopes = new Dictionary<string, string>
+        {
+            ["Environment"] = "prod"
+        };
+
+        // Act
+        var result = _sut.Resolve(scopedValues, clientScopes);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Value.ShouldBe("prod-value");
+    }
+
+    [Fact]
     public void Resolve_ExactScopeMatch_ReturnsMatchingScopedValue()
     {
         // Arrange

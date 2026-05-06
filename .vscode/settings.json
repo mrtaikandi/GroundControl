@@ -7,5 +7,14 @@
         {
             "file": ".github/commit-message-instructions.md",
         }
-    ]
+    ],
+    "chat.tools.terminal.autoApprove": {
+        "/^Set-Location src/GroundControl\\.Tower; npm install$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "npm run typecheck": true,
+        "npx tsc": true,
+        "npm run build": true
+    }
 }

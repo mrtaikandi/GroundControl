@@ -1,6 +1,8 @@
+using System.Text.RegularExpressions;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.MongoDb.Pagination;
 using GroundControl.Persistence.Stores;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace GroundControl.Persistence.MongoDb.Stores;
@@ -115,6 +117,16 @@ internal sealed class ProjectStore : IProjectStore
         if (query.GroupId.HasValue)
         {
             filters.Add(Builders<Project>.Filter.Eq(project => project.GroupId, query.GroupId.Value));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var escapedSearch = Regex.Escape(query.Search.Trim());
+            var searchPattern = new BsonRegularExpression(escapedSearch, "i");
+
+            filters.Add(Builders<Project>.Filter.Or(
+                Builders<Project>.Filter.Regex(project => project.Name, searchPattern),
+                Builders<Project>.Filter.Regex(project => project.Description, searchPattern)));
         }
 
         return filters.Count == 0

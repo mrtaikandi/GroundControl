@@ -1,0 +1,361 @@
+{
+  "projects": [
+    {
+      "name": "Query Optimizer Service",
+      "description": "Analyses slow query logs from operational databases and recommends index strategies; generates execution plan reports for database engineers",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Query log and recommendation store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianQueryOptimizer;User=svc_queryopt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianQueryOptimizer;User=svc_queryopt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"QueryOptimizerService"}]},
+        {"key":"QueryOpt:SlowQueryThresholdMs","valueType":"Int32","description":"Query duration in milliseconds above which a query is logged for analysis","values":[{"scopes":{},"value":"500"},{"scopes":{"environment":"prod"},"value":"200"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Metadata Store Service",
+      "description": ".NET service that persists and serves technical metadata about data assets: row counts, column statistics, null rates, and sample values for governance tooling",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Asset metadata statistics store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianMetadataStore;User=svc_metadata;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianMetadataStore;User=svc_metadata;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MetadataStoreService"}]},
+        {"key":"Metadata:StatisticsRefreshCronExpression","valueType":"String","description":"Cron schedule for re-computing column statistics on all registered assets","values":[{"scopes":{},"value":"0 2 * * *"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Transformer Service",
+      "description": "Python service that applies configurable transformation rules (normalisation, masking, type casting, column derivation) to raw data before loading",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Transformation rule definition store","values":[{"scopes":{},"value":"postgresql://svc_datatransform:CHANGEME@dev-db-01.meridian.internal:5432/MeridianDataTransformer"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_datatransform:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianDataTransformer"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for transformation job lock state","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/10"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/10"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"data-transformer-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "DBT Runner Service",
+      "description": "Python service that executes dbt models against the data warehouse on schedule; manages model DAGs, runs tests, and pushes documentation to the data catalog",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"dbt run metadata and test result store","values":[{"scopes":{},"value":"postgresql://svc_dbtrunner:CHANGEME@dev-db-01.meridian.internal:5432/MeridianDbtRunner"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_dbtrunner:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianDbtRunner"}]},
+        {"key":"WAREHOUSE_URL","valueType":"String","sensitive":true,"description":"Snowflake connection URL for dbt profile","values":[{"scopes":{},"value":"snowflake://svc_dbt:CHANGEME@meridian-dev.snowflakecomputing.com/MERIDIAN_DEV"},{"scopes":{"environment":"prod"},"value":"snowflake://svc_dbt:CHANGEME@meridian.snowflakecomputing.com/MERIDIAN_PROD"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"dbt-runner-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Airflow Orchestrator Service",
+      "description": "Manages Apache Airflow DAG deployments: syncs DAG definitions from the monorepo, tracks run history, and surfaces SLA misses for the data platform team",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Airflow metadata database connection","values":[{"scopes":{},"value":"postgresql://svc_airflow:CHANGEME@dev-db-01.meridian.internal:5432/MeridianAirflow"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_airflow:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianAirflow"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for Celery task broker","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/11"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/11"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"airflow-orchestrator-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Governance Service",
+      "description": "Python service that enforces data governance policies: access request workflows, data classification enforcement, retention policy application, and policy audit logs",
+      "groupRef": "grp-data-platform",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Policy definition and access request store","values":[{"scopes":{},"value":"postgresql://svc_datagovernance:CHANGEME@dev-db-01.meridian.internal:5432/MeridianDataGovernance"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_datagovernance:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianDataGovernance"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for policy evaluation cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/12"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/12"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"data-governance-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Reporting Service",
+      "description": "Generates scheduled and on-demand business reports in PDF, Excel, and CSV formats; manages report templates, distribution lists, and output storage",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Report definition and schedule store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianReporting;User=svc_reporting;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianReporting;User=svc_reporting;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ReportingService"}]},
+        {"key":"Reporting:OutputBucket","valueType":"String","description":"S3 bucket for storing generated report files","values":[{"scopes":{},"value":"meridian-reports-dev"},{"scopes":{"environment":"prod"},"value":"meridian-reports-prod"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "KPI Engine",
+      "description": "Computes and maintains a registry of business KPIs: definitions, calculation logic, ownership, and time-series snapshots for trend comparison",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"KPI definition and time-series snapshot store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianKpiEngine;User=svc_kpiengine;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianKpiEngine;User=svc_kpiengine;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"KpiEngine"}]},
+        {"key":"Kpi:ComputeIntervalMinutes","valueType":"Int32","description":"How often the KPI engine recomputes all active metrics","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"15"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Metrics Aggregator Service",
+      "description": "Aggregates raw telemetry metrics from all platform services into business-level summaries: transaction counts, error rates, p95 latencies, and availability scores",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:ClickHouse","valueType":"String","sensitive":true,"description":"ClickHouse for aggregated metric storage","values":[{"scopes":{},"value":"Host=dev-clickhouse.meridian.internal;Port=9000;Database=platform_metrics;Username=svc_metricsagg;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Host=prod-clickhouse-cluster.meridian.internal;Port=9000;Database=platform_metrics;Username=svc_metricsagg;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MetricsAggregatorService"}]},
+        {"key":"Metrics:AggregationWindowSeconds","valueType":"Int32","description":"Tumbling window size in seconds for metric aggregation","values":[{"scopes":{},"value":"60"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Alerting Rules Engine",
+      "description": "Evaluates threshold and anomaly-based alerting rules against metrics and KPIs; delivers notifications to Slack, PagerDuty, and email when rules are breached",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Alert rule definition and incident store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAlertingRules;User=svc_alertingrules;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAlertingRules;User=svc_alertingrules;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AlertingRulesEngine"}]},
+        {"key":"Alerting:PagerDutyIntegrationKey","valueType":"String","sensitive":true,"description":"PagerDuty Events API v2 integration key for critical alert routing","values":[{"scopes":{},"value":"pd_integration_key_dev_CHANGEME"},{"scopes":{"environment":"prod"},"value":"pd_integration_key_prod_CHANGEME"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Statistics Engine",
+      "description": "Python service that provides statistical analysis APIs: cohort comparisons, A/B test significance testing, regression analysis, and descriptive statistics for analysts",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Analysis result and dataset store","values":[{"scopes":{},"value":"postgresql://svc_statsengine:CHANGEME@dev-db-01.meridian.internal:5432/MeridianStatisticsEngine"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_statsengine:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianStatisticsEngine"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for analysis job queue","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/13"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/13"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"statistics-engine"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "BI Data Sync Service",
+      "description": "Python worker that synchronises pre-aggregated BI datasets from the data warehouse into the BI Dashboard API's query database for low-latency dashboard rendering",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Target BI dataset store","values":[{"scopes":{},"value":"postgresql://svc_bidatasync:CHANGEME@dev-db-01.meridian.internal:5432/MeridianBiDataSync"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_bidatasync:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianBiDataSync"}]},
+        {"key":"WAREHOUSE_URL","valueType":"String","sensitive":true,"description":"Snowflake source warehouse URL","values":[{"scopes":{},"value":"snowflake://svc_bidatasync:CHANGEME@meridian-dev.snowflakecomputing.com/MERIDIAN_DEV"},{"scopes":{"environment":"prod"},"value":"snowflake://svc_bidatasync:CHANGEME@meridian.snowflakecomputing.com/MERIDIAN_PROD"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"bi-data-sync-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Sales Dashboard",
+      "description": "React dashboard for the sales team: pipeline metrics, conversion rates, regional performance breakdowns, and weekly revenue-vs-target tracking",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Sales analytics API URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Sales Dashboard"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Customer Insights Dashboard",
+      "description": "React dashboard for the CX team: NPS trends, CSAT scores, ticket volume, customer lifetime value distributions, and churn risk heatmaps",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Customer analytics API URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Customer Insights"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Product Performance Dashboard",
+      "description": "React dashboard for the product team: feature adoption, funnel conversion, A/B test results, session metrics, and user journey visualisations",
+      "groupRef": "grp-analytics-bi",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Product analytics API URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Meridian Product Analytics"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Model Training Service",
+      "description": "Python orchestration service for ML model training jobs: provisions compute, launches training scripts on GPU clusters, logs hyperparameters, and archives model artefacts",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Training job and artefact metadata store","values":[{"scopes":{},"value":"postgresql://svc_modeltraining:CHANGEME@dev-db-01.meridian.internal:5432/MeridianModelTraining"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_modeltraining:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianModelTraining"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for training job state","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/14"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/14"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"model-training-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Model Registry Service",
+      "description": "Central model registry: stores trained model versions with metadata, evaluation metrics, lineage, and promotion workflows from experiment to production",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Model version and promotion store","values":[{"scopes":{},"value":"postgresql://svc_modelregistry:CHANGEME@dev-db-01.meridian.internal:5432/MeridianModelRegistry"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_modelregistry:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianModelRegistry"}]},
+        {"key":"MLFLOW_TRACKING_URI","valueType":"String","description":"MLflow tracking server URI for experiment logging","values":[{"scopes":{},"value":"http://mlflow-dev.meridian.internal:5000"},{"scopes":{"environment":"prod"},"value":"https://mlflow.meridian.internal:5000"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"model-registry-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Experiment Tracker Service",
+      "description": "Tracks ML experiments: records hyperparameters, training metrics, dataset versions, and evaluation results to support reproducibility and model comparison",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Experiment run and metric store","values":[{"scopes":{},"value":"postgresql://svc_exptracker:CHANGEME@dev-db-01.meridian.internal:5432/MeridianExperimentTracker"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_exptracker:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianExperimentTracker"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for real-time metric streaming","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/15"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/15"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"experiment-tracker-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "AB Testing Framework",
+      "description": "Manages multi-variate and A/B experiments across the platform: experiment definition, user assignment, metric collection, and statistical significance reporting",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Experiment definition and assignment store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAbTesting;User=svc_abtesting;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAbTesting;User=svc_abtesting;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for experiment assignment cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AbTestingFramework"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Churn Prediction Service",
+      "description": "Python ML service that scores customers daily on their likelihood to churn using recency, frequency, and engagement features; feeds the retention campaign system",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Churn score and customer feature store","values":[{"scopes":{},"value":"postgresql://svc_churnpred:CHANGEME@dev-db-01.meridian.internal:5432/MeridianChurnPrediction"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_churnpred:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianChurnPrediction"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for live churn score cache","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/0"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/0"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"churn-prediction-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Model Serving API",
+      "description": ".NET API gateway for ML model inference: routes prediction requests to the appropriate model version, handles feature enrichment, and logs prediction audit trails",
+      "groupRef": "grp-ml-ai",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for prediction result cache and rate limiting","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ModelServingApi"}]},
+        {"key":"Serving:ModelRegistryUrl","valueType":"String","description":"Model Registry API base URL for fetching active model endpoints","values":[{"scopes":{},"value":"http://model-registry-dev.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://model-registry.meridian.internal"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Index Manager Service",
+      "description": "Manages Elasticsearch index lifecycle for the search platform: creates indices from templates, handles rollover, controls alias routing, and purges old index generations",
+      "groupRef": "grp-search",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Elasticsearch","valueType":"String","sensitive":true,"description":"Elasticsearch cluster for index lifecycle management","values":[{"scopes":{},"value":"http://dev-es.meridian.internal:9200"},{"scopes":{"environment":"prod"},"value":"https://prod-es-cluster.meridian.internal:9200"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"IndexManagerService"}]},
+        {"key":"Search:IndexRolloverMaxDocs","valueType":"Int32","description":"Maximum documents per index shard before rollover is triggered","values":[{"scopes":{},"value":"1000000"},{"scopes":{"environment":"prod"},"value":"50000000"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Autocomplete Service",
+      "description": "Provides typeahead suggestions for product and category search using prefix trees, popularity weighting, and personalised boosts per customer segment",
+      "groupRef": "grp-search",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis sorted-set store for autocomplete tries","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AutocompleteService"}]},
+        {"key":"Autocomplete:MaxSuggestions","valueType":"Int32","description":"Maximum number of autocomplete suggestions returned per request","values":[{"scopes":{},"value":"5"},{"scopes":{"environment":"prod"},"value":"8"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Vector Search Service",
+      "description": "Python service providing semantic similarity search using dense vector embeddings; powers visual search, style similarity, and related-product discovery",
+      "groupRef": "grp-search",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Vector index metadata store","values":[{"scopes":{},"value":"postgresql://svc_vectorsearch:CHANGEME@dev-db-01.meridian.internal:5432/MeridianVectorSearch"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_vectorsearch:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianVectorSearch"}]},
+        {"key":"QDRANT_URL","valueType":"String","sensitive":true,"description":"Qdrant vector database cluster URL","values":[{"scopes":{},"value":"http://dev-qdrant.meridian.internal:6333"},{"scopes":{"environment":"prod"},"value":"https://prod-qdrant.meridian.internal:6333"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"vector-search-service"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Search Relevance Tuner",
+      "description": "Allows search engineers to adjust field weights, boost factors, function scores, and custom ranking signals via a configuration API without redeploying the Search Service",
+      "groupRef": "grp-search",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Relevance configuration version store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRelevanceTuner;User=svc_relevance;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRelevanceTuner;User=svc_relevance;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SearchRelevanceTuner"}]},
+        {"key":"Relevance:EnableGradualRollout","valueType":"Boolean","description":"Apply new relevance configurations to a traffic percentage before full promotion","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Test Management API",
+      "description": "Backend API for the QA test management platform: test suite organisation, test case CRUD, test run scheduling, and result aggregation for CI and manual runs",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Test suite and run result store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianTestManagement;User=svc_testmgmt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianTestManagement;User=svc_testmgmt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"TestManagementApi"}]},
+        {"key":"TestManagement:JiraProjectKey","valueType":"String","description":"Jira project key for automatic defect creation from failed test runs","values":[{"scopes":{},"value":"MER-TEST-DEV"},{"scopes":{"environment":"prod"},"value":"MER-TEST"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Mock Service",
+      "description": ".NET service that exposes configurable mock endpoints for downstream API dependencies; used in integration test environments to isolate the system under test",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Mock definition and request log store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianMockService;User=svc_mockservice;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianMockService;User=svc_mockservice;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MockService"}]},
+        {"key":"Mock:EnableRequestLogging","valueType":"Boolean","description":"Log all requests received by the mock service for debugging","values":[{"scopes":{},"value":"true"},{"scopes":{"environment":"prod"},"value":"false"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Test Data Service",
+      "description": "Generates and manages anonymised test data sets for all QA environments; applies masking to production data snapshots and seeds test databases on demand",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Test data template and seed profile store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianTestData;User=svc_testdata;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianTestData;User=svc_testdata;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"TestDataService"}]},
+        {"key":"TestData:AnonymisationStrategy","valueType":"String","description":"Strategy for masking PII when creating test data from production snapshots","values":[{"scopes":{},"value":"Pseudonymise"},{"scopes":{"environment":"prod"},"value":"Pseudonymise"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "E2E Test Runner",
+      "description": "Python service that executes Playwright end-to-end test suites against deployed environments; distributes test execution across workers and publishes results",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Test run and result store","values":[{"scopes":{},"value":"postgresql://svc_e2erunner:CHANGEME@dev-db-01.meridian.internal:5432/MeridianE2eTestRunner"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_e2erunner:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianE2eTestRunner"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for test worker queue","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/2"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/2"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"e2e-test-runner"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Quality Metrics Collector",
+      "description": "Python service that aggregates quality signals from all QA tools (coverage reports, test results, static analysis, DORA metrics) into a unified quality score",
+      "groupRef": "grp-qa",
+      "templateRefs": ["tmpl-python-svc"],
+      "entries": [
+        {"key":"DATABASE_URL","valueType":"String","sensitive":true,"description":"Quality metric time-series store","values":[{"scopes":{},"value":"postgresql://svc_qualitymetrics:CHANGEME@dev-db-01.meridian.internal:5432/MeridianQualityMetrics"},{"scopes":{"environment":"prod"},"value":"postgresql://svc_qualitymetrics:CHANGEME@prod-db-cluster.meridian.internal:5432/MeridianQualityMetrics"}]},
+        {"key":"REDIS_URL","valueType":"String","sensitive":true,"description":"Redis for metric ingestion buffer","values":[{"scopes":{},"value":"redis://:CHANGEME@dev-redis.meridian.internal:6379/3"},{"scopes":{"environment":"prod"},"value":"rediss://:CHANGEME@prod-redis-cluster.meridian.internal:6379/3"}]},
+        {"key":"APP_NAME","valueType":"String","description":"Service name","values":[{"scopes":{},"value":"quality-metrics-collector"}]}
+      ],
+      "publishSnapshot": true
+    }
+  ]
+}

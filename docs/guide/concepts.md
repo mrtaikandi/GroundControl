@@ -56,7 +56,7 @@ Variables are resolved at publish time. If a configuration value references a va
 Configuration entries are the individual key-value pairs that make up your configuration. Each entry has:
 
 - A **key** (e.g., `App:LogLevel`, `Database:ConnectionString`)
-- A **value type** (String, Int32, Boolean, and others)
+- A **value type** (`String`, `Int32`, `Int64`, `Double`, `Decimal`, `Boolean`, `DateTime`, `DateTimeOffset`, `DateOnly`, or `TimeOnly`)
 - One or more **scoped values**
 
 An entry can have a default value (no scope) plus values for specific scope combinations. For example, an entry with key `App:LogLevel` might have a default value of "Information" and a scoped value of "Warning" for `{Environment: prod}`.

@@ -324,7 +324,7 @@ public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
         request.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
-                ValueType = "Integer",
+                ValueType = "Int64",
                 Values = [new ScopedValueRequest { Value = "42" }],
                 IsSensitive = true,
                 Description = "Updated description",
@@ -342,7 +342,7 @@ public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
         response.Headers.ETag.ShouldNotBeNull();
         response.Headers.ETag.ToString().ShouldBe("\"2\"");
         entry.Version.ShouldBe(2);
-        entry.ValueType.ShouldBe("Integer");
+        entry.ValueType.ShouldBe("Int64");
         entry.IsSensitive.ShouldBeTrue();
         entry.Description.ShouldBe("Updated description");
     }
@@ -423,6 +423,68 @@ public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
         // Assert
         deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         entryResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Theory]
+    [InlineData("Double", "3.14")]
+    [InlineData("Double", "-2.5")]
+    [InlineData("Decimal", "99.99")]
+    [InlineData("Int32", "42")]
+    [InlineData("Int64", "9223372036854775807")]
+    public async Task PostConfigEntry_WithSupportedNumericValueType_ReturnsCreated(string valueType, string value)
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var request = new CreateConfigEntryRequest
+        {
+            Key = $"Numeric:{valueType}",
+            OwnerId = template.Id,
+            OwnerType = ConfigEntryOwnerType.Template,
+            ValueType = valueType,
+            Values = [new ScopedValueRequest { Value = value }],
+        };
+
+        // Act
+        var response = await apiClient.PostAsJsonAsync(
+            "/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var entry = await ReadConfigEntryAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        entry.ValueType.ShouldBe(valueType);
+        entry.Values.ShouldHaveSingleItem().Value.ShouldBe(value);
+    }
+
+    [Theory]
+    [InlineData("Double", "not-a-number")]
+    [InlineData("Decimal", "abc")]
+    [InlineData("Int32", "3.14")]
+    [InlineData("Int64", "not-an-int")]
+    [InlineData("Number", "1")]
+    [InlineData("Json", "{}")]
+    public async Task PostConfigEntry_WithUnsupportedOrInvalidValueType_ReturnsBadRequest(string valueType, string value)
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var request = new CreateConfigEntryRequest
+        {
+            Key = $"Numeric:Invalid:{valueType}",
+            OwnerId = template.Id,
+            OwnerType = ConfigEntryOwnerType.Template,
+            ValueType = valueType,
+            Values = [new ScopedValueRequest { Value = value }],
+        };
+
+        // Act
+        var response = await apiClient.PostAsJsonAsync(
+            "/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     private static async Task<ConfigEntryResponse> CreateConfigEntryAsync(

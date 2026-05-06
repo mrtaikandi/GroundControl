@@ -1,0 +1,461 @@
+{
+  "projects": [
+    {
+      "name": "Authentication Service",
+      "description": "Core authentication service handling username/password login, OAuth2 flows, and session token issuance for all Meridian applications",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Auth session and credential store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAuth;User=svc_auth;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAuth;User=svc_auth;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for session cache and brute-force throttle counters","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AuthenticationService"}]},
+        {"key":"Auth:MaxFailedAttemptsBeforeLockout","valueType":"Int32","description":"Number of failed login attempts before an account is temporarily locked","values":[{"scopes":{},"value":"5"},{"scopes":{"environment":"prod"},"value":"3"}]},
+        {"key":"UserDirectoryApi:BaseUrl","valueType":"String","description":"User Directory API base URL for looking up canonical user identities during credential validation","values":[{"scopes":{},"value":"https://user-directory-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://user-directory-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://user-directory.meridian.internal"}]},
+        {"key":"UserDirectoryApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the User Directory Service","values":[{"scopes":{},"value":"authsvc_dev_userdir_CHANGEME"},{"scopes":{"environment":"prod"},"value":"authsvc_prod_userdir_CHANGEME"}]},
+        {"key":"MfaApi:BaseUrl","valueType":"String","description":"MFA Service API base URL for initiating and verifying second-factor challenges during login","values":[{"scopes":{},"value":"https://mfa-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://mfa-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://mfa-api.meridian.internal"}]},
+        {"key":"MfaApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the MFA Service","values":[{"scopes":{},"value":"authsvc_dev_mfa_CHANGEME"},{"scopes":{"environment":"prod"},"value":"authsvc_prod_mfa_CHANGEME"}]},
+        {"key":"NotificationsApi:BaseUrl","valueType":"String","description":"Notifications Service API base URL for sending login OTP and suspicious-activity alert emails","values":[{"scopes":{},"value":"https://notifications-api-dev.meridian.internal"},{"scopes":{"environment":"staging"},"value":"https://notifications-api-stg.meridian.internal"},{"scopes":{"environment":"prod"},"value":"https://notifications-api.meridian.internal"}]},
+        {"key":"NotificationsApi:ApiKey","valueType":"String","sensitive":true,"description":"API key for authenticating requests to the Notifications Service","values":[{"scopes":{},"value":"authsvc_dev_notif_CHANGEME"},{"scopes":{"environment":"prod"},"value":"authsvc_prod_notif_CHANGEME"}]},
+        {"key":"Logging:LogLevel:Meridian.Auth.Pipeline","valueType":"String","description":"Log level for the authentication pipeline — raise to Debug during incident investigation","values":[{"scopes":{},"value":"Information"},{"scopes":{"environment":"dev"},"value":"Debug"},{"scopes":{"environment":"prod"},"value":"Warning"}]},
+        {"key":"Logging:LogLevel:Microsoft.AspNetCore.Authentication","valueType":"String","description":"Log level for the ASP.NET Core authentication middleware stack","values":[{"scopes":{},"value":"Warning"},{"scopes":{"environment":"dev"},"value":"Debug"}]},
+        {"key":"Features:SocialLogin:Enabled","valueType":"Boolean","description":"Enables social identity provider login via Google, Apple, and Microsoft accounts","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Features:PasskeyLogin:Enabled","valueType":"Boolean","description":"Enables passwordless FIDO2 passkey authentication as an alternative to username/password","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]},
+        {"key":"Cors:AllowedOrigins","valueType":"String","description":"Comma-separated origins allowed to call the Authentication Service — all storefronts and first-party apps in production","values":[{"scopes":{},"value":"*"},{"scopes":{"environment":"prod"},"value":"https://www.meridian.com,https://app.meridian.com,https://admin.meridian.com,https://partner.meridian.com"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "OAuth Provider",
+      "description": "OIDC-compliant authorisation server implementing OAuth2.0 authorisation code, client credentials, and device flows for first-party and third-party integrations",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Client registration and consent store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianOAuthProvider;User=svc_oauthprov;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianOAuthProvider;User=svc_oauthprov;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for authorization code and token cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"OAuthProvider"}]},
+        {"key":"OAuth:AccessTokenLifetimeMinutes","valueType":"Int32","description":"Lifetime of issued access tokens in minutes","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"15"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "User Directory",
+      "description": "Manages canonical user identities, profile data, and account lifecycle (create, verify, suspend, delete) with SCIM 2.0 provisioning support",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"User profile and identity store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianUserDirectory;User=svc_userdir;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianUserDirectory;User=svc_userdir;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for user lookup cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"UserDirectory"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Permission Service",
+      "description": "Evaluates fine-grained access policies using RBAC and ABAC models; serves policy decisions to all services via a fast REST evaluation API",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Policy definition and assignment store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPermissionService;User=svc_permsvc;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPermissionService;User=svc_permsvc;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for policy decision cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PermissionService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Session Manager",
+      "description": "Creates, validates, and revokes user sessions with sliding expiration; supports concurrent session limits and device-based session isolation",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis primary store for active session state","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SessionManager"}]},
+        {"key":"Session:IdleTimeoutMinutes","valueType":"Int32","description":"Session idle timeout — sessions inactive for this duration are revoked","values":[{"scopes":{},"value":"120"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Token Issuance Service",
+      "description": "Signs and issues JWT access tokens and opaque refresh tokens; manages signing key rotation using asymmetric RS256 keys stored in the Secret Manager",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Refresh token store and signing key registry","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianTokenIssuance;User=svc_tokeniss;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianTokenIssuance;User=svc_tokeniss;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"TokenIssuanceService"}]},
+        {"key":"Token:RefreshTokenLifetimeDays","valueType":"Int32","description":"Refresh token validity period in days","values":[{"scopes":{},"value":"7"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "MFA Service",
+      "description": "Manages multi-factor authentication enrollment and verification via TOTP (Authenticator apps), SMS OTP, and hardware security keys (FIDO2/WebAuthn)",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"MFA device enrollment store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianMFA;User=svc_mfa;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianMFA;User=svc_mfa;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"MfaService"}]},
+        {"key":"Totp:OtpWindowCount","valueType":"Int32","description":"Number of TOTP time windows to accept on either side of the current window","values":[{"scopes":{},"value":"2"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Password Policy Service",
+      "description": "Enforces configurable password complexity rules, breach database checks via HaveIBeenPwned, and password expiration policies across all identity providers",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Password history and policy store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPasswordPolicy;User=svc_pwpolicy;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPasswordPolicy;User=svc_pwpolicy;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PasswordPolicyService"}]},
+        {"key":"Password:MinLength","valueType":"Int32","description":"Minimum required password character length","values":[{"scopes":{},"value":"8"},{"scopes":{"environment":"prod"},"value":"12"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "SSO Connector",
+      "description": "Integrates with external enterprise identity providers (Azure AD, Okta, Google Workspace) via SAML 2.0 and OIDC federation protocols",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"IdP configuration and attribute mapping store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSSOConnector;User=svc_sso;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSSOConnector;User=svc_sso;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SsoConnector"}]},
+        {"key":"Saml:EntityId","valueType":"String","description":"SAML service provider entity ID advertised to identity providers","values":[{"scopes":{},"value":"https://sso-dev.meridian.internal/saml/sp"},{"scopes":{"environment":"prod"},"value":"https://sso.meridian.com/saml/sp"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Access Review Service",
+      "description": "Automates periodic access certification campaigns by generating review tasks for managers, tracking approvals, and revoking expired permissions",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Access review campaign and decision store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAccessReview;User=svc_accrev;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAccessReview;User=svc_accrev;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AccessReviewService"}]},
+        {"key":"Review:CampaignIntervalDays","valueType":"Int32","description":"Frequency in days between recurring access review campaigns","values":[{"scopes":{},"value":"90"},{"scopes":{"environment":"prod"},"value":"90"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Role Manager",
+      "description": "Manages role definitions, hierarchies, and assignments; synchronises roles to downstream systems via webhooks on change events",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Role definition and assignment store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRoleMgr;User=svc_rolemgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRoleMgr;User=svc_rolemgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RoleManager"}]},
+        {"key":"Role:MaxRolesPerUser","valueType":"Int32","description":"Maximum number of roles that can be assigned to a single user","values":[{"scopes":{},"value":"20"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Trust Broker",
+      "description": "Evaluates risk signals (device trust, geo-location, behaviour anomalies) and issues adaptive authentication challenges for risky sessions",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Trust signal and risk score store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianTrustBroker;User=svc_trust;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianTrustBroker;User=svc_trust;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"TrustBroker"}]},
+        {"key":"Trust:HighRiskScoreThreshold","valueType":"Int32","description":"Risk score above which step-up authentication is required (0–100)","values":[{"scopes":{},"value":"70"},{"scopes":{"environment":"prod"},"value":"60"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "API Key Service",
+      "description": "Manages long-lived API keys for server-to-server integrations: generation, scoping, rotation, revocation, and usage auditing",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"API key registry and audit store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianApiKeys;User=svc_apikeys;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianApiKeys;User=svc_apikeys;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ApiKeyService"}]},
+        {"key":"ApiKey:DefaultExpiryDays","valueType":"Int32","description":"Default expiration period for newly issued API keys in days","values":[{"scopes":{},"value":"365"},{"scopes":{"environment":"prod"},"value":"90"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Identity Audit Logger",
+      "description": "Captures and immutably stores all identity-related events (logins, role changes, MFA enrolments) for compliance reporting and forensic investigations",
+      "groupRef": "grp-identity-access",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Immutable identity audit log store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianIdentityAudit;User=svc_idaudit;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianIdentityAudit;User=svc_idaudit;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"IdentityAuditLogger"}]},
+        {"key":"Audit:RetentionYears","valueType":"Int32","description":"Number of years to retain identity audit events","values":[{"scopes":{},"value":"2"},{"scopes":{"environment":"prod"},"value":"7"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Threat Detection Service",
+      "description": "Analyses real-time security events from all services to detect intrusions, brute-force attacks, and anomalous API usage patterns using ML-based scoring",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Threat event and detection rule store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianThreatDetection;User=svc_threatdet;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianThreatDetection;User=svc_threatdet;Password=CHANGEME"}]},
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for real-time event stream processing","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ThreatDetectionService"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Vulnerability Scanner",
+      "description": "Scans container images, dependency trees, and infrastructure components for known CVEs; integrates with CI/CD to block deployment of vulnerable artefacts",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Scan result and CVE database","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianVulnScanner;User=svc_vulnscan;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianVulnScanner;User=svc_vulnscan;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"VulnerabilityScanner"}]},
+        {"key":"Scanner:CveDbSyncIntervalHours","valueType":"Int32","description":"How often the local CVE database is synchronised with NVD","values":[{"scopes":{},"value":"24"},{"scopes":{"environment":"prod"},"value":"6"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Security Monitor",
+      "description": "Aggregates security signals from WAF, IDS, and application logs into a unified dashboard; tracks security posture scores and SLA metrics for the CISO",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Security event aggregation store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSecurityMonitor;User=svc_secmon;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSecurityMonitor;User=svc_secmon;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SecurityMonitor"}]},
+        {"key":"Monitor:DashboardRefreshSeconds","valueType":"Int32","description":"Polling interval for the CISO security posture dashboard","values":[{"scopes":{},"value":"60"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Masking Service",
+      "description": "Provides on-demand and policy-driven data masking for PII fields in API responses, log output, and database exports based on caller role",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Masking policy and field classification store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDataMasking;User=svc_masking;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDataMasking;User=svc_masking;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DataMaskingService"}]},
+        {"key":"Masking:DefaultStrategy","valueType":"String","description":"Default masking strategy applied when no specific policy matches a field","values":[{"scopes":{},"value":"Tokenize"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Encryption Service",
+      "description": "Provides application-layer encryption and decryption of sensitive data fields using envelope encryption backed by AWS KMS or Azure Key Vault",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Redis","valueType":"String","sensitive":true,"description":"Redis for encrypted data key cache","values":[{"scopes":{},"value":"dev-redis.meridian.internal:6379,password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"prod-redis-cluster.meridian.internal:6379,password=CHANGEME,ssl=true"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"EncryptionService"}]},
+        {"key":"Kms:KeyAlias","valueType":"String","description":"KMS key alias used for data key generation","values":[{"scopes":{},"value":"alias/meridian-dev-app-key"},{"scopes":{"environment":"prod"},"value":"alias/meridian-prod-app-key"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Key Rotation Service",
+      "description": "Automates cryptographic key rotation across all services on a configurable schedule, coordinating data re-encryption and zero-downtime handoff",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Key rotation schedule and audit store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianKeyRotation;User=svc_keyrot;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianKeyRotation;User=svc_keyrot;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"KeyRotationService"}]},
+        {"key":"Rotation:KeyLifetimeDays","valueType":"Int32","description":"Maximum age of an active encryption key before forced rotation","values":[{"scopes":{},"value":"365"},{"scopes":{"environment":"prod"},"value":"90"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Incident Response Service",
+      "description": "Manages security incident lifecycles from detection through containment, eradication, and post-incident review with automated playbook execution",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Incident and playbook execution store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianIncidentResponse;User=svc_incident;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianIncidentResponse;User=svc_incident;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"IncidentResponseService"}]},
+        {"key":"Incident:P1ResponseSlaMinutes","valueType":"Int32","description":"SLA target in minutes for P1 incident first response","values":[{"scopes":{},"value":"30"},{"scopes":{"environment":"prod"},"value":"15"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "WAF Manager",
+      "description": "Manages Web Application Firewall rules and block lists across all public-facing load balancers; analyses attack patterns and auto-generates defensive rules",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"WAF rule set and incident block-list store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianWafManager;User=svc_wafmgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianWafManager;User=svc_wafmgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"WafManager"}]},
+        {"key":"Waf:AutoBlockEnabled","valueType":"Boolean","description":"Whether automatically detected malicious IPs are blocked without manual approval","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "DLP Service",
+      "description": "Data Loss Prevention service that inspects outbound data flows for sensitive patterns (PAN, SSN, PHI) and enforces configurable block or quarantine policies",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"DLP policy and violation log store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDLP;User=svc_dlp;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDLP;User=svc_dlp;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DlpService"}]},
+        {"key":"Dlp:ScanMode","valueType":"String","description":"DLP scan mode: Inspect (log only) or Enforce (block violations)","values":[{"scopes":{},"value":"Inspect"},{"scopes":{"environment":"prod"},"value":"Enforce"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "SIEM Connector",
+      "description": "Forwards structured security events from all Meridian services to the external SIEM platform (Splunk/Microsoft Sentinel) with field normalization",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Event forwarding queue and delivery state","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSiemConnector;User=svc_siem;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSiemConnector;User=svc_siem;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SiemConnector"}]},
+        {"key":"Siem:EndpointUrl","valueType":"String","sensitive":true,"description":"SIEM HEC/API endpoint for event ingestion","values":[{"scopes":{},"value":"https://splunk-dev.meridian.internal:8088/services/collector"},{"scopes":{"environment":"prod"},"value":"https://splunk.meridian.internal:8088/services/collector"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Certificate Manager",
+      "description": "Manages TLS client certificates for mTLS service-to-service communication: issuance, renewal, revocation, and CRL publication",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Certificate inventory and CRL store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCertMgr;User=svc_certmgr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCertMgr;User=svc_certmgr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CertificateManager"}]},
+        {"key":"Cert:CaRootCertPath","valueType":"String","description":"Path to the internal CA root certificate used for issuing client certificates","values":[{"scopes":{},"value":"/etc/meridian-ca/dev-ca-root.pem"},{"scopes":{"environment":"prod"},"value":"/etc/meridian-ca/prod-ca-root.pem"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Access Monitor",
+      "description": "Continuously monitors privileged access activity on production systems, detects privilege escalation, and generates PAM compliance reports",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Privileged access session and alert store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAccessMonitor;User=svc_accmon;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAccessMonitor;User=svc_accmon;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AccessMonitor"}]},
+        {"key":"Monitor:PrivilegedSessionRecordingEnabled","valueType":"Boolean","description":"Whether privileged SSH/RDP sessions are recorded for forensic review","values":[{"scopes":{},"value":"false"},{"scopes":{"environment":"prod"},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Anomaly Detector",
+      "description": "Applies statistical baselines and ML models to detect anomalous behaviour in API call patterns, authentication flows, and data access volumes",
+      "groupRef": "grp-security",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Anomaly event and baseline model store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAnomalyDetector;User=svc_anomaly;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAnomalyDetector;User=svc_anomaly;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AnomalyDetector"}]},
+        {"key":"Anomaly:BaselineWindowDays","valueType":"Int32","description":"Historical window in days used to calculate behavioural baselines","values":[{"scopes":{},"value":"7"},{"scopes":{"environment":"prod"},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Audit Trail Service",
+      "description": "Provides a tamper-evident, append-only audit log for all data modification events across the platform, queryable for compliance and forensic purposes",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Append-only audit event store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianAuditTrail;User=svc_audittrail;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianAuditTrail;User=svc_audittrail;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AuditTrailService"}]},
+        {"key":"Audit:HashAlgorithm","valueType":"String","description":"Cryptographic hash algorithm used for audit record chaining","values":[{"scopes":{},"value":"SHA-256"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Retention Service",
+      "description": "Executes configurable data retention and deletion schedules; archives data approaching retention limits and permanently purges expired records",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Retention schedule and deletion log","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDataRetention;User=svc_retention;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDataRetention;User=svc_retention;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DataRetentionService"}]},
+        {"key":"Retention:DefaultRetentionDays","valueType":"Int32","description":"Default data retention period in days when no specific policy is defined","values":[{"scopes":{},"value":"730"},{"scopes":{"environment":"prod"},"value":"2555"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "GDPR Service",
+      "description": "Implements GDPR obligations: data subject rights requests (access, portability, rectification), consent tracking, and lawful basis management",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Data subject request and consent store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianGdpr;User=svc_gdpr;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianGdpr;User=svc_gdpr;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"GdprService"}]},
+        {"key":"Gdpr:DsrResponseDeadlineDays","valueType":"Int32","description":"Maximum days to fulfil a data subject access or erasure request","values":[{"scopes":{},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Compliance Reporter",
+      "description": "Generates regulatory compliance reports (GDPR, PCI-DSS, SOX, ISO 27001) by aggregating evidence from audit trails, access logs, and policy systems",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Compliance evidence and report store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianComplianceReporter;User=svc_comprpt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianComplianceReporter;User=svc_comprpt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ComplianceReporter"}]},
+        {"key":"Report:DefaultFormat","valueType":"String","description":"Default output format for generated compliance reports","values":[{"scopes":{},"value":"PDF"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Consent Management",
+      "description": "Manages user consent preferences for marketing, analytics, and data processing; propagates consent changes to all downstream consumers in real time",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Consent record and preference store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianConsent;User=svc_consent;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianConsent;User=svc_consent;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"ConsentManagement"}]},
+        {"key":"Consent:DefaultExpiryDays","valueType":"Int32","description":"Number of days before collected consent requires re-confirmation","values":[{"scopes":{},"value":"365"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Data Classification Service",
+      "description": "Automatically classifies data assets (Public, Internal, Confidential, Restricted) using pattern matching and ML-based content inspection",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Data asset classification catalogue","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDataClassification;User=svc_dataclass;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDataClassification;User=svc_dataclass;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DataClassificationService"}]},
+        {"key":"Classification:DefaultLabel","valueType":"String","description":"Classification label assigned to unclassified data assets","values":[{"scopes":{},"value":"Internal"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Right to Erasure Service",
+      "description": "Orchestrates multi-system data deletion workflows in response to GDPR Article 17 erasure requests, with verification and audit trail generation",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Erasure request workflow and verification store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianErasure;User=svc_erasure;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianErasure;User=svc_erasure;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RightToErasureService"}]},
+        {"key":"Erasure:RequireHumanApproval","valueType":"Boolean","description":"Whether erasure requests require human review before execution","values":[{"scopes":{},"value":"true"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "PCI Compliance Service",
+      "description": "Monitors and enforces PCI-DSS controls for cardholder data environments including network segmentation, encryption, and access control requirements",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"PCI control evidence and finding store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianPciCompliance;User=svc_pci;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianPciCompliance;User=svc_pci;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"PciComplianceService"}]},
+        {"key":"Pci:Level","valueType":"String","description":"PCI-DSS merchant level determining applicable SAQ type","values":[{"scopes":{},"value":"Level4"},{"scopes":{"environment":"prod"},"value":"Level1"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "SOX Compliance Service",
+      "description": "Manages Sarbanes-Oxley internal control frameworks: control testing schedules, deficiency tracking, management sign-off workflows, and auditor evidence packages",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"SOX control test and finding store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianSox;User=svc_sox;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianSox;User=svc_sox;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"SoxComplianceService"}]},
+        {"key":"Sox:FiscalYearEndMonth","valueType":"Int32","description":"Month number (1–12) of the fiscal year end used for SOX reporting period calculations","values":[{"scopes":{},"value":"12"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Regulatory Reporting Service",
+      "description": "Automates submission of statutory regulatory filings (FCA, GDPR supervisory authorities, tax authorities) with template-driven report generation and submission tracking",
+      "groupRef": "grp-compliance",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Filing schedule and submission status store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianRegulatoryReporting;User=svc_regrpt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianRegulatoryReporting;User=svc_regrpt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"RegulatoryReportingService"}]},
+        {"key":"Reporting:DefaultJurisdiction","valueType":"String","description":"Primary regulatory jurisdiction for filing submissions","values":[{"scopes":{},"value":"UK"}]}
+      ],
+      "publishSnapshot": true
+    }
+  ]
+}

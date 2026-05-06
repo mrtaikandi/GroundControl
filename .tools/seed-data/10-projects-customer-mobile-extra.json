@@ -1,0 +1,140 @@
+{
+  "projects": [
+    {
+      "name": "Feedback Widget",
+      "description": "Embeddable React micro-frontend feedback widget used across the customer portal and checkout experience to capture in-context ratings and comments",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Feedback API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Widget identifier used for telemetry","values":[{"scopes":{},"value":"Meridian Feedback Widget"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Onboarding Wizard",
+      "description": "Guided multi-step onboarding flow for new customers: account verification, address setup, payment method addition, and first-order incentive delivery",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Customer API base URL used during onboarding steps","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title during the onboarding flow","values":[{"scopes":{},"value":"Welcome to Meridian"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Returns Portal",
+      "description": "Self-service React web application for customers to initiate returns, select return reason, choose refund method, and print prepaid return labels",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Returns API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title for the returns portal","values":[{"scopes":{},"value":"Meridian Returns Portal"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Brand Website",
+      "description": "Public marketing website for Meridian: company story, press room, career listings, sustainability report, and investor relations content",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"CMS API base URL for marketing content","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Site title for the brand website","values":[{"scopes":{},"value":"Meridian Digital Solutions"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Checkout Experience",
+      "description": "Standalone React micro-frontend for the checkout flow: embeddable in multiple storefronts with payment method selection, address entry, and order confirmation",
+      "groupRef": "grp-customer-exp",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"Checkout and payment API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Application title","values":[{"scopes":{},"value":"Meridian Checkout"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Deep Link Service",
+      "description": "Manages universal links and app-specific deep links for iOS and Android; resolves incoming links to the correct in-app screen with deferred deep linking for new installs",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Link definition and deferred link store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianDeepLink;User=svc_deeplink;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianDeepLink;User=svc_deeplink;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"DeepLinkService"}]},
+        {"key":"DeepLink:AppLinkDomain","valueType":"String","description":"Domain registered for universal / app-link verification","values":[{"scopes":{},"value":"links-dev.meridian.internal"},{"scopes":{"environment":"prod"},"value":"links.meridian.com"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "App Analytics Collector",
+      "description": "Receives in-app event streams from iOS and Android clients and routes them to the analytics data pipeline for session analysis and funnel tracking",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-dotnet-worker"],
+      "entries": [
+        {"key":"ConnectionStrings:ClickHouse","valueType":"String","sensitive":true,"description":"ClickHouse for mobile event ingestion","values":[{"scopes":{},"value":"Host=dev-clickhouse.meridian.internal;Port=9000;Database=mobile_analytics;Username=svc_mobileanalytics;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Host=prod-clickhouse-cluster.meridian.internal;Port=9000;Database=mobile_analytics;Username=svc_mobileanalytics;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"AppAnalyticsCollector"}]},
+        {"key":"Analytics:BatchFlushIntervalSeconds","valueType":"Int32","description":"How often buffered mobile events are flushed to ClickHouse","values":[{"scopes":{},"value":"5"},{"scopes":{"environment":"prod"},"value":"2"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Crash Reporting Service",
+      "description": "Ingests symbolicated crash reports from iOS and Android apps; groups crashes into issues, tracks occurrence counts, and notifies the mobile team of regressions",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Crash issue and occurrence store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianCrashReporting;User=svc_crashrpt;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianCrashReporting;User=svc_crashrpt;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"CrashReportingService"}]},
+        {"key":"CrashReporting:AlertThresholdOccurrences","valueType":"Int32","description":"Number of occurrences within an hour before a new crash issue triggers a Slack alert","values":[{"scopes":{},"value":"10"},{"scopes":{"environment":"prod"},"value":"50"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Offline Sync Service",
+      "description": "Provides conflict-resolution and delta-sync APIs for the Meridian mobile app to synchronise local data with the server after extended offline periods",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-dotnet-svc"],
+      "entries": [
+        {"key":"ConnectionStrings:Database","valueType":"String","sensitive":true,"description":"Sync state and conflict log store","values":[{"scopes":{},"value":"Server=dev-db-01.meridian.internal;Database=MeridianOfflineSync;User=svc_offlinesync;Password=CHANGEME"},{"scopes":{"environment":"prod"},"value":"Server=prod-db-cluster.meridian.internal;Database=MeridianOfflineSync;User=svc_offlinesync;Password=CHANGEME"}]},
+        {"key":"App:ServiceName","valueType":"String","description":"Service identifier","values":[{"scopes":{},"value":"OfflineSyncService"}]},
+        {"key":"Sync:MaxDeltaWindowDays","valueType":"Int32","description":"Maximum number of days of changes included in a single delta sync response","values":[{"scopes":{},"value":"30"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "Mobile Web App",
+      "description": "Progressive web app storefront optimised for mobile browsers with install-to-home-screen support, offline product browsing, and native-like navigation",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"API base URL for the mobile web app","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"PWA app title shown in the browser and home screen","values":[{"scopes":{},"value":"Meridian Shop"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "PWA Storefront",
+      "description": "Standalone Progressive Web App for the Meridian B2B wholesale storefront with offline catalogue, bulk-order entry, and credit account management",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"B2B commerce API base URL","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"App title for the B2B PWA storefront","values":[{"scopes":{},"value":"Meridian B2B Trade"}]}
+      ],
+      "publishSnapshot": true
+    },
+    {
+      "name": "App Landing Page",
+      "description": "Marketing landing page for the Meridian mobile apps: feature highlights, app store badges, screenshots, and smart-banner redirect for mobile visitors",
+      "groupRef": "grp-mobile",
+      "templateRefs": ["tmpl-react-webapp"],
+      "entries": [
+        {"key":"VITE_APP_API_URL","valueType":"String","description":"CMS API for landing page content","values":[{"scopes":{},"value":"https://api-dev.meridian.internal/v1"},{"scopes":{"environment":"prod"},"value":"https://api.meridian.com/v1"}]},
+        {"key":"VITE_APP_TITLE","valueType":"String","description":"Page title","values":[{"scopes":{},"value":"Get the Meridian App"}]}
+      ],
+      "publishSnapshot": true
+    }
+  ]
+}
