@@ -1,3 +1,4 @@
+using Azure.Identity;
 using GroundControl.Api.Core.DataProtection;
 using GroundControl.Api.Core.DataProtection.KeyRing;
 using Microsoft.AspNetCore.DataProtection;
@@ -24,7 +25,7 @@ public sealed class AzureKeyRingConfiguratorTests
         var builder = services.AddDataProtection()
             .SetApplicationName("GroundControl.Tests");
 
-        var configurator = new AzureKeyRingConfigurator();
+        var configurator = new AzureKeyRingConfigurator(new DefaultAzureCredential());
 
         // Act & Assert
         var exception = Should.Throw<OptionsValidationException>(() => configurator.Configure(builder, options));
@@ -49,7 +50,7 @@ public sealed class AzureKeyRingConfiguratorTests
         var dpBuilder = services.AddDataProtection()
             .SetApplicationName("GroundControl.Tests");
 
-        var configurator = new AzureKeyRingConfigurator();
+        var configurator = new AzureKeyRingConfigurator(new DefaultAzureCredential());
 
         // Act & Assert
         var exception = Should.Throw<OptionsValidationException>(() => configurator.Configure(dpBuilder, options));

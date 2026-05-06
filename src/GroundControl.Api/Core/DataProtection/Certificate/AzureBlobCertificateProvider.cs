@@ -1,12 +1,13 @@
 using System.Security.Cryptography.X509Certificates;
-using Azure.Identity;
+using Azure.Core;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Core.DataProtection.Certificate;
 
 /// <summary>
-/// Downloads X.509 certificates from Azure Blob Storage using <see cref="DefaultAzureCredential"/>.
+/// Downloads X.509 certificates from Azure Blob Storage using an injected
+/// <see cref="TokenCredential"/>.
 /// </summary>
 /// <remarks>
 /// Uses the Azure SDK's synchronous <c>BlobClient.DownloadContent</c> API rather than
@@ -16,14 +17,17 @@ namespace GroundControl.Api.Core.DataProtection.Certificate;
 /// </remarks>
 internal sealed partial class AzureBlobCertificateProvider : IDataProtectionCertificateProvider
 {
-    private static readonly DefaultAzureCredential Credential = new();
-
     private readonly AzureBlobCertificateOptions _options;
+    private readonly TokenCredential _credential;
     private readonly ILogger<AzureBlobCertificateProvider> _logger;
 
-    public AzureBlobCertificateProvider(IOptions<AzureBlobCertificateOptions> options, ILogger<AzureBlobCertificateProvider> logger)
+    public AzureBlobCertificateProvider(
+        IOptions<AzureBlobCertificateOptions> options,
+        TokenCredential credential,
+        ILogger<AzureBlobCertificateProvider> logger)
     {
         _options = options.Value;
+        _credential = credential;
         _logger = logger;
     }
 
@@ -47,7 +51,7 @@ internal sealed partial class AzureBlobCertificateProvider : IDataProtectionCert
 
     private X509Certificate2 DownloadCertificate(Uri blobUri, string source)
     {
-        var client = new BlobClient(blobUri, Credential);
+        var client = new BlobClient(blobUri, _credential);
         var response = client.DownloadContent();
         var pfxBytes = response.Value.Content.ToArray();
 

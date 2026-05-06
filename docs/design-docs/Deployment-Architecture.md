@@ -180,9 +180,11 @@ environment:
   - DataProtection__Mode=Azure
   - DataProtection__Azure__BlobStorageUri=https://<account>.blob.core.windows.net/data-protection/keys.xml
   - DataProtection__Azure__KeyVaultKeyUri=https://<vault>.vault.azure.net/keys/groundcontrol-dp
+  - DataProtection__AzureCredential__Mode=ManagedIdentity
+  - DataProtection__AzureCredential__ClientId=<user-assigned-mi-client-id>  # omit for system-assigned MI
 ```
 
-Azure Key Vault handles key ring protection natively — no manual certificate management is needed. Use `DefaultAzureCredential` (Managed Identity in AKS) for authentication to both Blob Storage and Key Vault. All regions share the same blob container and Key Vault key, ensuring a consistent key ring.
+Azure Key Vault handles key ring protection natively — no manual certificate management is needed. The credential type is configured via `DataProtection:AzureCredential:Mode` and applies to both Blob Storage and Key Vault. Supported modes: `Default` (chained `DefaultAzureCredential`, the recommended starting point), `ManagedIdentity` (system- or user-assigned), `WorkloadIdentity` (AKS workload identity), `ClientSecret`, `AzureCli` (local development), and `Environment`. All regions share the same blob container and Key Vault key, ensuring a consistent key ring.
 
 ---
 

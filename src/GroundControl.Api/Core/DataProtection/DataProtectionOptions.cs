@@ -53,6 +53,13 @@ internal sealed class DataProtectionOptions
     public AzureOptions Azure { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the credential used to authenticate to Azure. Applies to the Azure key ring
+    /// (<see cref="DataProtectionMode.Azure"/>) and to the Azure Blob certificate provider
+    /// (<see cref="CertificateProviderMode.AzureBlob"/>); both share the same credential.
+    /// </summary>
+    public AzureCredentialOptions AzureCredential { get; set; } = new();
+
+    /// <summary>
     /// Validates <see cref="DataProtectionOptions"/> by enforcing mode/provider consistency
     /// and dispatching to source-generated validators for the active sub-options.
     /// </summary>
@@ -88,6 +95,14 @@ internal sealed class DataProtectionOptions
                         failures.AddRange(blobFailures);
                     }
                     break;
+            }
+
+            if (options.Mode is DataProtectionMode.Azure || options.CertificateProvider is CertificateProviderMode.AzureBlob)
+            {
+                if (!AzureCredentialOptions.Validator.TryValidate(options.AzureCredential, out var credentialFailures, nameof(AzureCredential)))
+                {
+                    failures.AddRange(credentialFailures);
+                }
             }
 
             switch (options.Mode)
