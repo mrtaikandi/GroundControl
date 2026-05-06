@@ -330,18 +330,17 @@ Application configuration for GroundControl server:
 | `DataProtection:Mode` | `FileSystem` | Key ring configurator: `FileSystem`, `Certificate`, `Redis`, `Azure` |
 | `DataProtection:KeyStorePath` | `./keys` | File system path for key ring storage (`FileSystem`, `Certificate`) |
 | `DataProtection:UseDpapi` | `false` | Use DPAPI for key protection (`FileSystem` on Windows only) |
-| `DataProtection:CertificateProvider` | `FileSystem` | Certificate provider: `FileSystem`, `AzureBlob` |
-| `DataProtection:Certificate:FileSystem:CurrentPath` | — | Current X.509 certificate path (`.pfx`) |
-| `DataProtection:Certificate:FileSystem:Password` | — | Certificate password (prefer environment variable or secrets manager) |
-| `DataProtection:Certificate:FileSystem:PreviousPaths` | `[]` | Previous certificate paths for decrypting old keys during rotation |
-| `DataProtection:Certificate:AzureBlob:ContainerUri` | — | Azure Blob Storage container URI for certificates |
-| `DataProtection:Certificate:AzureBlob:CurrentBlobName` | — | Blob name of the current certificate |
-| `DataProtection:Certificate:AzureBlob:PreviousBlobNames` | `[]` | Blob names of previous certificates |
-| `DataProtection:Certificate:AzureBlob:Password` | — | Certificate password (shared across blobs) |
-| `DataProtection:Redis:ConnectionString` | — | Redis connection string (`Redis` configurator) |
-| `DataProtection:Redis:KeyName` | `GroundControl-DP-Keys` | Redis key name for key ring storage |
-| `DataProtection:Azure:BlobStorageUri` | — | Azure Blob Storage URI for key ring storage |
-| `DataProtection:Azure:KeyVaultKeyUri` | — | Azure Key Vault key URI for key ring protection |
+| `DataProtection:CertificateProvider` | — | Certificate provider: `FileSystem` or `AzureBlob` (required for `Certificate` and `Redis` modes) |
+| `DataProtection:CertificatePath` | — | Path to the current `.pfx` certificate (`FileSystem` provider) |
+| `DataProtection:CertificatePassword` | — | Certificate password — shared by current and previous certificates and by the `AzureBlob` provider (prefer environment variable or secrets manager) |
+| `DataProtection:PreviousCertificatePaths` | `[]` | Optional array of `.pfx` paths for previously-used certificates, kept available for decrypting key XML written under the prior cert until rotation completes |
+| `DataProtection:AzureBlobUrl` | — | Azure Blob URL for the current certificate (`AzureBlob` provider) |
+| `DataProtection:PreviousAzureBlobUrls` | `[]` | Optional array of blob URLs for previously-used certificates (`AzureBlob` provider). Same semantics as `PreviousCertificatePaths` |
+| `DataProtection:Redis:ConnectionString` | — | Redis connection string (`Redis` mode) |
+| `DataProtection:Redis:KeyName` | `groundcontrol-data-protection` | Redis key name for key ring storage |
+| `DataProtection:Redis:ConnectTimeoutMs` | `5000` | Redis connection timeout |
+| `DataProtection:Azure:BlobUri` | — | Azure Blob Storage URI for key ring storage (`Azure` mode) |
+| `DataProtection:Azure:KeyVaultKeyId` | — | Azure Key Vault key URI for key ring protection (`Azure` mode) |
 | `DataProtection:KeyRotation:Enabled` | `false` | Enable automatic key rotation |
 | `DataProtection:KeyRotation:KeyLifetime` | `90` | Days before a new key is generated (when rotation is enabled) |
 | `Cache:PrewarmOnStartup` | `false` | Load all active snapshots into cache at startup (trades memory for guaranteed first-request cache hits) |
