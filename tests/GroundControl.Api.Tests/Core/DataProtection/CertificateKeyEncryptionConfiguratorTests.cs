@@ -19,8 +19,7 @@ public sealed class CertificateKeyEncryptionConfiguratorTests : IDisposable
         // Arrange
         var certificate = CreateSelfSignedCertificate();
         var provider = Substitute.For<IDataProtectionCertificateProvider>();
-        provider.GetCurrentCertificateAsync(Arg.Any<CancellationToken>())
-            .Returns(certificate);
+        provider.GetCurrentCertificate().Returns(certificate);
 
         var configurator = new CertificateKeyEncryptionConfigurator(provider, NullLoggerFactory.Instance);
         var options = new KeyManagementOptions();
@@ -33,13 +32,12 @@ public sealed class CertificateKeyEncryptionConfiguratorTests : IDisposable
     }
 
     [Fact]
-    public void Configure_CallsGetCurrentCertificateAsync()
+    public void Configure_CallsGetCurrentCertificate()
     {
         // Arrange
         var certificate = CreateSelfSignedCertificate();
         var provider = Substitute.For<IDataProtectionCertificateProvider>();
-        provider.GetCurrentCertificateAsync(Arg.Any<CancellationToken>())
-            .Returns(certificate);
+        provider.GetCurrentCertificate().Returns(certificate);
 
         var configurator = new CertificateKeyEncryptionConfigurator(provider, NullLoggerFactory.Instance);
         var options = new KeyManagementOptions();
@@ -48,7 +46,7 @@ public sealed class CertificateKeyEncryptionConfiguratorTests : IDisposable
         configurator.Configure(options);
 
         // Assert
-        provider.Received(1).GetCurrentCertificateAsync(Arg.Any<CancellationToken>());
+        provider.Received(1).GetCurrentCertificate();
     }
 
     public void Dispose()
