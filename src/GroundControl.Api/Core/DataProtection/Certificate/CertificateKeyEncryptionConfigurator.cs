@@ -8,25 +8,25 @@ namespace GroundControl.Api.Core.DataProtection.Certificate;
 /// Configures Data Protection key encryption using X.509 certificates resolved from DI.
 /// </summary>
 /// <remarks>
-/// <para>
-/// This defers certificate loading from service registration time to the first resolution of
-/// <see cref="KeyManagementOptions"/>. ASP.NET Core Data Protection is synchronous by design
-/// (see aspnetcore#3548), so the blocking call to the async certificate provider is unavoidable.
-/// It is safe because ASP.NET Core has no <c>SynchronizationContext</c>.
-/// </para>
-/// <para>
-/// The certificate provider is resolved from DI with proper logging, replacing the previous
-/// approach of manually constructing providers with <c>NullLoggerFactory</c>.
-/// </para>
+/// Defers certificate loading from service registration time to the first resolution of
+/// <see cref="KeyManagementOptions"/>. The certificate provider is resolved from DI so the
+/// configured logger is used instead of <c>NullLoggerFactory</c>.
 /// </remarks>
-internal sealed class CertificateKeyEncryptionConfigurator(
-    IDataProtectionCertificateProvider certificateProvider,
-    ILoggerFactory loggerFactory) : IConfigureOptions<KeyManagementOptions>
+internal sealed class CertificateKeyEncryptionConfigurator : IConfigureOptions<KeyManagementOptions>
 {
+    private readonly IDataProtectionCertificateProvider _certificateProvider;
+    private readonly ILoggerFactory _loggerFactory;
+
+    public CertificateKeyEncryptionConfigurator(IDataProtectionCertificateProvider certificateProvider, ILoggerFactory loggerFactory)
+    {
+        _certificateProvider = certificateProvider;
+        _loggerFactory = loggerFactory;
+    }
+
     /// <inheritdoc />
     public void Configure(KeyManagementOptions options)
     {
-        var certificate = certificateProvider.GetCurrentCertificateAsync().GetAwaiter().GetResult();
-        options.XmlEncryptor = new CertificateXmlEncryptor(certificate, loggerFactory);
+        var certificate = _certificateProvider.GetCurrentCertificate();
+        options.XmlEncryptor = new CertificateXmlEncryptor(certificate, _loggerFactory);
     }
 }
