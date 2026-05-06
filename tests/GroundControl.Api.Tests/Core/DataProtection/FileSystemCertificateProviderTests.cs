@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using GroundControl.Api.Core.DataProtection.Certificate;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Shouldly;
 using Xunit;
 
@@ -24,8 +24,7 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
     {
         // Arrange
         var pfxPath = CreateTestCertificate(password: null);
-        var configuration = BuildConfiguration(pfxPath, password: null);
-        var provider = new FileSystemCertificateProvider(configuration, _logger);
+        var provider = new FileSystemCertificateProvider(BuildOptions(pfxPath, password: null), _logger);
 
         // Act
         var certificate = provider.GetCurrentCertificate();
@@ -42,8 +41,7 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
         // Arrange
         var password = "test-password-123";
         var pfxPath = CreateTestCertificate(password);
-        var configuration = BuildConfiguration(pfxPath, password);
-        var provider = new FileSystemCertificateProvider(configuration, _logger);
+        var provider = new FileSystemCertificateProvider(BuildOptions(pfxPath, password), _logger);
 
         // Act
         var certificate = provider.GetCurrentCertificate();
@@ -58,8 +56,7 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
     public void GetCurrentCertificate_ThrowsFileNotFoundException_WhenPathDoesNotExist()
     {
         // Arrange
-        var configuration = BuildConfiguration("/nonexistent/path/cert.pfx", password: null);
-        var provider = new FileSystemCertificateProvider(configuration, _logger);
+        var provider = new FileSystemCertificateProvider(BuildOptions("/nonexistent/path/cert.pfx", password: null), _logger);
 
         // Act & Assert
         Should.Throw<FileNotFoundException>(() => provider.GetCurrentCertificate());
@@ -70,31 +67,33 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
     {
         // Arrange
         var pfxPath = CreateTestCertificate(password: "correct-password");
-        var configuration = BuildConfiguration(pfxPath, password: "wrong-password");
-        var provider = new FileSystemCertificateProvider(configuration, _logger);
+        var provider = new FileSystemCertificateProvider(BuildOptions(pfxPath, password: "wrong-password"), _logger);
 
         // Act & Assert
         Should.Throw<CryptographicException>(() => provider.GetCurrentCertificate());
     }
 
     [Fact]
-    public void GetCurrentCertificate_ThrowsInvalidOperationException_WhenPathNotConfigured()
+    public void Validator_FailsValidation_WhenPathIsEmpty()
     {
         // Arrange
-        var configuration = new ConfigurationBuilder().Build();
-        var provider = new FileSystemCertificateProvider(configuration, _logger);
+        var options = new FileSystemCertificateOptions();
+        var validator = new FileSystemCertificateOptions.Validator();
 
-        // Act & Assert
-        var exception = Should.Throw<InvalidOperationException>(() => provider.GetCurrentCertificate());
-        exception.Message.ShouldContain("DataProtection:CertificatePath");
+        // Act
+        var result = validator.Validate(name: null, options);
+
+        // Assert
+        result.Failed.ShouldBeTrue();
+        result.FailureMessage.ShouldContain(nameof(FileSystemCertificateOptions.Path));
     }
 
     [Fact]
     public void GetPreviousCertificates_ReturnsEmptyList_WhenNotConfigured()
     {
         // Arrange
-        var configuration = new ConfigurationBuilder().Build();
-        var provider = new FileSystemCertificateProvider(configuration, _logger);
+        var pfxPath = CreateTestCertificate(password: null);
+        var provider = new FileSystemCertificateProvider(BuildOptions(pfxPath, password: null), _logger);
 
         // Act
         var result = provider.GetPreviousCertificates();
@@ -110,8 +109,8 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
         var currentPath = CreateTestCertificate(password: null);
         var firstPreviousPath = CreateTestCertificate(password: null);
         var secondPreviousPath = CreateTestCertificate(password: null);
-        var configuration = BuildConfiguration(currentPath, password: null, previousPaths: [firstPreviousPath, secondPreviousPath]);
-        var provider = new FileSystemCertificateProvider(configuration, _logger);
+        var options = BuildOptions(currentPath, password: null, previousPaths: [firstPreviousPath, secondPreviousPath]);
+        var provider = new FileSystemCertificateProvider(options, _logger);
 
         // Act
         var result = provider.GetPreviousCertificates();
@@ -122,30 +121,13 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
         result[1].HasPrivateKey.ShouldBeTrue();
     }
 
-    private static IConfiguration BuildConfiguration(string path, string? password, IReadOnlyList<string>? previousPaths = null)
-    {
-        var configValues = new Dictionary<string, string?>
+    private static IOptions<FileSystemCertificateOptions> BuildOptions(string path, string? password, IReadOnlyList<string>? previousPaths = null) =>
+        Options.Create(new FileSystemCertificateOptions
         {
-            ["DataProtection:CertificatePath"] = path
-        };
-
-        if (password is not null)
-        {
-            configValues["DataProtection:CertificatePassword"] = password;
-        }
-
-        if (previousPaths is not null)
-        {
-            for (var i = 0; i < previousPaths.Count; i++)
-            {
-                configValues[$"DataProtection:PreviousCertificatePaths:{i}"] = previousPaths[i];
-            }
-        }
-
-        return new ConfigurationBuilder()
-            .AddInMemoryCollection(configValues)
-            .Build();
-    }
+            Path = path,
+            Password = password,
+            PreviousPaths = previousPaths is null ? [] : [.. previousPaths]
+        });
 
     private string CreateTestCertificate(string? password)
     {

@@ -8,8 +8,8 @@ namespace GroundControl.Api.Tests.Core.DataProtection.Lifecycle;
 /// Verifies that rotating the X.509 certificate that protects the Data Protection key ring
 /// does not strand sensitive values written before the rotation. Factory A boots with cert
 /// C1 as the current certificate; Factory B boots with C2 as current and C1 in
-/// <c>DataProtection:PreviousCertificatePaths</c> so the key XML protected by C1 remains
-/// decryptable.
+/// <c>DataProtection:FileSystemCertificate:PreviousPaths</c> so the key XML protected by C1
+/// remains decryptable.
 /// </summary>
 public sealed class CertificateRotationTests : DataProtectionLifecycleTestBase
 {
@@ -80,13 +80,13 @@ public sealed class CertificateRotationTests : DataProtectionLifecycleTestBase
             ["Persistence:MongoDb:DatabaseName"] = DatabaseName,
             ["DataProtection:Mode"] = "Certificate",
             ["DataProtection:CertificateProvider"] = "FileSystem",
-            ["DataProtection:CertificatePath"] = currentCertificatePath,
+            ["DataProtection:FileSystemCertificate:Path"] = currentCertificatePath,
             ["DataProtection:KeyStorePath"] = _keyStorePath
         };
 
         for (var i = 0; i < previousCertificatePaths.Count; i++)
         {
-            config[$"DataProtection:PreviousCertificatePaths:{i}"] = previousCertificatePaths[i];
+            config[$"DataProtection:FileSystemCertificate:PreviousPaths:{i}"] = previousCertificatePaths[i];
         }
 
         return CreateFactory(config);

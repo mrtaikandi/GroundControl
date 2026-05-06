@@ -1,3 +1,4 @@
+using GroundControl.Api.Core.DataProtection.Certificate;
 using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Core.DataProtection;
@@ -32,19 +33,14 @@ internal sealed class DataProtectionOptions
     public bool UseDpapi { get; set; }
 
     /// <summary>
-    /// Gets or sets the file system path to the X.509 certificate.
+    /// Gets or sets options for the file system certificate provider.
     /// </summary>
-    public string? CertificatePath { get; set; }
+    public FileSystemCertificateOptions FileSystemCertificate { get; set; } = new();
 
     /// <summary>
-    /// Gets or sets the certificate password.
+    /// Gets or sets options for the Azure Blob certificate provider.
     /// </summary>
-    public string? CertificatePassword { get; set; }
-
-    /// <summary>
-    /// Gets or sets the Azure Blob URL for certificate download.
-    /// </summary>
-    public Uri? CertificateAzureBlobUrl { get; set; }
+    public AzureBlobCertificateOptions AzureBlobCertificate { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the Redis-specific options.
@@ -57,7 +53,8 @@ internal sealed class DataProtectionOptions
     public AzureOptions Azure { get; set; } = new();
 
     /// <summary>
-    /// Validates <see cref="DataProtectionOptions"/> including cross-property constraints.
+    /// Validates <see cref="DataProtectionOptions"/> by enforcing mode/provider consistency
+    /// and dispatching to source-generated validators for the active sub-options.
     /// </summary>
     internal sealed class Validator : IValidateOptions<DataProtectionOptions>
     {
@@ -66,43 +63,42 @@ internal sealed class DataProtectionOptions
         {
             var failures = new List<string>();
 
-            if (string.IsNullOrEmpty(options.KeyStorePath))
+            if (string.IsNullOrWhiteSpace(options.KeyStorePath))
             {
-                failures.Add("DataProtection:KeyStorePath is required.");
+                failures.Add($"{nameof(DataProtectionOptions)}:{nameof(KeyStorePath)} is required.");
             }
 
-            if (options.Mode is DataProtectionMode.Certificate or DataProtectionMode.Redis)
+            if (options.Mode is DataProtectionMode.Certificate or DataProtectionMode.Redis && !options.CertificateProvider.HasValue)
             {
-                if (!options.CertificateProvider.HasValue)
-                {
-                    failures.Add($"DataProtection:CertificateProvider must be configured when Mode is '{options.Mode}'.");
-                }
+                failures.Add($"{nameof(DataProtectionOptions)}:{nameof(CertificateProvider)} must be configured when Mode is '{options.Mode}'.");
             }
 
-            if (options.CertificateProvider is CertificateProviderMode.FileSystem && string.IsNullOrWhiteSpace(options.CertificatePath))
+            switch (options.CertificateProvider)
             {
-                failures.Add("DataProtection:CertificatePath is required when CertificateProvider is 'FileSystem'.");
+                case CertificateProviderMode.FileSystem:
+                    if (!FileSystemCertificateOptions.Validator.TryValidate(options.FileSystemCertificate, out var fsFailures, nameof(FileSystemCertificate)))
+                    {
+                        failures.AddRange(fsFailures);
+                    }
+                    break;
+
+                case CertificateProviderMode.AzureBlob:
+                    if (!AzureBlobCertificateOptions.Validator.TryValidate(options.AzureBlobCertificate, out var blobFailures, nameof(AzureBlobCertificate)))
+                    {
+                        failures.AddRange(blobFailures);
+                    }
+                    break;
             }
 
-            if (options is { CertificateProvider: CertificateProviderMode.AzureBlob, CertificateAzureBlobUrl: null })
+            switch (options.Mode)
             {
-                failures.Add("DataProtection:AzureBlobUrl is required when CertificateProvider is 'AzureBlob'.");
-            }
-
-            if (options.Mode is DataProtectionMode.Redis)
-            {
-                if (RedisOptions.Validator.TryValidate(options.Redis, out var redisFailures, nameof(options.Redis)))
-                {
+                case DataProtectionMode.Redis when !RedisOptions.Validator.TryValidate(options.Redis, out var redisFailures, nameof(Redis)):
                     failures.AddRange(redisFailures);
-                }
-            }
+                    break;
 
-            if (options.Mode is DataProtectionMode.Azure)
-            {
-                if (AzureOptions.Validator.TryValidate(options.Azure, out var azureFailures, nameof(options.Azure)))
-                {
+                case DataProtectionMode.Azure when !AzureOptions.Validator.TryValidate(options.Azure, out var azureFailures, nameof(Azure)):
                     failures.AddRange(azureFailures);
-                }
+                    break;
             }
 
             return failures.Count > 0 ? ValidateOptionsResult.Fail(failures) : ValidateOptionsResult.Success;

@@ -59,14 +59,14 @@ public sealed class RedisCertificateRotationTests : DataProtectionLifecycleTestB
             ["Persistence:MongoDb:DatabaseName"] = DatabaseName,
             ["DataProtection:Mode"] = "Redis",
             ["DataProtection:CertificateProvider"] = "FileSystem",
-            ["DataProtection:CertificatePath"] = currentCertificatePath,
+            ["DataProtection:FileSystemCertificate:Path"] = currentCertificatePath,
             ["DataProtection:Redis:ConnectionString"] = _redisFixture.ConnectionString,
             ["DataProtection:Redis:KeyName"] = _redisKeyName
         };
 
         for (var i = 0; i < previousCertificatePaths.Count; i++)
         {
-            config[$"DataProtection:PreviousCertificatePaths:{i}"] = previousCertificatePaths[i];
+            config[$"DataProtection:FileSystemCertificate:PreviousPaths:{i}"] = previousCertificatePaths[i];
         }
 
         return CreateFactory(config);
