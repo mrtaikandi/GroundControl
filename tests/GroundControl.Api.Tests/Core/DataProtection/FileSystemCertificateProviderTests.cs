@@ -20,7 +20,7 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetCurrentCertificateAsync_LoadsValidPfxWithoutPassword()
+    public void GetCurrentCertificate_LoadsValidPfxWithoutPassword()
     {
         // Arrange
         var pfxPath = CreateTestCertificate(password: null);
@@ -28,7 +28,7 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
         var provider = new FileSystemCertificateProvider(configuration, _logger);
 
         // Act
-        var certificate = await provider.GetCurrentCertificateAsync(TestContext.Current.CancellationToken);
+        var certificate = provider.GetCurrentCertificate();
 
         // Assert
         certificate.ShouldNotBeNull();
@@ -37,7 +37,7 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetCurrentCertificateAsync_LoadsValidPfxWithPassword()
+    public void GetCurrentCertificate_LoadsValidPfxWithPassword()
     {
         // Arrange
         var password = "test-password-123";
@@ -46,7 +46,7 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
         var provider = new FileSystemCertificateProvider(configuration, _logger);
 
         // Act
-        var certificate = await provider.GetCurrentCertificateAsync(TestContext.Current.CancellationToken);
+        var certificate = provider.GetCurrentCertificate();
 
         // Assert
         certificate.ShouldNotBeNull();
@@ -55,19 +55,18 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task GetCurrentCertificateAsync_ThrowsFileNotFoundException_WhenPathDoesNotExist()
+    public void GetCurrentCertificate_ThrowsFileNotFoundException_WhenPathDoesNotExist()
     {
         // Arrange
         var configuration = BuildConfiguration("/nonexistent/path/cert.pfx", password: null);
         var provider = new FileSystemCertificateProvider(configuration, _logger);
 
         // Act & Assert
-        await Should.ThrowAsync<FileNotFoundException>(
-            () => provider.GetCurrentCertificateAsync(TestContext.Current.CancellationToken));
+        Should.Throw<FileNotFoundException>(() => provider.GetCurrentCertificate());
     }
 
     [Fact]
-    public async Task GetCurrentCertificateAsync_ThrowsCryptographicException_WhenPasswordIsWrong()
+    public void GetCurrentCertificate_ThrowsCryptographicException_WhenPasswordIsWrong()
     {
         // Arrange
         var pfxPath = CreateTestCertificate(password: "correct-password");
@@ -75,38 +74,55 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
         var provider = new FileSystemCertificateProvider(configuration, _logger);
 
         // Act & Assert
-        await Should.ThrowAsync<CryptographicException>(
-            () => provider.GetCurrentCertificateAsync(TestContext.Current.CancellationToken));
+        Should.Throw<CryptographicException>(() => provider.GetCurrentCertificate());
     }
 
     [Fact]
-    public async Task GetCurrentCertificateAsync_ThrowsInvalidOperationException_WhenPathNotConfigured()
+    public void GetCurrentCertificate_ThrowsInvalidOperationException_WhenPathNotConfigured()
     {
         // Arrange
         var configuration = new ConfigurationBuilder().Build();
         var provider = new FileSystemCertificateProvider(configuration, _logger);
 
         // Act & Assert
-        var exception = await Should.ThrowAsync<InvalidOperationException>(
-            () => provider.GetCurrentCertificateAsync(TestContext.Current.CancellationToken));
+        var exception = Should.Throw<InvalidOperationException>(() => provider.GetCurrentCertificate());
         exception.Message.ShouldContain("DataProtection:CertificatePath");
     }
 
     [Fact]
-    public async Task GetPreviousCertificatesAsync_ReturnsEmptyList()
+    public void GetPreviousCertificates_ReturnsEmptyList_WhenNotConfigured()
     {
         // Arrange
         var configuration = new ConfigurationBuilder().Build();
         var provider = new FileSystemCertificateProvider(configuration, _logger);
 
         // Act
-        var result = await provider.GetPreviousCertificatesAsync(TestContext.Current.CancellationToken);
+        var result = provider.GetPreviousCertificates();
 
         // Assert
         result.ShouldBeEmpty();
     }
 
-    private static IConfiguration BuildConfiguration(string path, string? password)
+    [Fact]
+    public void GetPreviousCertificates_LoadsConfiguredPaths()
+    {
+        // Arrange
+        var currentPath = CreateTestCertificate(password: null);
+        var firstPreviousPath = CreateTestCertificate(password: null);
+        var secondPreviousPath = CreateTestCertificate(password: null);
+        var configuration = BuildConfiguration(currentPath, password: null, previousPaths: [firstPreviousPath, secondPreviousPath]);
+        var provider = new FileSystemCertificateProvider(configuration, _logger);
+
+        // Act
+        var result = provider.GetPreviousCertificates();
+
+        // Assert
+        result.Count.ShouldBe(2);
+        result[0].HasPrivateKey.ShouldBeTrue();
+        result[1].HasPrivateKey.ShouldBeTrue();
+    }
+
+    private static IConfiguration BuildConfiguration(string path, string? password, IReadOnlyList<string>? previousPaths = null)
     {
         var configValues = new Dictionary<string, string?>
         {
@@ -116,6 +132,14 @@ public sealed class FileSystemCertificateProviderTests : IDisposable
         if (password is not null)
         {
             configValues["DataProtection:CertificatePassword"] = password;
+        }
+
+        if (previousPaths is not null)
+        {
+            for (var i = 0; i < previousPaths.Count; i++)
+            {
+                configValues[$"DataProtection:PreviousCertificatePaths:{i}"] = previousPaths[i];
+            }
         }
 
         return new ConfigurationBuilder()
