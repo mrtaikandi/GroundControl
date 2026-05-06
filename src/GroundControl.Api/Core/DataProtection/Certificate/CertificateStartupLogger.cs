@@ -4,15 +4,15 @@ namespace GroundControl.Api.Core.DataProtection.Certificate;
 /// Loads the Data Protection certificate at startup to verify it is accessible
 /// and to log the certificate thumbprint.
 /// </summary>
-internal sealed partial class CertificateStartupLogger(
-    IDataProtectionCertificateProvider provider,
-    ILogger<CertificateStartupLogger> logger) : IHostedService
+internal sealed partial class CertificateStartupLogger(IDataProtectionCertificateProvider provider, ILogger<CertificateStartupLogger> logger) : IHostedService
 {
     /// <inheritdoc />
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        using var certificate = await provider.GetCurrentCertificateAsync(cancellationToken).ConfigureAwait(false);
+        using var certificate = provider.GetCurrentCertificate();
         LogCertificateReady(logger, certificate.Thumbprint);
+
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
