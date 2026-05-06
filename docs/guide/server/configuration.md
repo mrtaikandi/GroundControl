@@ -62,14 +62,31 @@ Keys are stored as XML files in `KeyStorePath`. Suitable for single-instance dep
 
 ### Certificate mode
 
-Keys are stored on the file system and protected with an X.509 certificate.
+Keys are stored on the file system and the key XML is encrypted at rest with an X.509 certificate. The same configuration applies under Redis mode (which uses Redis storage but the same certificate-based key protection).
 
 | Setting | Description |
 |---|---|
-| `DataProtection:CertificateProvider` | `FileSystem` or `AzureBlob` |
-| `DataProtection:CertificatePath` | Path to the .pfx certificate file (FileSystem provider) |
-| `DataProtection:CertificatePassword` | Certificate password (FileSystem provider) |
-| `DataProtection:CertificateAzureBlobUrl` | Blob URL for certificate download (AzureBlob provider) |
+| `DataProtection:CertificateProvider` | `FileSystem` or `AzureBlob`. |
+| `DataProtection:CertificatePath` | Path to the current `.pfx` certificate file (`FileSystem` provider). |
+| `DataProtection:CertificatePassword` | Certificate password. Shared by current and previous certificates and by the `AzureBlob` provider. |
+| `DataProtection:PreviousCertificatePaths` | Optional array of `.pfx` paths for certificates that previously protected the key ring (`FileSystem` provider). Required during certificate rotation so existing key XML remains decryptable until rotated out. |
+| `DataProtection:AzureBlobUrl` | Blob URL for the current certificate (`AzureBlob` provider). |
+| `DataProtection:PreviousAzureBlobUrls` | Optional array of blob URLs for previously-used certificates (`AzureBlob` provider). Same semantics as `PreviousCertificatePaths`. |
+
+```json
+{
+  "DataProtection": {
+    "Mode": "Certificate",
+    "KeyStorePath": "/keys",
+    "CertificateProvider": "FileSystem",
+    "CertificatePath": "/certs/dp-current.pfx",
+    "CertificatePassword": "<from-secret-store>",
+    "PreviousCertificatePaths": [ "/certs/dp-previous.pfx" ]
+  }
+}
+```
+
+> **Certificate rotation:** generate the new cert, deploy it as `CertificatePath`, move the old cert into `PreviousCertificatePaths`, and perform a rolling restart. New key ring entries are encrypted with the new cert; entries written under the previous cert remain decryptable as long as that cert stays in the previous list. Remove a cert from `PreviousCertificatePaths` only after every key encrypted with it has expired (90+ days by default) or been re-encrypted — otherwise the data those keys protect becomes permanently unreadable.
 
 ### Redis mode
 
@@ -81,7 +98,7 @@ Keys are stored in Redis and protected with an X.509 certificate. Suitable for m
 | `DataProtection:Redis:KeyName` | `groundcontrol-data-protection` | Redis key name for the key ring. |
 | `DataProtection:Redis:ConnectTimeoutMs` | `5000` | Connection timeout in milliseconds. |
 
-Also requires a certificate provider (`CertificateProvider`, `CertificatePath`/`CertificateAzureBlobUrl`).
+Also requires the same certificate settings as Certificate mode (`CertificateProvider`, `CertificatePath`/`AzureBlobUrl`, optional `PreviousCertificatePaths`).
 
 ### Azure mode
 

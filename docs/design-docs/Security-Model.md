@@ -205,7 +205,7 @@ IDataProtectionCertificateProvider
 └── GetPreviousCertificatesAsync() → IReadOnlyList<X509Certificate2>
 ```
 
-`GetCurrentCertificateAsync()` returns the active certificate used by `ProtectKeysWithCertificate()` to encrypt new key ring entries. `GetPreviousCertificatesAsync()` returns any retired certificates passed to `UnprotectKeysWithAnyCertificate()` for decrypting old key ring entries during rotation. Selected via `DataProtection:Certificate:Provider`.
+`GetCurrentCertificateAsync()` returns the active certificate used by `CertificateXmlEncryptor` to encrypt new key ring entries. `GetPreviousCertificatesAsync()` returns any retired certificates that, together with the current certificate, are passed to `UnprotectKeysWithAnyCertificate()` so old key ring entries remain decryptable during and after rotation. Selected via `DataProtection:CertificateProvider`.
 
 **Implementations:**
 
@@ -222,14 +222,11 @@ IDataProtectionCertificateProvider
 ```json
 {
   "DataProtection": {
-    "Certificate": {
-      "Provider": "FileSystem",
-      "FileSystem": {
-        "CurrentPath": "/certs/dp-2026.pfx",
-        "Password": "...",
-        "PreviousPaths": ["/certs/dp-2024.pfx"]
-      }
-    }
+    "Mode": "Certificate",
+    "CertificateProvider": "FileSystem",
+    "CertificatePath": "/certs/dp-2026.pfx",
+    "CertificatePassword": "...",
+    "PreviousCertificatePaths": [ "/certs/dp-2024.pfx" ]
   }
 }
 ```
@@ -239,20 +236,16 @@ IDataProtectionCertificateProvider
 ```json
 {
   "DataProtection": {
-    "Certificate": {
-      "Provider": "AzureBlob",
-      "AzureBlob": {
-        "ContainerUri": "https://account.blob.core.windows.net/certificates",
-        "CurrentBlobName": "dp-2026.pfx",
-        "PreviousBlobNames": ["dp-2024.pfx"],
-        "Password": "..."
-      }
-    }
+    "Mode": "Certificate",
+    "CertificateProvider": "AzureBlob",
+    "AzureBlobUrl": "https://account.blob.core.windows.net/certificates/dp-2026.pfx",
+    "PreviousAzureBlobUrls": [ "https://account.blob.core.windows.net/certificates/dp-2024.pfx" ],
+    "CertificatePassword": "..."
   }
 }
 ```
 
-The `AzureBlobCertificateProvider` uses `DefaultAzureCredential` for authentication to the storage account.
+The `AzureBlobCertificateProvider` uses `DefaultAzureCredential` for authentication to the storage account. `PreviousAzureBlobUrls` is the AzureBlob equivalent of `PreviousCertificatePaths`; certificates downloaded from those URLs are added to the decryption pipeline so key XML written under a previous certificate remains decryptable during and after rotation.
 
 ### Certificate Lifecycle (Key Ring Protection)
 
@@ -277,27 +270,23 @@ However, there is a practical caveat: if configured via **thumbprint** (`Protect
 
 1. Generate a new X.509 certificate.
 2. Make the new certificate available to the `IDataProtectionCertificateProvider` (e.g., deploy the file, upload to blob storage).
-3. Update configuration: register the new certificate as current and move the old certificate to the previous certificates list (provider-specific config).
-4. Perform a rolling restart. The key ring configurator calls `IDataProtectionCertificateProvider` to obtain certificates, then:
-   - `ProtectKeysWithCertificate(currentCert)` — new data protection keys are encrypted with the new certificate.
-   - `UnprotectKeysWithAnyCertificate(previousCerts)` — existing keys encrypted with old certificates remain decryptable.
-5. After all old data protection keys have expired (90+ days) or been re-encrypted, remove the old certificate from the provider's previous certificates configuration.
+3. Update configuration: set the new certificate as `DataProtection:CertificatePath` and add the old certificate to `DataProtection:PreviousCertificatePaths`.
+4. Perform a rolling restart. At startup `DataProtectionModule` resolves the provider, loads the current and previous certificates, and:
+   - Sets `KeyManagementOptions.XmlEncryptor = new CertificateXmlEncryptor(current)` — new data protection keys are encrypted with the new certificate.
+   - Calls `dataProtectionBuilder.UnprotectKeysWithAnyCertificate(current, ...previous)` — every existing key encrypted under the current or any previous certificate remains decryptable.
+5. After all data protection keys protected by the old certificate have expired (90+ days) or been re-encrypted, remove that path from `PreviousCertificatePaths`.
 
 **Configuration example (certificate rotation in progress, FileSystem provider):**
 
 ```json
 {
   "DataProtection": {
-    "KeyRing": "Certificate",
-    "KeyStorePath": "./keys",
-    "Certificate": {
-      "Provider": "FileSystem",
-      "FileSystem": {
-        "CurrentPath": "/certs/dp-2026.pfx",
-        "Password": "...",
-        "PreviousPaths": ["/certs/dp-2024.pfx"]
-      }
-    },
+    "Mode": "Certificate",
+    "KeyStorePath": "/keys",
+    "CertificateProvider": "FileSystem",
+    "CertificatePath": "/certs/dp-2026.pfx",
+    "CertificatePassword": "...",
+    "PreviousCertificatePaths": [ "/certs/dp-2024.pfx" ],
     "KeyRotation": {
       "Enabled": true,
       "KeyLifetime": 90
