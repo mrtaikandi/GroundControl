@@ -1,4 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Core.DataProtection.Certificate;
 
@@ -7,32 +8,28 @@ namespace GroundControl.Api.Core.DataProtection.Certificate;
 /// </summary>
 internal sealed partial class FileSystemCertificateProvider : IDataProtectionCertificateProvider
 {
-    private readonly IConfiguration _configuration;
+    private readonly FileSystemCertificateOptions _options;
     private readonly ILogger<FileSystemCertificateProvider> _logger;
 
-    public FileSystemCertificateProvider(IConfiguration configuration, ILogger<FileSystemCertificateProvider> logger)
+    public FileSystemCertificateProvider(IOptions<FileSystemCertificateOptions> options, ILogger<FileSystemCertificateProvider> logger)
     {
-        _configuration = configuration;
+        _options = options.Value;
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public X509Certificate2 GetCurrentCertificate()
-    {
-        var path = _configuration["DataProtection:CertificatePath"] ?? throw new InvalidOperationException("DataProtection:CertificatePath is required.");
-        return LoadCertificate(path, _configuration["DataProtection:CertificatePassword"], "FileSystem");
-    }
+    public X509Certificate2 GetCurrentCertificate() => LoadCertificate(_options.Path, _options.Password, "FileSystem");
 
     /// <inheritdoc />
     public IReadOnlyList<X509Certificate2> GetPreviousCertificates()
     {
-        var paths = _configuration.GetSection("DataProtection:PreviousCertificatePaths").Get<string[]>() ?? [];
+        var paths = _options.PreviousPaths;
         if (paths.Length == 0)
         {
             return [];
         }
 
-        var password = _configuration["DataProtection:CertificatePassword"];
+        var password = _options.Password;
         var certificates = new List<X509Certificate2>(paths.Length);
         certificates.AddRange(paths.Select(path => LoadCertificate(path, password, "FileSystem (previous)")));
 

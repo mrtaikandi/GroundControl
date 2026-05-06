@@ -1,6 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using Azure.Identity;
 using Azure.Storage.Blobs;
+using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Core.DataProtection.Certificate;
 
@@ -15,49 +16,42 @@ namespace GroundControl.Api.Core.DataProtection.Certificate;
 /// </remarks>
 internal sealed partial class AzureBlobCertificateProvider : IDataProtectionCertificateProvider
 {
-    private readonly IConfiguration _configuration;
+    private static readonly DefaultAzureCredential Credential = new();
+
+    private readonly AzureBlobCertificateOptions _options;
     private readonly ILogger<AzureBlobCertificateProvider> _logger;
 
-    public AzureBlobCertificateProvider(IConfiguration configuration,
-        ILogger<AzureBlobCertificateProvider> logger)
+    public AzureBlobCertificateProvider(IOptions<AzureBlobCertificateOptions> options, ILogger<AzureBlobCertificateProvider> logger)
     {
-        _configuration = configuration;
+        _options = options.Value;
         _logger = logger;
     }
 
-    private static readonly DefaultAzureCredential Credential = new();
-
     /// <inheritdoc />
-    public X509Certificate2 GetCurrentCertificate()
-    {
-        var blobUrl = _configuration["DataProtection:AzureBlobUrl"] ?? throw new InvalidOperationException("DataProtection:AzureBlobUrl is required.");
-        return DownloadCertificate(blobUrl, "AzureBlob");
-    }
+    public X509Certificate2 GetCurrentCertificate() => DownloadCertificate(_options.BlobUri!, "AzureBlob");
 
     /// <inheritdoc />
     public IReadOnlyList<X509Certificate2> GetPreviousCertificates()
     {
-        var urls = _configuration.GetSection("DataProtection:PreviousAzureBlobUrls").Get<string[]>() ?? [];
-        if (urls.Length == 0)
+        var uris = _options.PreviousBlobUris;
+        if (uris.Length == 0)
         {
             return [];
         }
 
-        var certificates = new List<X509Certificate2>(urls.Length);
-        certificates.AddRange(urls.Select(url => DownloadCertificate(url, "AzureBlob (previous)")));
+        var certificates = new List<X509Certificate2>(uris.Length);
+        certificates.AddRange(uris.Select(uri => DownloadCertificate(uri, "AzureBlob (previous)")));
 
         return certificates;
     }
 
-    private X509Certificate2 DownloadCertificate(string blobUrl, string source)
+    private X509Certificate2 DownloadCertificate(Uri blobUri, string source)
     {
-        var password = _configuration["DataProtection:CertificatePassword"];
-
-        var client = new BlobClient(new Uri(blobUrl), Credential);
+        var client = new BlobClient(blobUri, Credential);
         var response = client.DownloadContent();
         var pfxBytes = response.Value.Content.ToArray();
 
-        var certificate = X509CertificateLoader.LoadPkcs12(pfxBytes, password, X509KeyStorageFlags.EphemeralKeySet);
+        var certificate = X509CertificateLoader.LoadPkcs12(pfxBytes, _options.Password, X509KeyStorageFlags.EphemeralKeySet);
         LogCertificateLoaded(_logger, source, certificate.Thumbprint);
 
         return certificate;

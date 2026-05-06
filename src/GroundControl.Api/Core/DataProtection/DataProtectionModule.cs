@@ -21,7 +21,7 @@ internal sealed class DataProtectionModule(DataProtectionOptions options) : IWeb
 
         if (options.CertificateProvider.HasValue)
         {
-            RegisterCertificateProvider(builder.Services, options.CertificateProvider.Value);
+            RegisterCertificateProvider(builder.Services, options);
             builder.Services.AddHostedService<CertificateStartupLogger>();
         }
 
@@ -38,7 +38,7 @@ internal sealed class DataProtectionModule(DataProtectionOptions options) : IWeb
             // registration time. Loading them here and supplying both current and previous certs is
             // required for cross-instance and cross-restart decryption to work, and for safe
             // certificate rotation.
-            var startupCertificateProvider = CreateCertificateProvider(builder.Configuration, options.CertificateProvider!.Value);
+            var startupCertificateProvider = CreateCertificateProvider(options);
             var currentCertificate = startupCertificateProvider.GetCurrentCertificate();
             var previousCertificates = startupCertificateProvider.GetPreviousCertificates();
             dataProtectionBuilder.UnprotectKeysWithAnyCertificate([currentCertificate, .. previousCertificates]);
@@ -54,22 +54,34 @@ internal sealed class DataProtectionModule(DataProtectionOptions options) : IWeb
         DataProtectionMode.Redis => new RedisKeyRingConfigurator(),
         DataProtectionMode.Azure => new AzureKeyRingConfigurator(),
         _ => throw new InvalidOperationException(
-            $"Unknown DataProtection:Mode '{mode}'. Supported values: {string.Join(", ", Enum.GetNames<DataProtectionMode>())}.")
+            $"Unknown {nameof(DataProtectionOptions)}:{nameof(DataProtectionOptions.Mode)} '{mode}'. Supported values: {string.Join(", ", Enum.GetNames<DataProtectionMode>())}.")
     };
 
-    private static IServiceCollection RegisterCertificateProvider(IServiceCollection services, CertificateProviderMode mode) => mode switch
+    private static void RegisterCertificateProvider(IServiceCollection services, DataProtectionOptions options)
     {
-        CertificateProviderMode.FileSystem => services.AddSingleton<IDataProtectionCertificateProvider, FileSystemCertificateProvider>(),
-        CertificateProviderMode.AzureBlob => services.AddSingleton<IDataProtectionCertificateProvider, AzureBlobCertificateProvider>(),
-        _ => throw new InvalidOperationException(
-            $"Unknown DataProtection:CertificateProvider '{mode}'. Supported values: {string.Join(", ", Enum.GetNames<CertificateProviderMode>())}.")
-    };
+        switch (options.CertificateProvider!.Value)
+        {
+            case CertificateProviderMode.FileSystem:
+                services.AddSingleton(Options.Create(options.FileSystemCertificate));
+                services.AddSingleton<IDataProtectionCertificateProvider, FileSystemCertificateProvider>();
+                break;
 
-    private static IDataProtectionCertificateProvider CreateCertificateProvider(IConfiguration configuration, CertificateProviderMode mode) => mode switch
+            case CertificateProviderMode.AzureBlob:
+                services.AddSingleton(Options.Create(options.AzureBlobCertificate));
+                services.AddSingleton<IDataProtectionCertificateProvider, AzureBlobCertificateProvider>();
+                break;
+
+            default:
+                throw new InvalidOperationException(
+                    $"Unknown {nameof(DataProtectionOptions)}:{nameof(DataProtectionOptions.CertificateProvider)} '{options.CertificateProvider}'. Supported values: {string.Join(", ", Enum.GetNames<CertificateProviderMode>())}.");
+        }
+    }
+
+    private static IDataProtectionCertificateProvider CreateCertificateProvider(DataProtectionOptions options) => options.CertificateProvider switch
     {
-        CertificateProviderMode.FileSystem => new FileSystemCertificateProvider(configuration, NullLogger<FileSystemCertificateProvider>.Instance),
-        CertificateProviderMode.AzureBlob => new AzureBlobCertificateProvider(configuration, NullLogger<AzureBlobCertificateProvider>.Instance),
+        CertificateProviderMode.FileSystem => new FileSystemCertificateProvider(Options.Create(options.FileSystemCertificate), NullLogger<FileSystemCertificateProvider>.Instance),
+        CertificateProviderMode.AzureBlob => new AzureBlobCertificateProvider(Options.Create(options.AzureBlobCertificate), NullLogger<AzureBlobCertificateProvider>.Instance),
         _ => throw new InvalidOperationException(
-            $"Unknown DataProtection:CertificateProvider '{mode}'. Supported values: {string.Join(", ", Enum.GetNames<CertificateProviderMode>())}.")
+            $"Unknown {nameof(DataProtectionOptions)}:{nameof(DataProtectionOptions.CertificateProvider)} '{options.CertificateProvider}'. Supported values: {string.Join(", ", Enum.GetNames<CertificateProviderMode>())}.")
     };
 }

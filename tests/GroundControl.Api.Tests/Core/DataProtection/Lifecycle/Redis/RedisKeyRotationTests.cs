@@ -75,7 +75,7 @@ public sealed class RedisKeyRotationTests : DataProtectionLifecycleTestBase
         ["Persistence:MongoDb:DatabaseName"] = DatabaseName,
         ["DataProtection:Mode"] = "Redis",
         ["DataProtection:CertificateProvider"] = "FileSystem",
-        ["DataProtection:CertificatePath"] = _certificatePath,
+        ["DataProtection:FileSystemCertificate:Path"] = _certificatePath,
         ["DataProtection:Redis:ConnectionString"] = _redisFixture.ConnectionString,
         ["DataProtection:Redis:KeyName"] = _redisKeyName
     });

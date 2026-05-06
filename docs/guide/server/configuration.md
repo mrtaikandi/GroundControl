@@ -67,11 +67,12 @@ Keys are stored on the file system and the key XML is encrypted at rest with an 
 | Setting | Description |
 |---|---|
 | `DataProtection:CertificateProvider` | `FileSystem` or `AzureBlob`. |
-| `DataProtection:CertificatePath` | Path to the current `.pfx` certificate file (`FileSystem` provider). |
-| `DataProtection:CertificatePassword` | Certificate password. Shared by current and previous certificates and by the `AzureBlob` provider. |
-| `DataProtection:PreviousCertificatePaths` | Optional array of `.pfx` paths for certificates that previously protected the key ring (`FileSystem` provider). Required during certificate rotation so existing key XML remains decryptable until rotated out. |
-| `DataProtection:AzureBlobUrl` | Blob URL for the current certificate (`AzureBlob` provider). |
-| `DataProtection:PreviousAzureBlobUrls` | Optional array of blob URLs for previously-used certificates (`AzureBlob` provider). Same semantics as `PreviousCertificatePaths`. |
+| `DataProtection:FileSystemCertificate:Path` | Path to the current `.pfx` certificate file (`FileSystem` provider). |
+| `DataProtection:FileSystemCertificate:Password` | Certificate password used for the current and previous file-system certificates. |
+| `DataProtection:FileSystemCertificate:PreviousPaths` | Optional array of `.pfx` paths for certificates that previously protected the key ring (`FileSystem` provider). Required during certificate rotation so existing key XML remains decryptable until rotated out. |
+| `DataProtection:AzureBlobCertificate:BlobUri` | Blob URI for the current certificate (`AzureBlob` provider). |
+| `DataProtection:AzureBlobCertificate:Password` | Certificate password used for the current and previous Azure Blob certificates. |
+| `DataProtection:AzureBlobCertificate:PreviousBlobUris` | Optional array of blob URIs for previously-used certificates (`AzureBlob` provider). Same semantics as `FileSystemCertificate:PreviousPaths`. |
 
 ```json
 {
@@ -79,14 +80,16 @@ Keys are stored on the file system and the key XML is encrypted at rest with an 
     "Mode": "Certificate",
     "KeyStorePath": "/keys",
     "CertificateProvider": "FileSystem",
-    "CertificatePath": "/certs/dp-current.pfx",
-    "CertificatePassword": "<from-secret-store>",
-    "PreviousCertificatePaths": [ "/certs/dp-previous.pfx" ]
+    "FileSystemCertificate": {
+      "Path": "/certs/dp-current.pfx",
+      "Password": "<from-secret-store>",
+      "PreviousPaths": [ "/certs/dp-previous.pfx" ]
+    }
   }
 }
 ```
 
-> **Certificate rotation:** generate the new cert, deploy it as `CertificatePath`, move the old cert into `PreviousCertificatePaths`, and perform a rolling restart. New key ring entries are encrypted with the new cert; entries written under the previous cert remain decryptable as long as that cert stays in the previous list. Remove a cert from `PreviousCertificatePaths` only after every key encrypted with it has expired (90+ days by default) or been re-encrypted — otherwise the data those keys protect becomes permanently unreadable.
+> **Certificate rotation:** generate the new cert, deploy it as `FileSystemCertificate:Path`, move the old cert into `FileSystemCertificate:PreviousPaths`, and perform a rolling restart. New key ring entries are encrypted with the new cert; entries written under the previous cert remain decryptable as long as that cert stays in the previous list. Remove a cert from `PreviousPaths` only after every key encrypted with it has expired (90+ days by default) or been re-encrypted — otherwise the data those keys protect becomes permanently unreadable.
 
 ### Redis mode
 
@@ -98,7 +101,7 @@ Keys are stored in Redis and protected with an X.509 certificate. Suitable for m
 | `DataProtection:Redis:KeyName` | `groundcontrol-data-protection` | Redis key name for the key ring. |
 | `DataProtection:Redis:ConnectTimeoutMs` | `5000` | Connection timeout in milliseconds. |
 
-Also requires the same certificate settings as Certificate mode (`CertificateProvider`, `CertificatePath`/`AzureBlobUrl`, optional `PreviousCertificatePaths`).
+Also requires the same certificate settings as Certificate mode (`CertificateProvider`, `FileSystemCertificate:Path` / `AzureBlobCertificate:BlobUri`, optional previous-certificate paths/URIs).
 
 ### Azure mode
 
@@ -175,8 +178,8 @@ export Authentication__Seed__AdminPassword="YourSecurePassword123!"
 export DataProtection__Mode="Redis"
 export DataProtection__Redis__ConnectionString="redis:6379"
 export DataProtection__CertificateProvider="FileSystem"
-export DataProtection__CertificatePath="/certs/dp.pfx"
-export DataProtection__CertificatePassword="certpass"
+export DataProtection__FileSystemCertificate__Path="/certs/dp.pfx"
+export DataProtection__FileSystemCertificate__Password="certpass"
 
 # Change notification
 export ChangeNotifier__Mode="MongoChangeStream"

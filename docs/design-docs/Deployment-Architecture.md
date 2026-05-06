@@ -331,11 +331,12 @@ Application configuration for GroundControl server:
 | `DataProtection:KeyStorePath` | `./keys` | File system path for key ring storage (`FileSystem`, `Certificate`) |
 | `DataProtection:UseDpapi` | `false` | Use DPAPI for key protection (`FileSystem` on Windows only) |
 | `DataProtection:CertificateProvider` | — | Certificate provider: `FileSystem` or `AzureBlob` (required for `Certificate` and `Redis` modes) |
-| `DataProtection:CertificatePath` | — | Path to the current `.pfx` certificate (`FileSystem` provider) |
-| `DataProtection:CertificatePassword` | — | Certificate password — shared by current and previous certificates and by the `AzureBlob` provider (prefer environment variable or secrets manager) |
-| `DataProtection:PreviousCertificatePaths` | `[]` | Optional array of `.pfx` paths for previously-used certificates, kept available for decrypting key XML written under the prior cert until rotation completes |
-| `DataProtection:AzureBlobUrl` | — | Azure Blob URL for the current certificate (`AzureBlob` provider) |
-| `DataProtection:PreviousAzureBlobUrls` | `[]` | Optional array of blob URLs for previously-used certificates (`AzureBlob` provider). Same semantics as `PreviousCertificatePaths` |
+| `DataProtection:FileSystemCertificate:Path` | — | Path to the current `.pfx` certificate (`FileSystem` provider) |
+| `DataProtection:FileSystemCertificate:Password` | — | Password for the current and previous file-system certificates (prefer environment variable or secrets manager) |
+| `DataProtection:FileSystemCertificate:PreviousPaths` | `[]` | Optional array of `.pfx` paths for previously-used certificates, kept available for decrypting key XML written under the prior cert until rotation completes |
+| `DataProtection:AzureBlobCertificate:BlobUri` | — | Azure Blob URI for the current certificate (`AzureBlob` provider) |
+| `DataProtection:AzureBlobCertificate:Password` | — | Password for the current and previous Azure Blob certificates (prefer environment variable or secrets manager) |
+| `DataProtection:AzureBlobCertificate:PreviousBlobUris` | `[]` | Optional array of blob URIs for previously-used certificates (`AzureBlob` provider). Same semantics as `FileSystemCertificate:PreviousPaths` |
 | `DataProtection:Redis:ConnectionString` | — | Redis connection string (`Redis` mode) |
 | `DataProtection:Redis:KeyName` | `groundcontrol-data-protection` | Redis key name for key ring storage |
 | `DataProtection:Redis:ConnectTimeoutMs` | `5000` | Redis connection timeout |
