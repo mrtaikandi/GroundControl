@@ -244,12 +244,15 @@ IDataProtectionCertificateProvider
       "BlobUri": "https://account.blob.core.windows.net/certificates/dp-2026.pfx",
       "Password": "...",
       "PreviousBlobUris": [ "https://account.blob.core.windows.net/certificates/dp-2024.pfx" ]
+    },
+    "AzureCredential": {
+      "Mode": "ManagedIdentity"
     }
   }
 }
 ```
 
-The `AzureBlobCertificateProvider` uses `DefaultAzureCredential` for authentication to the storage account. `AzureBlobCertificate:PreviousBlobUris` is the AzureBlob equivalent of `FileSystemCertificate:PreviousPaths`; certificates downloaded from those URIs are added to the decryption pipeline so key XML written under a previous certificate remains decryptable during and after rotation.
+The `AzureBlobCertificateProvider` authenticates to the storage account using the credential configured under `DataProtection:AzureCredential` (the same credential used by `DataProtection:Mode = Azure`). Supported modes are `Default`, `ManagedIdentity`, `WorkloadIdentity`, `ClientSecret`, `AzureCli`, and `Environment`; see `AzureCredentialOptions` for per-mode required fields. `AzureBlobCertificate:PreviousBlobUris` is the AzureBlob equivalent of `FileSystemCertificate:PreviousPaths`; certificates downloaded from those URIs are added to the decryption pipeline so key XML written under a previous certificate remains decryptable during and after rotation.
 
 ### Certificate Lifecycle (Key Ring Protection)
 
