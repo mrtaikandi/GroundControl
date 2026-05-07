@@ -2,7 +2,9 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
 using GroundControl.Api.Core.DataProtection.Certificate;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using NSubstitute;
 using Shouldly;
 using Xunit;
@@ -81,6 +83,37 @@ public sealed class GroundControlCertificateXmlRoundTripTests : IDisposable
 
         // Assert
         XNode.DeepEquals(decrypted, plaintext).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Decrypt_WhenNoMatchingCertificate_ThrowsAndLogsWarning()
+    {
+        // Arrange — Encrypt under c1, then build a provider that knows nothing about c1.
+        var c1 = CreateSelfSignedCertificate();
+        var encryptionProvider = Substitute.For<IDataProtectionCertificateProvider>();
+        encryptionProvider.GetCurrentCertificate().Returns(c1);
+
+        var encryptor = new GroundControlCertificateXmlEncryptor(encryptionProvider, NullLoggerFactory.Instance);
+        var encrypted = encryptor.Encrypt(new XElement("secret", "orphaned-payload"));
+
+        var unrelated = CreateSelfSignedCertificate();
+        var unrelatedProvider = Substitute.For<IDataProtectionCertificateProvider>();
+        unrelatedProvider.GetCurrentCertificate().Returns(unrelated);
+        unrelatedProvider.GetPreviousCertificates().Returns([]);
+
+        var collector = new FakeLogCollector();
+        var logger = new FakeLogger<GroundControlCertificateXmlDecryptor>(collector);
+        var decryptor = new GroundControlCertificateXmlDecryptor(unrelatedProvider, logger);
+
+        // Act & Assert — decryption falls through to base EncryptedXml which can't find the cert
+        // in the OS store either, so a CryptographicException surfaces. Before the throw we should
+        // have logged a warning naming the orphaned thumbprint.
+        Should.Throw<CryptographicException>(() => decryptor.Decrypt(encrypted.EncryptedElement));
+
+        var snapshot = collector.GetSnapshot();
+        var warning = snapshot.ShouldHaveSingleItem();
+        warning.Level.ShouldBe(LogLevel.Warning);
+        warning.Message.ShouldContain(c1.Thumbprint, Case.Insensitive);
     }
 
     public void Dispose()

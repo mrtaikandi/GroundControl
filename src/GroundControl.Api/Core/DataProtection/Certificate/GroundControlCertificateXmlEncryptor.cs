@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.DataProtection.XmlEncryption;
 
@@ -21,6 +22,7 @@ internal sealed class GroundControlCertificateXmlEncryptor : IXmlEncryptor
 {
     private readonly IDataProtectionCertificateProvider _provider;
     private readonly ILoggerFactory _loggerFactory;
+    private InnerEncryptorCache? _cache;
 
     public GroundControlCertificateXmlEncryptor(IDataProtectionCertificateProvider provider, ILoggerFactory loggerFactory)
     {
@@ -34,9 +36,23 @@ internal sealed class GroundControlCertificateXmlEncryptor : IXmlEncryptor
         ArgumentNullException.ThrowIfNull(plaintextElement);
 
         var certificate = _provider.GetCurrentCertificate();
-        var inner = new CertificateXmlEncryptor(certificate, _loggerFactory);
+        var inner = ResolveInnerEncryptor(certificate);
         var produced = inner.Encrypt(plaintextElement);
 
         return new EncryptedXmlInfo(produced.EncryptedElement, typeof(GroundControlCertificateXmlDecryptor));
     }
+
+    private CertificateXmlEncryptor ResolveInnerEncryptor(X509Certificate2 certificate)
+    {
+        var existing = _cache;
+        if (existing is not null && string.Equals(existing.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+        {
+            return existing.Encryptor;
+        }
+
+        _cache = new InnerEncryptorCache(certificate.Thumbprint, new CertificateXmlEncryptor(certificate, _loggerFactory));
+        return _cache.Encryptor;
+    }
+
+    private sealed record InnerEncryptorCache(string Thumbprint, CertificateXmlEncryptor Encryptor);
 }
