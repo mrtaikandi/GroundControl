@@ -5,7 +5,6 @@ using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Host.Api;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace GroundControl.Api.Core.DataProtection;
@@ -37,18 +36,13 @@ internal sealed class DataProtectionModule(DataProtectionOptions options) : IWeb
 
         if (options.Mode is DataProtectionMode.Certificate or DataProtectionMode.Redis)
         {
+            // GroundControlCertificateXmlEncryptor pins GroundControlCertificateXmlDecryptor into
+            // the persisted key XML, so the decryption side runs through DI on first use — no
+            // eager certificate load, no UnprotectKeysWithAnyCertificate, no XmlKeyDecryptionOptions
+            // plumbing. The decryptor itself is activated by the Data Protection IActivator and
+            // does not need explicit DI registration; only its constructor dependencies do.
+            builder.Services.AddSingleton<GroundControlCertificateXmlEncryptor>();
             builder.Services.AddSingleton<IConfigureOptions<KeyManagementOptions>, CertificateKeyEncryptionConfigurator>();
-
-            // The decryption side of certificate-based key ring protection cannot be wired through
-            // IConfigureOptions because XmlKeyDecryptionOptions is internal to ASP.NET Core. The only
-            // public surface is UnprotectKeysWithAnyCertificate, which captures the certificates at
-            // registration time. Loading them here and supplying both current and previous certs is
-            // required for cross-instance and cross-restart decryption to work, and for safe
-            // certificate rotation.
-            var startupCertificateProvider = CreateCertificateProvider(options, azureCredential);
-            var currentCertificate = startupCertificateProvider.GetCurrentCertificate();
-            var previousCertificates = startupCertificateProvider.GetPreviousCertificates();
-            dataProtectionBuilder.UnprotectKeysWithAnyCertificate([currentCertificate, .. previousCertificates]);
         }
 
         builder.Services.AddSingleton<IValueProtector, DataProtectionValueProtector>();
@@ -87,16 +81,4 @@ internal sealed class DataProtectionModule(DataProtectionOptions options) : IWeb
                     $"Unknown {nameof(DataProtectionOptions)}:{nameof(DataProtectionOptions.CertificateProvider)} '{options.CertificateProvider}'. Supported values: {string.Join(", ", Enum.GetNames<CertificateProviderMode>())}.");
         }
     }
-
-    private static IDataProtectionCertificateProvider CreateCertificateProvider(DataProtectionOptions options, TokenCredential? azureCredential) => options.CertificateProvider switch
-    {
-        CertificateProviderMode.FileSystem => new FileSystemCertificateProvider(Options.Create(options.FileSystemCertificate), NullLogger<FileSystemCertificateProvider>.Instance),
-        CertificateProviderMode.AzureBlob => new AzureBlobCertificateProvider(
-            Options.Create(options.AzureBlobCertificate),
-            azureCredential ?? throw new InvalidOperationException(
-                $"An Azure credential is required when {nameof(DataProtectionOptions)}:{nameof(DataProtectionOptions.CertificateProvider)} is '{options.CertificateProvider}'."),
-            NullLogger<AzureBlobCertificateProvider>.Instance),
-        _ => throw new InvalidOperationException(
-            $"Unknown {nameof(DataProtectionOptions)}:{nameof(DataProtectionOptions.CertificateProvider)} '{options.CertificateProvider}'. Supported values: {string.Join(", ", Enum.GetNames<CertificateProviderMode>())}.")
-    };
 }
