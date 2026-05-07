@@ -14,39 +14,22 @@ public sealed class CertificateKeyEncryptionConfiguratorTests : IDisposable
     private readonly List<X509Certificate2> _certificates = [];
 
     [Fact]
-    public void Configure_SetsXmlEncryptorOnKeyManagementOptions()
+    public void Configure_SetsTheGroundControlEncryptorOnKeyManagementOptions()
     {
         // Arrange
         var certificate = CreateSelfSignedCertificate();
         var provider = Substitute.For<IDataProtectionCertificateProvider>();
         provider.GetCurrentCertificate().Returns(certificate);
 
-        var configurator = new CertificateKeyEncryptionConfigurator(provider, NullLoggerFactory.Instance);
+        var encryptor = new GroundControlCertificateXmlEncryptor(provider, NullLoggerFactory.Instance);
+        var configurator = new CertificateKeyEncryptionConfigurator(encryptor);
         var options = new KeyManagementOptions();
 
         // Act
         configurator.Configure(options);
 
         // Assert
-        options.XmlEncryptor.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void Configure_CallsGetCurrentCertificate()
-    {
-        // Arrange
-        var certificate = CreateSelfSignedCertificate();
-        var provider = Substitute.For<IDataProtectionCertificateProvider>();
-        provider.GetCurrentCertificate().Returns(certificate);
-
-        var configurator = new CertificateKeyEncryptionConfigurator(provider, NullLoggerFactory.Instance);
-        var options = new KeyManagementOptions();
-
-        // Act
-        configurator.Configure(options);
-
-        // Assert
-        provider.Received(1).GetCurrentCertificate();
+        options.XmlEncryptor.ShouldBeSameAs(encryptor);
     }
 
     public void Dispose()
