@@ -24,6 +24,56 @@ public sealed class RedisCertificateRotationTests : DataProtectionLifecycleTestB
     }
 
     [Fact]
+    public async Task PostRotationEntry_RoundTrips_UnderNewCertificateOnly()
+    {
+        // Arrange — Boot Redis-backed host directly with C2 only; nothing was ever encrypted
+        // under C1. Round-trips a freshly written value to prove Mode=Redis works in steady state
+        // when only the current cert is configured.
+        var c2Path = SelfSignedCertificate.CreatePfxFile(_certificateDir, "c2-only.pfx");
+
+        // Act
+        await using var factory = CreateLifecycleFactory(currentCertificatePath: c2Path, previousCertificatePaths: []);
+        using var client = factory.CreateClient();
+
+        var created = await CreateSensitiveConfigEntryAsync(client, "api.token", "redis-after-rotation");
+        var response = await client.GetAsync($"/api/config-entries/{created.Id}?decrypt=true", TestCancellationToken);
+
+        // Assert
+        response.IsSuccessStatusCode.ShouldBeTrue();
+        var body = await ReadRequiredJsonAsync<ConfigEntryResponse>(response, TestCancellationToken);
+        body.Values.ShouldHaveSingleItem().Value.ShouldBe("redis-after-rotation");
+    }
+
+    [Fact]
+    public async Task PreRotationEntry_FailsToDecrypt_WhenOldCertificateNotInPreviousList()
+    {
+        // Arrange — C1 protects the Redis key ring while Factory A writes a value. Factory B
+        // boots with C2 ONLY; the key XML in Redis is encrypted under C1 and unrecoverable.
+        var c1Path = SelfSignedCertificate.CreatePfxFile(_certificateDir, "c1.pfx");
+        Guid preRotationId;
+
+        await using (var factoryA = CreateLifecycleFactory(currentCertificatePath: c1Path, previousCertificatePaths: []))
+        using (var clientA = factoryA.CreateClient())
+        {
+            var created = await CreateSensitiveConfigEntryAsync(clientA, "db.password", "redis-stranded");
+            preRotationId = created.Id;
+        }
+
+        var c2Path = SelfSignedCertificate.CreatePfxFile(_certificateDir, "c2.pfx");
+
+        // Act
+        await using var factoryB = CreateLifecycleFactory(currentCertificatePath: c2Path, previousCertificatePaths: []);
+        using var clientB = factoryB.CreateClient();
+
+        var response = await clientB.GetAsync($"/api/config-entries/{preRotationId}?decrypt=true", TestCancellationToken);
+
+        // Assert — must surface a server-side failure rather than silently masking or returning
+        // empty plaintext.
+        response.IsSuccessStatusCode.ShouldBeFalse(
+            $"Expected decrypt to fail without the original certificate, but server returned {response.StatusCode}.");
+    }
+
+    [Fact]
     public async Task PreRotationEntry_RemainsDecryptable_AfterCertificateSwap()
     {
         // Arrange — Cert C1 protects the Redis-backed key ring while Factory A writes a

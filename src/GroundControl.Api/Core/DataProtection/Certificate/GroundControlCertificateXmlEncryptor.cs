@@ -44,14 +44,16 @@ internal sealed class GroundControlCertificateXmlEncryptor : IXmlEncryptor
 
     private CertificateXmlEncryptor ResolveInnerEncryptor(X509Certificate2 certificate)
     {
-        var existing = _cache;
+        var existing = Volatile.Read(ref _cache);
         if (existing is not null && string.Equals(existing.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
         {
             return existing.Encryptor;
         }
 
-        _cache = new InnerEncryptorCache(certificate.Thumbprint, new CertificateXmlEncryptor(certificate, _loggerFactory));
-        return _cache.Encryptor;
+        var fresh = new InnerEncryptorCache(certificate.Thumbprint, new CertificateXmlEncryptor(certificate, _loggerFactory));
+        Volatile.Write(ref _cache, fresh);
+
+        return fresh.Encryptor;
     }
 
     private sealed record InnerEncryptorCache(string Thumbprint, CertificateXmlEncryptor Encryptor);

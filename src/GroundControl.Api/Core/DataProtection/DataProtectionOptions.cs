@@ -69,28 +69,29 @@ internal sealed class DataProtectionOptions
         public ValidateOptionsResult Validate(string? name, DataProtectionOptions options)
         {
             var failures = new List<string>();
+            var prefix = string.IsNullOrEmpty(name) ? nameof(DataProtectionOptions) : name;
 
             if (string.IsNullOrWhiteSpace(options.KeyStorePath))
             {
-                failures.Add($"{nameof(DataProtectionOptions)}:{nameof(KeyStorePath)} is required.");
+                failures.Add($"{prefix}:{nameof(KeyStorePath)} is required.");
             }
 
             if (options.Mode is DataProtectionMode.Certificate or DataProtectionMode.Redis && !options.CertificateProvider.HasValue)
             {
-                failures.Add($"{nameof(DataProtectionOptions)}:{nameof(CertificateProvider)} must be configured when Mode is '{options.Mode}'.");
+                failures.Add($"{prefix}:{nameof(CertificateProvider)} must be configured when Mode is '{options.Mode}'.");
             }
 
             switch (options.CertificateProvider)
             {
                 case CertificateProviderMode.FileSystem:
-                    if (!FileSystemCertificateOptions.Validator.TryValidate(options.FileSystemCertificate, out var fsFailures, nameof(FileSystemCertificate)))
+                    if (!FileSystemCertificateOptions.Validator.TryValidate(options.FileSystemCertificate, out var fsFailures, $"{prefix}:{nameof(FileSystemCertificate)}"))
                     {
                         failures.AddRange(fsFailures);
                     }
                     break;
 
                 case CertificateProviderMode.AzureBlob:
-                    if (!AzureBlobCertificateOptions.Validator.TryValidate(options.AzureBlobCertificate, out var blobFailures, nameof(AzureBlobCertificate)))
+                    if (!AzureBlobCertificateOptions.Validator.TryValidate(options.AzureBlobCertificate, out var blobFailures, $"{prefix}:{nameof(AzureBlobCertificate)}"))
                     {
                         failures.AddRange(blobFailures);
                     }
@@ -99,7 +100,7 @@ internal sealed class DataProtectionOptions
 
             if (options.Mode is DataProtectionMode.Azure || options.CertificateProvider is CertificateProviderMode.AzureBlob)
             {
-                if (!AzureCredentialOptions.Validator.TryValidate(options.AzureCredential, out var credentialFailures, nameof(AzureCredential)))
+                if (!AzureCredentialOptions.Validator.TryValidate(options.AzureCredential, out var credentialFailures, $"{prefix}:{nameof(AzureCredential)}"))
                 {
                     failures.AddRange(credentialFailures);
                 }
@@ -107,11 +108,11 @@ internal sealed class DataProtectionOptions
 
             switch (options.Mode)
             {
-                case DataProtectionMode.Redis when !RedisOptions.Validator.TryValidate(options.Redis, out var redisFailures, nameof(Redis)):
+                case DataProtectionMode.Redis when !RedisOptions.Validator.TryValidate(options.Redis, out var redisFailures, $"{prefix}:{nameof(Redis)}"):
                     failures.AddRange(redisFailures);
                     break;
 
-                case DataProtectionMode.Azure when !AzureOptions.Validator.TryValidate(options.Azure, out var azureFailures, nameof(Azure)):
+                case DataProtectionMode.Azure when !AzureOptions.Validator.TryValidate(options.Azure, out var azureFailures, $"{prefix}:{nameof(Azure)}"):
                     failures.AddRange(azureFailures);
                     break;
             }

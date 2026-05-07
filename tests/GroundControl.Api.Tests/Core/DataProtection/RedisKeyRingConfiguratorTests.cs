@@ -32,4 +32,35 @@ public sealed class RedisKeyRingConfiguratorTests
 
         exception.Message.ShouldContain("ConnectionString: The RedisOptions.ConnectionString field is required.");
     }
+
+    [Fact]
+    public void Configure_WrapsRedisConnectionFailure_InInvalidOperationException()
+    {
+        // Arrange — Point at a TCP port that nothing should be listening on, with a tiny timeout
+        // so the test fails fast and surfaces the wrapping exception path rather than hanging.
+        const string UnreachableEndpoint = "127.0.0.1:1";
+        var options = new DataProtectionOptions
+        {
+            Mode = DataProtectionMode.Redis,
+            Redis = new RedisOptions
+            {
+                ConnectionString = UnreachableEndpoint,
+                ConnectTimeoutMs = 200
+            }
+        };
+
+        var services = new ServiceCollection();
+        var builder = services.AddDataProtection()
+            .SetApplicationName("GroundControl.Tests");
+
+        var configurator = new RedisKeyRingConfigurator();
+
+        // Act
+        var exception = Should.Throw<InvalidOperationException>(() => configurator.Configure(builder, options));
+
+        // Assert — The wrapper preserves the inner exception and surfaces the connection string
+        // so operators can spot misconfiguration in the logs.
+        exception.Message.ShouldContain(UnreachableEndpoint);
+        exception.InnerException.ShouldNotBeNull();
+    }
 }

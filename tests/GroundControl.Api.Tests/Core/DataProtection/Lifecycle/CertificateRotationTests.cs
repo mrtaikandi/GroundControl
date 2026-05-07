@@ -73,6 +73,37 @@ public sealed class CertificateRotationTests : DataProtectionLifecycleTestBase
         body.Values.ShouldHaveSingleItem().Value.ShouldBe("after-cert-rotation");
     }
 
+    [Fact]
+    public async Task PreRotationEntry_FailsToDecrypt_WhenOldCertificateNotInPreviousPaths()
+    {
+        // Arrange — C1 protects the key ring while Factory A writes a sensitive entry. Then
+        // Factory B comes up with C2 ONLY (no previous list). Without the original certificate,
+        // the key XML written under C1 cannot be unwrapped, and the protector cannot reconstruct
+        // the AES key needed to decrypt the stored ciphertext. This guards against the "premature
+        // old cert removal" risk listed in Security-Model.md.
+        var c1Path = SelfSignedCertificate.CreatePfxFile(_certificateDir, "c1.pfx");
+        Guid preRotationId;
+
+        await using (var factoryA = CreateLifecycleFactory(currentCertificatePath: c1Path, previousCertificatePaths: []))
+        using (var clientA = factoryA.CreateClient())
+        {
+            var created = await CreateSensitiveConfigEntryAsync(clientA, "db.password", "stranded-by-rotation");
+            preRotationId = created.Id;
+        }
+
+        var c2Path = SelfSignedCertificate.CreatePfxFile(_certificateDir, "c2.pfx");
+
+        // Act — Factory B drops C1 entirely; the pre-rotation entry should now be undecryptable.
+        await using var factoryB = CreateLifecycleFactory(currentCertificatePath: c2Path, previousCertificatePaths: []);
+        using var clientB = factoryB.CreateClient();
+
+        var response = await clientB.GetAsync($"/api/config-entries/{preRotationId}?decrypt=true", TestCancellationToken);
+
+        // Assert — surface as a server error rather than silent corruption / an empty response.
+        response.IsSuccessStatusCode.ShouldBeFalse(
+            $"Expected decrypt to fail without the original certificate, but server returned {response.StatusCode}.");
+    }
+
     private GroundControlApiFactory CreateLifecycleFactory(string currentCertificatePath, IReadOnlyList<string> previousCertificatePaths)
     {
         var config = new Dictionary<string, string?>

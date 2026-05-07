@@ -9,13 +9,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\samples\GroundControl.Samples.LinkConsole\GroundControl.Samples.LinkConsole.csproj" />
-      <ProjectReference Include="..\GroundControl.Api\GroundControl.Api.csproj" />
+        <ProjectReference Include="..\..\samples\GroundControl.Samples.LinkConsole\GroundControl.Samples.LinkConsole.csproj" />
+        <ProjectReference Include="..\GroundControl.Api\GroundControl.Api.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Aspire.Hosting.MongoDB" />
-      <PackageReference Include="Aspire.Hosting.NodeJs" />
+        <PackageReference Include="Aspire.Hosting.MongoDB" />
+        <PackageReference Include="Aspire.Hosting.NodeJs" />
 
         <!-- Pin transitive Snappier (pulled in by MongoDB.Driver) to 1.3.1+; 1.0.0 has GHSA-pggp-6c3x-2xmx. -->
         <PackageReference Include="Snappier" />
