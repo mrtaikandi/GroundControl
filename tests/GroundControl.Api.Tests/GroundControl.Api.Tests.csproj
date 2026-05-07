@@ -5,6 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Azure.Storage.Blobs" />
         <PackageReference Include="NSubstitute" />
         <PackageReference Include="Shouldly" />
         <PackageReference Include="Testcontainers.Redis" />
