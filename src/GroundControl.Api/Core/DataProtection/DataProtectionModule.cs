@@ -28,7 +28,6 @@ internal sealed class DataProtectionModule(DataProtectionOptions options) : IWeb
         if (options.CertificateProvider.HasValue)
         {
             RegisterCertificateProvider(builder.Services, options);
-            builder.Services.AddHostedService<CertificateStartupLogger>();
         }
 
         var keyRingConfigurator = CreateKeyRingConfigurator(options.Mode, azureCredential);
