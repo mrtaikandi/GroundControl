@@ -20,15 +20,26 @@ internal sealed partial class AzureBlobCertificateProvider : IDataProtectionCert
     private readonly AzureBlobCertificateOptions _options;
     private readonly TokenCredential _credential;
     private readonly ILogger<AzureBlobCertificateProvider> _logger;
+    private readonly Func<Uri, TokenCredential, BlobClient> _blobClientFactory;
 
-    public AzureBlobCertificateProvider(
+    public AzureBlobCertificateProvider(IOptions<AzureBlobCertificateOptions> options, TokenCredential credential, ILogger<AzureBlobCertificateProvider> logger)
+        : this(options, credential, logger, static (uri, cred) => new BlobClient(uri, cred))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AzureBlobCertificateProvider"/> class for testing, allowing injection of a custom BlobClient factory.
+    /// </summary>
+    internal AzureBlobCertificateProvider(
         IOptions<AzureBlobCertificateOptions> options,
         TokenCredential credential,
-        ILogger<AzureBlobCertificateProvider> logger)
+        ILogger<AzureBlobCertificateProvider> logger,
+        Func<Uri, TokenCredential, BlobClient> blobClientFactory)
     {
         _options = options.Value;
         _credential = credential;
         _logger = logger;
+        _blobClientFactory = blobClientFactory;
     }
 
     /// <inheritdoc />
@@ -51,7 +62,7 @@ internal sealed partial class AzureBlobCertificateProvider : IDataProtectionCert
 
     private X509Certificate2 DownloadCertificate(Uri blobUri, string source)
     {
-        var client = new BlobClient(blobUri, _credential);
+        var client = _blobClientFactory(blobUri, _credential);
         var response = client.DownloadContent();
         var pfxBytes = response.Value.Content.ToArray();
 
