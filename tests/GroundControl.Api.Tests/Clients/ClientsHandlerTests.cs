@@ -426,6 +426,89 @@ public sealed class ClientsHandlerTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task PutClient_WithNullScopes_PreservesExistingScopes()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var project = await CreateProjectAsync(apiClient, "Test Project", TestCancellationToken);
+        await CreateScopeAsync(apiClient, "environment", ["dev", "staging", "prod"], TestCancellationToken);
+
+        var createRequest = new CreateClientRequest
+        {
+            Name = "client",
+            Scopes = new Dictionary<string, string> { ["environment"] = "staging" },
+        };
+        var createResponse = await apiClient.PostAsJsonAsync(
+            $"/api/projects/{project.Id}/clients", createRequest, WebJsonSerializerOptions, TestCancellationToken);
+        var created = await ReadCreateClientAsync(createResponse, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync(
+            $"/api/projects/{project.Id}/clients/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/projects/{project.Id}/clients/{created.Id}");
+        request.Content = JsonContent.Create(
+            new UpdateClientRequest
+            {
+                Name = "renamed-client",
+                IsActive = true,
+                Scopes = null,
+            },
+            options: WebJsonSerializerOptions);
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var client = await ReadClientAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        client.Name.ShouldBe("renamed-client");
+        client.Scopes.ShouldContainKeyAndValue("environment", "staging");
+    }
+
+    [Fact]
+    public async Task PutClient_WithEmptyScopes_ClearsExistingScopes()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var project = await CreateProjectAsync(apiClient, "Test Project", TestCancellationToken);
+        await CreateScopeAsync(apiClient, "environment", ["dev", "staging", "prod"], TestCancellationToken);
+
+        var createRequest = new CreateClientRequest
+        {
+            Name = "client",
+            Scopes = new Dictionary<string, string> { ["environment"] = "staging" },
+        };
+        var createResponse = await apiClient.PostAsJsonAsync(
+            $"/api/projects/{project.Id}/clients", createRequest, WebJsonSerializerOptions, TestCancellationToken);
+        var created = await ReadCreateClientAsync(createResponse, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync(
+            $"/api/projects/{project.Id}/clients/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/projects/{project.Id}/clients/{created.Id}");
+        request.Content = JsonContent.Create(
+            new UpdateClientRequest
+            {
+                Name = "client",
+                IsActive = true,
+                Scopes = new Dictionary<string, string>(),
+            },
+            options: WebJsonSerializerOptions);
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var client = await ReadClientAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        client.Scopes.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task PutClient_WithInvalidScopeDimension_ReturnsBadRequest()
     {
         // Arrange

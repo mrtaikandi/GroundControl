@@ -63,10 +63,10 @@ internal sealed class UpdateClientHandler : IEndpointHandler
         client.Name = request.Name;
         client.IsActive = request.IsActive;
         client.ExpiresAt = request.ExpiresAt;
-        client.Scopes.Clear();
 
         if (request.Scopes is not null)
         {
+            client.Scopes.Clear();
             foreach (var (dimension, value) in request.Scopes)
             {
                 client.Scopes[dimension] = value;
