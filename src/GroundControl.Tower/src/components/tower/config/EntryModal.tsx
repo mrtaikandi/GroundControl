@@ -1,14 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo } from 'react';
-import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { ScopedValuesField } from '@/components/tower/data/ScopedValuesField';
 import { useCreateEntry, useUpdateEntry, type ConfigEntry, type ConfigEntryOwnerType } from '@/queries/useConfigEntries';
-import { useScopes } from '@/queries/useScopes';
 
 const valueTypes = ['String', 'Int32', 'Int64', 'Double', 'Decimal', 'Boolean', 'DateTime', 'DateTimeOffset', 'DateOnly', 'TimeOnly'] as const;
 const integerTypes: ReadonlySet<EntryFormValues['type']> = new Set(['Int32', 'Int64']);
@@ -37,7 +37,6 @@ interface EntryModalProps {
 
 export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType = 1, projectId }: EntryModalProps) {
   const resolvedOwnerId = ownerId ?? projectId ?? '';
-  const scopes = useScopes();
   const createEntry = useCreateEntry(resolvedOwnerId, ownerType);
   const updateEntry = useUpdateEntry(resolvedOwnerId, ownerType);
   const formValues = useMemo(() => toFormValues(entry), [entry]);
@@ -45,7 +44,6 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
     defaultValues: formValues,
     resolver: zodResolver(entrySchema),
   });
-  const scopedValues = useFieldArray({ control: form.control, name: 'scopedValues' });
   const isSensitive = form.watch('isSensitive');
   const selectedType = form.watch('type');
   const pending = createEntry.isPending || updateEntry.isPending;
@@ -105,43 +103,12 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
             <Textarea id="entry-description" placeholder="Optional context for this key" {...form.register('description')} />
           </div>
 
-          <div className="grid gap-3 rounded-xl border border-stroke-subtle p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[13px] font-semibold text-fg-heading">Scoped values</div>
-                <div className="text-[11.5px] text-fg-caption">Overrides apply when a client matches the selected scope.</div>
-              </div>
-              <Button onClick={() => scopedValues.append({ dimension: '', scopeValue: '', value: '' })} type="button" variant="secondary">Add scope</Button>
-            </div>
-
-            {scopedValues.fields.map((field, index) => {
-              const dimension = form.watch(`scopedValues.${index}.dimension`);
-              const selectedScope = (scopes.data?.data ?? []).find((scope) => scope.dimension === dimension);
-
-              return (
-                <div className="grid gap-2 rounded-lg bg-bg-container p-3 md:grid-cols-[1fr_1fr_1.5fr_auto]" key={field.id}>
-                  <Controller control={form.control} name={`scopedValues.${index}.dimension`} render={({ field: dimensionField }) => (
-                    <Select onValueChange={dimensionField.onChange} value={dimensionField.value || undefined}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Dimension">{dimensionField.value || undefined}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>{(scopes.data?.data ?? []).map((scope) => <SelectItem key={scope.id} value={scope.dimension}>{scope.dimension}</SelectItem>)}</SelectContent>
-                    </Select>
-                  )} />
-                  <Controller control={form.control} name={`scopedValues.${index}.scopeValue`} render={({ field: valueField }) => (
-                    <Select disabled={!selectedScope} onValueChange={valueField.onChange} value={valueField.value || undefined}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Value">{valueField.value || undefined}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>{(selectedScope?.allowedValues ?? []).map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}</SelectContent>
-                    </Select>
-                  )} />
-                  <Input placeholder="Override value" type={isSensitive ? 'password' : 'text'} {...form.register(`scopedValues.${index}.value`)} />
-                  <Button onClick={() => scopedValues.remove(index)} type="button" variant="ghost">Remove</Button>
-                </div>
-              );
-            })}
-          </div>
+          <ScopedValuesField
+            control={form.control}
+            isSensitive={isSensitive}
+            register={form.register}
+            watch={form.watch}
+          />
 
           <DialogFooter>
             <Button disabled={pending} type="submit">{pending ? 'Saving…' : mode === 'create' ? 'Create entry' : 'Save entry'}</Button>
