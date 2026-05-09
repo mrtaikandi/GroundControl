@@ -1,13 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { Plus, X } from 'lucide-react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { FilterChip } from '@/components/tower/data/FilterChip';
-import { InlineCode } from '@/components/tower/data/InlineCode';
+import { SearchFilterPopover } from '@/components/tower/data/SearchFilterPopover';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { PageContent } from '@/components/tower/shell/PageContent';
 import { useCreateScope, useDeleteScope, useScopes, useUpdateScope, type Scope } from '@/queries/useScopes';
@@ -20,32 +20,62 @@ function ScopesRoute() {
   const scopes = useScopes();
   const [creating, setCreating] = useState(false);
   const [editingScope, setEditingScope] = useState<Scope | undefined>();
-  const [deletingScope, setDeletingScope] = useState<Scope | undefined>();
+  const [search, setSearch] = useState<string | undefined>(undefined);
   const items = scopes.data?.data ?? [];
+
+  const filtered = useMemo(() => {
+    const needle = search?.trim().toLowerCase();
+    if (!needle) {
+      return items;
+    }
+
+    return items.filter((scope) => scope.dimension.toLowerCase().includes(needle) || (scope.description ?? '').toLowerCase().includes(needle));
+  }, [items, search]);
 
   return (
     <>
-      <PageHeader actions={<Button onClick={() => setCreating(true)} type="button">New scope</Button>} description="Decide which settings each app sees based on where it's running." title="Scopes" />
+      <PageHeader
+        actions={(
+          <div className="flex items-center gap-2">
+            <SearchFilterPopover
+              appliedSearch={search}
+              ariaLabel="Filter scopes"
+              onApply={setSearch}
+              placeholder="Scope name or description"
+            />
+            <Button onClick={() => setCreating(true)} type="button">
+              <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
+              <span>New scope</span>
+            </Button>
+          </div>
+        )}
+        description="Decide which settings each app sees based on where it's running."
+        title="Scopes"
+      />
 
       <PageContent>
         <div className="grid gap-8 pt-8">
           {scopes.isLoading ? <Skeleton className="h-80" /> : null}
           {!scopes.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No scope dimensions yet.</div> : null}
-          {items.length > 0 ? (
+          {!scopes.isLoading && items.length > 0 && filtered.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No scopes match the current filter.</div> : null}
+          {filtered.length > 0 ? (
             <div className="grid gap-3">
-              {items.map((scope) => (
-                <div className="grid gap-4 rounded-xl border border-stroke-subtle bg-bg-surface p-5 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)_auto]" key={scope.id}>
-                  <div className="min-w-0">
-                    <span className="block font-semibold [overflow-wrap:anywhere]">{scope.dimension}</span>
-                    <p className="mt-2 text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{scope.description || 'No description provided.'}</p>
+              {filtered.map((scope) => (
+                <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-5" key={scope.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h2 className="font-mono text-[13.5px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{scope.dimension}</h2>
+                      <p className="mt-1 text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{scope.description || 'No description provided.'}</p>
+                    </div>
+                    <Button onClick={() => setEditingScope(scope)} size="sm" type="button" variant="secondary">Edit</Button>
                   </div>
-                  <div className="min-w-0 flex flex-wrap gap-2">
-                    {scope.allowedValues.map((value) => <FilterChip key={value} label={value} onToggle={() => undefined} />)}
-                  </div>
-                  <div className="flex flex-wrap items-start justify-start gap-2 lg:justify-end">
-                    <Button onClick={() => setEditingScope(scope)} type="button" variant="secondary">Edit</Button>
-                    <Button onClick={() => setDeletingScope(scope)} type="button" variant="ghost">Delete</Button>
-                  </div>
+                  {scope.allowedValues.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {scope.allowedValues.map((value) => (
+                        <code className="inline-flex items-center rounded-md border border-stroke-subtle bg-bg-surface px-2 py-0.5 font-mono text-[11.5px] text-fg-body" key={value}>{value}</code>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -55,7 +85,6 @@ function ScopesRoute() {
 
       <ScopeModal mode="create" onOpenChange={setCreating} open={creating} />
       <ScopeModal mode="edit" onOpenChange={(open) => !open && setEditingScope(undefined)} open={Boolean(editingScope)} scope={editingScope} />
-      <DeleteScopeDialog onOpenChange={(open) => !open && setDeletingScope(undefined)} open={Boolean(deletingScope)} scope={deletingScope} />
     </>
   );
 }
@@ -63,11 +92,16 @@ function ScopesRoute() {
 function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edit'; onOpenChange: (open: boolean) => void; open: boolean; scope?: Scope }) {
   const createScope = useCreateScope();
   const updateScope = useUpdateScope();
+  const deleteScope = useDeleteScope();
   const [dimension, setDimension] = useState('');
   const [description, setDescription] = useState('');
   const [allowedValues, setAllowedValues] = useState<string[]>([]);
   const [newValue, setNewValue] = useState('');
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const deleteConfirmInputId = useId();
   const pending = createScope.isPending || updateScope.isPending;
+  const isDeleteConfirmed = !!scope && deleteConfirmText === scope.dimension;
 
   useEffect(() => {
     if (!open) {
@@ -79,6 +113,12 @@ function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edi
     setAllowedValues(scope?.allowedValues ?? []);
     setNewValue('');
   }, [open, scope]);
+
+  useEffect(() => {
+    if (!confirmingDelete) {
+      setDeleteConfirmText('');
+    }
+  }, [confirmingDelete]);
 
   function addValue() {
     const value = newValue.trim();
@@ -100,6 +140,16 @@ function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edi
       await updateScope.mutateAsync({ body, id: scope.id, version: scope.version.toString() });
     }
 
+    onOpenChange(false);
+  }
+
+  async function confirmDelete() {
+    if (!scope) {
+      return;
+    }
+
+    await deleteScope.mutateAsync({ id: scope.id, version: scope.version.toString() });
+    setConfirmingDelete(false);
     onOpenChange(false);
   }
 
@@ -126,43 +176,60 @@ function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edi
               <Button onClick={addValue} type="button" variant="secondary">Add</Button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {allowedValues.map((value) => <FilterChip key={value} label={value} onToggle={() => setAllowedValues((current) => current.filter((item) => item !== value))} selected />)}
+              {allowedValues.map((value) => (
+                <button
+                  aria-label={`Remove ${value}`}
+                  className="group inline-flex items-center gap-1.5 rounded-md border border-stroke-subtle bg-bg-surface px-2 py-0.5 font-mono text-[11.5px] text-fg-body transition-colors hover:border-stroke-divider hover:bg-bg-container hover:text-fg-heading"
+                  key={value}
+                  onClick={() => setAllowedValues((current) => current.filter((item) => item !== value))}
+                  type="button"
+                >
+                  <span>{value}</span>
+                  <X aria-hidden="true" className="size-3 text-fg-caption transition-colors group-hover:text-fg-body" />
+                </button>
+              ))}
             </div>
             {allowedValues.length === 0 ? <div className="text-[12.5px] text-fg-caption">Add at least one allowed value before saving this scope.</div> : null}
           </div>
         </div>
-        <DialogFooter>
-          <Button disabled={pending || !dimension.trim() || allowedValues.length === 0} onClick={() => void save()} type="button">{pending ? 'Saving…' : 'Save scope'}</Button>
+        <DialogFooter className={mode === 'edit' ? 'sm:justify-between' : undefined}>
+          {mode === 'edit' && scope ? (
+            <Button disabled={pending || deleteScope.isPending} onClick={() => setConfirmingDelete(true)} type="button" variant="destructive">Delete scope</Button>
+          ) : null}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-2">
+            <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">Cancel</Button>
+            <Button disabled={pending || deleteScope.isPending || !dimension.trim() || allowedValues.length === 0} onClick={() => void save()} type="button">{pending ? 'Saving…' : 'Save scope'}</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {scope?.dimension ?? 'scope'}?</AlertDialogTitle>
+            <AlertDialogDescription>Deleting this dimension can orphan scoped values that still reference it. This cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          {scope ? (
+            <div className="grid gap-1.5">
+              <label className="text-[12px] text-fg-body" htmlFor={deleteConfirmInputId}>
+                Type <span className="font-mono font-semibold text-fg-heading">{scope.dimension}</span> to confirm.
+              </label>
+              <Input
+                autoComplete="off"
+                disabled={deleteScope.isPending}
+                id={deleteConfirmInputId}
+                onChange={(event) => setDeleteConfirmText(event.target.value)}
+                placeholder={scope.dimension}
+                value={deleteConfirmText}
+              />
+            </div>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteScope.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={!isDeleteConfirmed || deleteScope.isPending} onClick={(event) => { event.preventDefault(); void confirmDelete(); }}>{deleteScope.isPending ? 'Deleting…' : 'Delete'}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
-  );
-}
-
-function DeleteScopeDialog({ onOpenChange, open, scope }: { onOpenChange: (open: boolean) => void; open: boolean; scope?: Scope }) {
-  const deleteScope = useDeleteScope();
-
-  async function confirmDelete() {
-    if (!scope) {
-      return;
-    }
-
-    await deleteScope.mutateAsync({ id: scope.id, version: scope.version.toString() });
-    onOpenChange(false);
-  }
-
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete scope dimension</AlertDialogTitle>
-          <AlertDialogDescription>Deleting <InlineCode>{scope?.dimension ?? 'scope'}</InlineCode> can orphan scoped values that still reference this dimension.</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction disabled={deleteScope.isPending} onClick={(event) => { event.preventDefault(); void confirmDelete(); }}>Delete</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   );
 }
