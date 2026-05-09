@@ -51,6 +51,9 @@
   --tower-interaction-button-hover-brightness: 1.10;
   --tower-interaction-button-danger-active-brightness: 0.96;
   --tower-interaction-button-danger-hover-brightness: 1.08;
+  --tower-interaction-button-danger-background: #a53929;
+  --tower-interaction-button-danger-foreground: #ffffff;
+  --tower-interaction-button-danger-outline: #c9483a;
   --tower-interaction-button-subtle-hover-background: #f4f1fb;
   --tower-interaction-button-subtle-hover-border: #cdc1ee;
 }
@@ -106,6 +109,9 @@
   --tower-interaction-button-hover-brightness: 1.10;
   --tower-interaction-button-danger-active-brightness: 0.96;
   --tower-interaction-button-danger-hover-brightness: 1.08;
+  --tower-interaction-button-danger-background: #c43c3c;
+  --tower-interaction-button-danger-foreground: #fbf8ff;
+  --tower-interaction-button-danger-outline: #e87575;
   --tower-interaction-button-subtle-hover-background: rgba(146, 107, 255, 0.18);
   --tower-interaction-button-subtle-hover-border: #926bff;
 }
@@ -126,8 +132,8 @@
   --muted-foreground: var(--tower-fg-caption);
   --accent: var(--tower-bg-selected);
   --accent-foreground: var(--tower-fg-heading);
-  --destructive: var(--tower-badge-critical-fg);
-  --destructive-foreground: var(--tower-fg-chip-selected);
+  --destructive: var(--tower-interaction-button-danger-background);
+  --destructive-foreground: var(--tower-interaction-button-danger-foreground);
   --border: var(--tower-stroke-subtle);
   --input: var(--tower-stroke-field-initial);
   --ring: var(--tower-stroke-field-focus);
