@@ -230,6 +230,45 @@ public sealed class ProjectsHandlerTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task GetProjects_WithUngroupedFilter_ReturnsOnlyProjectsWithoutGroup()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var group = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
+        await CreateProjectAsync(apiClient, "Grouped Project", TestCancellationToken, group.Id);
+        await CreateProjectAsync(apiClient, "Ungrouped Project", TestCancellationToken);
+
+        // Act
+        var response = await apiClient.GetAsync(
+            "/api/projects?limit=25&sortField=name&sortOrder=asc&ungrouped=true", TestCancellationToken);
+
+        var page = await ReadPageAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        page.Data.ShouldAllBe(p => p.GroupId == null);
+        page.Data.ShouldContain(p => p.Name == "Ungrouped Project");
+        page.Data.ShouldNotContain(p => p.Name == "Grouped Project");
+    }
+
+    [Fact]
+    public async Task GetProjects_WithUngroupedAndGroupId_ReturnsValidationProblem()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var group = await CreateGroupAsync(apiClient, "Engineering", TestCancellationToken);
+
+        // Act
+        var response = await apiClient.GetAsync(
+            $"/api/projects?ungrouped=true&groupId={group.Id}", TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task GetProjects_WithPagination_ReturnsPaginatedResults()
     {
         // Arrange

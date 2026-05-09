@@ -114,7 +114,11 @@ internal sealed class ProjectStore : IProjectStore
     {
         var filters = new List<FilterDefinition<Project>>();
 
-        if (query.GroupId.HasValue)
+        if (query.Ungrouped)
+        {
+            filters.Add(Builders<Project>.Filter.Eq(project => project.GroupId, null));
+        }
+        else if (query.GroupId.HasValue)
         {
             filters.Add(Builders<Project>.Filter.Eq(project => project.GroupId, query.GroupId.Value));
         }
