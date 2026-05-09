@@ -170,12 +170,9 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
     onOpenChange(false);
   }
 
-  const tierLabel = tier.kind === 'project'
-    ? 'Project tier'
-    : groupId ? 'Global · group-owned' : 'Global · global';
   const tierDescription = tier.kind === 'project'
     ? 'This variable belongs to one project. It shadows any global with the same name when that project resolves a snapshot.'
-    : 'Global variables are shared across projects. Group-owned globals are limited only to their group and projects within that group.';
+    : 'Global variables are shared across projects. Group-owned variables are limited only to their group and projects within that group.';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -196,13 +193,6 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
             />
             <p className="text-[11.5px] text-fg-caption">Reference as <span className="font-mono">{`{{${name?.trim() || 'Name'}}}`}</span> in config entry values.</p>
             {form.formState.errors.name ? <p className="text-[11.5px] text-badge-critical-fg">{form.formState.errors.name.message}</p> : null}
-          </div>
-
-          <div className="grid gap-1.5">
-            <label className="text-[12px] font-medium text-fg-body">Tier</label>
-            <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption">
-              {tierLabel}
-            </div>
           </div>
 
           {tier.kind === 'global' ? (

@@ -70,7 +70,7 @@ export function ScopedValuesField<T extends FieldValues>({
                     value={stringValue}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Dimension">{stringValue}</SelectValue>
+                      <SelectValue placeholder="Dimension" />
                     </SelectTrigger>
                     <SelectContent>
                       {dimensions.map((scope) => (
@@ -94,7 +94,7 @@ export function ScopedValuesField<T extends FieldValues>({
                     value={stringValue}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Value">{stringValue}</SelectValue>
+                      <SelectValue placeholder="Value" />
                     </SelectTrigger>
                     <SelectContent>
                       {(selectedScope?.allowedValues ?? []).map((allowed) => (
