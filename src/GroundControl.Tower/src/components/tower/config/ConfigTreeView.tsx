@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { DeleteEntryDialog } from './DeleteEntryDialog';
 import { EntryModal } from './EntryModal';
 import { EntryValue } from './EntryValue';
-import { ScopedEntryValue } from './ScopedEntryValue';
 import { scopedValueKey, useEntryReveal } from './use-entry-reveal';
 
 interface ConfigTreeViewProps {
@@ -277,7 +276,7 @@ function EntryDetailPanelBody({ item, onEdit, ownerName }: EntryDetailPanelBodyP
           {scopedVals.length === 0 ? (
             <div className="rounded-lg border border-dashed border-stroke-subtle p-6 text-center text-[13px] text-fg-caption">No scoped values defined.</div>
           ) : scopedVals.map((value, index) => (
-            <ScopedEntryValue key={`${scopedValueKey(value.scopes ?? {})}-${index}`} reveal={reveal} scopedValue={value} />
+            <EntryValue ariaLabel="Copy scoped value" key={`${scopedValueKey(value.scopes ?? {})}-${index}`} reveal={reveal} scopedValue={value} scopeKey="top" />
           ))}
         </div>
       </div>

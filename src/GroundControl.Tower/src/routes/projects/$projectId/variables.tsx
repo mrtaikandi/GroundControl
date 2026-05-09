@@ -5,11 +5,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { EntryValue } from '@/components/tower/config/EntryValue';
 import { scopedValueKey, type EntryReveal } from '@/components/tower/config/use-entry-reveal';
 import { Badge } from '@/components/tower/data/Badge';
-import { ScopeTag } from '@/components/tower/data/ScopeTag';
 import { SearchFilterPopover } from '@/components/tower/data/SearchFilterPopover';
 import { VariableEditorModal } from '@/components/tower/variables/VariableEditorModal';
 import { getVariable } from '@/api/endpoints/variables';
@@ -193,12 +191,19 @@ function ProjectVariableRow({ onEdit, shadowsGlobal, variable }: ProjectVariable
           </div>
           {variable.description ? <p className="mt-2 text-[12.5px] text-fg-body [overflow-wrap:anywhere]">{variable.description}</p> : null}
           <div className="mt-2 grid gap-1.5" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()} role="presentation">
-            <ValueRow label="default" reveal={reveal} scopedValue={defaultRow ?? { scopes: null, value: '' }} />
+            <EntryValue
+              ariaLabel="Copy variable value"
+              emptyMessage="—"
+              reveal={reveal}
+              scopedValue={defaultRow ?? { scopes: null, value: '' }}
+            />
             {overrides.map((override, index) => (
-              <ValueRow
+              <EntryValue
+                ariaLabel="Copy variable value"
+                emptyMessage="—"
                 key={`${variable.id}-${index}`}
-                scopeChips={Object.entries(override.scopes ?? {})}
                 reveal={reveal}
+                scopeKey="inline"
                 scopedValue={override}
               />
             ))}
@@ -243,12 +248,19 @@ function GlobalVariableRow({ groupNames, shadowedByProject, variable }: GlobalVa
           </div>
           {variable.description ? <p className="mt-2 text-[12.5px] text-fg-body [overflow-wrap:anywhere]">{variable.description}</p> : null}
           <div className="mt-2 grid gap-1.5">
-            <ValueRow label="default" reveal={reveal} scopedValue={defaultRow ?? { scopes: null, value: '' }} />
+            <EntryValue
+              ariaLabel="Copy variable value"
+              emptyMessage="—"
+              reveal={reveal}
+              scopedValue={defaultRow ?? { scopes: null, value: '' }}
+            />
             {overrides.map((override, index) => (
-              <ValueRow
+              <EntryValue
+                ariaLabel="Copy variable value"
+                emptyMessage="—"
                 key={`${variable.id}-${index}`}
-                scopeChips={Object.entries(override.scopes ?? {})}
                 reveal={reveal}
+                scopeKey="inline"
                 scopedValue={override}
               />
             ))}
@@ -266,31 +278,6 @@ function GlobalVariableRow({ groupNames, shadowedByProject, variable }: GlobalVa
         </div>
       </div>
     </li>
-  );
-}
-
-interface ValueRowProps {
-  label?: string;
-  reveal: EntryReveal;
-  scopeChips?: [string, string][];
-  scopedValue: { scopes?: null | Record<string, string>; value: string };
-}
-
-function ValueRow({ label, reveal, scopeChips, scopedValue }: ValueRowProps) {
-  return (
-    <TooltipProvider>
-      <div className="grid max-w-3xl grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
-        <div className="flex flex-wrap items-center">
-          {label ? (
-            <span className="font-mono text-[10.5px] uppercase tracking-wide text-fg-caption">{label}</span>
-          ) : null}
-          {scopeChips?.map(([dimension, value]) => (
-            <ScopeTag dimension={dimension} key={dimension} size="sm" value={value} />
-          ))}
-        </div>
-        <EntryValue ariaLabel="Copy variable value" emptyMessage="—" reveal={reveal} scopedValue={scopedValue} />
-      </div>
-    </TooltipProvider>
   );
 }
 
