@@ -97,7 +97,7 @@ function ConfigRoute() {
               <div className="grid gap-4">
                 <div className="grid gap-1">
                   <span className="text-[12.5px] font-semibold text-fg-heading">Manage templates</span>
-                  <span className="text-[11.5px] text-fg-caption">Attach templates for inherited config or remove ones this project no longer needs.</span>
+                  <span className="text-[11.5px] text-fg-caption">Attach templates to inherit configuration or remove ones this project no longer needs.</span>
                 </div>
 
                 <div className="grid gap-2">
@@ -157,7 +157,7 @@ function AttachedTemplateRow({ disabled, onDetach, template }: { disabled: boole
   return (
     <div className="flex items-start justify-between gap-3 rounded-lg px-3 py-2">
       <div className="min-w-0 flex-1">
-        <InlineCode>{template.name}</InlineCode>
+        {template.name}
         {template.description ? <div className="truncate text-[11.5px] text-fg-caption">{template.description}</div> : null}
       </div>
       <button
@@ -179,10 +179,11 @@ function AvailableTemplateRow({ disabled, onAttach, template }: { disabled: bool
       className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-bg-container disabled:pointer-events-none disabled:opacity-45"
       disabled={disabled}
       onClick={onAttach}
+      title={template.description || undefined}
       type="button"
     >
       <span className="min-w-0 flex-1">
-        <InlineCode>{template.name}</InlineCode>
+        {template.name}
         {template.description ? <span className="block truncate text-[11.5px] text-fg-caption">{template.description}</span> : null}
       </span>
       <Plus aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-fg-icon-subtle" strokeWidth={2} />
