@@ -70,6 +70,58 @@ public sealed class ProjectStoreTests
     }
 
     [Fact]
+    public async Task ListAsync_WithUngrouped_ReturnsOnlyProjectsWithoutGroup()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var (store, _) = await CreateStoreAsync(cancellationToken);
+        var groupId = Guid.CreateVersion7();
+
+        await store.CreateAsync(CreateProject("Grouped", groupId), cancellationToken);
+        await store.CreateAsync(CreateProject("Ungrouped Alpha"), cancellationToken);
+        await store.CreateAsync(CreateProject("Ungrouped Beta"), cancellationToken);
+
+        // Act
+        var result = await store.ListAsync(new ProjectListQuery
+        {
+            Ungrouped = true,
+            SortField = "name",
+            SortOrder = "asc"
+        }, cancellationToken);
+
+        // Assert
+        result.Items.Select(project => project.Name).ShouldBe(["Ungrouped Alpha", "Ungrouped Beta"]);
+        result.TotalCount.ShouldBe(2);
+        result.Items.ShouldAllBe(project => project.GroupId == null);
+    }
+
+    [Fact]
+    public async Task ListAsync_WithUngroupedAndSearch_FiltersUngroupedProjects()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var (store, _) = await CreateStoreAsync(cancellationToken);
+        var groupId = Guid.CreateVersion7();
+
+        await store.CreateAsync(CreateProject("Billing API", groupId), cancellationToken);
+        await store.CreateAsync(CreateProject("Billing Portal"), cancellationToken);
+        await store.CreateAsync(CreateProject("Inventory"), cancellationToken);
+
+        // Act
+        var result = await store.ListAsync(new ProjectListQuery
+        {
+            Ungrouped = true,
+            Search = "billing",
+            SortField = "name",
+            SortOrder = "asc"
+        }, cancellationToken);
+
+        // Assert
+        result.Items.Select(project => project.Name).ShouldBe(["Billing Portal"]);
+        result.TotalCount.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task ListAsync_WithGroupIdAndSearch_ReturnsOnlyMatchingProjectsInGroup()
     {
         // Arrange

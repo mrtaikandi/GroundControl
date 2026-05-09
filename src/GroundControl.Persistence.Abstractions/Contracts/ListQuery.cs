@@ -34,7 +34,7 @@ public class ListQuery : IValidatableObject
     public string SortOrder { get; set; } = "asc";
 
     /// <inheritdoc />
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    public virtual IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (!string.IsNullOrWhiteSpace(After) && !string.IsNullOrWhiteSpace(Before))
         {
