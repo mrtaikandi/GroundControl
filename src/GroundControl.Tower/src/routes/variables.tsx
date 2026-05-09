@@ -23,15 +23,27 @@ type TierFilter = 'all' | 'global' | 'group';
 
 export const Route = createFileRoute('/variables')({
   component: VariablesRoute,
+  validateSearch: (search: Record<string, unknown>): { tier?: Exclude<TierFilter, 'all'> } => {
+    const tier = search.tier;
+    return tier === 'global' || tier === 'group' ? { tier } : {};
+  },
 });
 
 function VariablesRoute() {
   const variables = useVariables({ Scope: 0 });
   const groups = useGroups();
+  const navigate = Route.useNavigate();
+  const { tier } = Route.useSearch();
+  const tierFilter: TierFilter = tier ?? 'all';
+  const setTierFilter = (next: TierFilter) => {
+    void navigate({
+      replace: true,
+      search: (prev) => ({ ...prev, tier: next === 'all' ? undefined : next }),
+    });
+  };
   const [creating, setCreating] = useState(false);
   const [editingVariable, setEditingVariable] = useState<Variable | undefined>();
   const [search, setSearch] = useState<string | undefined>(undefined);
-  const [tierFilter, setTierFilter] = useState<TierFilter>('all');
   const groupNames = useMemo(() => new Map((groups.data?.data ?? []).map((group) => [group.id, group.name])), [groups.data?.data]);
   const items = variables.data?.data ?? [];
 
