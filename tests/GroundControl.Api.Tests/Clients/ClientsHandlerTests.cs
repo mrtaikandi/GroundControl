@@ -385,6 +385,81 @@ public sealed class ClientsHandlerTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task PutClient_WithUpdatedScopes_PersistsNewScopeContext()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var project = await CreateProjectAsync(apiClient, "Test Project", TestCancellationToken);
+        await CreateScopeAsync(apiClient, "environment", ["dev", "staging", "prod"], TestCancellationToken);
+
+        var createRequest = new CreateClientRequest
+        {
+            Name = "client",
+            Scopes = new Dictionary<string, string> { ["environment"] = "dev" },
+        };
+        var createResponse = await apiClient.PostAsJsonAsync(
+            $"/api/projects/{project.Id}/clients", createRequest, WebJsonSerializerOptions, TestCancellationToken);
+        var created = await ReadCreateClientAsync(createResponse, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync(
+            $"/api/projects/{project.Id}/clients/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/projects/{project.Id}/clients/{created.Id}");
+        request.Content = JsonContent.Create(
+            new UpdateClientRequest
+            {
+                Name = "client",
+                IsActive = true,
+                Scopes = new Dictionary<string, string> { ["environment"] = "prod" },
+            },
+            options: WebJsonSerializerOptions);
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var client = await ReadClientAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        client.Scopes.ShouldContainKeyAndValue("environment", "prod");
+    }
+
+    [Fact]
+    public async Task PutClient_WithInvalidScopeDimension_ReturnsBadRequest()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var project = await CreateProjectAsync(apiClient, "Test Project", TestCancellationToken);
+        var created = await CreateClientAsync(apiClient, project.Id, "client", TestCancellationToken);
+        var getResponse = await apiClient.GetAsync(
+            $"/api/projects/{project.Id}/clients/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/projects/{project.Id}/clients/{created.Id}");
+        request.Content = JsonContent.Create(
+            new UpdateClientRequest
+            {
+                Name = "client",
+                IsActive = true,
+                Scopes = new Dictionary<string, string> { ["nonexistent"] = "value" },
+            },
+            options: WebJsonSerializerOptions);
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        problem.ShouldNotBeNull();
+        problem.Errors.ShouldContainKey("Scopes");
+        problem.Errors["Scopes"].ShouldContain(e => e.Contains("was not found"));
+    }
+
+    [Fact]
     public async Task DeleteClient_WithCorrectIfMatch_ReturnsNoContent()
     {
         // Arrange

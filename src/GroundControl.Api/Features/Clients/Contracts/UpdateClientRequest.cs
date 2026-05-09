@@ -21,6 +21,11 @@ internal sealed record UpdateClientRequest
     public required bool IsActive { get; init; }
 
     /// <summary>
+    /// Gets the fixed scope assignments for the client. When provided, replaces the existing scope context.
+    /// </summary>
+    public Dictionary<string, string>? Scopes { get; init; }
+
+    /// <summary>
     /// Gets the optional expiration timestamp.
     /// </summary>
     public DateTimeOffset? ExpiresAt { get; init; }

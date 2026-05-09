@@ -531,6 +531,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -6238,6 +6248,16 @@
           "isActive": {
             "type": "boolean",
             "description": "Gets whether the client is active."
+          },
+          "scopes": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets the fixed scope assignments for the client. When provided, replaces the existing scope context."
           },
           "expiresAt": {
             "type": [
