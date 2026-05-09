@@ -1685,6 +1685,13 @@
             }
           },
           {
+            "name": "Ungrouped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "Search",
             "in": "query",
             "schema": {
@@ -1930,6 +1937,61 @@
           },
           "428": {
             "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/grouped": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "List projects grouped by owning group",
+        "description": "Returns the first page of projects for every group plus an ungrouped bucket, all sorted by name ascending. Sections whose project list is empty after applying the search filter are omitted. Use the returned per-section cursor with GET /api/projects to fetch the next page.",
+        "operationId": "ListGroupedProjectsHandler",
+        "parameters": [
+          {
+            "name": "Search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PerGroup",
+            "in": "query",
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupedProjectsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4900,6 +4962,84 @@
         },
         "description": "Represents a role grant in request and response contracts."
       },
+      "GroupedProjectsResponse": {
+        "required": [
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupProjects"
+            },
+            "description": "Gets the per-group sections, sorted by group name ascending. Sections whose project list is empty\r\nafter applying the search filter are omitted."
+          },
+          "ungrouped": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Gets the bucket of projects that have no owning group, or `null` when no ungrouped\r\nprojects match the current filter.",
+                "$ref": "#/components/schemas/UngroupedProjects"
+              }
+            ]
+          }
+        },
+        "description": "Represents a project listing partitioned by owning group, with a separate bucket for ungrouped projects."
+      },
+      "GroupProjects": {
+        "required": [
+          "id",
+          "name",
+          "totalCount",
+          "projects"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Gets the group identifier.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets the group display name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the optional group description."
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of projects in this group that match the current filter.",
+            "format": "int64"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectResponse"
+            },
+            "description": "Gets the first page of matching projects in this group, sorted by name ascending."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor used to fetch the next page via `GET /api/projects?groupId=&amp;after=`, or\r\n`null` when no more pages exist."
+          }
+        },
+        "description": "Represents a single group section within a grouped project listing."
+      },
       "GroupResponse": {
         "required": [
           "id",
@@ -6049,6 +6189,39 @@
           }
         },
         "description": "Represents the API response body for a template."
+      },
+      "UngroupedProjects": {
+        "required": [
+          "totalCount",
+          "projects"
+        ],
+        "type": "object",
+        "properties": {
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the total number of ungrouped projects that match the current filter.",
+            "format": "int64"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectResponse"
+            },
+            "description": "Gets the first page of matching ungrouped projects, sorted by name ascending."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets the cursor used to fetch the next page via `GET /api/projects?ungrouped=true&amp;after=`,\r\nor `null` when no more pages exist."
+          }
+        },
+        "description": "Represents the bucket of projects that have no owning group."
       },
       "UpdateClientRequest": {
         "required": [
