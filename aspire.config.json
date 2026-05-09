@@ -1,11 +1,11 @@
 {
-  "appHost" : {
-    "language" : "csharp",
-    "path" : "./src/GroundControl.AppHost/GroundControl.AppHost.csproj"
+  "appHost": {
+    "language": "csharp",
+    "path": "./src/GroundControl.AppHost/GroundControl.AppHost.csproj"
   },
-  "features" : {
-    "defaultWatchEnabled" : true,
-    "showAllTemplates" : true,
-    "updateNotificationsEnabled" : true
+  "features": {
+    "defaultWatchEnabled": "true",
+    "showAllTemplates": "true",
+    "updateNotificationsEnabled": "true"
   }
 }
