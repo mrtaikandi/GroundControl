@@ -1,8 +1,8 @@
-import { Eye, EyeOff, Loader2, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { CopyButton } from '@/components/tower/data/CopyButton';
+import { RevealButton } from '@/components/tower/data/RevealButton';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { scopedValueKey, type EntryReveal } from './use-entry-reveal';
 
 interface EntryValueProps {
@@ -58,38 +58,3 @@ export function EntryValue({ ariaLabel = 'Copy value', bare = false, emptyMessag
   );
 }
 
-interface RevealButtonProps {
-  onToggle: () => void;
-  pending: boolean;
-  revealed: boolean;
-}
-
-function RevealButton({ onToggle, pending, revealed }: RevealButtonProps) {
-  const label = revealed ? 'Hide value' : 'Reveal value';
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          aria-label={label}
-          className={cn(
-            'inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-icon-subtle transition-colors hover:bg-bg-selected hover:text-fg-body',
-            'disabled:cursor-not-allowed disabled:opacity-40',
-          )}
-          disabled={pending}
-          onClick={onToggle}
-          type="button"
-        >
-          {pending ? (
-            <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
-          ) : revealed ? (
-            <EyeOff aria-hidden="true" className="size-3.5" />
-          ) : (
-            <Eye aria-hidden="true" className="size-3.5" />
-          )}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}

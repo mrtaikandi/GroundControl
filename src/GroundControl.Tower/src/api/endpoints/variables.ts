@@ -8,8 +8,10 @@ export function createVariable(body: ApiRequestBody<'CreateVariableHandler'>) {
   return apiFetch<ApiResponse<'CreateVariableHandler'>>('/api/variables', { method: 'POST', body });
 }
 
-export function getVariable(id: string) {
-  return apiFetch<ApiResponse<'GetVariableHandler'>>(`/api/variables/${encodeURIComponent(id)}`);
+export function getVariable(id: string, options: { decrypt?: boolean } = {}) {
+  return apiFetch<ApiResponse<'GetVariableHandler'>>(`/api/variables/${encodeURIComponent(id)}`, {
+    query: options.decrypt ? { decrypt: true } : undefined,
+  });
 }
 
 export function updateVariable(id: string, body: ApiRequestBody<'UpdateVariableHandler'>, version: string) {
