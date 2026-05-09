@@ -90,7 +90,7 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
               <div className="flex justify-end">
                 <DiffLayoutToggle />
               </div>
-              <JsonDiff after={after} before={before} className="max-h-[560px] border border-stroke-subtle bg-bg-container" mode={diffLayout} />
+              <JsonDiff after={after} before={before} className="max-h-[560px] overflow-y-auto border border-stroke-subtle bg-bg-container" mode={diffLayout} />
             </div>
           )
         ) : (
