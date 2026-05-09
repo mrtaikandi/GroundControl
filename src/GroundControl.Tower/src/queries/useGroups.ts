@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { getGroupMembers, getGroups, setGroupMember } from '@/api/endpoints/groups';
+import { getGroup, getGroupMembers, getGroups, setGroupMember } from '@/api/endpoints/groups';
 import type { ApiResponse } from '@/api/client';
 import { queryClient } from '@/lib/query-client';
 
@@ -18,6 +18,18 @@ export function useGroups() {
   return useQuery({
     queryFn: () => getGroups({ Limit: 100, SortField: 'name', SortOrder: 'asc' }),
     queryKey: groupsQueryKey(),
+    staleTime: 30_000,
+  });
+}
+
+export function groupQueryKey(groupId: string) {
+  return ['groups', groupId] as const;
+}
+
+export function useGroup(groupId: string) {
+  return useQuery({
+    queryFn: () => getGroup(groupId),
+    queryKey: groupQueryKey(groupId),
     staleTime: 30_000,
   });
 }

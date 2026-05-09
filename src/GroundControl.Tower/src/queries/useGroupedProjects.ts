@@ -13,6 +13,7 @@ export function useGroupedProjects(query?: GroupedProjectsQuery) {
   return useQuery({
     queryFn: () => getGroupedProjects(request),
     queryKey: groupedProjectsQueryKey(request),
+    staleTime: 60_000,
   });
 }
 
