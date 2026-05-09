@@ -8,7 +8,12 @@ import { useTemplates, type Template } from '@/queries/useTemplates';
 export type EntrySource =
   | { kind: 'project' }
   | { kind: 'project-overrides'; templateId: string; templateName: string }
-  | { kind: 'template'; templateId: string; templateName: string };
+  | { kind: 'template'; templateId: string; templateName: string }
+  | { kind: 'template-self'; templateId: string; templateName: string };
+
+export type ConfigOwner =
+  | { id: string; kind: 'project' }
+  | { id: string; kind: 'template' };
 
 export interface EffectiveEntry {
   entry: ConfigEntry;
@@ -119,4 +124,33 @@ export function useEffectiveEntries(projectId: string): EffectiveEntriesResult {
     () => ({ attachedTemplates, isLoading, ...result }),
     [attachedTemplates, isLoading, result],
   );
+}
+
+export function useOwnedEntries(owner: ConfigOwner): EffectiveEntriesResult {
+  const projectId = owner.kind === 'project' ? owner.id : '';
+  const templateId = owner.kind === 'template' ? owner.id : '';
+  const projectResult = useEffectiveEntries(projectId);
+  const templateEntries = useConfigEntries(templateId, 0);
+  const templates = useTemplates();
+
+  return useMemo<EffectiveEntriesResult>(() => {
+    if (owner.kind === 'project') {
+      return projectResult;
+    }
+
+    const templateName = templates.data?.data.find((candidate) => candidate.id === owner.id)?.name ?? '';
+    const items: EffectiveEntry[] = (templateEntries.data?.data ?? []).map((entry) => ({
+      entry,
+      source: { kind: 'template-self', templateId: owner.id, templateName },
+    }));
+
+    return {
+      attachedTemplates: [],
+      entries: items,
+      inheritedCount: 0,
+      isLoading: templateEntries.isLoading || templates.isLoading,
+      overrideCount: 0,
+      ownCount: items.length,
+    };
+  }, [owner.id, owner.kind, projectResult, templateEntries.data?.data, templateEntries.isLoading, templates.data?.data, templates.isLoading]);
 }

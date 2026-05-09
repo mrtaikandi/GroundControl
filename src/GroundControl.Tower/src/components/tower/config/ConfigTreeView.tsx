@@ -8,8 +8,9 @@ import { Badge } from '@/components/tower/data/Badge';
 import { InlineCode } from '@/components/tower/data/InlineCode';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { type ConfigEntry } from '@/queries/useConfigEntries';
-import { useEffectiveEntries, type EffectiveEntry, type EntrySource } from '@/queries/useEffectiveEntries';
+import { useOwnedEntries, type ConfigOwner, type EffectiveEntry, type EntrySource } from '@/queries/useEffectiveEntries';
 import { useProjects } from '@/queries/useProjects';
+import { useTemplates } from '@/queries/useTemplates';
 import { buildKeyTree, type TreeNode } from '@/lib/key-tree';
 import { cn } from '@/lib/utils';
 import { DeleteEntryDialog } from './DeleteEntryDialog';
@@ -19,13 +20,17 @@ import { ScopedEntryValue } from './ScopedEntryValue';
 import { scopedValueKey, useEntryReveal } from './use-entry-reveal';
 
 interface ConfigTreeViewProps {
-  projectId: string;
+  owner: ConfigOwner;
 }
 
-export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
-  const effective = useEffectiveEntries(projectId);
+export function ConfigTreeView({ owner }: ConfigTreeViewProps) {
+  const effective = useOwnedEntries(owner);
   const projects = useProjects();
-  const projectName = projects.data?.data.find((candidate) => candidate.id === projectId)?.name ?? '';
+  const templates = useTemplates();
+  const ownerType = owner.kind === 'project' ? 1 : 0;
+  const ownerName = owner.kind === 'project'
+    ? projects.data?.data.find((candidate) => candidate.id === owner.id)?.name ?? ''
+    : templates.data?.data.find((candidate) => candidate.id === owner.id)?.name ?? '';
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<ConfigEntry | undefined>();
@@ -55,7 +60,7 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
 
   useEffect(() => {
     setSelectedEntryId(null);
-  }, [projectId]);
+  }, [owner.id]);
 
   useEffect(() => {
     if (selectedEntryId !== null || tree.length === 0) {
@@ -71,8 +76,8 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
 
   return (
     <TooltipProvider>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,600px)]">
-        <div className="grid items-center gap-3 xl:col-span-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,600px)]">
+        <div className="grid items-center gap-3 self-start xl:col-span-2 sm:grid-cols-[minmax(0,1fr)_auto]">
           <div className="flex flex-wrap items-center gap-3">
             <Input className="w-full sm:flex-1 sm:max-w-sm" onChange={(event) => setFilter(event.target.value)} placeholder="Filter…" value={filter} />
             <div className="flex justify-end gap-1">
@@ -87,9 +92,9 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
           <Button className="sm:justify-self-end" onClick={() => setCreating(true)} type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
         </div>
 
-        <div className="grid content-start gap-3">
-          {effective.isLoading ? <Skeleton className="h-96" /> : (
-            <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+        <div className="flex flex-col gap-3">
+          {effective.isLoading ? <Skeleton className="min-h-96 flex-1" /> : (
+            <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
               {tree.length === 0 ? <div className="p-10 text-center text-fg-caption">No entries found.</div> : tree.map((node) => (
                 <TreeRow
                   collapsed={collapsed}
@@ -107,11 +112,13 @@ export function ConfigTreeView({ projectId }: ConfigTreeViewProps) {
           )}
         </div>
 
-        <EntryDetailPanel item={selectedItem} onEdit={setEditingEntry} projectName={projectName} />
+        <div className="self-start">
+          <EntryDetailPanel item={selectedItem} onEdit={setEditingEntry} ownerName={ownerName} />
+        </div>
 
-        <EntryModal mode="create" onOpenChange={setCreating} open={creating} projectId={projectId} />
-        <EntryModal entry={editingEntry} mode="edit" onOpenChange={(open) => !open && setEditingEntry(undefined)} open={Boolean(editingEntry)} projectId={projectId} />
-        <DeleteEntryDialog entry={deletingEntry} onOpenChange={(open) => !open && setDeletingEntry(undefined)} open={Boolean(deletingEntry)} projectId={projectId} />
+        <EntryModal mode="create" onOpenChange={setCreating} open={creating} ownerId={owner.id} ownerType={ownerType} />
+        <EntryModal entry={editingEntry} key={editingEntry?.id ?? 'edit-empty'} mode="edit" onOpenChange={(open) => !open && setEditingEntry(undefined)} open={Boolean(editingEntry)} ownerId={owner.id} ownerType={ownerType} />
+        <DeleteEntryDialog entry={deletingEntry} onOpenChange={(open) => !open && setDeletingEntry(undefined)} open={Boolean(deletingEntry)} ownerId={owner.id} ownerType={ownerType} />
       </div>
     </TooltipProvider>
   );
@@ -210,24 +217,24 @@ function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selec
 interface EntryDetailPanelProps {
   item: EffectiveEntry | null;
   onEdit: (entry: ConfigEntry) => void;
-  projectName: string;
+  ownerName: string;
 }
 
-function EntryDetailPanel({ item, onEdit, projectName }: EntryDetailPanelProps) {
+function EntryDetailPanel({ item, onEdit, ownerName }: EntryDetailPanelProps) {
   if (!item) {
     return null;
   }
 
-  return <EntryDetailPanelBody item={item} key={item.entry.id} onEdit={onEdit} projectName={projectName} />;
+  return <EntryDetailPanelBody item={item} key={item.entry.id} onEdit={onEdit} ownerName={ownerName} />;
 }
 
 interface EntryDetailPanelBodyProps {
   item: EffectiveEntry;
   onEdit: (entry: ConfigEntry) => void;
-  projectName: string;
+  ownerName: string;
 }
 
-function EntryDetailPanelBody({ item, onEdit, projectName }: EntryDetailPanelBodyProps) {
+function EntryDetailPanelBody({ item, onEdit, ownerName }: EntryDetailPanelBodyProps) {
   const { entry, source } = item;
   const reveal = useEntryReveal(entry);
   const isInherited = source.kind === 'template';
@@ -250,7 +257,7 @@ function EntryDetailPanelBody({ item, onEdit, projectName }: EntryDetailPanelBod
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Badge variant="neutral">{entry.valueType}</Badge>
-        <OwnerPill projectName={projectName} source={source} />
+        <OwnerPill ownerName={ownerName} source={source} />
       </div>
 
       {entry.description ? <p className="mt-4 text-[13.5px] text-fg-body [overflow-wrap:anywhere]">{entry.description}</p> : null}
@@ -277,9 +284,13 @@ function EntryDetailPanelBody({ item, onEdit, projectName }: EntryDetailPanelBod
   );
 }
 
-function OwnerPill({ projectName, source }: { projectName: string; source: EntrySource }) {
+function OwnerPill({ ownerName, source }: { ownerName: string; source: EntrySource }) {
   if (source.kind === 'project') {
-    return <Badge variant="neutral">project{projectName ? ` · ${projectName}` : ''}</Badge>;
+    return <Badge variant="neutral">project{ownerName ? ` · ${ownerName}` : ''}</Badge>;
+  }
+
+  if (source.kind === 'template-self') {
+    return <Badge variant="neutral">template{ownerName ? ` · ${ownerName}` : ''}</Badge>;
   }
 
   if (source.kind === 'template') {

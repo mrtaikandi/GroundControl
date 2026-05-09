@@ -27,7 +27,7 @@ export function EntryValue({ ariaLabel = 'Copy value', bare = false, emptyMessag
     <TooltipProvider>
       <div className={wrapperClass}>
         {!scopedValue || !displayValue ? (
-          <span className="text-fg-caption">{emptyMessage}</span>
+          <span className="flex min-h-7 items-center text-fg-caption">{emptyMessage}</span>
         ) : (
           <>
             <div className="min-w-0 flex-1 break-all">

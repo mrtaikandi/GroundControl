@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ConfigFlatView } from '@/components/tower/config/ConfigFlatView';
 import { ConfigJsonView } from '@/components/tower/config/ConfigJsonView';
 import { ConfigTreeView } from '@/components/tower/config/ConfigTreeView';
-import { InlineCode } from '@/components/tower/data/InlineCode';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { Toolbar } from '@/components/tower/data/Toolbar';
 import { Button } from '@/components/ui/button';
@@ -148,7 +147,7 @@ function ConfigRoute() {
         }
       />
 
-      {configViewMode === 'tree' ? <ConfigTreeView projectId={projectId} /> : configViewMode === 'json' ? <ConfigJsonView projectId={projectId} /> : <ConfigFlatView projectId={projectId} />}
+      {configViewMode === 'tree' ? <ConfigTreeView owner={{ kind: 'project', id: projectId }} /> : configViewMode === 'json' ? <ConfigJsonView owner={{ kind: 'project', id: projectId }} /> : <ConfigFlatView owner={{ kind: 'project', id: projectId }} />}
     </div>
   );
 }

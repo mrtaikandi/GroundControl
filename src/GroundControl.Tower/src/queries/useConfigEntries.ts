@@ -15,6 +15,7 @@ export function configEntriesQueryKey(ownerId: string, ownerType: ConfigEntryOwn
 
 export function useConfigEntries(ownerId: string, ownerType: ConfigEntryOwnerType = 1) {
   return useQuery({
+    enabled: ownerId.length > 0,
     queryFn: () => getConfigEntries({ Limit: 100, OwnerId: ownerId, OwnerType: ownerType, SortField: 'key', SortOrder: 'asc', decrypt: false }),
     queryKey: configEntriesQueryKey(ownerId, ownerType),
   });

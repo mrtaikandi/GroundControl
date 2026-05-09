@@ -10,13 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VariablesRouteImport } from './routes/variables'
-import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as ScopesRouteImport } from './routes/scopes'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
+import { Route as TemplatesTemplateIdRouteImport } from './routes/templates/$templateId'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminTokensRouteImport } from './routes/admin/tokens'
 import { Route as AdminGroupsRouteImport } from './routes/admin/groups'
@@ -32,11 +33,6 @@ import { Route as AdminGroupsGroupIdRouteImport } from './routes/admin/groups.$g
 const VariablesRoute = VariablesRouteImport.update({
   id: '/variables',
   path: '/variables',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TemplatesRoute = TemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ScopesRoute = ScopesRouteImport.update({
@@ -64,9 +60,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TemplatesIndexRoute = TemplatesIndexRouteImport.update({
+  id: '/templates/',
+  path: '/templates/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesTemplateIdRoute = TemplatesTemplateIdRouteImport.update({
+  id: '/templates/$templateId',
+  path: '/templates/$templateId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -133,13 +139,14 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRoute
   '/overview': typeof OverviewRoute
   '/scopes': typeof ScopesRoute
-  '/templates': typeof TemplatesRoute
   '/variables': typeof VariablesRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteRouteWithChildren
   '/admin/groups': typeof AdminGroupsRouteWithChildren
   '/admin/tokens': typeof AdminTokensRoute
   '/admin/users': typeof AdminUsersRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/templates/': typeof TemplatesIndexRoute
   '/admin/groups/$groupId': typeof AdminGroupsGroupIdRoute
   '/projects/$projectId/clients': typeof ProjectsProjectIdClientsRoute
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
@@ -154,11 +161,12 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRoute
   '/overview': typeof OverviewRoute
   '/scopes': typeof ScopesRoute
-  '/templates': typeof TemplatesRoute
   '/variables': typeof VariablesRoute
   '/admin/tokens': typeof AdminTokensRoute
   '/admin/users': typeof AdminUsersRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/projects': typeof ProjectsIndexRoute
+  '/templates': typeof TemplatesIndexRoute
   '/admin/groups/$groupId': typeof AdminGroupsGroupIdRoute
   '/projects/$projectId/clients': typeof ProjectsProjectIdClientsRoute
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
@@ -174,13 +182,14 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRoute
   '/overview': typeof OverviewRoute
   '/scopes': typeof ScopesRoute
-  '/templates': typeof TemplatesRoute
   '/variables': typeof VariablesRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteRouteWithChildren
   '/admin/groups': typeof AdminGroupsRouteWithChildren
   '/admin/tokens': typeof AdminTokensRoute
   '/admin/users': typeof AdminUsersRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/templates/': typeof TemplatesIndexRoute
   '/admin/groups/$groupId': typeof AdminGroupsGroupIdRoute
   '/projects/$projectId/clients': typeof ProjectsProjectIdClientsRoute
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
@@ -197,13 +206,14 @@ export interface FileRouteTypes {
     | '/clients'
     | '/overview'
     | '/scopes'
-    | '/templates'
     | '/variables'
     | '/projects/$projectId'
     | '/admin/groups'
     | '/admin/tokens'
     | '/admin/users'
+    | '/templates/$templateId'
     | '/projects/'
+    | '/templates/'
     | '/admin/groups/$groupId'
     | '/projects/$projectId/clients'
     | '/projects/$projectId/config'
@@ -218,11 +228,12 @@ export interface FileRouteTypes {
     | '/clients'
     | '/overview'
     | '/scopes'
-    | '/templates'
     | '/variables'
     | '/admin/tokens'
     | '/admin/users'
+    | '/templates/$templateId'
     | '/projects'
+    | '/templates'
     | '/admin/groups/$groupId'
     | '/projects/$projectId/clients'
     | '/projects/$projectId/config'
@@ -237,13 +248,14 @@ export interface FileRouteTypes {
     | '/clients'
     | '/overview'
     | '/scopes'
-    | '/templates'
     | '/variables'
     | '/projects/$projectId'
     | '/admin/groups'
     | '/admin/tokens'
     | '/admin/users'
+    | '/templates/$templateId'
     | '/projects/'
+    | '/templates/'
     | '/admin/groups/$groupId'
     | '/projects/$projectId/clients'
     | '/projects/$projectId/config'
@@ -259,13 +271,14 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRoute
   OverviewRoute: typeof OverviewRoute
   ScopesRoute: typeof ScopesRoute
-  TemplatesRoute: typeof TemplatesRoute
   VariablesRoute: typeof VariablesRoute
   ProjectsProjectIdRouteRoute: typeof ProjectsProjectIdRouteRouteWithChildren
   AdminGroupsRoute: typeof AdminGroupsRouteWithChildren
   AdminTokensRoute: typeof AdminTokensRoute
   AdminUsersRoute: typeof AdminUsersRoute
+  TemplatesTemplateIdRoute: typeof TemplatesTemplateIdRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  TemplatesIndexRoute: typeof TemplatesIndexRoute
   ProjectsGroupGroupIdRoute: typeof ProjectsGroupGroupIdRoute
 }
 
@@ -276,13 +289,6 @@ declare module '@tanstack/react-router' {
       path: '/variables'
       fullPath: '/variables'
       preLoaderRoute: typeof VariablesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/templates': {
-      id: '/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof TemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/scopes': {
@@ -320,11 +326,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/templates/': {
+      id: '/templates/'
+      path: '/templates'
+      fullPath: '/templates/'
+      preLoaderRoute: typeof TemplatesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/': {
       id: '/projects/'
       path: '/projects'
       fullPath: '/projects/'
       preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates/$templateId': {
+      id: '/templates/$templateId'
+      path: '/templates/$templateId'
+      fullPath: '/templates/$templateId'
+      preLoaderRoute: typeof TemplatesTemplateIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/users': {
@@ -447,13 +467,14 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsRoute: ClientsRoute,
   OverviewRoute: OverviewRoute,
   ScopesRoute: ScopesRoute,
-  TemplatesRoute: TemplatesRoute,
   VariablesRoute: VariablesRoute,
   ProjectsProjectIdRouteRoute: ProjectsProjectIdRouteRouteWithChildren,
   AdminGroupsRoute: AdminGroupsRouteWithChildren,
   AdminTokensRoute: AdminTokensRoute,
   AdminUsersRoute: AdminUsersRoute,
+  TemplatesTemplateIdRoute: TemplatesTemplateIdRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  TemplatesIndexRoute: TemplatesIndexRoute,
   ProjectsGroupGroupIdRoute: ProjectsGroupGroupIdRoute,
 }
 export const routeTree = rootRouteImport

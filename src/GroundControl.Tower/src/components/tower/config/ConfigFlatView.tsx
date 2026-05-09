@@ -2,7 +2,6 @@ import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, use
 import { Layers3 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/tower/data/Badge';
-import { InlineCode } from '@/components/tower/data/InlineCode';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,35 +9,42 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { type ConfigEntry } from '@/queries/useConfigEntries';
-import { useEffectiveEntries, type EffectiveEntry } from '@/queries/useEffectiveEntries';
+import { useOwnedEntries, type ConfigOwner, type EffectiveEntry, type EntrySource } from '@/queries/useEffectiveEntries';
 import { DeleteEntryDialog } from './DeleteEntryDialog';
 import { EntryModal } from './EntryModal';
 
 const columnHelper = createColumnHelper<EffectiveEntry>();
 
 interface ConfigFlatViewProps {
-  projectId: string;
+  owner: ConfigOwner;
 }
 
-export function ConfigFlatView({ projectId }: ConfigFlatViewProps) {
-  const effective = useEffectiveEntries(projectId);
+export function ConfigFlatView({ owner }: ConfigFlatViewProps) {
+  const effective = useOwnedEntries(owner);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [search, setSearch] = useState('');
   const [editingEntry, setEditingEntry] = useState<ConfigEntry | undefined>();
   const [deletingEntry, setDeletingEntry] = useState<ConfigEntry | undefined>();
   const [creating, setCreating] = useState(false);
+  const ownerType = owner.kind === 'project' ? 1 : 0;
   const data = useMemo(
     () => effective.entries.filter((item) => item.entry.key.toLowerCase().includes(search.toLowerCase())),
     [effective.entries, search],
   );
-  const columns = useMemo(() => [
-    columnHelper.accessor((row) => row.entry.key, { cell: (info) => <span className="font-semibold text-fg-heading [overflow-wrap:anywhere]">{info.getValue()}</span>, header: 'Key', id: 'key' }),
-    columnHelper.accessor((row) => row.entry.valueType, { cell: (info) => <Badge variant="neutral">{info.getValue()}</Badge>, header: 'Type', id: 'valueType' }),
-    columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.entry.isSensitive} value={defaultValue(info.row.original.entry)} />, header: 'Default value', id: 'defaultValue' }),
-    columnHelper.display({ cell: (info) => <Badge variant="info">{scopeCount(info.row.original.entry)} scopes</Badge>, header: 'Scopes', id: 'scopes' }),
-    columnHelper.display({ cell: (info) => <OwnerBadge source={info.row.original.source} />, header: 'Owner', id: 'owner' }),
-    columnHelper.accessor((row) => row.entry.updatedAt, { cell: (info) => relativeDate(info.getValue()), header: 'Updated', id: 'updatedAt' }),
-    columnHelper.display({
+  const columns = useMemo(() => {
+    const baseColumns = [
+      columnHelper.accessor((row) => row.entry.key, { cell: (info) => <span className="font-semibold text-fg-heading [overflow-wrap:anywhere]">{info.getValue()}</span>, header: 'Key', id: 'key' }),
+      columnHelper.accessor((row) => row.entry.valueType, { cell: (info) => <Badge variant="neutral">{info.getValue()}</Badge>, header: 'Type', id: 'valueType' }),
+      columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.entry.isSensitive} value={defaultValue(info.row.original.entry)} />, header: 'Default value', id: 'defaultValue' }),
+      columnHelper.display({ cell: (info) => <Badge variant="info">{scopeCount(info.row.original.entry)} scopes</Badge>, header: 'Scopes', id: 'scopes' }),
+    ];
+
+    if (owner.kind === 'project') {
+      baseColumns.push(columnHelper.display({ cell: (info) => <OwnerBadge source={info.row.original.source} />, header: 'Owner', id: 'owner' }));
+    }
+
+    baseColumns.push(columnHelper.accessor((row) => row.entry.updatedAt, { cell: (info) => relativeDate(info.getValue()), header: 'Updated', id: 'updatedAt' }));
+    baseColumns.push(columnHelper.display({
       cell: (info) => {
         const item = info.row.original;
         if (item.source.kind === 'template') {
@@ -54,8 +60,10 @@ export function ConfigFlatView({ projectId }: ConfigFlatViewProps) {
       },
       header: '',
       id: 'actions',
-    }),
-  ], []);
+    }));
+
+    return baseColumns;
+  }, [owner.kind]);
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), onSortingChange: setSorting, state: { sorting } });
 
   if (effective.isLoading) {
@@ -100,17 +108,21 @@ export function ConfigFlatView({ projectId }: ConfigFlatViewProps) {
           </div>
         </div>
 
-        <EntryModal mode="create" onOpenChange={setCreating} open={creating} projectId={projectId} />
-        <EntryModal entry={editingEntry} mode="edit" onOpenChange={(open) => !open && setEditingEntry(undefined)} open={Boolean(editingEntry)} projectId={projectId} />
-        <DeleteEntryDialog entry={deletingEntry} onOpenChange={(open) => !open && setDeletingEntry(undefined)} open={Boolean(deletingEntry)} projectId={projectId} />
+        <EntryModal mode="create" onOpenChange={setCreating} open={creating} ownerId={owner.id} ownerType={ownerType} />
+        <EntryModal entry={editingEntry} key={editingEntry?.id ?? 'edit-empty'} mode="edit" onOpenChange={(open) => !open && setEditingEntry(undefined)} open={Boolean(editingEntry)} ownerId={owner.id} ownerType={ownerType} />
+        <DeleteEntryDialog entry={deletingEntry} onOpenChange={(open) => !open && setDeletingEntry(undefined)} open={Boolean(deletingEntry)} ownerId={owner.id} ownerType={ownerType} />
       </div>
     </TooltipProvider>
   );
 }
 
-function OwnerBadge({ source }: { source: EffectiveEntry['source'] }) {
+function OwnerBadge({ source }: { source: EntrySource }) {
   if (source.kind === 'project') {
     return <Badge variant="neutral">Project</Badge>;
+  }
+
+  if (source.kind === 'template-self') {
+    return <Badge variant="neutral">Template</Badge>;
   }
 
   if (source.kind === 'template') {

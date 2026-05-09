@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -44,12 +44,17 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
   const form = useForm<EntryFormValues>({
     defaultValues: formValues,
     resolver: zodResolver(entrySchema),
-    values: formValues,
   });
   const scopedValues = useFieldArray({ control: form.control, name: 'scopedValues' });
   const isSensitive = form.watch('isSensitive');
   const selectedType = form.watch('type');
   const pending = createEntry.isPending || updateEntry.isPending;
+
+  useEffect(() => {
+    if (open) {
+      form.reset(formValues);
+    }
+  }, [open, formValues, form]);
 
   async function submit(values: EntryFormValues) {
     const body = toRequest(values);
@@ -68,7 +73,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(calc(100vw-32px),720px)]">
         <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'New entry' : 'Edit entry'}</DialogTitle>
+          <DialogTitle>{mode === 'create' ? 'New Configuration' : 'Edit Configuration'}</DialogTitle>
           <DialogDescription>Define the default value and any scope-specific overrides.</DialogDescription>
         </DialogHeader>
 
@@ -84,7 +89,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
               <label className="text-[12px] font-medium text-fg-body" htmlFor="entry-type">Type</label>
               <Controller control={form.control} name="type" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="entry-type"><SelectValue /></SelectTrigger><SelectContent>{valueTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select>} />
             </div>
-            <label className="mt-6 flex h-9 items-center gap-2 rounded-lg border border-stroke-subtle bg-bg-container px-3 text-[13px] text-fg-body">
+            <label className="mt-6 flex h-9 items-center gap-2 text-[13px] text-fg-body">
               <input className="size-4 accent-[var(--tower-stroke-field-focus)]" type="checkbox" {...form.register('isSensitive')} />
               Sensitive value
             </label>
@@ -115,8 +120,22 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
 
               return (
                 <div className="grid gap-2 rounded-lg bg-bg-container p-3 md:grid-cols-[1fr_1fr_1.5fr_auto]" key={field.id}>
-                  <Controller control={form.control} name={`scopedValues.${index}.dimension`} render={({ field: dimensionField }) => <Select onValueChange={dimensionField.onChange} value={dimensionField.value}><SelectTrigger><SelectValue placeholder="Dimension" /></SelectTrigger><SelectContent>{(scopes.data?.data ?? []).map((scope) => <SelectItem key={scope.id} value={scope.dimension}>{scope.dimension}</SelectItem>)}</SelectContent></Select>} />
-                  <Controller control={form.control} name={`scopedValues.${index}.scopeValue`} render={({ field: valueField }) => <Select disabled={!selectedScope} onValueChange={valueField.onChange} value={valueField.value}><SelectTrigger><SelectValue placeholder="Value" /></SelectTrigger><SelectContent>{(selectedScope?.allowedValues ?? []).map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}</SelectContent></Select>} />
+                  <Controller control={form.control} name={`scopedValues.${index}.dimension`} render={({ field: dimensionField }) => (
+                    <Select onValueChange={dimensionField.onChange} value={dimensionField.value || undefined}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Dimension">{dimensionField.value || undefined}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>{(scopes.data?.data ?? []).map((scope) => <SelectItem key={scope.id} value={scope.dimension}>{scope.dimension}</SelectItem>)}</SelectContent>
+                    </Select>
+                  )} />
+                  <Controller control={form.control} name={`scopedValues.${index}.scopeValue`} render={({ field: valueField }) => (
+                    <Select disabled={!selectedScope} onValueChange={valueField.onChange} value={valueField.value || undefined}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Value">{valueField.value || undefined}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>{(selectedScope?.allowedValues ?? []).map((allowedValue) => <SelectItem key={allowedValue} value={allowedValue}>{allowedValue}</SelectItem>)}</SelectContent>
+                    </Select>
+                  )} />
                   <Input placeholder="Override value" type={isSensitive ? 'password' : 'text'} {...form.register(`scopedValues.${index}.value`)} />
                   <Button onClick={() => scopedValues.remove(index)} type="button" variant="ghost">Remove</Button>
                 </div>
