@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { Braces, LayoutGrid, MonitorSmartphone, Pencil, Rocket, ScrollText, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, MonitorSmartphone, Pencil, Rocket, ScrollText, SlidersHorizontal, Variable } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,8 +48,8 @@ function ProjectLayout() {
   const tabs: TabsItem[] = [
     { exact: true, icon: LayoutGrid, label: 'Overview', params: { projectId }, to: '/projects/$projectId' },
     { icon: SlidersHorizontal, label: 'Configuration', params: { projectId }, to: '/projects/$projectId/config' },
-    { icon: Braces, label: 'Variables', params: { projectId }, to: '/projects/$projectId/variables' },
     { icon: ScrollText, label: 'Snapshots', params: { projectId }, to: '/projects/$projectId/snapshots' },
+    { icon: Variable, label: 'Variables', params: { projectId }, to: '/projects/$projectId/variables' },
     { icon: MonitorSmartphone, label: 'Clients', params: { projectId }, to: '/projects/$projectId/clients' },
   ];
 
