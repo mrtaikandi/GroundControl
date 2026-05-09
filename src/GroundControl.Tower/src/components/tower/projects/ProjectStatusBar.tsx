@@ -37,7 +37,7 @@ function NotLatestBar({ onPublish, projectId, status }: { onPublish: () => void;
         <RotateCcw aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
       </span>
       <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="text-[12.5px] font-semibold text-badge-warning-fg">Rollback active</span>
+        <span className="text-[12.5px] font-semibold text-badge-warning-fg">Rollback Active</span>
         <span className="text-[12.5px] text-fg-body">
           — <span className="font-mono font-semibold text-fg-heading">v{activeVersion}</span> is being served, but{' '}
           <span className="font-mono font-semibold text-fg-heading">v{latestVersion}</span> is the latest snapshot.

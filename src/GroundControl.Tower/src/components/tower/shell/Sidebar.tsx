@@ -25,8 +25,8 @@ interface SidebarProps {
 
 const adminNavItems: NavItem[] = [
   { icon: Users, label: 'Users', match: ['/admin/users'], to: '/admin/users' },
-  { icon: ShieldCheck, label: 'Groups & roles', match: ['/admin/groups'], to: '/admin/groups' },
-  { icon: KeyRound, label: 'Access tokens', match: ['/admin/tokens'], to: '/admin/tokens' },
+  { icon: ShieldCheck, label: 'Groups & Roles', match: ['/admin/groups'], to: '/admin/groups' },
+  { icon: KeyRound, label: 'Access Tokens', match: ['/admin/tokens'], to: '/admin/tokens' },
 ];
 
 const primaryNavItems: NavItem[] = [
@@ -36,7 +36,7 @@ const primaryNavItems: NavItem[] = [
   { icon: Layers3, label: 'Scopes', match: ['/scopes'], to: '/scopes' },
   { icon: Variable, label: 'Variables', match: ['/variables'], to: '/variables' },
   { icon: ListTree, label: 'Templates', match: ['/templates'], to: '/templates' },
-  { icon: Activity, label: 'Audit trail', match: ['/audit'], to: '/audit' },
+  { icon: Activity, label: 'Audit Trail', match: ['/audit'], to: '/audit' },
 ];
 
 export function Sidebar({ className, onNavigate }: SidebarProps) {

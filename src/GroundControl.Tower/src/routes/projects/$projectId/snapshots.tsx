@@ -62,7 +62,7 @@ function SnapshotsRoute() {
 
   const detailHeading = useMemo(() => {
     if (!selectedSnapshot) {
-      return 'No snapshot selected';
+      return 'No Snapshot Selected';
     }
 
     const description = selectedSnapshot.description?.trim();
@@ -180,7 +180,7 @@ function SnapshotsRoute() {
       <AlertDialog open={Boolean(activatingSnapshot)} onOpenChange={(open) => !open && setActivatingSnapshot(undefined)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Activate snapshot v{activatingSnapshot?.snapshotVersion}?</AlertDialogTitle>
+            <AlertDialogTitle>Activate Snapshot v{activatingSnapshot?.snapshotVersion}?</AlertDialogTitle>
             <AlertDialogDescription>Clients will immediately start receiving the config from this snapshot.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

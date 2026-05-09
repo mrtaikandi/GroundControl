@@ -126,7 +126,7 @@ function InheritancePanel({ inheritedBy }: { inheritedBy: { id: string; name: st
   return (
     <section className="rounded-xl border border-stroke-subtle bg-bg-surface p-5">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-semibold text-fg-heading">Inherited by</h2>
+        <h2 className="text-[15px] font-semibold text-fg-heading">Inherited By</h2>
         <span className="text-[12px] text-fg-caption">{inheritedBy.length === 0 ? 'no projects' : `${inheritedBy.length} ${inheritedBy.length === 1 ? 'project' : 'projects'}`}</span>
       </div>
 
@@ -178,7 +178,7 @@ function EditTemplateModal({ onOpenChange, open, template }: { onOpenChange: (op
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(calc(100vw-32px),620px)]">
         <DialogHeader>
-          <DialogTitle>Edit template</DialogTitle>
+          <DialogTitle>Edit Template</DialogTitle>
           <DialogDescription>Update the template name and description.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">

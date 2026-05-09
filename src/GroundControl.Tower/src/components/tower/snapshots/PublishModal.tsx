@@ -72,7 +72,7 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(calc(100vw-32px),980px)]">
         <DialogHeader>
-          <DialogTitle>{step === 'diff' ? 'Publish new snapshot' : 'Confirm publish'}</DialogTitle>
+          <DialogTitle>{step === 'diff' ? 'Publish New Snapshot' : 'Confirm Publish'}</DialogTitle>
           <DialogDescription>{step === 'diff' ? 'Review the resolved configuration diff before creating an immutable snapshot.' : 'Add an optional comment and publish the snapshot.'}</DialogDescription>
         </DialogHeader>
 

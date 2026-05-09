@@ -167,7 +167,7 @@ function NewTemplateModal({ onOpenChange, open }: { onOpenChange: (open: boolean
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(calc(100vw-32px),620px)]">
         <DialogHeader>
-          <DialogTitle>New template</DialogTitle>
+          <DialogTitle>New Template</DialogTitle>
           <DialogDescription>Templates collect entries that can be inherited by projects.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">

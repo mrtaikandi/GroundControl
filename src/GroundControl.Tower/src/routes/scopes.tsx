@@ -162,7 +162,7 @@ function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(calc(100vw-32px),640px)]">
         <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'New scope' : 'Edit scope'}</DialogTitle>
+          <DialogTitle>{mode === 'create' ? 'New Scope' : 'Edit Scope'}</DialogTitle>
           <DialogDescription>Define a dimension and the allowed values clients can present for it.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
@@ -175,7 +175,7 @@ function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edi
             <Textarea id="scope-description" onChange={(event) => setDescription(event.target.value)} placeholder="Optional context for this dimension" value={description} />
           </div>
           <div className="grid gap-2 rounded-xl border border-stroke-subtle p-4">
-            <div className="text-[13px] font-semibold text-fg-heading">Allowed values</div>
+            <div className="text-[13px] font-semibold text-fg-heading">Allowed Values</div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input onChange={(event) => setNewValue(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addValue(); } }} placeholder="prod" value={newValue} />
               <Button onClick={addValue} type="button" variant="secondary">Add</Button>

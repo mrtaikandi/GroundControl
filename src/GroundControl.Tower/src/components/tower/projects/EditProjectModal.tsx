@@ -68,7 +68,7 @@ export function EditProjectModal({ onOpenChange, open, project }: EditProjectMod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit project</DialogTitle>
+          <DialogTitle>Edit Project</DialogTitle>
           <DialogDescription>Update the project's name, group, or description.</DialogDescription>
         </DialogHeader>
 

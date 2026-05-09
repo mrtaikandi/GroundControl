@@ -21,7 +21,7 @@ import { useVariables, type Variable } from '@/queries/useVariables';
 
 const SENSITIVE_MASK = '***';
 
-type TierFilter = 'all' | 'system-wide' | 'group';
+type TierFilter = 'all' | 'global' | 'group';
 
 export const Route = createFileRoute('/variables')({
   component: VariablesRoute,
@@ -41,7 +41,7 @@ function VariablesRoute() {
     const needle = search?.trim().toLowerCase();
 
     return items.filter((variable) => {
-      if (tierFilter === 'system-wide' && variable.groupId) {
+      if (tierFilter === 'global' && variable.groupId) {
         return false;
       }
 
@@ -73,7 +73,7 @@ function VariablesRoute() {
             />
             <Button onClick={() => setCreating(true)} type="button">
               <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
-              <span>New variable</span>
+              <span>New Variable</span>
             </Button>
           </div>
         )}
@@ -88,7 +88,7 @@ function VariablesRoute() {
               onChange={(next) => setTierFilter(next as TierFilter)}
               options={[
                 { label: 'All', value: 'all' },
-                { label: 'System-wide', value: 'system-wide' },
+                { label: 'Global', value: 'global' },
                 { label: 'Group-owned', value: 'group' },
               ]}
               value={tierFilter}
@@ -170,7 +170,7 @@ function VariableRow({ groupNames, onEdit, variable }: VariableRowProps) {
             <h2 className="font-mono text-[13.5px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{variable.name}</h2>
             {variable.isSensitive ? <Badge icon={Lock} tone="mono" variant="selected">sensitive</Badge> : null}
             {isSystemWide ? (
-              <Badge icon={Globe} tone="mono" variant="success">system-wide</Badge>
+              <Badge icon={Globe} tone="mono" variant="success">global</Badge>
             ) : (
               <Badge icon={Users} tone="mono" variant="info">group · {groupName}</Badge>
             )}
@@ -318,7 +318,7 @@ function ownerLabel(variable: Variable, groupNames: Map<string, string>) {
     return `group · ${groupNames.get(variable.groupId) ?? variable.groupId}`;
   }
 
-  return 'system-wide';
+  return 'global';
 }
 
 function formatDateTime(value: string) {
