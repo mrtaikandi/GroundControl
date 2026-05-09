@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/tower/data/Badge';
-import { InlineCode } from '@/components/tower/data/InlineCode';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { PageContent } from '@/components/tower/shell/PageContent';
 import { ScopeTag } from '@/components/tower/data/ScopeTag';
@@ -39,7 +38,7 @@ function ClientsRoute() {
   }, [allClients.data, projectNames, search]);
 
   const columns = useMemo(() => [
-    columnHelper.accessor('name', { cell: (info) => <InlineCode>{info.getValue()}</InlineCode>, header: 'Name' }),
+    columnHelper.accessor('name', { cell: (info) => info.getValue(), header: 'Name' }),
     columnHelper.display({
       cell: (info) => {
         const projectId = info.row.original.projectId;
