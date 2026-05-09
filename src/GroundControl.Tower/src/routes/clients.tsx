@@ -1,10 +1,8 @@
-import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ExternalLink, Pencil } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/tower/data/Badge';
 import { SearchFilterPopover } from '@/components/tower/data/SearchFilterPopover';
 import { ScopeTag } from '@/components/tower/data/ScopeTag';
@@ -12,10 +10,9 @@ import { EditClientModal } from '@/components/tower/clients/EditClientModal';
 import { NewClientModal } from '@/components/tower/clients/NewClientModal';
 import { PageContent } from '@/components/tower/shell/PageContent';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
+import { formatRelativeTime } from '@/lib/relative-time';
 import { useAllClients, type ClientWithProject } from '@/queries/useAllClients';
 import { useProjects } from '@/queries/useProjects';
-
-const columnHelper = createColumnHelper<ClientWithProject>();
 
 export const Route = createFileRoute('/clients')({
   component: ClientsRoute,
@@ -41,57 +38,6 @@ function ClientsRoute() {
     });
   }, [allClients.data, projectNames, search]);
 
-  const columns = useMemo(() => [
-    columnHelper.accessor('name', {
-      cell: (info) => (
-        <button
-          className="text-left text-[13px] font-medium text-fg-body transition-colors hover:text-fg-link hover:underline"
-          onClick={() => setEditingClient(info.row.original)}
-          type="button"
-        >
-          {info.getValue()}
-        </button>
-      ),
-      header: 'Name',
-    }),
-    columnHelper.display({
-      cell: (info) => {
-        const projectId = info.row.original.projectId;
-        const name = projectNames.get(projectId) ?? projectId;
-        return (
-          <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline [overflow-wrap:anywhere]" params={{ projectId }} to="/projects/$projectId">
-            {name}
-          </Link>
-        );
-      },
-      header: 'Project',
-      id: 'project',
-    }),
-    columnHelper.display({ cell: (info) => <ScopeChips scopes={info.row.original.scopes} />, header: 'Scope context', id: 'scopes' }),
-    columnHelper.accessor('isActive', { cell: (info) => <Badge variant={info.getValue() ? 'success' : 'critical'}>{info.getValue() ? 'active' : 'revoked'}</Badge>, header: 'Status' }),
-    columnHelper.accessor('lastUsedAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'never', header: 'Last used' }),
-    columnHelper.display({
-      cell: (info) => {
-        const targetProjectName = projectNames.get(info.row.original.projectId) ?? info.row.original.projectId;
-        return (
-          <div className="flex justify-end gap-1">
-            <Button aria-label={`Edit ${info.row.original.name}`} className="size-8 rounded-full p-0" onClick={() => setEditingClient(info.row.original)} size="sm" title="Edit client" type="button" variant="ghost">
-              <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
-            </Button>
-            <Button asChild aria-label={`Manage clients in ${targetProjectName}`} className="size-8 rounded-full p-0" size="sm" type="button" variant="ghost">
-              <Link params={{ projectId: info.row.original.projectId }} title={`Manage clients in ${targetProjectName}`} to="/projects/$projectId/clients">
-                <ExternalLink aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
-              </Link>
-            </Button>
-          </div>
-        );
-      },
-      header: '',
-      id: 'actions',
-    }),
-  ], [projectNames]);
-
-  const table = useReactTable({ columns, data: filtered, getCoreRowModel: getCoreRowModel() });
   const totalActive = allClients.data.filter((client) => client.isActive).length;
 
   return (
@@ -113,26 +59,72 @@ function ClientsRoute() {
       />
 
       <PageContent>
-        <div className="grid gap-6 pt-8">
-          {allClients.isLoading ? <Skeleton className="h-96" /> : (
+        <div className="grid gap-8 pt-8">
+          {allClients.isLoading ? <Skeleton className="h-80" /> : null}
+          {!allClients.isLoading && allClients.data.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No clients yet.</div> : null}
+          {!allClients.isLoading && allClients.data.length > 0 && filtered.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No clients match the current filter.</div> : null}
+          {filtered.length > 0 ? (
             <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {table.getRowModel().rows.map((row) => (
-                      <TableRow className={row.original.isActive ? undefined : 'opacity-60'} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
-                    ))}
-                    {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No clients found.</TableCell></TableRow> : null}
-                  </TableBody>
-                </Table>
-              </div>
+              <ul className="grid divide-y divide-stroke-subtle">
+                {filtered.map((client) => {
+                  const projectName = projectNames.get(client.projectId) ?? client.projectId;
+                  const scopeEntries = Object.entries(client.scopes);
+                  return (
+                    <li className={client.isActive ? undefined : 'opacity-60'} key={client.id}>
+                      <div
+                        className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-[18px] py-[14px] transition-colors hover:bg-bg-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stroke-field-focus"
+                        onClick={() => setEditingClient(client)}
+                        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setEditingClient(client); } }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <h2 className="font-mono text-[13.5px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{client.name}</h2>
+                            <span className="text-[12.5px] text-fg-caption">in</span>
+                            <Link
+                              className="text-[12.5px] text-fg-link transition-colors hover:underline [overflow-wrap:anywhere]"
+                              onClick={(event) => event.stopPropagation()}
+                              params={{ projectId: client.projectId }}
+                              to="/projects/$projectId/clients"
+                            >
+                              {projectName}
+                            </Link>
+                            <Badge variant={client.isActive ? 'success' : 'critical'}>{client.isActive ? 'active' : 'revoked'}</Badge>
+                          </div>
+                          {scopeEntries.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {scopeEntries.map(([dimension, value]) => <ScopeTag dimension={dimension} key={dimension} value={value} />)}
+                            </div>
+                          ) : null}
+                          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-fg-caption">
+                            <span>Created at: {formatDateTime(client.createdAt)}</span>
+                            <span>Updated at: {formatDateTime(client.updatedAt)}</span>
+                            {client.expiresAt ? <span>Expires at: {formatDateTime(client.expiresAt)}</span> : null}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <div className="text-right text-[12px] text-fg-caption">
+                            Last used: {client.lastUsedAt ? formatRelativeTime(client.lastUsedAt) : 'never'}
+                          </div>
+                          <Button asChild aria-label={`Manage clients in ${projectName}`} className="size-8 rounded-full p-0" size="sm" type="button" variant="ghost">
+                            <Link
+                              onClick={(event) => event.stopPropagation()}
+                              params={{ projectId: client.projectId }}
+                              title={`Manage clients in ${projectName}`}
+                              to="/projects/$projectId/clients"
+                            >
+                              <ExternalLink aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-          )}
+          ) : null}
         </div>
       </PageContent>
 
@@ -146,16 +138,6 @@ function ClientsRoute() {
   );
 }
 
-function ScopeChips({ scopes }: { scopes: Record<string, string> }) {
-  const entries = Object.entries(scopes);
-
-  if (entries.length === 0) {
-    return <span className="text-fg-caption">default</span>;
-  }
-
-  return <div className="flex flex-wrap gap-1.5">{entries.map(([dimension, value]) => <ScopeTag dimension={dimension} key={dimension} value={value} />)}</div>;
-}
-
-function formatDate(value: string) {
+function formatDateTime(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }

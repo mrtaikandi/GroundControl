@@ -59,25 +59,30 @@ function ScopesRoute() {
           {!scopes.isLoading && items.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No scope dimensions yet.</div> : null}
           {!scopes.isLoading && items.length > 0 && filtered.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No scopes match the current filter.</div> : null}
           {filtered.length > 0 ? (
-            <div className="grid gap-3">
-              {filtered.map((scope) => (
-                <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-5" key={scope.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
+            <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+              <ul className="grid divide-y divide-stroke-subtle">
+                {filtered.map((scope) => (
+                  <li key={scope.id}>
+                    <div
+                      className="cursor-pointer px-[18px] py-[14px] transition-colors hover:bg-bg-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stroke-field-focus"
+                      onClick={() => setEditingScope(scope)}
+                      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setEditingScope(scope); } }}
+                      role="button"
+                      tabIndex={0}
+                    >
                       <h2 className="font-mono text-[13.5px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{scope.dimension}</h2>
-                      <p className="mt-1 text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{scope.description || 'No description provided.'}</p>
+                      {scope.allowedValues.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {scope.allowedValues.map((value) => (
+                            <code className="inline-flex items-center rounded-md bg-bg-selected px-2 py-0.5 font-mono text-[11.5px] text-fg-on-selected" key={value}>{value}</code>
+                          ))}
+                        </div>
+                      ) : null}
+                      {scope.description ? <p className="mt-2 text-[12.5px] text-fg-body [overflow-wrap:anywhere]">{scope.description}</p> : null}
                     </div>
-                    <Button onClick={() => setEditingScope(scope)} size="sm" type="button" variant="secondary">Edit</Button>
-                  </div>
-                  {scope.allowedValues.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {scope.allowedValues.map((value) => (
-                        <code className="inline-flex items-center rounded-md border border-stroke-subtle bg-bg-surface px-2 py-0.5 font-mono text-[11.5px] text-fg-body" key={value}>{value}</code>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </div>
@@ -179,13 +184,13 @@ function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edi
               {allowedValues.map((value) => (
                 <button
                   aria-label={`Remove ${value}`}
-                  className="group inline-flex items-center gap-1.5 rounded-md border border-stroke-subtle bg-bg-surface px-2 py-0.5 font-mono text-[11.5px] text-fg-body transition-colors hover:border-stroke-divider hover:bg-bg-container hover:text-fg-heading"
+                  className="group inline-flex items-center gap-1.5 rounded-md bg-bg-selected px-2 py-0.5 font-mono text-[11.5px] text-fg-on-selected transition-opacity hover:opacity-80"
                   key={value}
                   onClick={() => setAllowedValues((current) => current.filter((item) => item !== value))}
                   type="button"
                 >
                   <span>{value}</span>
-                  <X aria-hidden="true" className="size-3 text-fg-caption transition-colors group-hover:text-fg-body" />
+                  <X aria-hidden="true" className="size-3 opacity-70 transition-opacity group-hover:opacity-100" />
                 </button>
               ))}
             </div>
