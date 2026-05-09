@@ -120,7 +120,7 @@ function EmptyState({ hasFilter, onClearFilter }: EmptyStateProps) {
         <p className="mx-auto mt-2 max-w-md text-[13px] text-fg-caption">No project matches the current search. Try a different term or clear the filter.</p>
         <div className="mt-5 flex justify-center gap-3">
           <button
-            className="inline-flex h-8 items-center rounded-full border border-input bg-background px-3 text-[12.5px] font-semibold text-fg-body transition-colors hover:bg-bg-container"
+            className="inline-flex h-8 items-center rounded-lg border border-input bg-background px-3 text-[12.5px] font-semibold text-fg-body transition-colors hover:bg-bg-container"
             onClick={onClearFilter}
             type="button"
           >

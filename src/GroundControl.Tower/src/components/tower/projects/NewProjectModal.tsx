@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,10 @@ export function NewProjectModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type="button">New project</Button>
+        <Button type="button">
+          <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
+          <span>New project</span>
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

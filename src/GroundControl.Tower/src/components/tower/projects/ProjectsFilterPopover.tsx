@@ -42,17 +42,16 @@ export function ProjectsFilterPopover({ appliedSearch, onApply }: ProjectsFilter
           aria-expanded={open}
           aria-label="Filter projects"
           className={cn(
-            'inline-flex h-9 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold capitalize transition-colors',
+            'relative grid size-9 place-items-center rounded-full border transition-colors',
             activeCount > 0
               ? 'border-primary bg-primary-50 text-primary-text hover:bg-primary-100'
               : 'border-input bg-background text-fg-body hover:border-stroke-divider hover:bg-bg-container',
           )}
           type="button"
         >
-          <Filter aria-hidden="true" className="size-3.5" />
-          <span>Filter</span>
+          <Filter aria-hidden="true" className="size-4" />
           {activeCount > 0 ? (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">{activeCount}</span>
+            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">{activeCount}</span>
           ) : null}
         </button>
       </PopoverTrigger>
