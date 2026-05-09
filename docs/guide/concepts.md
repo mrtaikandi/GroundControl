@@ -51,6 +51,8 @@ Use variables for values that appear in many entries, such as a connection strin
 
 Variables are resolved at publish time. If a configuration value references a variable that is undefined or cannot be resolved for the target scope, the publish fails with an error telling you exactly which variable is missing.
 
+For a full reference of variable structure, ownership tiers, two-tier resolution, sensitivity, and group/system-wide visibility rules, see [Variables](variables.md).
+
 ## Configuration Entries
 
 Configuration entries are the individual key-value pairs that make up your configuration. Each entry has:
