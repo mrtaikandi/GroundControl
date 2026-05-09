@@ -33,6 +33,12 @@ export function ScopedValuesField<T extends FieldValues>({
   const scopes = useScopes();
   const dimensions = scopes.data?.data ?? [];
   const scopedValues = useFieldArray({ control, name: 'scopedValues' as never });
+  // Disabled Radix Selects never open, so their <SelectItemText>s are never
+  // mounted and the trigger has nothing to display. Re-mount the Select when
+  // scopes load (so the registry repopulates) and when disabled flips (so the
+  // trigger reads the right path on transition). The disabled branch also
+  // renders the value directly inside <SelectValue> to bypass the registry.
+  const triggerKey = `${scopes.isLoading ? 'loading' : 'ready'}-${disabled ? 'd' : 'e'}`;
 
   return (
     <div className="grid gap-3 rounded-xl border border-stroke-subtle p-4">
@@ -66,11 +72,12 @@ export function ScopedValuesField<T extends FieldValues>({
                 return (
                   <Select
                     disabled={disabled}
+                    key={triggerKey}
                     onValueChange={dimensionField.onChange}
                     value={stringValue}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Dimension" />
+                      <SelectValue placeholder="Dimension">{disabled ? stringValue ?? null : undefined}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {dimensions.map((scope) => (
@@ -86,15 +93,17 @@ export function ScopedValuesField<T extends FieldValues>({
               name={`scopedValues.${index}.scopeValue` as never}
               render={({ field: valueField }) => {
                 const stringValue = (valueField.value as string | undefined) || undefined;
+                const isDisabled = disabled || !selectedScope;
 
                 return (
                   <Select
-                    disabled={disabled || !selectedScope}
+                    disabled={isDisabled}
+                    key={triggerKey}
                     onValueChange={valueField.onChange}
                     value={stringValue}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Value" />
+                      <SelectValue placeholder="Value">{isDisabled ? stringValue ?? null : undefined}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {(selectedScope?.allowedValues ?? []).map((allowed) => (

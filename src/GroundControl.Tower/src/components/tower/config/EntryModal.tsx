@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,8 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScopedValuesField } from '@/components/tower/data/ScopedValuesField';
+import { getConfigEntry } from '@/api/endpoints/config-entries';
 import { useCreateEntry, useUpdateEntry, type ConfigEntry, type ConfigEntryOwnerType } from '@/queries/useConfigEntries';
 
+const SENSITIVE_MASK = '***';
 const valueTypes = ['String', 'Int32', 'Int64', 'Double', 'Decimal', 'Boolean', 'DateTime', 'DateTimeOffset', 'DateOnly', 'TimeOnly'] as const;
 const integerTypes: ReadonlySet<EntryFormValues['type']> = new Set(['Int32', 'Int64']);
 const decimalTypes: ReadonlySet<EntryFormValues['type']> = new Set(['Double', 'Decimal']);
@@ -46,15 +50,67 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
   });
   const isSensitive = form.watch('isSensitive');
   const selectedType = form.watch('type');
+  const defaultValue = form.watch('defaultValue');
+  const scopedValues = form.watch('scopedValues');
+  const isEdit = mode === 'edit';
   const pending = createEntry.isPending || updateEntry.isPending;
 
-  useEffect(() => {
-    if (open) {
-      form.reset(formValues);
+  const decryptValues = useMutation({
+    mutationFn: () => {
+      if (!entry) {
+        throw new Error('NO_ENTRY');
+      }
+
+      return getConfigEntry(entry.id, { decrypt: true });
+    },
+    onError: () => toast.error("Couldn't reveal sensitive values."),
+    onSuccess: (data) => {
+      if (!data) {
+        return;
+      }
+
+      if (data.values.some((value) => value.value === SENSITIVE_MASK)) {
+        toast.error("You don't have permission to reveal sensitive values.");
+
+        return;
+      }
+
+      const decrypted = toFormValues({ ...entry!, values: data.values });
+      form.reset({
+        ...form.getValues(),
+        defaultValue: decrypted.defaultValue,
+        scopedValues: decrypted.scopedValues,
+      });
+    },
+  });
+
+  const valuesAreMasked = useMemo(() => {
+    if (!isEdit || !isSensitive || decryptValues.isSuccess) {
+      return false;
     }
-  }, [open, formValues, form]);
+
+    if (defaultValue === SENSITIVE_MASK) {
+      return true;
+    }
+
+    return scopedValues.some((row) => row.value === SENSITIVE_MASK);
+  }, [decryptValues.isSuccess, defaultValue, isEdit, isSensitive, scopedValues]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    form.reset(formValues);
+    decryptValues.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, formValues]);
 
   async function submit(values: EntryFormValues) {
+    if (valuesAreMasked) {
+      return;
+    }
+
     const body = toRequest(values);
 
     if (mode === 'create') {
@@ -85,33 +141,69 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-1.5">
               <label className="text-[12px] font-medium text-fg-body" htmlFor="entry-type">Type</label>
-              <Controller control={form.control} name="type" render={({ field }) => <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="entry-type"><SelectValue /></SelectTrigger><SelectContent>{valueTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select>} />
+              <Controller control={form.control} name="type" render={({ field }) => <Select disabled={valuesAreMasked || decryptValues.isPending} onValueChange={field.onChange} value={field.value}><SelectTrigger id="entry-type"><SelectValue /></SelectTrigger><SelectContent>{valueTypes.map((type) => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select>} />
             </div>
             <label className="mt-6 flex h-9 items-center gap-2 text-[13px] text-fg-body">
-              <input className="size-4 accent-[var(--tower-stroke-field-focus)]" type="checkbox" {...form.register('isSensitive')} />
+              <input
+                className="size-4 accent-[var(--tower-stroke-field-focus)]"
+                disabled={valuesAreMasked || decryptValues.isPending}
+                type="checkbox"
+                {...form.register('isSensitive')}
+              />
               Sensitive value
             </label>
           </div>
 
+          {valuesAreMasked ? (
+            <div className="rounded-lg border border-badge-warning-bg bg-badge-warning-bg/30 p-3">
+              <div className="text-[12.5px] font-semibold text-badge-warning-fg">Reveal to Edit Values</div>
+              <p className="mt-1 text-[11.5px] text-fg-body">
+                Values are masked as <span className="font-mono">***</span>. The API rejects saving the mask as a literal value, so reveal first.
+              </p>
+              <Button
+                className="mt-2"
+                disabled={decryptValues.isPending}
+                onClick={() => decryptValues.mutate()}
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
+                {decryptValues.isPending ? 'Revealing…' : 'Reveal Sensitive Values'}
+              </Button>
+            </div>
+          ) : null}
+
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="entry-default-value">Default value</label>
-            <Input id="entry-default-value" inputMode={integerTypes.has(selectedType) ? 'numeric' : decimalTypes.has(selectedType) ? 'decimal' : undefined} type={isSensitive ? 'password' : integerTypes.has(selectedType) || decimalTypes.has(selectedType) ? 'number' : 'text'} {...form.register('defaultValue')} />
+            <Input
+              disabled={valuesAreMasked || decryptValues.isPending}
+              id="entry-default-value"
+              inputMode={integerTypes.has(selectedType) ? 'numeric' : decimalTypes.has(selectedType) ? 'decimal' : undefined}
+              type={isSensitive ? 'password' : integerTypes.has(selectedType) || decimalTypes.has(selectedType) ? 'number' : 'text'}
+              {...form.register('defaultValue')}
+            />
           </div>
 
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="entry-description">Description</label>
-            <Textarea id="entry-description" placeholder="Optional context for this key" {...form.register('description')} />
+            <Textarea
+              disabled={valuesAreMasked || decryptValues.isPending}
+              id="entry-description"
+              placeholder="Optional context for this key"
+              {...form.register('description')}
+            />
           </div>
 
           <ScopedValuesField
             control={form.control}
+            disabled={valuesAreMasked || decryptValues.isPending}
             isSensitive={isSensitive}
             register={form.register}
             watch={form.watch}
           />
 
           <DialogFooter>
-            <Button disabled={pending} type="submit">{pending ? 'Saving…' : mode === 'create' ? 'Create entry' : 'Save entry'}</Button>
+            <Button disabled={pending || valuesAreMasked} type="submit">{pending ? 'Saving…' : mode === 'create' ? 'Create entry' : 'Save entry'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
