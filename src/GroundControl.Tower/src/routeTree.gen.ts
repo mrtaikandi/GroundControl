@@ -25,6 +25,7 @@ import { Route as ProjectsProjectIdRouteRouteImport } from './routes/projects/$p
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as AdminGroupsIndexRouteImport } from './routes/admin/groups.index'
 import { Route as ProjectsGroupGroupIdRouteImport } from './routes/projects/group/$groupId'
+import { Route as ProjectsProjectIdVariablesRouteImport } from './routes/projects/$projectId/variables'
 import { Route as ProjectsProjectIdSnapshotsRouteImport } from './routes/projects/$projectId/snapshots'
 import { Route as ProjectsProjectIdConfigRouteImport } from './routes/projects/$projectId/config'
 import { Route as ProjectsProjectIdClientsRouteImport } from './routes/projects/$projectId/clients'
@@ -110,6 +111,12 @@ const ProjectsGroupGroupIdRoute = ProjectsGroupGroupIdRouteImport.update({
   path: '/projects/group/$groupId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsProjectIdVariablesRoute =
+  ProjectsProjectIdVariablesRouteImport.update({
+    id: '/variables',
+    path: '/variables',
+    getParentRoute: () => ProjectsProjectIdRouteRoute,
+  } as any)
 const ProjectsProjectIdSnapshotsRoute =
   ProjectsProjectIdSnapshotsRouteImport.update({
     id: '/snapshots',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/clients': typeof ProjectsProjectIdClientsRoute
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
   '/projects/$projectId/snapshots': typeof ProjectsProjectIdSnapshotsRoute
+  '/projects/$projectId/variables': typeof ProjectsProjectIdVariablesRoute
   '/projects/group/$groupId': typeof ProjectsGroupGroupIdRoute
   '/admin/groups/': typeof AdminGroupsIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/clients': typeof ProjectsProjectIdClientsRoute
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
   '/projects/$projectId/snapshots': typeof ProjectsProjectIdSnapshotsRoute
+  '/projects/$projectId/variables': typeof ProjectsProjectIdVariablesRoute
   '/projects/group/$groupId': typeof ProjectsGroupGroupIdRoute
   '/admin/groups': typeof AdminGroupsIndexRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/projects/$projectId/clients': typeof ProjectsProjectIdClientsRoute
   '/projects/$projectId/config': typeof ProjectsProjectIdConfigRoute
   '/projects/$projectId/snapshots': typeof ProjectsProjectIdSnapshotsRoute
+  '/projects/$projectId/variables': typeof ProjectsProjectIdVariablesRoute
   '/projects/group/$groupId': typeof ProjectsGroupGroupIdRoute
   '/admin/groups/': typeof AdminGroupsIndexRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/clients'
     | '/projects/$projectId/config'
     | '/projects/$projectId/snapshots'
+    | '/projects/$projectId/variables'
     | '/projects/group/$groupId'
     | '/admin/groups/'
     | '/projects/$projectId/'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/clients'
     | '/projects/$projectId/config'
     | '/projects/$projectId/snapshots'
+    | '/projects/$projectId/variables'
     | '/projects/group/$groupId'
     | '/admin/groups'
     | '/projects/$projectId'
@@ -260,6 +272,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/clients'
     | '/projects/$projectId/config'
     | '/projects/$projectId/snapshots'
+    | '/projects/$projectId/variables'
     | '/projects/group/$groupId'
     | '/admin/groups/'
     | '/projects/$projectId/'
@@ -396,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsGroupGroupIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/variables': {
+      id: '/projects/$projectId/variables'
+      path: '/variables'
+      fullPath: '/projects/$projectId/variables'
+      preLoaderRoute: typeof ProjectsProjectIdVariablesRouteImport
+      parentRoute: typeof ProjectsProjectIdRouteRoute
+    }
     '/projects/$projectId/snapshots': {
       id: '/projects/$projectId/snapshots'
       path: '/snapshots'
@@ -431,6 +451,7 @@ interface ProjectsProjectIdRouteRouteChildren {
   ProjectsProjectIdClientsRoute: typeof ProjectsProjectIdClientsRoute
   ProjectsProjectIdConfigRoute: typeof ProjectsProjectIdConfigRoute
   ProjectsProjectIdSnapshotsRoute: typeof ProjectsProjectIdSnapshotsRoute
+  ProjectsProjectIdVariablesRoute: typeof ProjectsProjectIdVariablesRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
 }
 
@@ -439,6 +460,7 @@ const ProjectsProjectIdRouteRouteChildren: ProjectsProjectIdRouteRouteChildren =
     ProjectsProjectIdClientsRoute: ProjectsProjectIdClientsRoute,
     ProjectsProjectIdConfigRoute: ProjectsProjectIdConfigRoute,
     ProjectsProjectIdSnapshotsRoute: ProjectsProjectIdSnapshotsRoute,
+    ProjectsProjectIdVariablesRoute: ProjectsProjectIdVariablesRoute,
     ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
   }
 

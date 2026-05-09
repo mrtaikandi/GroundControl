@@ -1,19 +1,27 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createVariable, deleteVariable, getVariables, updateVariable } from '@/api/endpoints/variables';
-import type { ApiRequestBody, ApiResponse } from '@/api/client';
+import type { ApiQuery, ApiRequestBody, ApiResponse } from '@/api/client';
 import { useConflictMutation } from '@/lib/mutations';
 import { queryClient } from '@/lib/query-client';
 
 export type Variable = NonNullable<ApiResponse<'ListVariablesHandler'>>['data'][number];
 export type CreateVariableRequest = ApiRequestBody<'CreateVariableHandler'>;
 export type UpdateVariableRequest = ApiRequestBody<'UpdateVariableHandler'>;
+export type VariablesQuery = ApiQuery<'ListVariablesHandler'>;
 
 export const variablesQueryKey = ['variables'] as const;
 
-export function useVariables() {
+export function useVariables(query?: VariablesQuery) {
+  const request: VariablesQuery = {
+    Limit: 100,
+    SortField: 'name',
+    SortOrder: 'asc',
+    ...query,
+  };
+
   return useQuery({
-    queryFn: () => getVariables({ Limit: 100, SortField: 'name', SortOrder: 'asc' }),
-    queryKey: variablesQueryKey,
+    queryFn: () => getVariables(request),
+    queryKey: [...variablesQueryKey, request] as const,
   });
 }
 
