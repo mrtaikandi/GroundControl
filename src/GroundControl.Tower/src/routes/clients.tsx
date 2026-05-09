@@ -1,14 +1,17 @@
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { ExternalLink, Pencil } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/tower/data/Badge';
-import { PageHeader } from '@/components/tower/shell/PageHeader';
-import { PageContent } from '@/components/tower/shell/PageContent';
+import { SearchFilterPopover } from '@/components/tower/data/SearchFilterPopover';
 import { ScopeTag } from '@/components/tower/data/ScopeTag';
+import { EditClientModal } from '@/components/tower/clients/EditClientModal';
+import { NewClientModal } from '@/components/tower/clients/NewClientModal';
+import { PageContent } from '@/components/tower/shell/PageContent';
+import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { useAllClients, type ClientWithProject } from '@/queries/useAllClients';
 import { useProjects } from '@/queries/useProjects';
 
@@ -21,11 +24,12 @@ export const Route = createFileRoute('/clients')({
 function ClientsRoute() {
   const projects = useProjects();
   const allClients = useAllClients();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string | undefined>(undefined);
+  const [editingClient, setEditingClient] = useState<ClientWithProject | null>(null);
   const projectNames = useMemo(() => new Map((projects.data?.data ?? []).map((project) => [project.id, project.name])), [projects.data]);
 
   const filtered = useMemo(() => {
-    const needle = search.trim().toLowerCase();
+    const needle = search?.trim().toLowerCase();
     if (!needle) {
       return allClients.data;
     }
@@ -38,7 +42,18 @@ function ClientsRoute() {
   }, [allClients.data, projectNames, search]);
 
   const columns = useMemo(() => [
-    columnHelper.accessor('name', { cell: (info) => info.getValue(), header: 'Name' }),
+    columnHelper.accessor('name', {
+      cell: (info) => (
+        <button
+          className="text-left text-[13px] font-medium text-fg-body transition-colors hover:text-fg-link hover:underline"
+          onClick={() => setEditingClient(info.row.original)}
+          type="button"
+        >
+          {info.getValue()}
+        </button>
+      ),
+      header: 'Name',
+    }),
     columnHelper.display({
       cell: (info) => {
         const projectId = info.row.original.projectId;
@@ -56,13 +71,21 @@ function ClientsRoute() {
     columnHelper.accessor('isActive', { cell: (info) => <Badge variant={info.getValue() ? 'success' : 'critical'}>{info.getValue() ? 'active' : 'revoked'}</Badge>, header: 'Status' }),
     columnHelper.accessor('lastUsedAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'never', header: 'Last used' }),
     columnHelper.display({
-      cell: (info) => (
-        <div className="flex justify-end">
-          <Button asChild size="sm" type="button" variant="ghost">
-            <Link params={{ projectId: info.row.original.projectId }} to="/projects/$projectId/clients">Manage</Link>
-          </Button>
-        </div>
-      ),
+      cell: (info) => {
+        const targetProjectName = projectNames.get(info.row.original.projectId) ?? info.row.original.projectId;
+        return (
+          <div className="flex justify-end gap-1">
+            <Button aria-label={`Edit ${info.row.original.name}`} className="size-8 rounded-full p-0" onClick={() => setEditingClient(info.row.original)} size="sm" title="Edit client" type="button" variant="ghost">
+              <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+            </Button>
+            <Button asChild aria-label={`Manage clients in ${targetProjectName}`} className="size-8 rounded-full p-0" size="sm" type="button" variant="ghost">
+              <Link params={{ projectId: info.row.original.projectId }} title={`Manage clients in ${targetProjectName}`} to="/projects/$projectId/clients">
+                <ExternalLink aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+              </Link>
+            </Button>
+          </div>
+        );
+      },
       header: '',
       id: 'actions',
     }),
@@ -73,19 +96,24 @@ function ClientsRoute() {
 
   return (
     <>
-      <PageHeader description={`All credentials issued across projects. ${allClients.data.length} total · ${totalActive} active.`} title="Clients" />
+      <PageHeader
+        actions={(
+          <div className="flex items-center gap-2">
+            <SearchFilterPopover
+              appliedSearch={search}
+              ariaLabel="Filter clients"
+              onApply={setSearch}
+              placeholder="Client name or project"
+            />
+            <NewClientModal />
+          </div>
+        )}
+        description={`All credentials issued across projects. ${allClients.data.length} total · ${totalActive} active.`}
+        title="Clients"
+      />
 
       <PageContent>
         <div className="grid gap-6 pt-8">
-          <div className="flex flex-wrap items-center gap-3">
-            <Input
-              className="h-9 w-full sm:max-w-xs"
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Filter by client or project"
-              value={search}
-            />
-          </div>
-
           {allClients.isLoading ? <Skeleton className="h-96" /> : (
             <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
               <div className="overflow-x-auto">
@@ -107,6 +135,13 @@ function ClientsRoute() {
           )}
         </div>
       </PageContent>
+
+      <EditClientModal
+        client={editingClient}
+        onOpenChange={(open) => { if (!open) setEditingClient(null); }}
+        open={editingClient !== null}
+        projectId={editingClient?.projectId ?? ''}
+      />
     </>
   );
 }
