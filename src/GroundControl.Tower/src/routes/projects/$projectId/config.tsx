@@ -95,7 +95,7 @@ function ConfigRoute() {
             >
               <div className="grid gap-4">
                 <div className="grid gap-1">
-                  <span className="text-[12.5px] font-semibold text-fg-heading">Manage templates</span>
+                  <span className="text-[12.5px] font-semibold text-fg-heading">Manage Templates</span>
                   <span className="text-[11.5px] text-fg-caption">Attach templates to inherit configuration or remove ones this project no longer needs.</span>
                 </div>
 

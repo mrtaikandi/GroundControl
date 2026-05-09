@@ -99,7 +99,7 @@ export function EditClientModal({ client, onOpenChange, open, projectId }: EditC
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(760px,calc(100vh-32px))] w-[min(calc(100vw-32px),680px)] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit client credential</DialogTitle>
+          <DialogTitle>Edit Client Credential</DialogTitle>
           <DialogDescription>Update the name and scope context. The owning project cannot be changed.</DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={form.handleSubmit(submit)}>

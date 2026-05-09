@@ -172,16 +172,16 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
 
   const tierLabel = tier.kind === 'project'
     ? 'Project tier'
-    : groupId ? 'Global · group-owned' : 'Global · system-wide';
+    : groupId ? 'Global · group-owned' : 'Global · global';
   const tierDescription = tier.kind === 'project'
     ? 'This variable belongs to one project. It shadows any global with the same name when that project resolves a snapshot.'
-    : 'Globals are shared across projects. System-wide globals reach every project; group-owned globals are limited to their group.';
+    : 'Global variables are shared across projects. Group-owned globals are limited only to their group and projects within that group.';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(820px,calc(100vh-32px))] overflow-y-auto w-[min(calc(100vw-32px),720px)]">
         <DialogHeader>
-          <DialogTitle>{mode === 'create' ? 'New variable' : 'Edit variable'}</DialogTitle>
+          <DialogTitle>{mode === 'create' ? 'New Variable' : 'Edit Variable'}</DialogTitle>
           <DialogDescription>{tierDescription}</DialogDescription>
         </DialogHeader>
 
@@ -210,7 +210,7 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
               <label className="text-[12px] font-medium text-fg-body" htmlFor="variable-group">Group</label>
               {isEdit ? (
                 <div className="rounded-lg border border-stroke-subtle bg-bg-container px-3 py-2 text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">
-                  {groupId ? groups.data?.data.find((g) => g.id === groupId)?.name ?? groupId : 'System-wide (no group)'}
+                  {groupId ? groups.data?.data.find((g) => g.id === groupId)?.name ?? groupId : 'Global (no group)'}
                 </div>
               ) : (
                 <Select
@@ -219,7 +219,7 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
                 >
                   <SelectTrigger id="variable-group"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__system__">System-wide (no group)</SelectItem>
+                    <SelectItem value="__system__">Global (no group)</SelectItem>
                     {(groups.data?.data ?? []).map((group) => <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -239,7 +239,7 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
 
           {valuesAreMasked ? (
             <div className="rounded-lg border border-badge-warning-bg bg-badge-warning-bg/30 p-3">
-              <div className="text-[12.5px] font-semibold text-badge-warning-fg">Reveal to edit values</div>
+              <div className="text-[12.5px] font-semibold text-badge-warning-fg">Reveal to Edit Values</div>
               <p className="mt-1 text-[11.5px] text-fg-body">
                 Values are masked as <span className="font-mono">***</span>. The API rejects saving the mask as a literal value, so reveal first.
               </p>
@@ -251,7 +251,7 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
                 type="button"
                 variant="secondary"
               >
-                {decryptValues.isPending ? 'Revealing…' : 'Reveal sensitive values'}
+                {decryptValues.isPending ? 'Revealing…' : 'Reveal Sensitive Values'}
               </Button>
             </div>
           ) : null}
@@ -293,13 +293,13 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
                 type="button"
                 variant="destructive"
               >
-                Delete variable
+                Delete Variable
               </Button>
             ) : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-2">
               <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">Cancel</Button>
               <Button disabled={pending || deleteVariable.isPending || valuesAreMasked} type="submit">
-                {pending ? 'Saving…' : 'Save variable'}
+                {pending ? 'Saving…' : 'Save Variable'}
               </Button>
             </div>
           </DialogFooter>

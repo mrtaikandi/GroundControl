@@ -56,7 +56,7 @@ export function NewProjectModal() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New project</DialogTitle>
+          <DialogTitle>New Project</DialogTitle>
           <DialogDescription>Create a configuration boundary owned by a group.</DialogDescription>
         </DialogHeader>
 

@@ -116,7 +116,7 @@ function EmptyState({ hasFilter, onClearFilter }: EmptyStateProps) {
   if (hasFilter) {
     return (
       <div className="rounded-xl border border-stroke-divider bg-bg-surface p-8 text-center">
-        <h2 className="text-[19px] font-semibold text-fg-heading">No matching projects</h2>
+        <h2 className="text-[19px] font-semibold text-fg-heading">No Matching Projects</h2>
         <p className="mx-auto mt-2 max-w-md text-[13px] text-fg-caption">No project matches the current search. Try a different term or clear the filter.</p>
         <div className="mt-5 flex justify-center gap-3">
           <button
@@ -133,7 +133,7 @@ function EmptyState({ hasFilter, onClearFilter }: EmptyStateProps) {
 
   return (
     <div className="rounded-xl border border-stroke-divider bg-bg-surface p-8 text-center">
-      <h2 className="text-[19px] font-semibold text-fg-heading">No projects yet</h2>
+      <h2 className="text-[19px] font-semibold text-fg-heading">No Projects Yet</h2>
       <p className="mx-auto mt-2 max-w-md text-[13px] text-fg-caption">Create the first project to start collecting entries, scopes, variables, templates, and snapshots.</p>
       <div className="mt-5 flex justify-center">
         <NewProjectModal />

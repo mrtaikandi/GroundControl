@@ -70,7 +70,7 @@ function AuditRoute() {
 
   return (
     <>
-      <PageHeader description="Track every change made in GroundControl." title="Audit trail" />
+      <PageHeader description="Track every change made in GroundControl." title="Audit Trail" />
 
       <PageContent>
         <div className="grid gap-8 pt-8">

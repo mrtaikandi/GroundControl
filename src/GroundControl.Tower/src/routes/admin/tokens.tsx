@@ -32,7 +32,7 @@ function TokensRoute() {
     columnHelper.accessor('name', { cell: (info) => <span className="font-medium text-fg-heading">{info.getValue()}</span>, header: 'Name' }),
     columnHelper.display({ cell: (info) => <Permissions permissions={info.row.original.permissions} />, header: 'Permissions', id: 'permissions' }),
     columnHelper.accessor('createdAt', { cell: (info) => formatDate(info.getValue()), header: 'Created' }),
-    columnHelper.accessor('lastUsedAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'Never', header: 'Last used' }),
+    columnHelper.accessor('lastUsedAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'Never', header: 'Last Used' }),
     columnHelper.accessor('expiresAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'Never', header: 'Expires' }),
     columnHelper.display({ cell: (info) => info.row.original.isRevoked ? <Badge variant="critical">revoked</Badge> : <div className="flex justify-end"><Button onClick={() => setTokenToRevoke(info.row.original)} size="sm" type="button" variant="ghost">Revoke</Button></div>, header: '', id: 'actions' }),
   ];
@@ -40,7 +40,7 @@ function TokensRoute() {
 
   return (
     <>
-      <PageHeader actions={<NewTokenModal />} align="start" description="Create personal tokens to use GroundControl from scripts and tools." title="Access tokens" />
+      <PageHeader actions={<NewTokenModal />} align="start" description="Create personal tokens to use GroundControl from scripts and tools." title="Access Tokens" />
 
       <PageContent>
         <div className="grid gap-8 pt-8">
@@ -108,10 +108,10 @@ function NewTokenModal() {
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild><Button type="button">New token</Button></DialogTrigger>
+        <DialogTrigger asChild><Button type="button">New Token</Button></DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New token</DialogTitle>
+            <DialogTitle>New Token</DialogTitle>
             <DialogDescription>Create a personal access token for admin API access.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">

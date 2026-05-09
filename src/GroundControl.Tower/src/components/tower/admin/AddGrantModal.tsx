@@ -42,10 +42,10 @@ export function AddGrantModal({ userId }: AddGrantModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" type="button" variant="ghost">Add grant</Button></DialogTrigger>
+      <DialogTrigger asChild><Button size="sm" type="button" variant="ghost">Add Grant</Button></DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add grant</DialogTitle>
+          <DialogTitle>Add Grant</DialogTitle>
           <DialogDescription>Grant this user a role within a group.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
@@ -66,7 +66,7 @@ export function AddGrantModal({ userId }: AddGrantModalProps) {
         </div>
         <DialogFooter>
           <Button disabled={addGrant.isPending} onClick={() => setOpen(false)} type="button" variant="secondary">Cancel</Button>
-          <Button disabled={!groupId || !roleId || addGrant.isPending} onClick={() => { void submit(); }} type="button">Add grant</Button>
+          <Button disabled={!groupId || !roleId || addGrant.isPending} onClick={() => { void submit(); }} type="button">Add Grant</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

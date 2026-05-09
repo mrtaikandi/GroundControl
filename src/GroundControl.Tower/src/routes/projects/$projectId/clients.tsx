@@ -23,9 +23,9 @@ function ClientsRoute() {
   const data = clients.data?.data ?? [];
   const columns = useMemo(() => [
     columnHelper.accessor('name', { cell: (info) => info.getValue(), header: 'Name' }),
-    columnHelper.display({ cell: (info) => <ScopeChips scopes={info.row.original.scopes} />, header: 'Scope context', id: 'scopes' }),
+    columnHelper.display({ cell: (info) => <ScopeChips scopes={info.row.original.scopes} />, header: 'Scope Context', id: 'scopes' }),
     columnHelper.accessor('isActive', { cell: (info) => <Badge variant={info.getValue() ? 'success' : 'critical'}>{info.getValue() ? 'active' : 'revoked'}</Badge>, header: 'Status' }),
-    columnHelper.accessor('lastUsedAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'never', header: 'Last used' }),
+    columnHelper.accessor('lastUsedAt', { cell: (info) => info.getValue() ? formatDate(info.getValue()!) : 'never', header: 'Last Used' }),
     columnHelper.display({ cell: (info) => <div className="flex justify-end"><Button disabled={!info.row.original.isActive} onClick={() => setClientToRevoke(info.row.original)} size="sm" type="button" variant="ghost">Revoke</Button></div>, header: '', id: 'actions' }),
   ], []);
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });

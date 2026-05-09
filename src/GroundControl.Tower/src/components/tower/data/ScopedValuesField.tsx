@@ -27,7 +27,7 @@ export function ScopedValuesField<T extends FieldValues>({
   disabled = false,
   isSensitive,
   register,
-  title = 'Scoped values',
+  title = 'Scoped Values',
   watch,
 }: ScopedValuesFieldProps<T>) {
   const scopes = useScopes();

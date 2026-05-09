@@ -130,7 +130,7 @@ function RecentActivityPanel({ activity, isLoading }: { activity: ActivityItem[]
     <section className="rounded-xl border border-stroke-subtle bg-bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-[15px] font-semibold text-fg-heading">Recent activity</h2>
+          <h2 className="text-[15px] font-semibold text-fg-heading">Recent Activity</h2>
           <p className="text-[12.5px] text-fg-caption">Last {ACTIVITY_WINDOW_DAYS} days</p>
         </div>
         <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline" to="/audit">
@@ -207,7 +207,7 @@ function SnapshotsHistoryPanel({ isLoading, latestSnapshot, projectId, snapshots
     <section className="rounded-xl border border-stroke-subtle bg-bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-[15px] font-semibold text-fg-heading">Recent snapshots</h2>
+          <h2 className="text-[15px] font-semibold text-fg-heading">Recent Snapshots</h2>
           <p className="text-[12.5px] text-fg-caption">{totalCount} total{latestSnapshot ? ` · v${latestSnapshot.snapshotVersion} is the latest` : ''}</p>
         </div>
         <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline" params={{ projectId }} to="/projects/$projectId/snapshots">

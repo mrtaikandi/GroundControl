@@ -65,10 +65,10 @@ export function AssignRoleModal(props: AssignRoleModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" type="button" variant="ghost">{props.mode === 'edit' ? 'Change role' : 'Assign role'}</Button></DialogTrigger>
+      <DialogTrigger asChild><Button size="sm" type="button" variant="ghost">{props.mode === 'edit' ? 'Change Role' : 'Assign Role'}</Button></DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{props.mode === 'edit' ? 'Change role' : 'Assign role'}</DialogTitle>
+          <DialogTitle>{props.mode === 'edit' ? 'Change Role' : 'Assign Role'}</DialogTitle>
           <DialogDescription>{props.mode === 'edit' ? 'Update this member\'s group role.' : 'Select a user and role for this group.'}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">

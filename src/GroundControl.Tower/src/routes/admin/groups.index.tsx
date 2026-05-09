@@ -56,7 +56,7 @@ function GroupsRoute() {
 
   return (
     <>
-      <PageHeader description="Group people together and control what they can access." eyebrow="Admin" title="Groups & roles" />
+      <PageHeader description="Group people together and control what they can access." eyebrow="Admin" title="Groups & Roles" />
 
       <PageContent>
         <div className="grid gap-8 pt-8">

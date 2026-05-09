@@ -83,7 +83,7 @@ export function NewClientModal({ projectId }: NewClientModalProps) {
         </DialogTrigger>
         <DialogContent className="max-h-[min(760px,calc(100vh-32px))] w-[min(calc(100vw-32px),680px)] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>New client credential</DialogTitle>
+            <DialogTitle>New Client Credential</DialogTitle>
             <DialogDescription>Choose the fixed scope context this credential will use when fetching config.</DialogDescription>
           </DialogHeader>
           <form className="grid gap-4" onSubmit={form.handleSubmit(submit)}>

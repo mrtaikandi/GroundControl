@@ -28,7 +28,7 @@ export function DeleteEntryDialog({ entry, onOpenChange, open, ownerId, ownerTyp
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete entry</AlertDialogTitle>
+          <AlertDialogTitle>Delete Entry</AlertDialogTitle>
           <AlertDialogDescription>Delete <InlineCode>{entry?.key ?? 'entry'}</InlineCode> from this project. This action cannot be undone.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

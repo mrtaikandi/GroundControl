@@ -66,7 +66,7 @@ function ProjectVariablesRoute() {
           />
           <Button onClick={() => setCreating(true)} type="button">
             <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
-            <span>New project variable</span>
+            <span>New Project Variable</span>
           </Button>
         </div>
       </div>
@@ -232,7 +232,7 @@ function GlobalVariableRow({ groupNames, shadowedByProject, variable }: GlobalVa
             <h3 className="font-mono text-[13.5px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{variable.name}</h3>
             {variable.isSensitive ? <Badge icon={Lock} tone="mono" variant="selected">sensitive</Badge> : null}
             {isSystemWide ? (
-              <Badge icon={Globe} tone="mono" variant="success">system-wide</Badge>
+              <Badge icon={Globe} tone="mono" variant="success">global</Badge>
             ) : (
               <Badge icon={Users} tone="mono" variant="info">group · {groupNames.get(variable.groupId!) ?? variable.groupId}</Badge>
             )}
@@ -395,7 +395,7 @@ function filterByText(items: Variable[], search: string | undefined, groupNames:
       ? `group ${groupNames.get(variable.groupId) ?? variable.groupId}`
       : variable.projectId
         ? 'project'
-        : 'system-wide';
+        : 'global';
 
     return variable.name.toLowerCase().includes(needle)
       || (variable.description ?? '').toLowerCase().includes(needle)

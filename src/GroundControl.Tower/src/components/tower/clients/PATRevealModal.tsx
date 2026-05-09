@@ -52,7 +52,7 @@ export function PATRevealModal({ onConfirm, open, rawToken }: PATRevealModalProp
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && confirmed) { onConfirm(); } }}>
       <DialogContent className="w-[min(calc(100vw-32px),680px)]" onEscapeKeyDown={(event) => { if (!confirmed) { event.preventDefault(); } }} onPointerDownOutside={(event) => { if (!confirmed) { event.preventDefault(); } }} showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>Client credential created</DialogTitle>
+          <DialogTitle>Client Credential Created</DialogTitle>
           <DialogDescription>This is the only time you will see this token. Copy it now.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">

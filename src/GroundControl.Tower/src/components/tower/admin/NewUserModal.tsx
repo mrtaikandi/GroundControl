@@ -55,7 +55,7 @@ export function NewUserModal() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New user</DialogTitle>
+          <DialogTitle>New User</DialogTitle>
           <DialogDescription>Create a user account. Grants can be assigned after the user is created.</DialogDescription>
         </DialogHeader>
 

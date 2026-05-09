@@ -35,7 +35,7 @@ export function ConfigFlatView({ owner }: ConfigFlatViewProps) {
     const baseColumns = [
       columnHelper.accessor((row) => row.entry.key, { cell: (info) => <span className="font-semibold text-fg-heading [overflow-wrap:anywhere]">{info.getValue()}</span>, header: 'Key', id: 'key' }),
       columnHelper.accessor((row) => row.entry.valueType, { cell: (info) => <Badge variant="neutral">{info.getValue()}</Badge>, header: 'Type', id: 'valueType' }),
-      columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.entry.isSensitive} value={defaultValue(info.row.original.entry)} />, header: 'Default value', id: 'defaultValue' }),
+      columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.entry.isSensitive} value={defaultValue(info.row.original.entry)} />, header: 'Default Value', id: 'defaultValue' }),
       columnHelper.display({ cell: (info) => <Badge variant="info">{scopeCount(info.row.original.entry)} scopes</Badge>, header: 'Scopes', id: 'scopes' }),
     ];
 

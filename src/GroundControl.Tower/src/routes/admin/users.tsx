@@ -38,7 +38,7 @@ function UsersRoute() {
       id: 'user',
     }),
     columnHelper.accessor('email', { cell: (info) => info.getValue(), header: 'Email' }),
-    columnHelper.display({ cell: () => <span className="text-fg-caption">not tracked</span>, header: 'Last login', id: 'last-login' }),
+    columnHelper.display({ cell: () => <span className="text-fg-caption">not tracked</span>, header: 'Last Login', id: 'last-login' }),
   ], []);
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel() });
 
