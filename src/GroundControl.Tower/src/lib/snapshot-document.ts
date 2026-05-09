@@ -2,11 +2,18 @@ import type { SnapshotDetail } from '@/queries/useSnapshots';
 
 export type SnapshotEntry = SnapshotDetail['entries'][number];
 
+export interface ResolvableEntry {
+  isSensitive: boolean;
+  key: string;
+  values: ReadonlyArray<{ scopes?: null | Record<string, string>; value: string }>;
+  valueType: string;
+}
+
 export function snapshotToDocument(snapshot?: SnapshotDetail): Record<string, unknown> {
   return entriesToDocument(snapshot?.entries);
 }
 
-export function entriesToDocument(entries: readonly SnapshotEntry[] | undefined): Record<string, unknown> {
+export function entriesToDocument(entries: readonly ResolvableEntry[] | undefined): Record<string, unknown> {
   const document: Record<string, unknown> = {};
 
   for (const entry of entries ?? []) {
@@ -16,7 +23,7 @@ export function entriesToDocument(entries: readonly SnapshotEntry[] | undefined)
   return document;
 }
 
-function entryToValue(entry: SnapshotEntry): unknown {
+function entryToValue(entry: ResolvableEntry): unknown {
   if (entry.values.length === 1 && Object.keys(entry.values[0]?.scopes ?? {}).length === 0) {
     return coerceValue(entry.values[0]?.value ?? null, entry.valueType);
   }
@@ -24,7 +31,12 @@ function entryToValue(entry: SnapshotEntry): unknown {
   return Object.fromEntries(entry.values.map((value) => [scopeLabel(value.scopes), coerceValue(value.value, entry.valueType)]));
 }
 
-function scopeLabel(scopes: Record<string, string>) {
+function scopeLabel(scopes: null | Record<string, string> | undefined) {
+  if (!scopes) {
+    return 'default';
+  }
+
+
   const entries = Object.entries(scopes);
 
   return entries.length === 0 ? 'default' : entries.map(([dimension, value]) => `${dimension}=${value}`).join(', ');
@@ -85,7 +97,7 @@ export function snapshotToResolvedDocument(snapshot: SnapshotDetail | undefined,
 }
 
 export function entriesToResolvedDocument(
-  entries: readonly SnapshotEntry[] | undefined,
+  entries: readonly ResolvableEntry[] | undefined,
   scopes: Record<string, string>,
   options: { maskSensitive?: boolean } = {},
 ): Record<string, unknown> {
@@ -100,9 +112,9 @@ export function entriesToResolvedDocument(
   return document;
 }
 
-function resolveScopedValue(values: SnapshotEntry['values'], scopes: Record<string, string>) {
-  let unscopedDefault: SnapshotEntry['values'][number] | undefined;
-  let bestMatch: SnapshotEntry['values'][number] | undefined;
+function resolveScopedValue(values: ResolvableEntry['values'], scopes: Record<string, string>) {
+  let unscopedDefault: ResolvableEntry['values'][number] | undefined;
+  let bestMatch: ResolvableEntry['values'][number] | undefined;
   let bestSpecificity = 0;
 
   for (const candidate of values) {

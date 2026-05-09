@@ -6,20 +6,31 @@ import { JsonPreview } from '@/components/tower/code/JsonPreview';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { useSensitive } from '@/lib/sensitive';
 import { entriesToResolvedDocument } from '@/lib/snapshot-document';
+import { useConfigEntries } from '@/queries/useConfigEntries';
+import type { ConfigOwner } from '@/queries/useEffectiveEntries';
 import { useScopes } from '@/queries/useScopes';
 import { useSnapshotPreview } from '@/queries/useSnapshots';
 
 interface ConfigJsonViewProps {
-  projectId: string;
+  owner: ConfigOwner;
 }
 
-export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
+export function ConfigJsonView({ owner }: ConfigJsonViewProps) {
   const scopes = useScopes();
   const scopeDefinitions = useMemo(() => scopes.data?.data.filter((scope) => scope.allowedValues.length > 0) ?? [], [scopes.data?.data]);
   const [selectedScopes, setSelectedScopes] = useState<Record<string, string>>({});
-  const preview = useSnapshotPreview(projectId);
+  const projectPreview = useSnapshotPreview(owner.kind === 'project' ? owner.id : '', { enabled: owner.kind === 'project' });
+  const templateEntries = useConfigEntries(owner.kind === 'template' ? owner.id : '', 0);
   const { masked } = useSensitive();
-  const resolvedDocument = useMemo(() => entriesToResolvedDocument(preview.data?.entries, selectedScopes, { maskSensitive: masked }), [masked, preview.data?.entries, selectedScopes]);
+
+  const sourceEntries = owner.kind === 'project' ? projectPreview.data?.entries : templateEntries.data?.data;
+  const sourceLoading = owner.kind === 'project' ? projectPreview.isLoading : templateEntries.isLoading;
+  const entryCount = sourceEntries?.length ?? 0;
+
+  const resolvedDocument = useMemo(
+    () => entriesToResolvedDocument(sourceEntries, selectedScopes, { maskSensitive: masked }),
+    [masked, selectedScopes, sourceEntries],
+  );
 
   useEffect(() => {
     setSelectedScopes((current) => {
@@ -40,7 +51,7 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
     const link = document.createElement('a');
 
     link.href = url;
-    link.download = `resolved-config-${projectId}.json`;
+    link.download = `resolved-config-${owner.kind}-${owner.id}.json`;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 100);
   }
@@ -62,14 +73,14 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
           ))}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <Button disabled={preview.isLoading} onClick={exportDocument} type="button" variant="secondary">
+          <Button disabled={sourceLoading} onClick={exportDocument} type="button" variant="secondary">
             <Download aria-hidden="true" className="size-3.5" />
             Export
           </Button>
         </div>
       </div>
 
-      {preview.isLoading ? (
+      {sourceLoading ? (
         <Skeleton className="h-[460px]" />
       ) : (
         <div className="relative">
@@ -79,7 +90,7 @@ export function ConfigJsonView({ projectId }: ConfigJsonViewProps) {
       )}
 
       <div className="font-mono text-[11.5px] text-fg-caption">
-        {(preview.data?.entries ?? []).length} entries resolved · sensitive values {masked ? 'masked' : 'shown'} · change scope dimensions above to preview what different clients see.
+        {entryCount} entries resolved · sensitive values {masked ? 'masked' : 'shown'} · change scope dimensions above to preview what different clients see.
       </div>
     </div>
   );
@@ -91,4 +102,3 @@ function shallowEqual(left: Record<string, string>, right: Record<string, string
 
   return leftEntries.length === rightEntries.length && leftEntries.every(([key, value]) => right[key] === value);
 }
-
