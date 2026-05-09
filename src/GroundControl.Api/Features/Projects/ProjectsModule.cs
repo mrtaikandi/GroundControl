@@ -10,6 +10,7 @@ internal sealed class ProjectsModule : IWebApiModule
         builder.Services.AddTransient<CreateProjectHandler>();
         builder.Services.AddTransient<GetProjectHandler>();
         builder.Services.AddTransient<ListProjectsHandler>();
+        builder.Services.AddTransient<ListGroupedProjectsHandler>();
         builder.Services.AddTransient<UpdateProjectHandler>();
         builder.Services.AddTransient<DeleteProjectHandler>();
         builder.Services.AddTransient<AddProjectTemplateHandler>();
@@ -30,6 +31,7 @@ internal sealed class ProjectsModule : IWebApiModule
         CreateProjectHandler.Endpoint(group);
         GetProjectHandler.Endpoint(group);
         ListProjectsHandler.Endpoint(group);
+        ListGroupedProjectsHandler.Endpoint(group);
         UpdateProjectHandler.Endpoint(group);
         DeleteProjectHandler.Endpoint(group);
         AddProjectTemplateHandler.Endpoint(group);

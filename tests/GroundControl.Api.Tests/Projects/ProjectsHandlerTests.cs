@@ -269,6 +269,92 @@ public sealed class ProjectsHandlerTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task GetGroupedProjects_ReturnsGroupSectionsAndUngroupedBucket()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var platform = await CreateGroupAsync(apiClient, "Platform", TestCancellationToken);
+        var commerce = await CreateGroupAsync(apiClient, "Commerce", TestCancellationToken);
+
+        await CreateProjectAsync(apiClient, "checkout-api", TestCancellationToken, platform.Id);
+        await CreateProjectAsync(apiClient, "config-cache", TestCancellationToken, platform.Id);
+        await CreateProjectAsync(apiClient, "ledger-worker", TestCancellationToken, platform.Id);
+        await CreateProjectAsync(apiClient, "storefront-web", TestCancellationToken, commerce.Id);
+        await CreateProjectAsync(apiClient, "loose-project", TestCancellationToken);
+
+        // Act
+        var response = await apiClient.GetAsync("/api/projects/grouped?perGroup=2", TestCancellationToken);
+        var grouped = await ReadGroupedAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        grouped.Groups.Select(g => g.Name).ShouldBe(["Commerce", "Platform"]);
+
+        var platformSection = grouped.Groups.Single(g => g.Id == platform.Id);
+        platformSection.TotalCount.ShouldBe(3);
+        platformSection.Projects.Select(p => p.Name).ShouldBe(["checkout-api", "config-cache"]);
+        platformSection.NextCursor.ShouldNotBeNull();
+
+        var commerceSection = grouped.Groups.Single(g => g.Id == commerce.Id);
+        commerceSection.TotalCount.ShouldBe(1);
+        commerceSection.Projects.Select(p => p.Name).ShouldBe(["storefront-web"]);
+        commerceSection.NextCursor.ShouldBeNull();
+
+        grouped.Ungrouped.ShouldNotBeNull();
+        grouped.Ungrouped.TotalCount.ShouldBe(1);
+        grouped.Ungrouped.Projects.Select(p => p.Name).ShouldBe(["loose-project"]);
+    }
+
+    [Fact]
+    public async Task GetGroupedProjects_WithSearch_OmitsEmptyGroupsAndUngrouped()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var platform = await CreateGroupAsync(apiClient, "Platform", TestCancellationToken);
+        var customer = await CreateGroupAsync(apiClient, "Customer", TestCancellationToken);
+
+        await CreateProjectAsync(apiClient, "auth-service", TestCancellationToken, platform.Id);
+        await CreateProjectAsync(apiClient, "checkout-api", TestCancellationToken, platform.Id);
+        await CreateProjectAsync(apiClient, "loyalty-svc", TestCancellationToken, customer.Id);
+
+        // Act
+        var response = await apiClient.GetAsync("/api/projects/grouped?search=auth", TestCancellationToken);
+        var grouped = await ReadGroupedAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        grouped.Groups.Select(g => g.Id).ShouldBe([platform.Id]);
+        grouped.Groups.Single().Projects.Select(p => p.Name).ShouldBe(["auth-service"]);
+        grouped.Ungrouped.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetGroupedProjects_DefaultsPerGroupToConfiguredSize()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var group = await CreateGroupAsync(apiClient, "Platform", TestCancellationToken);
+        for (var i = 1; i <= 16; i++)
+        {
+            await CreateProjectAsync(apiClient, $"project-{i:00}", TestCancellationToken, group.Id);
+        }
+
+        // Act
+        var response = await apiClient.GetAsync("/api/projects/grouped", TestCancellationToken);
+        var grouped = await ReadGroupedAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var section = grouped.Groups.Single();
+        section.TotalCount.ShouldBe(16);
+        section.Projects.Count.ShouldBe(GroupedProjectsQuery.DefaultPerGroup);
+        section.NextCursor.ShouldNotBeNull();
+    }
+
+    [Fact]
     public async Task GetProjects_WithPagination_ReturnsPaginatedResults()
     {
         // Arrange
@@ -699,6 +785,14 @@ public sealed class ProjectsHandlerTests : ApiHandlerTestBase
         page.ShouldNotBeNull();
 
         return page;
+    }
+
+    private static async Task<GroupedProjectsResponse> ReadGroupedAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var grouped = await response.Content.ReadFromJsonAsync<GroupedProjectsResponse>(WebJsonSerializerOptions, TestCancellationToken).ConfigureAwait(false);
+        grouped.ShouldNotBeNull();
+
+        return grouped;
     }
 
     private static async Task<ProjectResponse> ReadProjectAsync(HttpResponseMessage response, CancellationToken cancellationToken)
