@@ -12,11 +12,13 @@ internal sealed class ListGroupedProjectsHandler : IEndpointHandler
 
     private readonly IGroupStore _groupStore;
     private readonly IProjectStore _projectStore;
+    private readonly ILogger<ListGroupedProjectsHandler> _logger;
 
-    public ListGroupedProjectsHandler(IGroupStore groupStore, IProjectStore projectStore)
+    public ListGroupedProjectsHandler(IGroupStore groupStore, IProjectStore projectStore, ILogger<ListGroupedProjectsHandler> logger)
     {
         _groupStore = groupStore ?? throw new ArgumentNullException(nameof(groupStore));
         _projectStore = projectStore ?? throw new ArgumentNullException(nameof(projectStore));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public static void Endpoint(IEndpointRouteBuilder endpoints)
@@ -49,6 +51,11 @@ internal sealed class ListGroupedProjectsHandler : IEndpointHandler
                 SortOrder = "asc"
             },
             cancellationToken);
+
+        if (groupsPage.NextCursor is not null)
+        {
+            _logger.LogGroupsSoftCapHit(MaxGroups, groupsPage.TotalCount);
+        }
 
         var groupTasks = groupsPage.Items
             .Select(group => LoadGroupSectionAsync(group, search, perGroup, cancellationToken))
@@ -125,4 +132,10 @@ internal sealed class ListGroupedProjectsHandler : IEndpointHandler
             NextCursor = page.NextCursor
         };
     }
+}
+
+internal static partial class ListGroupedProjectsHandlerLogs
+{
+    [LoggerMessage(1, LogLevel.Warning, "Grouped projects endpoint hit the soft cap of {Cap} groups (total groups: {TotalCount}); sections beyond the cap are omitted from the response.")]
+    public static partial void LogGroupsSoftCapHit(this ILogger<ListGroupedProjectsHandler> logger, int cap, long totalCount);
 }
