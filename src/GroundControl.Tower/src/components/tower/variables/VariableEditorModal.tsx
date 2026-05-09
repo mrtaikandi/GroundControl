@@ -95,17 +95,10 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
     },
   });
 
-  const valuesAreMasked = useMemo(() => {
-    if (!isEdit || !isSensitive || decryptValues.isSuccess) {
-      return false;
-    }
-
-    if (defaultValue === SENSITIVE_MASK) {
-      return true;
-    }
-
-    return scopedValues.some((row) => row.value === SENSITIVE_MASK);
-  }, [decryptValues.isSuccess, defaultValue, isEdit, isSensitive, scopedValues]);
+  // Recomputed each render — `scopedValues` from `watch` is a fresh array reference, so memoizing buys nothing.
+  const valuesAreMasked = isEdit
+    && isSensitive
+    && (defaultValue === SENSITIVE_MASK || scopedValues.some((row) => row.value === SENSITIVE_MASK));
 
   useEffect(() => {
     if (!open) {

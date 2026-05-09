@@ -1,4 +1,4 @@
-import { Controller, useFieldArray, type Control, type FieldValues, type UseFormRegister, type UseFormWatch } from 'react-hook-form';
+import { Controller, useFieldArray, type ArrayPath, type Control, type FieldValues, type Path, type UseFormRegister, type UseFormWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,8 +10,9 @@ export interface ScopedValueRow {
   value: string;
 }
 
-interface ScopedValuesFieldProps<T extends FieldValues> {
-  // The parent form must contain a `scopedValues` field array of { dimension, scopeValue, value }.
+type FormWithScopedValues = FieldValues & { scopedValues: ScopedValueRow[] };
+
+interface ScopedValuesFieldProps<T extends FormWithScopedValues> {
   control: Control<T>;
   description?: string;
   disabled?: boolean;
@@ -21,7 +22,7 @@ interface ScopedValuesFieldProps<T extends FieldValues> {
   watch: UseFormWatch<T>;
 }
 
-export function ScopedValuesField<T extends FieldValues>({
+export function ScopedValuesField<T extends FormWithScopedValues>({
   control,
   description = 'Overrides apply when a client matches the selected scope.',
   disabled = false,
@@ -32,7 +33,7 @@ export function ScopedValuesField<T extends FieldValues>({
 }: ScopedValuesFieldProps<T>) {
   const scopes = useScopes();
   const dimensions = scopes.data?.data ?? [];
-  const scopedValues = useFieldArray({ control, name: 'scopedValues' as never });
+  const scopedValues = useFieldArray({ control, name: 'scopedValues' as ArrayPath<T> });
 
   return (
     <div className="grid gap-3 rounded-xl border border-stroke-subtle p-4">
@@ -43,7 +44,7 @@ export function ScopedValuesField<T extends FieldValues>({
         </div>
         <Button
           disabled={disabled}
-          onClick={() => scopedValues.append({ dimension: '', scopeValue: '', value: '' } as never)}
+          onClick={() => scopedValues.append({ dimension: '', scopeValue: '', value: '' } as ScopedValueRow as Parameters<typeof scopedValues.append>[0])}
           type="button"
           variant="secondary"
         >
@@ -52,14 +53,17 @@ export function ScopedValuesField<T extends FieldValues>({
       </div>
 
       {scopedValues.fields.map((field, index) => {
-        const dimension = watch(`scopedValues.${index}.dimension` as never) as unknown as string | undefined;
+        const dimensionPath = `scopedValues.${index}.dimension` as Path<T>;
+        const scopeValuePath = `scopedValues.${index}.scopeValue` as Path<T>;
+        const valuePath = `scopedValues.${index}.value` as Path<T>;
+        const dimension = watch(dimensionPath) as string | undefined;
         const selectedScope = dimensions.find((scope) => scope.dimension === dimension);
 
         return (
           <div className="grid gap-2 rounded-lg bg-bg-container p-3 md:grid-cols-[1fr_1fr_1.5fr_auto]" key={field.id}>
             <Controller
               control={control}
-              name={`scopedValues.${index}.dimension` as never}
+              name={dimensionPath}
               render={({ field: dimensionField }) => {
                 const stringValue = (dimensionField.value as string | undefined) || undefined;
 
@@ -83,7 +87,7 @@ export function ScopedValuesField<T extends FieldValues>({
             />
             <Controller
               control={control}
-              name={`scopedValues.${index}.scopeValue` as never}
+              name={scopeValuePath}
               render={({ field: valueField }) => {
                 const stringValue = (valueField.value as string | undefined) || undefined;
 
@@ -109,7 +113,7 @@ export function ScopedValuesField<T extends FieldValues>({
               disabled={disabled}
               placeholder="Override value"
               type={isSensitive ? 'password' : 'text'}
-              {...register(`scopedValues.${index}.value` as never)}
+              {...register(valuePath)}
             />
             <Button
               disabled={disabled}

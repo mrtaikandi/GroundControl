@@ -54,6 +54,10 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
   const scopedValues = form.watch('scopedValues');
   const isEdit = mode === 'edit';
   const pending = createEntry.isPending || updateEntry.isPending;
+  // Recomputed each render — `scopedValues` from `watch` is a fresh array reference, so memoizing buys nothing.
+  const valuesAreMasked = isEdit
+    && isSensitive
+    && (defaultValue === SENSITIVE_MASK || scopedValues.some((row) => row.value === SENSITIVE_MASK));
 
   const decryptValues = useMutation({
     mutationFn: () => {
@@ -83,18 +87,6 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
       });
     },
   });
-
-  const valuesAreMasked = useMemo(() => {
-    if (!isEdit || !isSensitive || decryptValues.isSuccess) {
-      return false;
-    }
-
-    if (defaultValue === SENSITIVE_MASK) {
-      return true;
-    }
-
-    return scopedValues.some((row) => row.value === SENSITIVE_MASK);
-  }, [decryptValues.isSuccess, defaultValue, isEdit, isSensitive, scopedValues]);
 
   useEffect(() => {
     if (!open) {
