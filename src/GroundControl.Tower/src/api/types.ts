@@ -444,6 +444,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/grouped": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List projects grouped by owning group
+         * @description Returns the first page of projects for every group plus an ungrouped bucket, all sorted by name ascending. Sections whose project list is empty after applying the search filter are omitted. Use the returned per-section cursor with GET /api/projects to fetch the next page.
+         */
+        get: operations["ListGroupedProjectsHandler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/templates/{templateId}": {
         parameters: {
             query?: never;
@@ -1200,6 +1220,39 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        /** @description Represents a project listing partitioned by owning group, with a separate bucket for ungrouped projects. */
+        GroupedProjectsResponse: {
+            /**
+             * @description Gets the per-group sections, sorted by group name ascending. Sections whose project list is empty
+             *     after applying the search filter are omitted.
+             */
+            groups: components["schemas"]["GroupProjects"][];
+            ungrouped?: null | components["schemas"]["UngroupedProjects"];
+        };
+        /** @description Represents a single group section within a grouped project listing. */
+        GroupProjects: {
+            /**
+             * Format: uuid
+             * @description Gets the group identifier.
+             */
+            id: string;
+            /** @description Gets the group display name. */
+            name: string;
+            /** @description Gets the optional group description. */
+            description?: null | string;
+            /**
+             * Format: int64
+             * @description Gets the total number of projects in this group that match the current filter.
+             */
+            totalCount: number | string;
+            /** @description Gets the first page of matching projects in this group, sorted by name ascending. */
+            projects: components["schemas"]["ProjectResponse"][];
+            /**
+             * @description Gets the cursor used to fetch the next page via `GET /api/projects?groupId=&amp;after=`, or
+             *     `null` when no more pages exist.
+             */
+            nextCursor?: null | string;
+        };
         /** @description Represents the API response body for a group. */
         GroupResponse: {
             /**
@@ -1730,6 +1783,21 @@ export interface components {
              * @description Gets the identifier of the user that last updated the template.
              */
             updatedBy: string;
+        };
+        /** @description Represents the bucket of projects that have no owning group. */
+        UngroupedProjects: {
+            /**
+             * Format: int64
+             * @description Gets the total number of ungrouped projects that match the current filter.
+             */
+            totalCount: number | string;
+            /** @description Gets the first page of matching ungrouped projects, sorted by name ascending. */
+            projects: components["schemas"]["ProjectResponse"][];
+            /**
+             * @description Gets the cursor used to fetch the next page via `GET /api/projects?ungrouped=true&amp;after=`,
+             *     or `null` when no more pages exist.
+             */
+            nextCursor?: null | string;
         };
         /** @description Represents the request body for updating a client. */
         UpdateClientRequest: {
@@ -3034,6 +3102,7 @@ export interface operations {
         parameters: {
             query?: {
                 GroupId?: string;
+                Ungrouped?: boolean;
                 Search?: string;
                 /** @description Gets the cursor pointing to the item after which results should begin (forward pagination). */
                 After?: string;
@@ -3245,6 +3314,38 @@ export interface operations {
             };
             /** @description Precondition Required */
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListGroupedProjectsHandler: {
+        parameters: {
+            query?: {
+                Search?: string;
+                PerGroup?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupedProjectsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

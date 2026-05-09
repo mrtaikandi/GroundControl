@@ -4,6 +4,10 @@ export function getProjects(query?: ApiQuery<'ListProjectsHandler'>) {
   return apiFetch<ApiResponse<'ListProjectsHandler'>>('/api/projects', { query });
 }
 
+export function getGroupedProjects(query?: ApiQuery<'ListGroupedProjectsHandler'>) {
+  return apiFetch<ApiResponse<'ListGroupedProjectsHandler'>>('/api/projects/grouped', { query });
+}
+
 export function getProject(id: string) {
   return apiFetch<ApiResponse<'GetProjectHandler'>>(`/api/projects/${encodeURIComponent(id)}`);
 }
