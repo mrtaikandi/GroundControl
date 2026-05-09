@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { addProjectTemplate, createProject, getProjects, removeProjectTemplate, updateProject } from '@/api/endpoints/projects';
 import type { ApiQuery, ApiRequestBody, ApiResponse } from '@/api/client';
 import { useConflictMutation } from '@/lib/mutations';
@@ -20,15 +20,19 @@ export function useProjects(query?: ProjectsQuery) {
   });
 }
 
+export const UngroupedScope = 'ungrouped';
+export type GroupScope = string;
+
 export function useGroupProjectsPage(scope: GroupScope, search: string | undefined, cursor: string | undefined) {
+  const isUngrouped = scope === UngroupedScope;
   const request: ProjectsQuery = {
     After: cursor,
-    GroupId: scope === 'ungrouped' ? undefined : scope,
+    GroupId: isUngrouped ? undefined : scope,
     Limit: PerGroupShowMoreSize,
     Search: search,
     SortField: 'name',
     SortOrder: 'asc',
-    Ungrouped: scope === 'ungrouped' ? true : undefined,
+    Ungrouped: isUngrouped ? true : undefined,
   };
 
   return useQuery({
@@ -38,8 +42,6 @@ export function useGroupProjectsPage(scope: GroupScope, search: string | undefin
     staleTime: 60_000,
   });
 }
-
-export type GroupScope = string | 'ungrouped';
 
 function buildProjectsQuery(query?: ProjectsQuery): ProjectsQuery {
   return {

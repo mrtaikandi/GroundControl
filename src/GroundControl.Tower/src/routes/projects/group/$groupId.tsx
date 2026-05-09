@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useMemo } from 'react';
 import { ActiveFilterChips } from '@/components/tower/projects/ActiveFilterChips';
 import { ProjectRow } from '@/components/tower/projects/ProjectRow';
 import { ProjectsFilterPopover } from '@/components/tower/projects/ProjectsFilterPopover';
@@ -8,7 +7,7 @@ import { PageContent } from '@/components/tower/shell/PageContent';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useGroups } from '@/queries/useGroups';
+import { useGroup } from '@/queries/useGroups';
 import { useProjects } from '@/queries/useProjects';
 
 const PageSize = 25;
@@ -32,8 +31,7 @@ function ProjectsGroupRoute() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { groupId } = Route.useParams();
   const routeSearch = Route.useSearch();
-  const groups = useGroups();
-  const group = useMemo(() => (groups.data?.data ?? []).find((entry) => entry.id === groupId), [groups.data?.data, groupId]);
+  const group = useGroup(groupId);
   const projects = useProjects({
     After: routeSearch.after,
     Before: routeSearch.before,
@@ -73,7 +71,7 @@ function ProjectsGroupRoute() {
 
   const totalCount = Number(projects.data?.totalCount ?? 0);
   const items = projects.data?.data ?? [];
-  const groupName = group?.name ?? 'Group';
+  const groupName = group.data?.name ?? 'Group';
 
   return (
     <>
@@ -86,7 +84,7 @@ function ProjectsGroupRoute() {
             </Button>
           </div>
         )}
-        description={group?.description ?? undefined}
+        description={group.data?.description ?? undefined}
         eyebrow={(
           <Link className="text-fg-caption hover:underline" to="/projects">Projects</Link>
         )}

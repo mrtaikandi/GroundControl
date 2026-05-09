@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
-import { useGroupProjectsPage } from '@/queries/useProjects';
+import { useEffect, useState } from 'react';
+import { UngroupedScope, useGroupProjectsPage } from '@/queries/useProjects';
 import { ProjectRow, type ProjectRowItem } from './ProjectRow';
 
 interface OtherProjectsSectionProps {
@@ -23,18 +23,24 @@ export function OtherProjectsSection({ initialNextCursor, initialProjects, searc
     projects: initialProjects,
   });
 
-  const remaining = Math.max(0, totalCount - state.projects.length);
-  const next = useGroupProjectsPage('ungrouped', search, state.pendingCursor);
+  const next = useGroupProjectsPage(UngroupedScope, search, state.pendingCursor);
 
-  if (next.isSuccess && next.data && state.pendingCursor) {
+  useEffect(() => {
+    if (!next.isSuccess || !next.data || !state.pendingCursor) {
+      return;
+    }
+
+    const page = next.data;
     setState((current) => current.pendingCursor === undefined
       ? current
       : {
-          cursor: next.data!.nextCursor ?? null,
+          cursor: page.nextCursor ?? null,
           pendingCursor: undefined,
-          projects: [...current.projects, ...(next.data!.data ?? [])],
+          projects: [...current.projects, ...(page.data ?? [])],
         });
-  }
+  }, [next.isSuccess, next.data, state.pendingCursor]);
+
+  const remaining = Math.max(0, totalCount - state.projects.length);
 
   function loadMore() {
     if (!state.cursor) {
