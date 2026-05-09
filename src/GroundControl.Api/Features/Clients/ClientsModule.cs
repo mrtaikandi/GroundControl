@@ -14,6 +14,7 @@ internal sealed class ClientsModule : IWebApiModule
         builder.Services.AddTransient<DeleteClientHandler>();
 
         builder.Services.AddTransient<IAsyncValidator<CreateClientRequest>, CreateClientValidator>();
+        builder.Services.AddTransient<IAsyncValidator<UpdateClientRequest>, UpdateClientValidator>();
         builder.Services.AddTransient<DeleteClientValidator>();
     }
 

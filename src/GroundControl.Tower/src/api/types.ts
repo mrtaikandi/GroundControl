@@ -1805,6 +1805,10 @@ export interface components {
             name: string;
             /** @description Gets whether the client is active. */
             isActive: boolean;
+            /** @description Gets the fixed scope assignments for the client. When provided, replaces the existing scope context. */
+            scopes?: null | {
+                [key: string]: string;
+            };
             /**
              * Format: date-time
              * @description Gets the optional expiration timestamp.
@@ -2316,6 +2320,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
             /** @description Not Found */

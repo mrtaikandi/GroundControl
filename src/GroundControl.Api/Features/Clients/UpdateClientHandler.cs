@@ -27,10 +27,12 @@ internal sealed class UpdateClientHandler : IEndpointHandler
                 HttpContext httpContext,
                 [FromServices] UpdateClientHandler handler,
                 CancellationToken cancellationToken = default) => await handler.HandleAsync(projectId, id, request, httpContext, cancellationToken))
+            .WithContractValidation<UpdateClientRequest>()
             .RequireAuthorization(Permissions.ClientsWrite)
             .WithSummary("Update a client")
             .WithDescription("Updates an existing client. Requires an If-Match header with the current ETag value.")
             .Produces<ClientResponse>()
+            .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status428PreconditionRequired)
@@ -56,10 +58,21 @@ internal sealed class UpdateClientHandler : IEndpointHandler
         var oldName = client.Name;
         var oldIsActive = client.IsActive;
         var oldExpiresAt = client.ExpiresAt;
+        var oldScopes = new Dictionary<string, string>(client.Scopes);
 
         client.Name = request.Name;
         client.IsActive = request.IsActive;
         client.ExpiresAt = request.ExpiresAt;
+        client.Scopes.Clear();
+
+        if (request.Scopes is not null)
+        {
+            foreach (var (dimension, value) in request.Scopes)
+            {
+                client.Scopes[dimension] = value;
+            }
+        }
+
         client.UpdatedAt = DateTimeOffset.UtcNow;
         client.UpdatedBy = Guid.Empty;
 
@@ -73,11 +86,29 @@ internal sealed class UpdateClientHandler : IEndpointHandler
             .. AuditRecorder.CompareFields("Name", oldName, client.Name),
             .. AuditRecorder.CompareFields("IsActive", oldIsActive.ToString(), client.IsActive.ToString()),
             .. AuditRecorder.CompareFields("ExpiresAt", oldExpiresAt?.ToString("O"), client.ExpiresAt?.ToString("O")),
+            .. CompareScopes(oldScopes, client.Scopes),
         ];
 
         await _audit.RecordAsync("Client", client.Id, null, "Updated", changes, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         httpContext.Response.Headers.ETag = EntityTagHeaders.Format(client.Version);
         return TypedResults.Ok(ClientResponse.From(client));
+    }
+
+    private static IEnumerable<FieldChange> CompareScopes(IReadOnlyDictionary<string, string> oldScopes, IReadOnlyDictionary<string, string> newScopes)
+    {
+        var dimensions = new HashSet<string>(oldScopes.Keys, StringComparer.Ordinal);
+        dimensions.UnionWith(newScopes.Keys);
+
+        foreach (var dimension in dimensions)
+        {
+            oldScopes.TryGetValue(dimension, out var oldValue);
+            newScopes.TryGetValue(dimension, out var newValue);
+
+            foreach (var change in AuditRecorder.CompareFields($"Scopes.{dimension}", oldValue, newValue))
+            {
+                yield return change;
+            }
+        }
     }
 }
