@@ -11,6 +11,8 @@ import { useProjects } from '@/queries/useProjects';
 import { useScopes } from '@/queries/useScopes';
 import { useRevokeClient, useUpdateClient, type Client } from '@/queries/useClients';
 
+const UNSET_SCOPE = '__unset__';
+
 const editClientSchema = z.object({
   name: z.string().min(1, 'Client name is required').max(100, 'Use 100 characters or fewer'),
   scopes: z.record(z.string(), z.string()),
@@ -54,29 +56,21 @@ export function EditClientModal({ client, onOpenChange, open, projectId }: EditC
     }
   }, [confirmingDelete]);
 
-  useEffect(() => {
-    if (!open || !client) {
-      return;
-    }
-
-    for (const scope of scopeDefinitions) {
-      if (!form.getValues(`scopes.${scope.dimension}`)) {
-        form.setValue(`scopes.${scope.dimension}`, scope.allowedValues[0]!);
-      }
-    }
-  }, [client, form, open, scopeDefinitions]);
-
   async function submit(values: EditClientFormValues) {
     if (!client) {
       return;
     }
+
+    const scopes = Object.fromEntries(
+      Object.entries(values.scopes).filter(([, value]) => value && value !== UNSET_SCOPE),
+    );
 
     await updateClient.mutateAsync({
       body: {
         expiresAt: client.expiresAt ?? null,
         isActive: client.isActive,
         name: values.name,
-        scopes: values.scopes,
+        scopes,
       },
       id: client.id,
       projectId,
@@ -116,14 +110,28 @@ export function EditClientModal({ client, onOpenChange, open, projectId }: EditC
 
           <div className="grid gap-4 rounded-xl border border-stroke-subtle p-4">
             {scopeDefinitions.length === 0 ? <div className="text-[12px] text-fg-caption">No scope dimensions are configured.</div> : null}
-            {scopeDefinitions.map((scope) => (
-              <div className="grid min-w-0 gap-1.5" key={scope.id}>
-                <div className="font-mono text-[11px] uppercase text-fg-caption [overflow-wrap:anywhere]">{scope.dimension}</div>
-                <div className="overflow-x-auto pb-1">
-                  <SegmentedControl onChange={(value) => form.setValue(`scopes.${scope.dimension}`, value)} options={scope.allowedValues.map((value) => ({ label: value, value }))} size="sm" value={selectedScopes[scope.dimension] ?? scope.allowedValues[0]!} />
+            {scopeDefinitions.map((scope) => {
+              const options = [
+                { label: 'Unset', value: UNSET_SCOPE },
+                ...scope.allowedValues.map((value) => ({ label: value, value })),
+              ];
+              const current = selectedScopes[scope.dimension];
+              const value = current && current !== UNSET_SCOPE ? current : UNSET_SCOPE;
+
+              return (
+                <div className="grid min-w-0 gap-1.5" key={scope.id}>
+                  <div className="font-mono text-[11px] uppercase text-fg-caption [overflow-wrap:anywhere]">{scope.dimension}</div>
+                  <div className="overflow-x-auto pb-1">
+                    <SegmentedControl
+                      onChange={(next) => form.setValue(`scopes.${scope.dimension}`, next)}
+                      options={options}
+                      size="sm"
+                      value={value}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <DialogFooter className="sm:justify-between">
