@@ -155,13 +155,13 @@ function ActivityRow({ item }: { item: ActivityItem }) {
   const style = ACTIVITY_KIND_STYLES[item.kind];
 
   return (
-    <div className="flex items-start gap-3 rounded-lg py-2 text-[12.5px] hover:bg-bg-container">
-      <div className={cn('flex shrink-0 items-center gap-1.5 min-w-[72px]', style.iconClass)}>
-        <style.Icon aria-hidden="true" className="size-4" strokeWidth={1.8} />
+    <div className="flex items-baseline gap-3 rounded-lg px-2 py-1.5 text-[12.5px] hover:bg-bg-container">
+      <div className={cn('flex shrink-0 items-baseline gap-1.5 min-w-[68px]', style.iconClass)}>
+        <style.Icon aria-hidden="true" className="size-3.5 self-center" strokeWidth={1.8} />
         <span className="font-mono text-[11px] font-semibold uppercase tracking-wide">{style.label}</span>
       </div>
       <div className="min-w-0 flex-1 text-fg-body [overflow-wrap:anywhere]">{item.description}</div>
-      <span className="shrink-0 pt-0.5 font-mono text-[11.5px] text-fg-caption">{formatRelative(item.performedAt)}</span>
+      <span className="shrink-0 font-mono text-[11.5px] text-fg-caption">{formatRelative(item.performedAt)}</span>
     </div>
   );
 }
