@@ -4,10 +4,10 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const buttonSizeClasses = {
-  default: 'h-9 rounded-full px-4',
+  default: 'h-9 rounded-lg px-4',
   icon: 'size-9 rounded-lg p-0',
-  sm: 'h-8 rounded-full px-3',
-  lg: 'h-10 rounded-full px-5',
+  sm: 'h-8 rounded-lg px-3',
+  lg: 'h-10 rounded-lg px-5',
 } as const;
 
 const buttonVariants = cva(

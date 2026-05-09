@@ -58,9 +58,8 @@ function ProjectLayout() {
         <PageHeader
         actions={(
           <div className="flex shrink-0 items-center gap-2">
-            <Button onClick={() => setEditing(true)} size="sm" type="button" variant="secondary">
+            <Button aria-label="Edit project" className="size-8 rounded-full p-0" onClick={() => setEditing(true)} size="sm" type="button" variant="secondary">
               <Pencil aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
-              Edit
             </Button>
             <Button onClick={() => setPublishing(true)} size="sm" type="button">
               <Rocket aria-hidden="true" className="size-3.5" strokeWidth={1.8} />

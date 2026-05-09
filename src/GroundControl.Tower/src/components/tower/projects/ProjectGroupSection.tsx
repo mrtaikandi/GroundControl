@@ -83,7 +83,7 @@ export function ProjectGroupSection({ groupId, initialNextCursor, initialProject
       {state.cursor && remaining > 0 ? (
         <div className="flex justify-center">
           <button
-            className="inline-flex items-center gap-2 rounded-full border border-stroke-divider bg-bg-surface px-4 py-1.5 text-[12.5px] text-fg-body transition-colors hover:bg-bg-container disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-stroke-divider bg-bg-surface px-4 py-1.5 text-[12.5px] text-fg-body transition-colors hover:bg-bg-container disabled:opacity-50"
             disabled={next.isFetching}
             onClick={loadMore}
             type="button"
