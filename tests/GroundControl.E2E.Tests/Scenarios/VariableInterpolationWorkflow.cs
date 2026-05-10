@@ -195,12 +195,15 @@ public sealed class VariableInterpolationWorkflow : EndToEndTestBase
     });
 
     [Fact, Step(8)]
-    public Task Step08_CreateTierScope() => RunStep(8, async () =>
+    public Task Step08_CreateReleaseScope() => RunStep(8, async () =>
     {
-        // Arrange & Act
+        // Arrange & Act — use a workflow-unique dimension name. The assembly-level AspireFixture
+        // shares MongoDB across scenarios, so reusing a dimension owned by another workflow
+        // (e.g., 'tier' from ScopedValueResolutionWorkflow) collides with that workflow's scope
+        // values and silently breaks downstream variable creation.
         var result = await Cli.RunAsync(TestCancellationToken,
             "scope", "create",
-            "--dimension", "tier",
+            "--dimension", "release",
             "--values", "dev,prod");
 
         // Assert
@@ -210,7 +213,7 @@ public sealed class VariableInterpolationWorkflow : EndToEndTestBase
     [Fact, Step(9)]
     public Task Step09_CreateScopedVariable() => RunStep(9, async () =>
     {
-        // Arrange — variable defines per-tier values plus an unscoped default. The PRD's strict
+        // Arrange — variable defines per-release values plus an unscoped default. The PRD's strict
         // policy says fan-out must materialize each tuple in the published snapshot.
         var projectId = Get<Guid>(ProjectIdKey);
 
@@ -221,8 +224,8 @@ public sealed class VariableInterpolationWorkflow : EndToEndTestBase
             "--scope", "Project",
             "--project-id", projectId.ToString(),
             "--value", "default=baseline",
-            "--value", "tier:dev=dev-feature",
-            "--value", "tier:prod=prod-feature");
+            "--value", "release:dev=dev-feature",
+            "--value", "release:prod=prod-feature");
 
         // Assert
         result.ShouldSucceed();
@@ -272,8 +275,8 @@ public sealed class VariableInterpolationWorkflow : EndToEndTestBase
         entry.ShouldNotBeNull();
         entry.Values.Count.ShouldBe(3);
         entry.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "baseline");
-        entry.Values.ShouldContain(v => v.Scopes.ContainsKey("tier") && v.Scopes["tier"] == "dev" && v.Value == "dev-feature");
-        entry.Values.ShouldContain(v => v.Scopes.ContainsKey("tier") && v.Scopes["tier"] == "prod" && v.Value == "prod-feature");
+        entry.Values.ShouldContain(v => v.Scopes.ContainsKey("release") && v.Scopes["release"] == "dev" && v.Value == "dev-feature");
+        entry.Values.ShouldContain(v => v.Scopes.ContainsKey("release") && v.Scopes["release"] == "prod" && v.Value == "prod-feature");
     });
 
     [Fact, Step(12)]
@@ -287,7 +290,7 @@ public sealed class VariableInterpolationWorkflow : EndToEndTestBase
             "client", "create",
             "--project-id", projectId.ToString(),
             "--name", "e2e-fanout-dev",
-            "--scopes", "tier=dev");
+            "--scopes", "release=dev");
 
         // Assert
         devResult.ShouldSucceed();
@@ -300,7 +303,7 @@ public sealed class VariableInterpolationWorkflow : EndToEndTestBase
             "client", "create",
             "--project-id", projectId.ToString(),
             "--name", "e2e-fanout-prod",
-            "--scopes", "tier=prod");
+            "--scopes", "release=prod");
 
         // Assert
         prodResult.ShouldSucceed();
