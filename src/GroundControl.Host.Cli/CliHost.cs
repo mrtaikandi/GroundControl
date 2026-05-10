@@ -40,14 +40,14 @@ public sealed class CliHost
         if (_error is not null)
         {
             AnsiConsole.MarkupLine($":thumbs_down:  {_error}");
-            return 1;
+            return SetExitCode(1);
         }
 
         Debug.Assert(_parseResult != null, nameof(_parseResult) + " != null");
 
         if (_applicationHost is null)
         {
-            return await _parseResult.InvokeAsync();
+            return SetExitCode(await _parseResult.InvokeAsync());
         }
 
         try
@@ -60,11 +60,11 @@ public sealed class CliHost
             providerField?.SetValue(_parseResult.CommandResult.Command, _applicationHost.Services);
 
             var invocationConfiguration = new InvocationConfiguration { EnableDefaultExceptionHandler = false };
-            return await _parseResult.InvokeAsync(invocationConfiguration);
+            return SetExitCode(await _parseResult.InvokeAsync(invocationConfiguration));
         }
         catch (Exception ex) when (ex is TaskCanceledException or OperationCanceledException)
         {
-            return 0;
+            return SetExitCode(0);
         }
         catch (Exception ex)
         {
@@ -84,8 +84,14 @@ public sealed class CliHost
             }
 
             shell.DisplayEmptyLine();
-            return 1;
+            return SetExitCode(1);
         }
+    }
+
+    private static int SetExitCode(int exitCode)
+    {
+        Environment.ExitCode = exitCode;
+        return exitCode;
     }
 
     internal static CliHost CreateError(string error) => new(error);
