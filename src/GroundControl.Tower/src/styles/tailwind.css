@@ -4,6 +4,7 @@
 
 @theme {
 	--color-bg-page: var(--tower-bg-page);
+	--color-bg-sidebar: var(--tower-bg-sidebar);
 	--color-bg-container: var(--tower-bg-container);
 	--color-bg-surface: var(--tower-bg-surface);
 	--color-bg-selected: var(--tower-bg-selected);

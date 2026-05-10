@@ -43,7 +43,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
-    <aside className={cn('flex h-full min-h-0 flex-col overflow-y-auto border-r border-stroke-divider bg-bg-page px-3 py-4', className)}>
+    <aside className={cn('flex h-full min-h-0 flex-col overflow-y-auto border-r border-stroke-divider bg-bg-sidebar px-3 py-4', className)}>
       <div className="flex items-center gap-3 px-2 pb-5 pt-1">
         <LogoMark />
         <div className="min-w-0">

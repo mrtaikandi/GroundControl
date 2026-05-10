@@ -2,6 +2,7 @@
 
 :root {
   --tower-bg-page: #fbfbfc;
+  --tower-bg-sidebar: #ffffff;
   --tower-bg-container: #f5f4f8;
   --tower-bg-surface: #ffffff;
   --tower-bg-selected: #f4f1fb;
@@ -63,6 +64,7 @@
 
 [data-tower-theme="dark"] {
   --tower-bg-page: #262626;
+  --tower-bg-sidebar: #181818;
   --tower-bg-container: #202020;
   --tower-bg-surface: #181818;
   --tower-bg-selected: rgba(157, 124, 242, 0.18);
