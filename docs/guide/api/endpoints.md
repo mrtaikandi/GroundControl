@@ -219,6 +219,7 @@ curl -X POST http://localhost:8080/api/config-entries \
 Notes:
 
 - `ownerType` is either `Project` or `Template`
+- `key` must match `^[A-Za-z][A-Za-z0-9.:_-]*$` (start with a letter; letters, digits, and `.`, `:`, `_`, `-` thereafter; max 500 chars). Immutable after creation.
 - The first value with no `scopes` is the default
 - Use `{{variableName}}` in values to reference variables
 - Sensitive values are masked as `"***"` -- add `?decrypt=true` to see them

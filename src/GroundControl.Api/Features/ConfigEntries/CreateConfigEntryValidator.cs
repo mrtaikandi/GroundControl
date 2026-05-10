@@ -15,6 +15,11 @@ internal sealed class CreateConfigEntryValidator : IAsyncValidator<CreateConfigE
 
     public async Task<ValidatorResult> ValidateAsync(CreateConfigEntryRequest instance, ValidationContext context, CancellationToken cancellationToken = default)
     {
+        if (!ConfigEntryValidation.IsValidKey(instance.Key))
+        {
+            return ValidatorResult.Fail(ConfigEntryValidation.KeyPatternErrorMessage, nameof(instance.Key));
+        }
+
         if (!ConfigEntryValidation.IsValidValueType(instance.ValueType))
         {
             return ValidatorResult.Fail($"ValueType '{instance.ValueType}' is not supported.", nameof(instance.ValueType));

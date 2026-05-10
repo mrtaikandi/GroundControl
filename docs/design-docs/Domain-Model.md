@@ -168,7 +168,7 @@ An individual configuration key-value pair with type metadata, scope variants, a
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | Guid (UUIDv7) | Unique identifier, generated via `Guid.CreateVersion7()` |
-| `key` | string | Configuration key using colon-separated hierarchy (e.g., `Logging:LogLevel:Default`) |
+| `key` | string | Configuration key. Must match `^[A-Za-z][A-Za-z0-9.:_-]*$` (start with a letter; letters, digits, and `.`, `:`, `_`, `-` thereafter). Colon-separated hierarchy is the recommended convention (e.g., `Logging:LogLevel:Default`). Max 500 chars. Immutable after creation. |
 | `ownerId` | Guid | ID of the owning template or project |
 | `ownerType` | `template` or `project` | Whether this entry belongs to a template or a project |
 | `valueType` | string | .NET type name: `String`, `Int32`, `Int64`, `Double`, `Decimal`, `Boolean`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly` |

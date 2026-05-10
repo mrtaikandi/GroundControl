@@ -172,7 +172,7 @@ All entity IDs use **UUIDv7** (`Guid.CreateVersion7()` in .NET). UUIDv7 embeds a
 | Field | .NET Type | Description |
 |-------|-----------|-------------|
 | `Id` | `Guid` | Primary key (UUIDv7) |
-| `Key` | `string` | Configuration key using colon hierarchy (e.g., `Logging:LogLevel:Default`) |
+| `Key` | `string` | Configuration key. Must match `^[A-Za-z][A-Za-z0-9.:_-]*$` (max 500 chars, immutable after creation). Colon-separated hierarchy is the recommended convention (e.g., `Logging:LogLevel:Default`) |
 | `OwnerId` | `Guid` | ID of the owning template or project |
 | `OwnerType` | `ConfigEntryOwnerType` | Enum: `Template`, `Project` |
 | `ValueType` | `string` | .NET type name (see supported types below) |

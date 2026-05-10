@@ -1,12 +1,29 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 
 namespace GroundControl.Api.Features.ConfigEntries;
 
-internal static class ConfigEntryValidation
+internal static partial class ConfigEntryValidation
 {
+    /// <summary>
+    /// Allowed shape for a config entry key: starts with a letter, then any mix of letters,
+    /// digits, and the separators <c>.</c>, <c>:</c>, <c>_</c>, <c>-</c>.
+    /// </summary>
+    public const string KeyPattern = "^[A-Za-z][A-Za-z0-9.:_-]*$";
+
+    /// <summary>
+    /// Human-readable description of <see cref="KeyPattern"/>, surfaced verbatim in 400 responses.
+    /// </summary>
+    public const string KeyPatternErrorMessage = "Key must start with a letter and contain only letters, digits, '.', ':', '_', or '-'.";
+
+    [GeneratedRegex(KeyPattern, RegexOptions.Compiled)]
+    private static partial Regex KeyRegex { get; }
+
+    public static bool IsValidKey(string key) => !string.IsNullOrEmpty(key) && KeyRegex.IsMatch(key);
+
     private static readonly HashSet<string> AllowedValueTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "String",

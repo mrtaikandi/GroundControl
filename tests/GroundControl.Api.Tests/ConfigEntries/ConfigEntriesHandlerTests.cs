@@ -159,6 +159,70 @@ public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
         problem.Errors["Values"].ShouldContain(e => e.Contains("not allowed"));
     }
 
+    [Theory]
+    [InlineData("Logging:LogLevel:Default")]
+    [InlineData("Database.ConnectionString")]
+    [InlineData("feature_flag_x")]
+    [InlineData("my-config-key")]
+    [InlineData("App.Setting:Sub_Section-Name")]
+    [InlineData("a")]
+    public async Task PostConfigEntry_WithValidKeyShape_ReturnsCreated(string key)
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var request = new CreateConfigEntryRequest
+        {
+            Key = key,
+            OwnerId = template.Id,
+            OwnerType = ConfigEntryOwnerType.Template,
+            ValueType = "String",
+            Values = [new ScopedValueRequest { Value = "v" }],
+        };
+
+        // Act
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    [Theory]
+    [InlineData("1StartsWithDigit")]
+    [InlineData("_startsWithUnderscore")]
+    [InlineData(".startsWithDot")]
+    [InlineData("-startsWithDash")]
+    [InlineData(":startsWithColon")]
+    [InlineData("contains spaces")]
+    [InlineData("contains/slash")]
+    [InlineData("contains$dollar")]
+    public async Task PostConfigEntry_WithInvalidKeyShape_ReturnsBadRequest(string key)
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var request = new CreateConfigEntryRequest
+        {
+            Key = key,
+            OwnerId = template.Id,
+            OwnerType = ConfigEntryOwnerType.Template,
+            ValueType = "String",
+            Values = [new ScopedValueRequest { Value = "v" }],
+        };
+
+        // Act
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        problem.ShouldNotBeNull();
+        problem.Errors.ShouldContainKey("Key");
+        problem.Errors["Key"].ShouldContain(e => e.Contains("Key must start with a letter"));
+    }
+
     [Fact]
     public async Task PostConfigEntry_WithValidScopedValues_ReturnsCreated()
     {
