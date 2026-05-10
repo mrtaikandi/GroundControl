@@ -14,20 +14,20 @@ internal sealed class SnapshotResolver
 
     private readonly IConfigEntryStore _configEntryStore;
     private readonly IVariableStore _variableStore;
-    private readonly VariableInterpolator _interpolator;
+    private readonly ResolvedEntryBuilder _resolvedEntryBuilder;
     private readonly SensitiveSourceValueProtector _sourceProtector;
     private readonly ISnapshotStore _snapshotStore;
 
     public SnapshotResolver(
         IConfigEntryStore configEntryStore,
         IVariableStore variableStore,
-        VariableInterpolator interpolator,
+        ResolvedEntryBuilder resolvedEntryBuilder,
         SensitiveSourceValueProtector sourceProtector,
         ISnapshotStore snapshotStore)
     {
         _configEntryStore = configEntryStore ?? throw new ArgumentNullException(nameof(configEntryStore));
         _variableStore = variableStore ?? throw new ArgumentNullException(nameof(variableStore));
-        _interpolator = interpolator ?? throw new ArgumentNullException(nameof(interpolator));
+        _resolvedEntryBuilder = resolvedEntryBuilder ?? throw new ArgumentNullException(nameof(resolvedEntryBuilder));
         _sourceProtector = sourceProtector ?? throw new ArgumentNullException(nameof(sourceProtector));
         _snapshotStore = snapshotStore ?? throw new ArgumentNullException(nameof(snapshotStore));
     }
@@ -75,31 +75,19 @@ internal sealed class SnapshotResolver
         foreach (var entry in mergedEntries)
         {
             var plaintextValues = _sourceProtector.UnprotectValues(entry.Values, entry.IsSensitive);
-            var resolvedValues = new List<ScopedValue>(plaintextValues.Count);
-            var entryUsedSensitiveVariable = false;
+            var buildResult = _resolvedEntryBuilder.Build(plaintextValues, projectVariablesDict, globalVariablesDict);
 
-            foreach (var scopedValue in plaintextValues)
+            foreach (var name in buildResult.UnresolvedPlaceholders)
             {
-                var result = _interpolator.Interpolate(scopedValue.Value, scopedValue.Scopes, projectVariablesDict, globalVariablesDict);
-                resolvedValues.Add(new ScopedValue(result.Value, scopedValue.Scopes));
-
-                if (result.UsedSensitiveVariable)
-                {
-                    entryUsedSensitiveVariable = true;
-                }
-
-                foreach (var unresolved in result.UnresolvedPlaceholders)
-                {
-                    unresolvedPlaceholders.Add(unresolved);
-                }
+                unresolvedPlaceholders.Add(name);
             }
 
             resolvedEntries.Add(new ResolvedEntry
             {
                 Key = entry.Key,
                 ValueType = entry.ValueType,
-                IsSensitive = entry.IsSensitive || entryUsedSensitiveVariable,
-                Values = resolvedValues,
+                IsSensitive = entry.IsSensitive || buildResult.UsedSensitiveVariable,
+                Values = buildResult.Values,
             });
         }
 

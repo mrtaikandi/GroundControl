@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 using GroundControl.Api.Shared.Resolvers;
 using GroundControl.Persistence.Contracts;
@@ -8,7 +9,7 @@ namespace GroundControl.Api.Features.Snapshots;
 /// Resolves <c>{{variableName}}</c> placeholders in config entry values using a two-tier
 /// variable system (project-level first, then global) with scope-aware resolution.
 /// </summary>
-internal sealed partial class VariableInterpolator
+internal sealed class VariableInterpolator
 {
     private readonly IScopeResolver _scopeResolver;
 
@@ -34,7 +35,27 @@ internal sealed partial class VariableInterpolator
         IReadOnlyDictionary<string, PlaintextVariable> projectVariables,
         IReadOnlyDictionary<string, PlaintextVariable> globalVariables)
     {
-        var matches = PlaceholderPattern.Matches(value);
+        var matches = PlaceholderScanner.PlaceholderPattern.Matches(value);
+        return Interpolate(value, matches, clientScopes, projectVariables, globalVariables);
+    }
+
+    /// <summary>
+    /// Overload that accepts a pre-computed match collection so callers that fan out the same
+    /// source value across many client scopes can scan once and reuse the matches per tuple,
+    /// avoiding M extra regex passes for an entry that produces M target tuples.
+    /// </summary>
+    /// <param name="value">The raw config entry value the matches were taken from.</param>
+    /// <param name="matches">Matches produced by <see cref="PlaceholderScanner.PlaceholderPattern"/> against <paramref name="value"/>.</param>
+    /// <param name="clientScopes">The client's scope dimension-value pairs for resolution.</param>
+    /// <param name="projectVariables">Project-level plaintext variables keyed by variable name (checked first).</param>
+    /// <param name="globalVariables">Global plaintext variables keyed by variable name (fallback).</param>
+    public InterpolationResult Interpolate(
+        string value,
+        MatchCollection matches,
+        IReadOnlyDictionary<string, string> clientScopes,
+        IReadOnlyDictionary<string, PlaintextVariable> projectVariables,
+        IReadOnlyDictionary<string, PlaintextVariable> globalVariables)
+    {
         if (matches.Count == 0)
         {
             return new InterpolationResult { Value = value, UnresolvedPlaceholders = [], UsedSensitiveVariable = false };
@@ -42,12 +63,19 @@ internal sealed partial class VariableInterpolator
 
         var unresolved = new List<string>();
         var usedSensitive = false;
-        var result = PlaceholderPattern.Replace(value, match =>
-        {
-            var name = match.Groups[1].Value;
+        var builder = new StringBuilder(value.Length);
+        var lastIndex = 0;
 
-            // Two-tier lookup: project variables take priority over global
+        foreach (Match match in matches)
+        {
+            if (match.Index > lastIndex)
+            {
+                builder.Append(value, lastIndex, match.Index - lastIndex);
+            }
+
+            var name = match.Groups[1].Value;
             var resolved = TryResolve(name, projectVariables, clientScopes) ?? TryResolve(name, globalVariables, clientScopes);
+
             if (resolved is not null)
             {
                 if (resolved.IsSensitive)
@@ -55,14 +83,28 @@ internal sealed partial class VariableInterpolator
                     usedSensitive = true;
                 }
 
-                return resolved.Value;
+                builder.Append(resolved.Value);
+            }
+            else
+            {
+                unresolved.Add(name);
+                builder.Append(match.Value);
             }
 
-            unresolved.Add(name);
-            return match.Value;
-        });
+            lastIndex = match.Index + match.Length;
+        }
 
-        return new InterpolationResult { Value = result, UnresolvedPlaceholders = unresolved, UsedSensitiveVariable = usedSensitive };
+        if (lastIndex < value.Length)
+        {
+            builder.Append(value, lastIndex, value.Length - lastIndex);
+        }
+
+        return new InterpolationResult
+        {
+            Value = builder.ToString(),
+            UnresolvedPlaceholders = unresolved,
+            UsedSensitiveVariable = usedSensitive
+        };
     }
 
     private ResolvedVariable? TryResolve(string variableName, IReadOnlyDictionary<string, PlaintextVariable> variables, IReadOnlyDictionary<string, string> clientScopes)
@@ -75,9 +117,6 @@ internal sealed partial class VariableInterpolator
         var scopedValue = _scopeResolver.Resolve(variable.Values, clientScopes);
         return scopedValue is null ? null : new ResolvedVariable(scopedValue.Value, variable.IsSensitive);
     }
-
-    [GeneratedRegex(@"\{\{(\w+)\}\}")]
-    private static partial Regex PlaceholderPattern { get; }
 
     private sealed record ResolvedVariable(string Value, bool IsSensitive);
 }

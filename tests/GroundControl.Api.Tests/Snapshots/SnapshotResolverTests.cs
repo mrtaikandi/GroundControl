@@ -405,6 +405,408 @@ public sealed class SnapshotResolverTests : ApiHandlerTestBase
         entry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "prod" && v.Value == "1 Prod");
     }
 
+    [Fact]
+    public async Task ResolveAsync_FansOutScopelessEntry_AcrossReferencedVariableScopes()
+    {
+        // Arrange — the original user scenario: a config entry with only a default value
+        // referencing a scoped variable. The published snapshot should carry one resolved value
+        // per variable scope tuple, with no per-scope authoring on the entry itself.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        await EnsureScopeAsync(apiClient, "Environment", ["dev", "prod"]);
+
+        var project = await CreateProjectAsync(apiClient);
+        await CreateScopedVariableAsync(apiClient, project.Id, "myVariable", defaultValue: "default value", scopedValues:
+        [
+            ("dev", "dev value"),
+            ("prod", "prod value"),
+        ]);
+
+        var entryRequest = new CreateConfigEntryRequest
+        {
+            Key = "MyConfigEntry",
+            OwnerId = project.Id,
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            IsSensitive = false,
+            Values = [new ScopedValueRequest { Value = "{{myVariable}}" }],
+        };
+        var entryResponse = await apiClient.PostAsJsonAsync("/api/config-entries", entryRequest, WebJsonSerializerOptions, TestCancellationToken);
+        entryResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var result = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert
+        var entry = result.PlaintextEntries.ShouldHaveSingleItem();
+        entry.Key.ShouldBe("MyConfigEntry");
+        entry.Values.Count.ShouldBe(3);
+        entry.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "default value");
+        entry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "dev" && v.Value == "dev value");
+        entry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "prod" && v.Value == "prod value");
+        result.UnresolvedPlaceholders.ShouldBeEmpty();
+        result.IsPublishable.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ResolveAsync_FansOutTemplateEntry_UsingProjectVariablePool()
+    {
+        // Arrange — the template defines an entry referencing a variable name; the project
+        // attaching the template supplies the variable values. Fan-out runs once on the merged
+        // entry set using the project's variable pool.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        await EnsureScopeAsync(apiClient, "Environment", ["dev", "prod"]);
+
+        var template = await CreateTemplateAsync(apiClient);
+        await CreateOwnedConfigEntryAsync(apiClient, "Jwt:Authority", template.Id, ConfigEntryOwnerType.Template, value: "https://{{base_domain}}");
+
+        var project = await CreateProjectAsync(apiClient, templateIds: [template.Id]);
+        await CreateScopedVariableAsync(apiClient, project.Id, "base_domain", defaultValue: "default.local", scopedValues:
+        [
+            ("dev", "dev.local"),
+            ("prod", "prod.local"),
+        ]);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var result = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert
+        var entry = result.PlaintextEntries.ShouldHaveSingleItem();
+        entry.Key.ShouldBe("Jwt:Authority");
+        entry.Values.Count.ShouldBe(3);
+        entry.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "https://default.local");
+        entry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "dev" && v.Value == "https://dev.local");
+        entry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "prod" && v.Value == "https://prod.local");
+    }
+
+    [Fact]
+    public async Task ResolveAsync_TemplateAttachedToTwoProjects_UsesEachProjectsVariableValues()
+    {
+        // Arrange — two projects share a template but supply different variable values; each
+        // project's resolved snapshot must reflect its own variables, not the other's.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        await EnsureScopeAsync(apiClient, "Environment", ["dev", "prod"]);
+
+        var template = await CreateTemplateAsync(apiClient);
+        await CreateOwnedConfigEntryAsync(apiClient, "api.url", template.Id, ConfigEntryOwnerType.Template, value: "https://{{host}}");
+
+        var firstProject = await CreateProjectAsync(apiClient, templateIds: [template.Id]);
+        await CreateScopedVariableAsync(apiClient, firstProject.Id, "host", defaultValue: "first.example", scopedValues:
+        [
+            ("dev", "first-dev.example"),
+        ]);
+
+        var secondProject = await CreateProjectAsync(apiClient, templateIds: [template.Id]);
+        await CreateScopedVariableAsync(apiClient, secondProject.Id, "host", defaultValue: "second.example", scopedValues:
+        [
+            ("dev", "second-dev.example"),
+        ]);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+
+        var firstLoaded = await projectStore.GetByIdAsync(firstProject.Id, TestCancellationToken);
+        firstLoaded.ShouldNotBeNull();
+        var secondLoaded = await projectStore.GetByIdAsync(secondProject.Id, TestCancellationToken);
+        secondLoaded.ShouldNotBeNull();
+
+        // Act
+        var firstResult = await resolver.ResolveAsync(firstLoaded, description: null, TestCancellationToken);
+        var secondResult = await resolver.ResolveAsync(secondLoaded, description: null, TestCancellationToken);
+
+        // Assert
+        var firstEntry = firstResult.PlaintextEntries.ShouldHaveSingleItem();
+        firstEntry.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "https://first.example");
+        firstEntry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "dev" && v.Value == "https://first-dev.example");
+
+        var secondEntry = secondResult.PlaintextEntries.ShouldHaveSingleItem();
+        secondEntry.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "https://second.example");
+        secondEntry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "dev" && v.Value == "https://second-dev.example");
+    }
+
+    [Fact]
+    public async Task ResolveAsync_VariableMissingDefault_ReportsUnresolvedAndBlocksPublish()
+    {
+        // Arrange — strict-unresolved policy: a variable defines per-scope tuples but no default,
+        // and a scopeless entry references it. The unspecified target tuple has no value to fall
+        // back to, so the placeholder is reported as unresolved and the snapshot is not publishable.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        await EnsureScopeAsync(apiClient, "Environment", ["dev", "prod"]);
+
+        var project = await CreateProjectAsync(apiClient);
+        await CreateScopedVariableAsync(apiClient, project.Id, "myVariable", defaultValue: null, scopedValues:
+        [
+            ("dev", "dev value"),
+            ("prod", "prod value"),
+        ]);
+
+        var entryRequest = new CreateConfigEntryRequest
+        {
+            Key = "MyConfigEntry",
+            OwnerId = project.Id,
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            IsSensitive = false,
+            Values = [new ScopedValueRequest { Value = "{{myVariable}}" }],
+        };
+        var entryResponse = await apiClient.PostAsJsonAsync("/api/config-entries", entryRequest, WebJsonSerializerOptions, TestCancellationToken);
+        entryResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var result = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert
+        result.UnresolvedPlaceholders.ShouldContain("myVariable");
+        result.IsPublishable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task ResolveAsync_SensitiveVariableUsedInFanOut_AllTuplesEncryptedAndFlaggedSensitive()
+    {
+        // Arrange — a sensitive scoped variable referenced by a non-sensitive entry. Per Decision 8
+        // (per-entry sensitivity), one sensitive contribution flips the whole entry to sensitive.
+        // This test runs the full pipeline so the encrypted entries are written through the
+        // protector and decrypted back, proving sensitivity survives the storage round-trip on
+        // every fanned-out tuple.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        await EnsureScopeAsync(apiClient, "Environment", ["dev", "prod"]);
+
+        var project = await CreateProjectAsync(apiClient);
+
+        var variableRequest = new CreateVariableRequest
+        {
+            Name = "secretToken",
+            Scope = VariableScope.Project,
+            ProjectId = project.Id,
+            IsSensitive = true,
+            Values =
+            [
+                new Features.Variables.Contracts.ScopedValueRequest { Value = "default-secret" },
+                new Features.Variables.Contracts.ScopedValueRequest { Value = "dev-secret", Scopes = new Dictionary<string, string> { ["Environment"] = "dev" } },
+                new Features.Variables.Contracts.ScopedValueRequest { Value = "prod-secret", Scopes = new Dictionary<string, string> { ["Environment"] = "prod" } },
+            ],
+        };
+        var variableResponse = await apiClient.PostAsJsonAsync("/api/variables", variableRequest, WebJsonSerializerOptions, TestCancellationToken);
+        variableResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var entryRequest = new CreateConfigEntryRequest
+        {
+            Key = "auth.token",
+            OwnerId = project.Id,
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            IsSensitive = false,
+            Values = [new ScopedValueRequest { Value = "{{secretToken}}" }],
+        };
+        var entryResponse = await apiClient.PostAsJsonAsync("/api/config-entries", entryRequest, WebJsonSerializerOptions, TestCancellationToken);
+        entryResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var protector = factory.Services.GetRequiredService<IValueProtector>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var result = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert — the entry flips to sensitive even though IsSensitive on the request was false.
+        var plaintextEntry = result.PlaintextEntries.ShouldHaveSingleItem();
+        plaintextEntry.IsSensitive.ShouldBeTrue();
+        plaintextEntry.Values.Count.ShouldBe(3);
+
+        var encryptedEntry = result.EncryptedEntries.ShouldHaveSingleItem();
+        encryptedEntry.IsSensitive.ShouldBeTrue();
+        encryptedEntry.Values.Count.ShouldBe(3);
+
+        // Each fanned-out tuple is encrypted at rest and decrypts back to the per-scope plaintext.
+        foreach (var encrypted in encryptedEntry.Values)
+        {
+            encrypted.Value.ShouldNotContain("secret");
+            var decrypted = protector.Unprotect(encrypted.Value);
+            if (encrypted.Scopes.Count == 0)
+            {
+                decrypted.ShouldBe("default-secret");
+            }
+            else
+            {
+                var environment = encrypted.Scopes.GetValueOrDefault("Environment");
+                decrypted.ShouldBe(environment switch
+                {
+                    "dev" => "dev-secret",
+                    "prod" => "prod-secret",
+                    _ => throw new InvalidOperationException($"Unexpected scope tuple: {environment}"),
+                });
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ResolveAsync_DiffHash_StableAcrossResolves_WhenExplicitScopedValueOverridesFanOut()
+    {
+        // Arrange — the entry mixes a default-scope source (referencing a scoped variable, which
+        // fans out) with an explicit Env=prod source (literal). Determinism must hold across
+        // resolves for this mixed shape: the explicit-wins dedup runs against canonical-ordered
+        // emissions, and a flake here would surface as preview-vs-publish 409 spam in production.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        await EnsureScopeAsync(apiClient, "Environment", ["dev", "prod"]);
+
+        var project = await CreateProjectAsync(apiClient);
+        await CreateScopedVariableAsync(apiClient, project.Id, "myVariable", defaultValue: "default", scopedValues:
+        [
+            ("dev", "var-dev"),
+            ("prod", "var-prod"),
+        ]);
+
+        var entryRequest = new CreateConfigEntryRequest
+        {
+            Key = "MyConfigEntry",
+            OwnerId = project.Id,
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            IsSensitive = false,
+            Values =
+            [
+                new ScopedValueRequest { Value = "{{myVariable}}" },
+                new ScopedValueRequest { Value = "explicit-prod", Scopes = new Dictionary<string, string> { ["Environment"] = "prod" } },
+            ],
+        };
+        var entryResponse = await apiClient.PostAsJsonAsync("/api/config-entries", entryRequest, WebJsonSerializerOptions, TestCancellationToken);
+        entryResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var firstResolve = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+        var secondResolve = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert
+        firstResolve.DiffHash.ShouldNotBeNullOrEmpty();
+        secondResolve.DiffHash.ShouldBe(firstResolve.DiffHash);
+
+        // Sanity check that the explicit-wins behavior is actually in play (not just trivially
+        // equal because fan-out collapsed): the prod tuple must be the literal, not the variable's.
+        var entry = firstResolve.PlaintextEntries.ShouldHaveSingleItem();
+        entry.Values.Single(v => v.Scopes.GetValueOrDefault("Environment") == "prod").Value.ShouldBe("explicit-prod");
+    }
+
+    [Fact]
+    public async Task ResolveAsync_DiffHash_StableAcrossResolvesOfFannedOutEntry()
+    {
+        // Arrange — fan-out is a pure function of project state, so two resolves must yield the
+        // same diff hash. Guards against spurious 409s in the publish-after-preview gate when the
+        // resolved entry contains many fan-out tuples.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        await EnsureScopeAsync(apiClient, "Environment", ["dev", "prod"]);
+
+        var project = await CreateProjectAsync(apiClient);
+        await CreateScopedVariableAsync(apiClient, project.Id, "myVariable", defaultValue: "default", scopedValues:
+        [
+            ("dev", "dev"),
+            ("prod", "prod"),
+        ]);
+
+        var entryRequest = new CreateConfigEntryRequest
+        {
+            Key = "MyConfigEntry",
+            OwnerId = project.Id,
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            IsSensitive = false,
+            Values = [new ScopedValueRequest { Value = "{{myVariable}}" }],
+        };
+        var entryResponse = await apiClient.PostAsJsonAsync("/api/config-entries", entryRequest, WebJsonSerializerOptions, TestCancellationToken);
+        entryResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var firstResolve = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+        var secondResolve = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert
+        firstResolve.DiffHash.ShouldNotBeNullOrEmpty();
+        secondResolve.DiffHash.ShouldBe(firstResolve.DiffHash);
+    }
+
+    private static async Task EnsureScopeAsync(HttpClient apiClient, string dimension, IReadOnlyList<string> allowedValues)
+    {
+        var response = await apiClient.PostAsJsonAsync(
+            "/api/scopes",
+            new GroundControl.Api.Features.Scopes.Contracts.CreateScopeRequest { Dimension = dimension, AllowedValues = [.. allowedValues] },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
+    private static async Task CreateScopedVariableAsync(
+        HttpClient apiClient,
+        Guid projectId,
+        string name,
+        string? defaultValue,
+        IReadOnlyList<(string Environment, string Value)> scopedValues)
+    {
+        var values = new List<Features.Variables.Contracts.ScopedValueRequest>();
+        if (defaultValue is not null)
+        {
+            values.Add(new Features.Variables.Contracts.ScopedValueRequest { Value = defaultValue });
+        }
+
+        foreach (var (environment, value) in scopedValues)
+        {
+            values.Add(new Features.Variables.Contracts.ScopedValueRequest
+            {
+                Value = value,
+                Scopes = new Dictionary<string, string> { ["Environment"] = environment },
+            });
+        }
+
+        var request = new CreateVariableRequest
+        {
+            Name = name,
+            Scope = VariableScope.Project,
+            ProjectId = projectId,
+            Values = values,
+        };
+
+        var response = await apiClient.PostAsJsonAsync("/api/variables", request, WebJsonSerializerOptions, TestCancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+    }
+
     private static async Task<TemplateResponse> CreateTemplateAsync(HttpClient apiClient)
     {
         var request = new CreateTemplateRequest
