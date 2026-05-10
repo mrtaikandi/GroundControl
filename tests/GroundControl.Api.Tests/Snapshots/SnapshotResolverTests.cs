@@ -4,12 +4,14 @@ using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Features.Projects.Contracts;
 using GroundControl.Api.Features.Snapshots;
 using GroundControl.Api.Features.Templates.Contracts;
+using GroundControl.Api.Features.Variables.Contracts;
 using GroundControl.Api.Shared.Security.Protection;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
+using ScopedValueRequest = GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest;
 
 namespace GroundControl.Api.Tests.Snapshots;
 
@@ -334,6 +336,73 @@ public sealed class SnapshotResolverTests : ApiHandlerTestBase
         jwt.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "https://default");
         jwt.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "dev" && v.Value == "https://dev");
         jwt.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "prod" && v.Value == "https://prod");
+    }
+
+    [Fact]
+    public async Task ResolveAsync_InterpolatesVariableUsingEntryOwnScope_WhenEntryHasScopedValues()
+    {
+        // Arrange — a scoped variable plus a config entry whose per-scope values reference that
+        // variable. Each per-scope occurrence of the placeholder must resolve against the entry's
+        // own scope context, not the variable's unscoped default.
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+
+        var scopeResponse = await apiClient.PostAsJsonAsync(
+            "/api/scopes",
+            new GroundControl.Api.Features.Scopes.Contracts.CreateScopeRequest { Dimension = "Environment", AllowedValues = ["dev", "prod"] },
+            WebJsonSerializerOptions,
+            TestCancellationToken);
+        scopeResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var project = await CreateProjectAsync(apiClient);
+
+        var variableRequest = new CreateVariableRequest
+        {
+            Name = "myVariable",
+            Scope = VariableScope.Project,
+            ProjectId = project.Id,
+            Values =
+            [
+                new Features.Variables.Contracts.ScopedValueRequest { Value = "1 Default" },
+                new Features.Variables.Contracts.ScopedValueRequest { Value = "1 Dev", Scopes = new Dictionary<string, string> { ["Environment"] = "dev" } },
+                new Features.Variables.Contracts.ScopedValueRequest { Value = "1 Prod", Scopes = new Dictionary<string, string> { ["Environment"] = "prod" } },
+            ],
+        };
+        var variableResponse = await apiClient.PostAsJsonAsync("/api/variables", variableRequest, WebJsonSerializerOptions, TestCancellationToken);
+        variableResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var entryRequest = new CreateConfigEntryRequest
+        {
+            Key = "MyConfigEntry",
+            OwnerId = project.Id,
+            OwnerType = ConfigEntryOwnerType.Project,
+            ValueType = "String",
+            IsSensitive = false,
+            Values =
+            [
+                new ScopedValueRequest { Value = "{{myVariable}}" },
+                new ScopedValueRequest { Value = "{{myVariable}}", Scopes = new Dictionary<string, string> { ["Environment"] = "dev" } },
+                new ScopedValueRequest { Value = "{{myVariable}}", Scopes = new Dictionary<string, string> { ["Environment"] = "prod" } },
+            ],
+        };
+        var entryResponse = await apiClient.PostAsJsonAsync("/api/config-entries", entryRequest, WebJsonSerializerOptions, TestCancellationToken);
+        entryResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var resolver = factory.Services.GetRequiredService<SnapshotResolver>();
+        var projectStore = factory.Services.GetRequiredService<IProjectStore>();
+        var loaded = await projectStore.GetByIdAsync(project.Id, TestCancellationToken);
+        loaded.ShouldNotBeNull();
+
+        // Act
+        var result = await resolver.ResolveAsync(loaded, description: null, TestCancellationToken);
+
+        // Assert
+        var entry = result.PlaintextEntries.ShouldHaveSingleItem();
+        entry.Key.ShouldBe("MyConfigEntry");
+        entry.Values.Count.ShouldBe(3);
+        entry.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "1 Default");
+        entry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "dev" && v.Value == "1 Dev");
+        entry.Values.ShouldContain(v => v.Scopes.GetValueOrDefault("Environment") == "prod" && v.Value == "1 Prod");
     }
 
     private static async Task<TemplateResponse> CreateTemplateAsync(HttpClient apiClient)
