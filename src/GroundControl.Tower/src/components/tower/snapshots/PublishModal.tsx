@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/api/client';
 import { entriesToDocument } from '@/lib/snapshot-document';
 import { deepEqual, diffDocuments, summarize, type ChangeSummary } from '@/lib/snapshot-diff';
+import { cn } from '@/lib/utils';
 import { usePublishSnapshot, useSnapshotDetail, useSnapshotPreview } from '@/queries/useSnapshots';
 import { SnapshotDiffView } from './SnapshotDiffView';
 
@@ -23,6 +24,7 @@ type PublishStep = 'diff' | 'confirm';
 export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }: PublishModalProps) {
   const [step, setStep] = useState<PublishStep>('diff');
   const [comment, setComment] = useState('');
+  const [maximized, setMaximized] = useState(false);
   const [staleBanner, setStaleBanner] = useState(false);
   const activeSnapshot = useSnapshotDetail(projectId, activeSnapshotId);
   const preview = useSnapshotPreview(projectId, { enabled: open });
@@ -34,12 +36,13 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
   const summary = useMemo(() => summarizeChanges(before, after), [after, before]);
   const changeCount = summary.additions + summary.modifications + summary.deletions;
   const previewError = preview.isError ? toErrorMessage(preview.error) : null;
-  const targetLabel = activeSnapshot.data ? `active v${activeSnapshot.data.snapshotVersion}` : 'active snapshot';
+  const targetLabel = activeSnapshot.data ? `v${activeSnapshot.data.snapshotVersion} (active)` : 'active snapshot';
 
   useEffect(() => {
     if (open) {
       setStep('diff');
       setComment('');
+      setMaximized(false);
       setStaleBanner(false);
     }
   }, [open]);
@@ -54,7 +57,6 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
       onOpenChange(false);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
-        setStep('diff');
         setStaleBanner(true);
       }
     }
@@ -67,61 +69,70 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(calc(100vw-32px),980px)]">
-        <DialogHeader>
-          <DialogTitle>{step === 'diff' ? 'Publish New Snapshot' : 'Confirm Publish'}</DialogTitle>
-          <DialogDescription>{step === 'diff' ? 'Review the resolved configuration diff before creating an immutable snapshot.' : 'Add an optional comment and publish the snapshot.'}</DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        className={cn('w-[min(calc(100vw-32px),980px)]', maximized && 'flex h-[calc(100vh-32px)] w-[calc(100vw-32px)] max-w-none flex-col overflow-hidden')}
+        onMaximizeChange={setMaximized}
+        showMaximizeButton
+      >
+          <DialogHeader className="pr-20">
+            <DialogTitle>{step === 'diff' ? 'Publish New Snapshot' : 'Confirm Publish'}</DialogTitle>
+            <DialogDescription>
+              {step === 'diff' ? 'Review the resolved configuration diff before creating an immutable snapshot.' : 'Add an optional comment and publish the snapshot.'}
+            </DialogDescription>
+          </DialogHeader>
 
-        {staleBanner ? <StaleBanner onRefresh={() => void refreshPreview()} pending={preview.isFetching} /> : null}
+          <div className={cn('grid gap-4', maximized && step === 'diff' && 'min-h-0 flex flex-1 flex-col')}>
+            {staleBanner ? <StaleBanner onRefresh={() => void refreshPreview()} pending={preview.isFetching} /> : null}
 
-        {step === 'diff' ? (
-          previewError ? (
-            <div className="rounded-xl border border-stroke-subtle bg-badge-critical-bg px-4 py-3 text-[12.5px] text-badge-critical-fg">
-              {previewError}
-            </div>
-          ) : (
-            <SnapshotDiffView
-              baseline={activeSnapshot.data}
-              changeCount={changeCount}
-              contentClassName="max-h-[520px] overflow-auto"
-              isLoading={loading}
-              snapshot={preview.data}
-              targetLabel={targetLabel}
-            />
-          )
-        ) : (
-          <div className="grid gap-4">
-            <div className="grid gap-3 rounded-xl border border-stroke-subtle bg-bg-container p-4 md:grid-cols-4">
-              <Metric label="Entries" value={(preview.data?.entries.length ?? 0).toString()} />
-              <Metric label="Additions" value={summary.additions.toString()} />
-              <Metric label="Modifications" value={summary.modifications.toString()} />
-              <Metric label="Deletions" value={summary.deletions.toString()} />
-            </div>
-            <div className="grid gap-1.5">
-              <label className="text-[12px] font-medium text-fg-body" htmlFor="publish-comment">Comment</label>
-              <Textarea id="publish-comment" maxLength={500} onChange={(event) => setComment(event.target.value)} placeholder="What changed in this publish?" value={comment} />
-              <div className="text-right font-mono text-[11px] text-fg-caption">{comment.length}/500</div>
-            </div>
+            {step === 'diff' ? (
+              previewError ? (
+                <div className="rounded-xl border border-stroke-subtle bg-badge-critical-bg px-4 py-3 text-[12.5px] text-badge-critical-fg">
+                  {previewError}
+                </div>
+              ) : (
+                <SnapshotDiffView
+                  baseline={activeSnapshot.data}
+                  changeCount={changeCount}
+                  className={cn('max-h-[520px]', maximized && 'min-h-0 flex-1 max-h-none')}
+                  isLoading={loading}
+                  sourceLabel="snapshot preview"
+                  snapshot={preview.data}
+                  targetLabel={targetLabel}
+                />
+              )
+            ) : (
+              <div className="grid gap-4">
+                <div className="grid gap-3 rounded-xl border border-stroke-subtle bg-bg-container p-4 md:grid-cols-4">
+                  <Metric label="Entries" value={(preview.data?.entries.length ?? 0).toString()} />
+                  <Metric label="Additions" value={summary.additions.toString()} />
+                  <Metric label="Modifications" value={summary.modifications.toString()} />
+                  <Metric label="Deletions" value={summary.deletions.toString()} />
+                </div>
+                <div className="grid gap-1.5">
+                  <label className="text-[12px] font-medium text-fg-body" htmlFor="publish-comment">Comment</label>
+                  <Textarea id="publish-comment" maxLength={500} onChange={(event) => setComment(event.target.value)} placeholder="What changed in this publish?" value={comment} />
+                  <div className="text-right font-mono text-[11px] text-fg-caption">{comment.length}/500</div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
 
-        <DialogFooter>
-          {step === 'diff' ? (
-            <>
-              <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">Cancel</Button>
-              <Button disabled={!hasChanges || !preview.data || staleBanner} onClick={() => setStep('confirm')} type="button">Continue</Button>
-            </>
-          ) : (
-            <>
-              <Button onClick={() => setStep('diff')} type="button" variant="ghost">Back</Button>
-              <Button disabled={publishSnapshot.isPending} onClick={() => void publish()} type="button">{publishSnapshot.isPending ? 'Publishing…' : 'Publish snapshot'}</Button>
-            </>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+          <DialogFooter className={cn(maximized && 'shrink-0')}>
+            {step === 'diff' ? (
+              <>
+                <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">Cancel</Button>
+                <Button disabled={!hasChanges || !preview.data || staleBanner} onClick={() => setStep('confirm')} type="button">Continue</Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => setStep('diff')} type="button" variant="ghost">Back</Button>
+                <Button disabled={publishSnapshot.isPending} onClick={() => void publish()} type="button">{publishSnapshot.isPending ? 'Publishing…' : 'Publish snapshot'}</Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
 }
 
 function StaleBanner({ onRefresh, pending }: { onRefresh: () => void; pending: boolean }) {

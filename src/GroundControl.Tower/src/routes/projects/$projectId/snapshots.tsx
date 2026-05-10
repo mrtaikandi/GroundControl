@@ -87,15 +87,17 @@ function SnapshotsRoute() {
 
   const comparisonLabel = useMemo(() => {
     if (snapshotViewMode === 'diff') {
-      return activeSummary ? `vs active v${activeSummary.snapshotVersion}` : null;
+      return activeSummary ? `vs v${activeSummary.snapshotVersion} (active)` : null;
     }
 
     if (snapshotViewMode === 'json-diff') {
-      return previousSummary ? `vs previous v${previousSummary.snapshotVersion}` : 'no previous snapshot';
+      return previousSummary ? `vs v${previousSummary.snapshotVersion} (previous)` : 'no previous snapshot';
     }
 
     return null;
   }, [activeSummary, previousSummary, snapshotViewMode]);
+
+  const selectedSnapshotLabel = selectedSnapshot ? `v${selectedSnapshot.snapshotVersion}` : 'selected snapshot';
 
   return (
     <div className="grid gap-4">
@@ -149,7 +151,6 @@ function SnapshotsRoute() {
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
               <SegmentedControl onChange={setSnapshotViewMode} options={[...snapshotViewOptions]} value={snapshotViewMode} />
-              {comparisonLabel ? <span className="text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{comparisonLabel}</span> : null}
             </div>
 
             <div className="mt-4">{renderSnapshotView()}</div>
@@ -158,22 +159,14 @@ function SnapshotsRoute() {
       ) : null}
 
       <Dialog open={detailExpanded} onOpenChange={setDetailExpanded}>
-        <DialogContent className="w-[min(calc(100vw-32px),1100px)]">
-          <DialogHeader className="pr-10">
+        <DialogContent className="w-[min(calc(100vw-32px),1280px)] p-0" showCloseButton={false}>
+          <DialogHeader className="sr-only">
             <DialogTitle>{detailHeading}</DialogTitle>
-            {selectedSnapshot ? (
-              <DialogDescription>
-                Published {formatRelative(selectedSnapshot.publishedAt)} by {formatUserId(selectedSnapshot.publishedBy)} · {selectedSnapshot.entryCount} resolved {selectedSnapshot.entryCount === 1 ? 'entry' : 'entries'} · project {projectName}
-              </DialogDescription>
-            ) : null}
+            <DialogDescription>
+              Expanded snapshot diff view.
+            </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <SegmentedControl onChange={setSnapshotViewMode} options={[...snapshotViewOptions]} value={snapshotViewMode} />
-            {comparisonLabel ? <span className="text-[12.5px] text-fg-caption [overflow-wrap:anywhere]">{comparisonLabel}</span> : null}
-          </div>
-          <div className="max-h-[calc(100vh-220px)] overflow-auto">
-            {renderSnapshotView()}
-          </div>
+          {renderExpandedDiffView()}
         </DialogContent>
       </Dialog>
 
@@ -206,15 +199,22 @@ function SnapshotsRoute() {
       return <SnapshotJsonView isLoading={selectedDetail.isLoading} snapshot={selectedDetail.data} />;
     }
 
+    return renderExpandedDiffView(false);
+  }
+
+  function renderExpandedDiffView(expanded = true) {
     if (snapshotViewMode === 'diff') {
       return (
         <SnapshotDiffView
           baseline={activeDetail.data}
           changeCount={countChanges(activeChangeSummary)}
+          className={expanded ? 'max-h-[calc(100vh-32px)] rounded-2xl border-0' : 'min-h-[520px] max-h-[620px]'}
           isLoading={selectedDetail.isLoading || activeDetail.isLoading}
-          onExpand={detailExpanded ? undefined : () => setDetailExpanded(true)}
+          onClose={expanded ? () => setDetailExpanded(false) : undefined}
+          onExpand={expanded ? undefined : () => setDetailExpanded(true)}
           snapshot={selectedDetail.data}
-          targetLabel={activeSummary ? `active v${activeSummary.snapshotVersion}` : 'active snapshot'}
+          sourceLabel={selectedSnapshotLabel}
+          targetLabel={activeSummary ? `v${activeSummary.snapshotVersion} (active)` : 'active snapshot'}
         />
       );
     }
@@ -223,10 +223,13 @@ function SnapshotsRoute() {
       <SnapshotDiffView
         baseline={previousDetail.data}
         changeCount={countChanges(previousChangeSummary)}
+        className={expanded ? 'max-h-[calc(100vh-32px)] rounded-2xl border-0' : 'min-h-[520px] max-h-[620px]'}
         isLoading={selectedDetail.isLoading || previousDetail.isLoading}
-        onExpand={detailExpanded ? undefined : () => setDetailExpanded(true)}
+        onClose={expanded ? () => setDetailExpanded(false) : undefined}
+        onExpand={expanded ? undefined : () => setDetailExpanded(true)}
         snapshot={selectedDetail.data}
-        targetLabel={previousSummary ? `previous v${previousSummary.snapshotVersion}` : 'previous snapshot'}
+        sourceLabel={selectedSnapshotLabel}
+        targetLabel={previousSummary ? `v${previousSummary.snapshotVersion} (previous)` : 'previous snapshot'}
       />
     );
   }
