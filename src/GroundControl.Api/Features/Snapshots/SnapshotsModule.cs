@@ -7,6 +7,7 @@ internal sealed class SnapshotsModule : IWebApiModule
     public void OnServiceConfiguration(WebApplicationBuilder builder)
     {
         builder.Services.AddTransient<VariableInterpolator>();
+        builder.Services.AddTransient<ResolvedEntryBuilder>();
         builder.Services.AddTransient<SnapshotResolver>();
         builder.Services.AddTransient<SnapshotPublisher>();
         builder.Services.AddTransient<PublishSnapshotHandler>();

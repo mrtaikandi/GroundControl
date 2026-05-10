@@ -17,6 +17,11 @@ public sealed class VariableInterpolationWorkflow : EndToEndTestBase
     private const string SnapshotIdKey = "SnapshotId";
     private const string ClientIdKey = "ClientId";
     private const string ClientSecretKey = "ClientSecret";
+    private const string ScopedSnapshotIdKey = "ScopedSnapshotId";
+    private const string DevClientIdKey = "DevClientId";
+    private const string DevClientSecretKey = "DevClientSecret";
+    private const string ProdClientIdKey = "ProdClientId";
+    private const string ProdClientSecretKey = "ProdClientSecret";
 
     public VariableInterpolationWorkflow(AspireFixture fixture)
         : base(fixture) { }
@@ -185,6 +190,163 @@ public sealed class VariableInterpolationWorkflow : EndToEndTestBase
         var value = configuration["api:base-url"];
         value.ShouldBe("https://example.com/api/v2");
         value!.ShouldNotContain("{{");
+
+        return Task.CompletedTask;
+    });
+
+    [Fact, Step(8)]
+    public Task Step08_CreateTierScope() => RunStep(8, async () =>
+    {
+        // Arrange & Act
+        var result = await Cli.RunAsync(TestCancellationToken,
+            "scope", "create",
+            "--dimension", "tier",
+            "--values", "dev,prod");
+
+        // Assert
+        result.ShouldSucceed();
+    });
+
+    [Fact, Step(9)]
+    public Task Step09_CreateScopedVariable() => RunStep(9, async () =>
+    {
+        // Arrange — variable defines per-tier values plus an unscoped default. The PRD's strict
+        // policy says fan-out must materialize each tuple in the published snapshot.
+        var projectId = Get<Guid>(ProjectIdKey);
+
+        // Act
+        var result = await Cli.RunAsync(TestCancellationToken,
+            "variable", "create",
+            "--name", "feature_flag",
+            "--scope", "Project",
+            "--project-id", projectId.ToString(),
+            "--value", "default=baseline",
+            "--value", "tier:dev=dev-feature",
+            "--value", "tier:prod=prod-feature");
+
+        // Assert
+        result.ShouldSucceed();
+    });
+
+    [Fact, Step(10)]
+    public Task Step10_AddScopelessConfigEntryReferencingScopedVariable() => RunStep(10, async () =>
+    {
+        // Arrange — entry has only a default value referencing the scoped variable. Fan-out at
+        // publish must produce one tuple per tier value plus the unscoped default.
+        var projectId = Get<Guid>(ProjectIdKey);
+
+        // Act
+        var result = await Cli.RunAsync(TestCancellationToken,
+            "config-entry", "create",
+            "--key", "feature:value",
+            "--owner-id", projectId.ToString(),
+            "--owner-type", "Project",
+            "--value-type", "String",
+            "--value", "default={{feature_flag}}");
+
+        // Assert
+        result.ShouldSucceed();
+    });
+
+    [Fact, Step(11)]
+    public Task Step11_PublishSnapshotWithFanOut() => RunStep(11, async () =>
+    {
+        // Arrange
+        var projectId = Get<Guid>(ProjectIdKey);
+
+        // Act
+        var result = await Cli.RunAsync(TestCancellationToken,
+            "snapshot", "publish",
+            "--project-id", projectId.ToString(),
+            "--description", "Scoped variable fan-out snapshot");
+
+        // Assert
+        result.ShouldSucceed();
+        var snapshot = result.ParseOutput<SnapshotSummaryResponse>();
+        Set(ScopedSnapshotIdKey, snapshot.Id);
+
+        var detail = await ApiClient.GetSnapshotHandlerAsync(
+            projectId, snapshot.Id, decrypt: true, cancellationToken: TestCancellationToken);
+
+        var entry = detail.Entries.FirstOrDefault(e => e.Key == "feature:value");
+        entry.ShouldNotBeNull();
+        entry.Values.Count.ShouldBe(3);
+        entry.Values.ShouldContain(v => v.Scopes.Count == 0 && v.Value == "baseline");
+        entry.Values.ShouldContain(v => v.Scopes.ContainsKey("tier") && v.Scopes["tier"] == "dev" && v.Value == "dev-feature");
+        entry.Values.ShouldContain(v => v.Scopes.ContainsKey("tier") && v.Scopes["tier"] == "prod" && v.Value == "prod-feature");
+    });
+
+    [Fact, Step(12)]
+    public Task Step12_CreateDevAndProdClients() => RunStep(12, async () =>
+    {
+        // Arrange
+        var projectId = Get<Guid>(ProjectIdKey);
+
+        // Act — dev client
+        var devResult = await Cli.RunAsync(TestCancellationToken,
+            "client", "create",
+            "--project-id", projectId.ToString(),
+            "--name", "e2e-fanout-dev",
+            "--scopes", "tier=dev");
+
+        // Assert
+        devResult.ShouldSucceed();
+        var devClient = devResult.ParseOutput<CreateClientResponse>();
+        Set(DevClientIdKey, devClient.Id);
+        Set(DevClientSecretKey, devClient.ClientSecret);
+
+        // Act — prod client
+        var prodResult = await Cli.RunAsync(TestCancellationToken,
+            "client", "create",
+            "--project-id", projectId.ToString(),
+            "--name", "e2e-fanout-prod",
+            "--scopes", "tier=prod");
+
+        // Assert
+        prodResult.ShouldSucceed();
+        var prodClient = prodResult.ParseOutput<CreateClientResponse>();
+        Set(ProdClientIdKey, prodClient.Id);
+        Set(ProdClientSecretKey, prodClient.ClientSecret);
+    });
+
+    [Fact, Step(13)]
+    public Task Step13_DevAndProdClientsReceiveDifferentFannedOutValues() => RunStep(13, () =>
+    {
+        // Arrange
+        var devClientId = Get<Guid>(DevClientIdKey);
+        var devClientSecret = Get<string>(DevClientSecretKey);
+        var prodClientId = Get<Guid>(ProdClientIdKey);
+        var prodClientSecret = Get<string>(ProdClientSecretKey);
+
+        var devBuilder = new ConfigurationBuilder();
+        devBuilder.AddGroundControl(opts =>
+        {
+            opts.ServerUrl = new Uri(Fixture.ApiBaseUrl);
+            opts.ClientId = devClientId.ToString();
+            opts.ClientSecret = devClientSecret;
+            opts.StartupTimeout = TimeSpan.FromSeconds(15);
+            opts.ConnectionMode = ConnectionMode.StartupOnly;
+            opts.EnableLocalCache = false;
+        });
+
+        var prodBuilder = new ConfigurationBuilder();
+        prodBuilder.AddGroundControl(opts =>
+        {
+            opts.ServerUrl = new Uri(Fixture.ApiBaseUrl);
+            opts.ClientId = prodClientId.ToString();
+            opts.ClientSecret = prodClientSecret;
+            opts.StartupTimeout = TimeSpan.FromSeconds(15);
+            opts.ConnectionMode = ConnectionMode.StartupOnly;
+            opts.EnableLocalCache = false;
+        });
+
+        // Act
+        var devConfiguration = devBuilder.Build();
+        var prodConfiguration = prodBuilder.Build();
+
+        // Assert
+        devConfiguration["feature:value"].ShouldBe("dev-feature");
+        prodConfiguration["feature:value"].ShouldBe("prod-feature");
 
         return Task.CompletedTask;
     });
