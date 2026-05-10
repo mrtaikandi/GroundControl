@@ -12,4 +12,4 @@ var builder = new CliHostBuilder(args, "GroundControl management tool");
 builder.UseDependencyModule<ApiClientModule>();
 builder.Services.AddSingleton(new CredentialStore(CredentialStore.DefaultPath));
 
-await builder.RunAsync();
+return await builder.RunAsync();
