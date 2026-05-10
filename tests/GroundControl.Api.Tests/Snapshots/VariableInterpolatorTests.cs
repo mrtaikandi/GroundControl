@@ -340,6 +340,91 @@ public sealed class VariableInterpolatorTests
         result.UsedSensitiveVariable.ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData("Server={{ envName }}")]
+    [InlineData("Server={{envName }}")]
+    [InlineData("Server={{ envName}}")]
+    [InlineData("Server={{\tenvName\t}}")]
+    [InlineData("Server={{  \tenvName  \n}}")]
+    public void Interpolate_PlaceholderWithSurroundingWhitespace_StillResolves(string template)
+    {
+        // Arrange
+        var variable = CreateVariable("Production");
+        var projectVariables = new Dictionary<string, PlaintextVariable> { ["envName"] = variable };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
+        var clientScopes = new Dictionary<string, string> { ["env"] = "prod" };
+
+        SetupResolve(variable, clientScopes, "Production");
+
+        // Act
+        var result = _sut.Interpolate(template, clientScopes, projectVariables, globalVariables);
+
+        // Assert
+        result.Value.ShouldBe("Server=Production");
+        result.UnresolvedPlaceholders.ShouldBeEmpty();
+        result.IsFullyResolved.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Interpolate_UnresolvedPlaceholderWithWhitespace_ReportsTrimmedNameAndPreservesOriginalToken()
+    {
+        // Arrange
+        Dictionary<string, PlaintextVariable> projectVariables = [];
+        Dictionary<string, PlaintextVariable> globalVariables = [];
+        var clientScopes = new Dictionary<string, string>();
+
+        // Act
+        var result = _sut.Interpolate("Value={{ missing }}", clientScopes, projectVariables, globalVariables);
+
+        // Assert — unresolved name is the trimmed identifier so callers can look it up,
+        // while the original whitespace-padded token round-trips into the output unchanged.
+        result.UnresolvedPlaceholders.ShouldBe(["missing"]);
+        result.Value.ShouldBe("Value={{ missing }}");
+        result.IsFullyResolved.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Interpolate_MixedWhitespaceAndCompactPlaceholders_AllResolved()
+    {
+        // Arrange
+        var hostVar = CreateVariable("db.local");
+        var portVar = CreateVariable("5432");
+        var projectVariables = new Dictionary<string, PlaintextVariable>
+        {
+            ["host"] = hostVar,
+            ["port"] = portVar,
+        };
+        Dictionary<string, PlaintextVariable> globalVariables = [];
+        var clientScopes = new Dictionary<string, string>();
+
+        SetupResolve(hostVar, clientScopes, "db.local");
+        SetupResolve(portVar, clientScopes, "5432");
+
+        // Act
+        var result = _sut.Interpolate("Server={{ host }}:{{port}}", clientScopes, projectVariables, globalVariables);
+
+        // Assert
+        result.Value.ShouldBe("Server=db.local:5432");
+        result.UnresolvedPlaceholders.ShouldBeEmpty();
+        result.IsFullyResolved.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Interpolate_WhitespaceOnlyBraces_TreatedAsLiteral()
+    {
+        // Arrange — `{{ }}` has no name to capture, so the scanner ignores it and the value is unchanged.
+        Dictionary<string, PlaintextVariable> projectVariables = [];
+        Dictionary<string, PlaintextVariable> globalVariables = [];
+
+        // Act
+        var result = _sut.Interpolate("literal {{ }} braces", new Dictionary<string, string>(), projectVariables, globalVariables);
+
+        // Assert
+        result.Value.ShouldBe("literal {{ }} braces");
+        result.UnresolvedPlaceholders.ShouldBeEmpty();
+        result.IsFullyResolved.ShouldBeTrue();
+    }
+
     private static PlaintextVariable CreateVariable(string defaultValue, bool isSensitive = false) => new()
     {
         Values = [new ScopedValue(defaultValue, [])],
