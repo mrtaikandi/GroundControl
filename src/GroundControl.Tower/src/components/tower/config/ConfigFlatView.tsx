@@ -1,6 +1,6 @@
 import { createColumnHelper, flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type SortingState } from '@tanstack/react-table';
 import { Layers3 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
 import { Badge } from '@/components/tower/data/Badge';
 import { SensitiveValue } from '@/components/tower/code/SensitiveValue';
 import { Button } from '@/components/ui/button';
@@ -10,26 +10,34 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { type ConfigEntry } from '@/queries/useConfigEntries';
 import { useOwnedEntries, type ConfigOwner, type EffectiveEntry, type EntrySource } from '@/queries/useEffectiveEntries';
-import { DeleteEntryDialog } from './DeleteEntryDialog';
 import { EntryModal } from './EntryModal';
 
 const columnHelper = createColumnHelper<EffectiveEntry>();
 
 interface ConfigFlatViewProps {
+  controlsPlacement?: 'external' | 'internal';
   owner: ConfigOwner;
+  search?: string;
 }
 
-export function ConfigFlatView({ owner }: ConfigFlatViewProps) {
+export interface ConfigFlatViewHandle {
+  openCreate: () => void;
+}
+
+export const ConfigFlatView = forwardRef<ConfigFlatViewHandle, ConfigFlatViewProps>(function ConfigFlatView(
+  { controlsPlacement = 'internal', owner, search },
+  ref,
+) {
   const effective = useOwnedEntries(owner);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [search, setSearch] = useState('');
+  const [internalSearch, setInternalSearch] = useState('');
   const [editingEntry, setEditingEntry] = useState<ConfigEntry | undefined>();
-  const [deletingEntry, setDeletingEntry] = useState<ConfigEntry | undefined>();
   const [creating, setCreating] = useState(false);
   const ownerType = owner.kind === 'project' ? 1 : 0;
+  const resolvedSearch = search ?? internalSearch;
   const data = useMemo(
-    () => effective.entries.filter((item) => item.entry.key.toLowerCase().includes(search.toLowerCase())),
-    [effective.entries, search],
+    () => effective.entries.filter((item) => item.entry.key.toLowerCase().includes(resolvedSearch.toLowerCase())),
+    [effective.entries, resolvedSearch],
   );
   const columns = useMemo(() => {
     const baseColumns = [
@@ -54,7 +62,6 @@ export function ConfigFlatView({ owner }: ConfigFlatViewProps) {
         return (
           <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <Button onClick={(event) => { event.stopPropagation(); setEditingEntry(item.entry); }} size="sm" type="button" variant="ghost">Edit</Button>
-            <Button onClick={(event) => { event.stopPropagation(); setDeletingEntry(item.entry); }} size="sm" type="button" variant="ghost">Delete</Button>
           </div>
         );
       },
@@ -66,6 +73,10 @@ export function ConfigFlatView({ owner }: ConfigFlatViewProps) {
   }, [owner.kind]);
   const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), onSortingChange: setSorting, state: { sorting } });
 
+  useImperativeHandle(ref, () => ({
+    openCreate: () => setCreating(true),
+  }), []);
+
   if (effective.isLoading) {
     return <Skeleton className="h-96" />;
   }
@@ -73,10 +84,12 @@ export function ConfigFlatView({ owner }: ConfigFlatViewProps) {
   return (
     <TooltipProvider>
       <div className="grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Input className="w-full sm:max-w-sm" onChange={(event) => setSearch(event.target.value)} placeholder="Filter entries…" value={search} />
-          <Button onClick={() => setCreating(true)} type="button">New entry</Button>
-        </div>
+        {controlsPlacement === 'internal' ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Input className="w-full sm:max-w-sm" onChange={(event) => setInternalSearch(event.target.value)} placeholder="Filter entries…" value={internalSearch} />
+            <Button onClick={() => setCreating(true)} type="button">New entry</Button>
+          </div>
+        ) : null}
 
         <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
           <div className="overflow-x-auto">
@@ -110,11 +123,10 @@ export function ConfigFlatView({ owner }: ConfigFlatViewProps) {
 
         <EntryModal mode="create" onOpenChange={setCreating} open={creating} ownerId={owner.id} ownerType={ownerType} />
         <EntryModal entry={editingEntry} key={editingEntry?.id ?? 'edit-empty'} mode="edit" onOpenChange={(open) => !open && setEditingEntry(undefined)} open={Boolean(editingEntry)} ownerId={owner.id} ownerType={ownerType} />
-        <DeleteEntryDialog entry={deletingEntry} onOpenChange={(open) => !open && setDeletingEntry(undefined)} open={Boolean(deletingEntry)} ownerId={owner.id} ownerType={ownerType} />
       </div>
     </TooltipProvider>
   );
-}
+});
 
 function OwnerBadge({ source }: { source: EntrySource }) {
   if (source.kind === 'project') {

@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Layers3, Folder, FolderOpen, Hash, Lock, Pencil, Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,16 +13,26 @@ import { useProjects } from '@/queries/useProjects';
 import { useTemplates } from '@/queries/useTemplates';
 import { buildKeyTree, type TreeNode } from '@/lib/key-tree';
 import { cn } from '@/lib/utils';
-import { DeleteEntryDialog } from './DeleteEntryDialog';
 import { EntryModal } from './EntryModal';
 import { EntryValue } from './EntryValue';
 import { scopedValueKey, useEntryReveal } from './use-entry-reveal';
 
 interface ConfigTreeViewProps {
+  controlsPlacement?: 'external' | 'internal';
+  filter?: string;
   owner: ConfigOwner;
 }
 
-export function ConfigTreeView({ owner }: ConfigTreeViewProps) {
+export interface ConfigTreeViewHandle {
+  collapseAll: () => void;
+  expandAll: () => void;
+  openCreate: () => void;
+}
+
+export const ConfigTreeView = forwardRef<ConfigTreeViewHandle, ConfigTreeViewProps>(function ConfigTreeView(
+  { controlsPlacement = 'internal', filter, owner },
+  ref,
+) {
   const effective = useOwnedEntries(owner);
   const projects = useProjects();
   const templates = useTemplates();
@@ -33,29 +43,29 @@ export function ConfigTreeView({ owner }: ConfigTreeViewProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<ConfigEntry | undefined>();
-  const [deletingEntry, setDeletingEntry] = useState<ConfigEntry | undefined>();
   const [creating, setCreating] = useState(false);
-  const [filter, setFilter] = useState('');
+  const [internalFilter, setInternalFilter] = useState('');
+  const resolvedFilter = filter ?? internalFilter;
   const sourceById = useMemo(() => new Map(effective.entries.map((item) => [item.entry.id, item.source])), [effective.entries]);
   const itemById = useMemo(() => new Map(effective.entries.map((item) => [item.entry.id, item])), [effective.entries]);
   const filteredEntries = useMemo(() => {
-    const needle = filter.trim().toLowerCase();
+    const needle = resolvedFilter.trim().toLowerCase();
 
     if (!needle) {
       return effective.entries;
     }
 
     return effective.entries.filter((item) => item.entry.key.toLowerCase().includes(needle));
-  }, [effective.entries, filter]);
+  }, [effective.entries, resolvedFilter]);
   const tree = useMemo(() => buildKeyTree(filteredEntries.map((item) => item.entry)), [filteredEntries]);
   const allPrefixes = useMemo(() => collectPrefixes(tree), [tree]);
   const selectedItem = selectedEntryId ? itemById.get(selectedEntryId) ?? null : null;
 
   useEffect(() => {
-    if (filter.trim()) {
+    if (resolvedFilter.trim()) {
       setCollapsed(new Set());
     }
-  }, [filter]);
+  }, [resolvedFilter]);
 
   useEffect(() => {
     setSelectedEntryId(null);
@@ -73,23 +83,31 @@ export function ConfigTreeView({ owner }: ConfigTreeViewProps) {
     }
   }, [selectedEntryId, tree]);
 
+  useImperativeHandle(ref, () => ({
+    collapseAll: () => setCollapsed(new Set(allPrefixes)),
+    expandAll: () => setCollapsed(new Set()),
+    openCreate: () => setCreating(true),
+  }), [allPrefixes]);
+
   return (
     <TooltipProvider>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,600px)]">
-        <div className="grid items-center gap-3 self-start xl:col-span-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="flex flex-wrap items-center gap-3">
-            <Input className="w-full sm:flex-1 sm:max-w-sm" onChange={(event) => setFilter(event.target.value)} placeholder="Filter…" value={filter} />
-            <div className="flex justify-end gap-1">
-              <Button onClick={() => setCollapsed(new Set())} size="sm" type="button" variant="ghost">
-                <ChevronsDown aria-hidden="true" className="size-4" />
-              </Button>
-              <Button onClick={() => setCollapsed(new Set(allPrefixes))} size="sm" type="button" variant="ghost">
-                <ChevronsUp aria-hidden="true" className="size-4" />
-              </Button>
+        {controlsPlacement === 'internal' ? (
+          <div className="grid items-center gap-3 self-start xl:col-span-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="flex flex-wrap items-center gap-3">
+              <Input className="w-full sm:flex-1 sm:max-w-sm" onChange={(event) => setInternalFilter(event.target.value)} placeholder="Filter…" value={internalFilter} />
+              <div className="flex justify-end gap-1">
+                <Button onClick={() => setCollapsed(new Set())} size="sm" type="button" variant="ghost">
+                  <ChevronsDown aria-hidden="true" className="size-4" />
+                </Button>
+                <Button onClick={() => setCollapsed(new Set(allPrefixes))} size="sm" type="button" variant="ghost">
+                  <ChevronsUp aria-hidden="true" className="size-4" />
+                </Button>
+              </div>
             </div>
+            <Button className="sm:justify-self-end" onClick={() => setCreating(true)} type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
           </div>
-          <Button className="sm:justify-self-end" onClick={() => setCreating(true)} type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
-        </div>
+        ) : null}
 
         <div className="flex flex-col gap-3">
           {effective.isLoading ? <Skeleton className="min-h-96 flex-1" /> : (
@@ -99,7 +117,6 @@ export function ConfigTreeView({ owner }: ConfigTreeViewProps) {
                   collapsed={collapsed}
                   key={node.kind === 'group' ? node.prefix : node.entry.id}
                   node={node}
-                  onDelete={setDeletingEntry}
                   onEdit={setEditingEntry}
                   onSelect={setSelectedEntryId}
                   selectedEntryId={selectedEntryId}
@@ -117,17 +134,15 @@ export function ConfigTreeView({ owner }: ConfigTreeViewProps) {
 
         <EntryModal mode="create" onOpenChange={setCreating} open={creating} ownerId={owner.id} ownerType={ownerType} />
         <EntryModal entry={editingEntry} key={editingEntry?.id ?? 'edit-empty'} mode="edit" onOpenChange={(open) => !open && setEditingEntry(undefined)} open={Boolean(editingEntry)} ownerId={owner.id} ownerType={ownerType} />
-        <DeleteEntryDialog entry={deletingEntry} onOpenChange={(open) => !open && setDeletingEntry(undefined)} open={Boolean(deletingEntry)} ownerId={owner.id} ownerType={ownerType} />
       </div>
     </TooltipProvider>
   );
-}
+});
 
 interface TreeRowProps {
   collapsed: Set<string>;
   depth?: number;
   node: TreeNode;
-  onDelete: (entry: ConfigEntry) => void;
   onEdit: (entry: ConfigEntry) => void;
   onSelect: (id: string) => void;
   selectedEntryId: null | string;
@@ -135,7 +150,7 @@ interface TreeRowProps {
   sourceById: Map<string, EntrySource>;
 }
 
-function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selectedEntryId, setCollapsed, sourceById }: TreeRowProps) {
+function TreeRow({ collapsed, depth = 0, node, onEdit, onSelect, selectedEntryId, setCollapsed, sourceById }: TreeRowProps) {
   if (node.kind === 'group') {
     const isCollapsed = collapsed.has(node.prefix);
     const segmentName = lastSegment(node.prefix);
@@ -162,7 +177,6 @@ function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selec
             depth={depth + 1}
             key={child.kind === 'group' ? child.prefix : child.entry.id}
             node={child}
-            onDelete={onDelete}
             onEdit={onEdit}
             onSelect={onSelect}
             selectedEntryId={selectedEntryId}
@@ -206,7 +220,6 @@ function TreeRow({ collapsed, depth = 0, node, onDelete, onEdit, onSelect, selec
       {isInherited ? <span /> : (
         <div className="col-start-2 flex flex-wrap justify-start gap-1 opacity-100 transition-opacity sm:col-start-auto sm:justify-end sm:opacity-0 sm:group-hover:opacity-100">
           <Button onClick={(event) => { event.stopPropagation(); onEdit(node.entry); }} size="sm" type="button" variant="ghost">Edit</Button>
-          <Button onClick={(event) => { event.stopPropagation(); onDelete(node.entry); }} size="sm" type="button" variant="ghost">Delete</Button>
         </div>
       )}
     </div>
