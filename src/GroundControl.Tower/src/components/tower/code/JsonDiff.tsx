@@ -2,7 +2,7 @@ import { diffLines } from 'diff';
 import { useEffect, useMemo, useRef, useState, type Ref, type UIEvent } from 'react';
 import { useTweaksStore } from '@/store/tweaks';
 import { cn } from '@/lib/utils';
-import { highlightJson } from './shiki-theme';
+import { highlightJsonLines } from './shiki-theme';
 
 interface JsonDiffProps {
   after: unknown;
@@ -29,7 +29,8 @@ interface SplitRow {
 export function JsonDiff({ after, bare = false, before, className, mode = 'inline' }: JsonDiffProps) {
   const theme = useTweaksStore((state) => state.theme);
   const lineWrap = useTweaksStore((state) => state.diffLineWrap);
-  const lines = useMemo(() => buildDiffLines(before, after), [after, before]);
+  const beforeJson = useMemo(() => toJson(before), [before]);
+  const afterJson = useMemo(() => toJson(after), [after]);
   const [highlightedLines, setHighlightedLines] = useState<HighlightedDiffLine[]>([]);
   const splitRows = useMemo(() => buildSplitRows(highlightedLines), [highlightedLines]);
   const leftScrollRef = useRef<HTMLDivElement>(null);
@@ -39,16 +40,19 @@ export function JsonDiff({ after, bare = false, before, className, mode = 'inlin
   useEffect(() => {
     let cancelled = false;
 
-    void Promise.all(lines.map(async (line) => ({ ...line, html: extractCode(await highlightJson(line.content || ' ', theme)) }))).then((nextLines) => {
+    void Promise.all([
+      highlightJsonLines(beforeJson, theme),
+      highlightJsonLines(afterJson, theme),
+    ]).then(([beforeHighlighted, afterHighlighted]) => {
       if (!cancelled) {
-        setHighlightedLines(nextLines);
+        setHighlightedLines(buildHighlightedDiffLines(beforeJson, afterJson, beforeHighlighted, afterHighlighted));
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [lines, theme]);
+  }, [afterJson, beforeJson, theme]);
 
   function syncHorizontalScroll(from: 'left' | 'right') {
     if (syncingScrollRef.current) {
@@ -137,8 +141,34 @@ function DiffPlaceholderRow() {
   );
 }
 
-function buildDiffLines(before: unknown, after: unknown): DiffLine[] {
-  return diffLines(toJson(before), toJson(after)).flatMap((part) => part.value.replace(/\n$/, '').split('\n').map((content) => ({ content, kind: part.added ? 'add' : part.removed ? 'del' : 'same' })));
+function buildHighlightedDiffLines(
+  beforeJson: string,
+  afterJson: string,
+  beforeHighlighted: string[],
+  afterHighlighted: string[],
+): HighlightedDiffLine[] {
+  const result: HighlightedDiffLine[] = [];
+  let beforeIdx = 0;
+  let afterIdx = 0;
+
+  for (const part of diffLines(beforeJson, afterJson)) {
+    const partLines = part.value.replace(/\n$/, '').split('\n');
+    for (const content of partLines) {
+      if (part.added) {
+        result.push({ content, html: afterHighlighted[afterIdx] ?? '', kind: 'add' });
+        afterIdx += 1;
+      } else if (part.removed) {
+        result.push({ content, html: beforeHighlighted[beforeIdx] ?? '', kind: 'del' });
+        beforeIdx += 1;
+      } else {
+        result.push({ content, html: beforeHighlighted[beforeIdx] ?? '', kind: 'same' });
+        beforeIdx += 1;
+        afterIdx += 1;
+      }
+    }
+  }
+
+  return result;
 }
 
 function buildSplitRows(lines: HighlightedDiffLine[]): SplitRow[] {
@@ -191,10 +221,4 @@ function buildSplitRows(lines: HighlightedDiffLine[]): SplitRow[] {
 
 function toJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
-}
-
-function extractCode(html: string): string {
-  const match = /<code>(?<code>[\s\S]*)<\/code>/.exec(html);
-
-  return match?.groups?.code.replace(/\n$/, '') ?? '';
 }
