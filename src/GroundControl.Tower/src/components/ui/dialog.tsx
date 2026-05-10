@@ -26,9 +26,13 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
 function DialogContent({ children, className, onMaximizeChange, showCloseButton = true, showMaximizeButton = false, ...props }: React.ComponentProps<typeof DialogPrimitive.Content> & { onMaximizeChange?: (isMaximized: boolean) => void; showCloseButton?: boolean; showMaximizeButton?: boolean }) {
   const [isMaximized, setIsMaximized] = React.useState(false);
 
-  React.useEffect(() => {
-    onMaximizeChange?.(isMaximized);
-  }, [isMaximized, onMaximizeChange]);
+  function toggleMaximized() {
+    setIsMaximized((value) => {
+      const next = !value;
+      onMaximizeChange?.(next);
+      return next;
+    });
+  }
 
   return (
     <DialogPortal>
@@ -41,7 +45,7 @@ function DialogContent({ children, className, onMaximizeChange, showCloseButton 
               <button
                 aria-label={isMaximized ? 'Restore dialog size' : 'Maximize dialog'}
                 className="grid size-8 place-items-center rounded-lg text-fg-icon-subtle hover:bg-muted hover:text-fg-body"
-                onClick={() => setIsMaximized((value) => !value)}
+                onClick={toggleMaximized}
                 type="button"
               >
                 {isMaximized ? <Minimize2 aria-hidden="true" className="size-4" /> : <Maximize2 aria-hidden="true" className="size-4" />}

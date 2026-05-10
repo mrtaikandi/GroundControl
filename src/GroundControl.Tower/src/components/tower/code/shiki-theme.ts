@@ -72,6 +72,11 @@ function extractLines(html: string): string[] {
   return lines.length > 0 ? lines : codeContent.split('\n');
 }
 
+// Re-tints JSON keys that look like scope labels (e.g. `"environment=prod, region=us"`)
+// emitted by `scopeLabel()` in lib/snapshot-document. Splits on `=` to colour the dimension
+// and value sides separately. Any user-defined JSON key that happens to contain `=` will be
+// styled the same way — that's accepted as a cosmetic tradeoff. Likewise, splitting on `,` is
+// safe because scope dimensions and values cannot contain literal commas in our domain.
 function splitScopedKeys(html: string): string {
   const keyColor = token('--tower-syntax-key');
   const dimensionColor = token('--tower-syntax-scope-dimension');
