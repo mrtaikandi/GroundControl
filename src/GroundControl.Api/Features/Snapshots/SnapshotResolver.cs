@@ -10,7 +10,6 @@ namespace GroundControl.Api.Features.Snapshots;
 internal sealed class SnapshotResolver
 {
     public const int MaxBsonSizeBytes = 16_777_216;
-    private static readonly Dictionary<string, string> EmptyScopes = [];
     private static readonly JsonSerializerOptions CanonicalJsonOptions = new() { WriteIndented = false };
 
     private readonly IConfigEntryStore _configEntryStore;
@@ -81,7 +80,7 @@ internal sealed class SnapshotResolver
 
             foreach (var scopedValue in plaintextValues)
             {
-                var result = _interpolator.Interpolate(scopedValue.Value, EmptyScopes, projectVariablesDict, globalVariablesDict);
+                var result = _interpolator.Interpolate(scopedValue.Value, scopedValue.Scopes, projectVariablesDict, globalVariablesDict);
                 resolvedValues.Add(new ScopedValue(result.Value, scopedValue.Scopes));
 
                 if (result.UsedSensitiveVariable)
