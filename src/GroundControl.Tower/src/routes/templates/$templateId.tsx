@@ -89,7 +89,7 @@ function TemplateDetailRoute() {
             <span>{template.name}</span>
           </span>
         )}
-        titleClassName="font-mono text-[28px]"
+        titleClassName="text-[28px]"
       />
 
       <PageContent>
