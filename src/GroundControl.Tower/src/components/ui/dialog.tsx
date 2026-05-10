@@ -1,5 +1,5 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
+import { Maximize2, Minimize2, X } from 'lucide-react';
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
@@ -23,17 +23,38 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
   return <DialogPrimitive.Overlay className={cn('ui-overlay-scrim fixed inset-0 z-50', className)} data-slot="dialog-overlay" {...props} />;
 }
 
-function DialogContent({ children, className, showCloseButton = true, ...props }: React.ComponentProps<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }) {
+function DialogContent({ children, className, onMaximizeChange, showCloseButton = true, showMaximizeButton = false, ...props }: React.ComponentProps<typeof DialogPrimitive.Content> & { onMaximizeChange?: (isMaximized: boolean) => void; showCloseButton?: boolean; showMaximizeButton?: boolean }) {
+  const [isMaximized, setIsMaximized] = React.useState(false);
+
+  React.useEffect(() => {
+    onMaximizeChange?.(isMaximized);
+  }, [isMaximized, onMaximizeChange]);
+
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Content className={cn('ui-surface-modal ui-text-body fixed left-1/2 top-1/2 z-50 grid w-[min(calc(100vw-32px),520px)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl p-6 outline-none', className)} data-slot="dialog-content" {...props}>
+      <DialogPrimitive.Content className={cn('ui-surface-modal ui-text-body fixed left-1/2 top-1/2 z-50 grid w-[min(calc(100vw-32px),520px)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl p-6 outline-none', className, isMaximized && 'h-[calc(100vh-32px)] w-[calc(100vw-32px)] max-w-none max-h-[calc(100vh-32px)] overflow-auto')} data-slot="dialog-content" {...props}>
         {children}
-        {showCloseButton ? (
-          <DialogPrimitive.Close className="absolute right-4 top-4 grid size-8 place-items-center rounded-lg text-fg-icon-subtle hover:bg-muted hover:text-fg-body">
-            <X aria-hidden="true" className="size-4" />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
+        {showCloseButton || showMaximizeButton ? (
+          <div className="absolute right-4 top-4 flex items-center gap-1">
+            {showMaximizeButton ? (
+              <button
+                aria-label={isMaximized ? 'Restore dialog size' : 'Maximize dialog'}
+                className="grid size-8 place-items-center rounded-lg text-fg-icon-subtle hover:bg-muted hover:text-fg-body"
+                onClick={() => setIsMaximized((value) => !value)}
+                type="button"
+              >
+                {isMaximized ? <Minimize2 aria-hidden="true" className="size-4" /> : <Maximize2 aria-hidden="true" className="size-4" />}
+                <span className="sr-only">{isMaximized ? 'Restore dialog size' : 'Maximize dialog'}</span>
+              </button>
+            ) : null}
+            {showCloseButton ? (
+              <DialogPrimitive.Close className="grid size-8 place-items-center rounded-lg text-fg-icon-subtle hover:bg-muted hover:text-fg-body">
+                <X aria-hidden="true" className="size-4" />
+                <span className="sr-only">Close</span>
+              </DialogPrimitive.Close>
+            ) : null}
+          </div>
         ) : null}
       </DialogPrimitive.Content>
     </DialogPortal>
