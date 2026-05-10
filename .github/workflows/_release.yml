@@ -237,7 +237,7 @@ jobs:
         run: |
           gh release create "${{ needs.plan-release.outputs.release_tag }}" \
             --target "${{ needs.plan-release.outputs.release_sha }}" \
-             --draft \
+            --draft \
             ${PRERELEASE_FLAG} \
             --title "${{ needs.plan-release.outputs.release_tag }}" \
             --notes-file CHANGES.md
