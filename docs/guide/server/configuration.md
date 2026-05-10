@@ -89,7 +89,7 @@ Keys are stored on the file system and the key XML is encrypted at rest with an 
 }
 ```
 
-> **Certificate rotation:** generate the new cert, deploy it as `FileSystemCertificate:Path`, move the old cert into `FileSystemCertificate:PreviousPaths`, and perform a rolling restart. New key ring entries are encrypted with the new cert; entries written under the previous cert remain decryptable as long as that cert stays in the previous list. Remove a cert from `PreviousPaths` only after every key encrypted with it has expired (90+ days by default) or been re-encrypted — otherwise the data those keys protect becomes permanently unreadable.
+> **Certificate rotation:** generate the new cert, deploy it as `FileSystemCertificate:Path`, move the old cert into `FileSystemCertificate:PreviousPaths`, and perform a rolling restart. New key ring entries are encrypted with the new cert; entries written under the previous cert remain decryptable as long as that cert stays in the previous list. Remove a cert from `PreviousPaths` only after every key encrypted with it has expired (90+ days by default) or been re-encrypted. Otherwise the data those keys protect becomes permanently unreadable.
 
 ### Redis mode
 

@@ -28,7 +28,7 @@ cd GroundControl
 aspire start src/GroundControl.AppHost
 ```
 
-The Aspire dashboard opens in your browser. Find the `api` resource — note the HTTP URL it is bound to. The rest of this guide uses `http://localhost:8080` as a placeholder; substitute the URL from the dashboard.
+The Aspire dashboard opens in your browser. Find the `api` resource and note the HTTP URL it is bound to. The rest of this guide uses `http://localhost:8080` as a placeholder; substitute the URL from the dashboard.
 
 Verify the API is ready:
 

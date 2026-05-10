@@ -1,52 +1,52 @@
 # Variables
 
-Variables are named placeholders that get interpolated into configuration entry values at snapshot publish time. They let you keep one source of truth for any value that appears in many entries — connection-string prefixes, API endpoints, shared secrets — and change it in one place instead of editing every entry that uses it.
+Variables are named values you can reference inside configuration entries using `{{name}}` placeholders. Use them when the same value shows up in many entries (a connection-string prefix, an API endpoint, a shared secret) so you can change it in one place and have every entry that uses it pick up the new value the next time you publish.
 
-This page covers what a variable looks like, how its visibility is determined, how a placeholder gets resolved, and the edge cases you need to know about.
+This page covers what a variable looks like, who can see it, how its value gets baked into a published snapshot, and the edge cases worth knowing.
 
 ## Anatomy of a variable
 
-A variable has a name, an ownership tier, and a list of values. Each value is qualified by zero or more scope dimensions.
+A variable has a name, an ownership tier, and one or more values. Each value can be qualified with scope dimensions like `Environment` or `Region`.
 
 | Field | Type | Purpose |
 |---|---|---|
-| `name` | string | The key used in `{{name}}` placeholders. Case-insensitive within its uniqueness key. |
+| `name` | string | The key used in `{{name}}` placeholders. Case-insensitive. |
 | `description` | string? | Optional human-readable note. |
 | `scope` | `Global` \| `Project` | Ownership tier. See [Ownership tiers](#ownership-tiers). |
 | `groupId` | Guid? | For `Global` variables only. `null` means system-wide; otherwise the variable belongs to that group. Forbidden on `Project` variables. |
 | `projectId` | Guid? | Required on `Project` variables; forbidden on `Global` variables. |
-| `values` | `ScopedValue[]` | One or more scoped value variants. See [Scoped values](#scoped-values). |
-| `isSensitive` | bool | Encrypts at rest, masks as `***` in API responses, and propagates sensitivity to any snapshot entry that interpolates the variable. |
-| `version` | long | Optimistic-concurrency token. Required on update/delete via `If-Match`. |
+| `values` | `ScopedValue[]` | One or more scoped values. See [Scoped values](#scoped-values). |
+| `isSensitive` | bool | Encrypts the value at rest, masks it as `***` in API responses, and marks any entry that uses it as sensitive too. |
+| `version` | long | Used for optimistic concurrency. Required on update/delete via `If-Match`. |
 
 The full field list including audit timestamps is in [Domain Model — Variable](../design-docs/Domain-Model.md#variable).
 
 ## Ownership tiers
 
-The `scope` field puts a variable in one of two tiers:
+The `scope` field puts a variable in one of two tiers.
 
 ### Global
 
-`scope = Global`. Used to define values shared across many projects.
+`scope = Global`. Used for values shared across many projects.
 
-`groupId` controls visibility:
+`groupId` controls who can see it:
 
-- **`groupId = null`** — system-wide global. Every project, in every group (and ungrouped projects), can resolve this variable.
-- **`groupId = X`** — group-owned global. Only projects whose `Project.GroupId` equals `X` can resolve it.
+- **`groupId = null`** is a system-wide global. Every project in every group, including projects with no group, can resolve it.
+- **`groupId = X`** is a group-owned global. Only projects whose `Project.GroupId` equals `X` can resolve it.
 
 `projectId` must be `null` on global variables.
 
 ### Project
 
-`scope = Project`. Used to override a global variable's value for one specific project, or to define a value that only that project needs.
+`scope = Project`. Used to override a global variable's value for a specific project, or to define a value that only that project needs.
 
-`projectId` is required and must reference an existing project. `groupId` must be `null` — a project variable inherits its group through the project.
+`projectId` is required and must reference an existing project. `groupId` must be `null`. A project variable inherits its group through the project.
 
 A project variable with the same `name` as a global variable shadows the global for that project (see [Two-tier lookup](#two-tier-lookup)).
 
 ## Scoped values
 
-Each entry in `values` represents the variable's value for a specific scope combination:
+Each entry in `values` is a value for a specific scope combination:
 
 ```json
 {
@@ -55,64 +55,71 @@ Each entry in `values` represents the variable's value for a specific scope comb
 }
 ```
 
-- `scopes` is a dimension → value map. Dimensions must already exist in the Scopes registry; values must be in the dimension's allowed-values set. Validated on write by [`CreateVariableValidator`](../../src/GroundControl.Api/Features/Variables/CreateVariableValidator.cs).
-- An empty `scopes` map (`{}`) marks the **unscoped default** — used when no scoped variant matches the requesting client.
-- `value` is always a string. The interpolation rule below treats it as a literal: variable values **cannot themselves contain `{{...}}`** placeholders. Nested interpolation is rejected on write.
+- `scopes` is a dimension-to-value map. Dimensions must already exist in the Scopes registry, and values must be in the dimension's allowed-values set. The server validates this on write.
+- An empty `scopes` map (`{}`) is the **unscoped default**. It is used when no scoped variant matches the requesting client.
+- `value` is always a string. Variable values cannot themselves contain `{{...}}` placeholders. The server rejects nested interpolation on write.
 
-A single variable typically holds one unscoped default plus one variant per environment/region/tier combination it needs to differ on.
+A typical variable holds one unscoped default plus one variant per environment, region, or tier it needs to differ on.
 
-## How a placeholder resolves
+## How a variable gets used
 
-When a snapshot is published for a project, every config entry value is scanned for `{{name}}` placeholders. The publish pipeline **fans out** each scoped value across the scope tuples its referenced variables touch, resolving each variable per tuple. The snapshot stores the materialized per-tuple values; the client read path picks one tuple at request time using the same scope-matching rules without any further interpolation.
+When you publish a snapshot, the server scans every config entry value for `{{name}}` placeholders and bakes the resolved values straight into the snapshot. From that point on, clients just read pre-resolved values; no further interpolation runs at request time.
 
-### Fan-out at publish
+### Scoped variables propagate to scopeless entries
 
-For each source scoped value on the entry:
+If a config entry has only a default value but references a scoped variable, the server expands the entry into one resolved value per scope the variable covers. You don't have to repeat the scope tuples on the entry itself.
 
-1. **Scan placeholders.** Every `{{name}}` is mapped to a variable via the [two-tier lookup](#two-tier-lookup) below.
-2. **Generate target tuples.** The set of scope dimensions referenced by the resolved variables forms the target dim-space; per-dimension domain is the union of distinct values plus an "unspecified" axis. The cartesian product yields the targets to materialize.
-3. **Merge with the source's own scope.** A target whose dimension value conflicts with the source scope on the same dimension is dropped; surviving targets become the final scope tuple.
-4. **Substitute per target.** [`VariableInterpolator`](../../src/GroundControl.Api/Features/Snapshots/VariableInterpolator.cs) is invoked once per final tuple. Each placeholder is resolved against that tuple by [`ScopeResolver`](../../src/GroundControl.Api/Shared/Resolvers/ScopeResolver.cs) (most-specific scope wins, falling back to the variable's unscoped default).
+For example, given this variable:
 
-After fan-out across every source value of the entry, emissions for the same final scope tuple are deduplicated:
+| `scopes` | `value` |
+|---|---|
+| `{}` | `https://api.example.com` |
+| `{Environment: dev}` | `https://api.dev.example.com` |
+| `{Environment: prod}` | `https://api.prod.example.com` |
 
-- Within one source value, the most-specific target wins.
-- Across source values, an emission whose source had a more specific scope tuple wins — this is the **explicit-wins rule**: a literal scoped value on the entry overrides a fan-out emission from a default-scoped sibling that references a variable.
+And this scopeless entry:
 
-The orchestration lives in [`ResolvedEntryBuilder`](../../src/GroundControl.Api/Features/Snapshots/ResolvedEntryBuilder.cs); target enumeration is [`TargetTupleBuilder`](../../src/GroundControl.Api/Features/Snapshots/TargetTupleBuilder.cs).
+```json
+{ "key": "ApiUrl", "values": [{ "value": "{{ApiBase}}" }] }
+```
 
-#### Practical effect
+The published snapshot for that entry contains three values:
 
-A scopeless config entry like `MyConfigEntry = "{{MyVariable}}"` referencing a variable with `Environment = dev/prod` tuples produces one resolved snapshot value per environment plus the unscoped default. You don't have to redeclare scope tuples on every entry that uses a scoped variable.
+| `scopes` | resolved value |
+|---|---|
+| `{}` | `https://api.example.com` |
+| `{Environment: dev}` | `https://api.dev.example.com` |
+| `{Environment: prod}` | `https://api.prod.example.com` |
+
+A client bound to `{Environment: dev}` reads `https://api.dev.example.com` directly from the snapshot.
 
 ### Two-tier lookup
 
-For each placeholder `{{name}}`, the publisher looks the name up in two tiers:
+For each placeholder `{{name}}`, the server looks the name up in two tiers:
 
 1. The project's project-scope variables.
-2. The project's visible globals.
+2. The project's visible globals (system-wide first, then the project's group).
 
-The first tier that contains the name supplies the variable; the global tier is a fallback, not a merge. Within the variable, scope-matching against a target tuple uses the same most-specific-wins algorithm described in [Scope resolution within a tier](#scope-resolution-within-a-tier).
+The first tier that contains the name supplies the variable. The global tier is a fallback, not a merge.
 
-### Scope resolution within a tier
+### Most-specific scope wins
 
-Within a single variable's `values` list, [`ScopeResolver`](../../src/GroundControl.Api/Shared/Resolvers/ScopeResolver.cs) picks one variant for the target tuple:
+Within a single variable's `values` list, the server picks the variant whose `scopes` map is fully contained in the target scope and has the most dimensions in common. If nothing matches, it falls back to the unscoped default.
 
-1. Filter to candidates whose `scopes` map is a **full match** of the target — every dimension in the candidate must equal the target's value (case-insensitive on the dimension name, exact on the value).
-2. Of the matches, the candidate with the **most dimensions** wins.
-3. If no scoped candidate matches, fall back to the unscoped default (`scopes = {}`).
-4. If there isn't even an unscoped default, the variable contributes no value for this target tuple and the placeholder is **unresolved** — the publish fails with the offending name reported back ([strict-unresolved policy](#strict-unresolved-policy)).
+If two scoped values are equally specific for the same target, the result is unpredictable. Design your scoped values so combinations don't collide.
 
-A tie at the same specificity logs a warning and returns the first match — design your scoped values so combinations don't collide.
+### Literal scoped values override variables
 
-### Strict-unresolved policy
+If you set a scoped value on the entry itself, it always wins over a value the publisher would have produced from a referenced variable. So an entry that authors `Environment: prod = "literal-prod-value"` keeps that literal even when the variable it references would have produced something different for `prod`.
 
-A placeholder is considered unresolved (and blocks publish with HTTP 422) under either condition:
+### When publish fails
 
-- The name does not match any variable in the project lookup nor the global lookup.
-- The variable exists but `ScopeResolver` returns no match for at least one target tuple required by fan-out — typically a variable with no unscoped default referenced by an entry whose targets include the empty tuple.
+Publish blocks with a clear 422 error if any placeholder cannot resolve:
 
-To unblock, add a default to the variable, or scope the entry more tightly so its targets only span tuples the variable covers.
+- The name doesn't match any variable in either tier (typo, deleted variable).
+- The variable exists but has no value for one of the scope combinations the entry needs (typically a variable with no unscoped default, referenced by an entry that needs a default).
+
+Fix it by adding the missing variable, adding an unscoped default to the variable, or scoping the entry tightly enough that only covered combinations are needed.
 
 ### Visibility from a project's perspective
 
@@ -126,17 +133,15 @@ For a project `P` in group `G`, the variables visible at publish time are:
 | Global variables where `groupId = some other group` | **No** |
 | Project variables on a different project | **No** |
 
-Implemented by [`VariableStore.GetGlobalVariablesForGroupAsync`](../../src/GroundControl.Persistence.MongoDb/Stores/VariableStore.cs) and [`SnapshotResolver.ResolveAndInterpolateAsync`](../../src/GroundControl.Api/Features/Snapshots/SnapshotResolver.cs).
-
 ## Sensitivity
 
 Setting `isSensitive = true` does three things:
 
-1. **Encryption at rest** — values are encrypted by `SensitiveSourceValueProtector` before being written to MongoDB.
-2. **Masking on read** — API responses replace each value with `***` unless the caller has the `sensitive_values:decrypt` permission and adds `?decrypt=true`.
-3. **Sensitivity propagation** — any snapshot config entry that interpolates a sensitive variable is itself treated as sensitive. The flag flips on the resolved entry even if the entry was authored as non-sensitive.
+1. **Encryption at rest.** Values are encrypted before being written to MongoDB.
+2. **Masking on read.** API responses replace each value with `***` unless the caller has the `sensitive_values:decrypt` permission and adds `?decrypt=true`.
+3. **Sensitivity propagation.** Any snapshot entry that uses a sensitive variable becomes sensitive itself, even if the entry was authored as non-sensitive.
 
-The mask sentinel `***` is reserved: you cannot save a sensitive variable whose plaintext value is literally `***` (the validator rejects it) — it would otherwise be indistinguishable from a masked read.
+The mask sentinel `***` is reserved. You cannot save a sensitive variable whose plaintext value is literally `***`. The validator rejects it because it would be indistinguishable from a masked read.
 
 ## Choosing the right tier
 
@@ -146,26 +151,26 @@ The mask sentinel `***` is reserved: you cannot save a sensitive variable whose 
 | One value shared across every project in a single group | `Global`, `groupId = <group>` |
 | A per-project tweak of a shared value (same name) | `Project` variable with the same `name` as the global |
 | A value only one project ever uses | `Project` variable, no global counterpart |
-| Different values per environment but the same name everywhere | One variable with multiple `ScopedValue` entries (`{Environment: prod}`, `{Environment: staging}`, plus an unscoped default) |
-| Sharing a single value across **two specific groups** but not others | Not directly supported — either make it system-wide and accept the broader visibility, or duplicate it as a group-owned global in each group |
+| Different values per environment but the same name everywhere | One variable with multiple `ScopedValue` entries (one per environment), plus an unscoped default |
+| Sharing a single value across **two specific groups** but not others | Not directly supported. Either make it system-wide and accept the broader visibility, or duplicate it as a group-owned global in each group. |
 
 ## Uniqueness rules
 
-Enforced by partial unique indexes (case-insensitive) in [`VariableConfiguration`](../../src/GroundControl.Persistence.MongoDb/Conventions/VariableConfiguration.cs):
+The server enforces these constraints (case-insensitive on `name`):
 
-- `(scope=Global, groupId, name)` is unique. Two globals can share a name only if they have different `groupId`s (including `null`).
-- `(scope=Project, projectId, name)` is unique.
+- Two `Global` variables can share a name only if they have different `groupId`s (including `null`).
+- Two `Project` variables can share a name only if they belong to different projects.
 
-`name` is treated case-insensitively for both uniqueness and placeholder lookup.
+`name` is case-insensitive everywhere it is looked up.
 
-## Sharp edges
+## Things to watch out for
 
-- **Same name at system-wide and group tier.** A `Global` variable with `groupId = null` and another `Global` variable with `groupId = X` are both stored — the unique index allows it because `groupId` differs. From a project in group `X`, both end up in the same lookup dictionary keyed by name, so whichever the dictionary build encounters last wins. The result is **order-dependent**. Don't rely on this for project-specific overrides — use a `Project`-scope variable instead.
-- **No multi-group sharing.** There is no link table, no `groupId[]`, and no template-style attachment. A variable belongs to exactly one tier (system-wide or one group, or one project).
-- **Variables can't reference variables.** `{{...}}` is rejected on write inside variable values; only config-entry values may contain placeholders.
-- **Resolution is publish-time, not write-time.** A config entry can be saved with `{{Foo}}` even if `Foo` doesn't exist yet. The publish call is what fails when the placeholder can't be resolved.
-- **Tied scope specificity.** If two scoped values in the same variable match a client with the same dimension count, you get a warning log and a non-deterministic pick. Make scope combinations unambiguous.
-- **Snapshot size grows with fan-out.** A scopeless entry that references a variable with many scope tuples produces one snapshot value per tuple. Combined with multi-dimensional variables this expands cartesian-style. The 16MB BSON snapshot limit catches runaway expansion at publish — keep multi-dimensional variables narrow when an entry references several of them.
+- **System-wide and group globals with the same name.** A `Global` variable with `groupId = null` and another with `groupId = X` are both valid because their `groupId`s differ. From a project in group `X`, both end up in the lookup keyed by name and the result is unpredictable. Don't rely on this for project-specific overrides; use a `Project`-scope variable instead.
+- **No multi-group sharing.** A variable belongs to exactly one tier (system-wide, one group, or one project). There is no way to share it across two specific groups without duplication.
+- **Variables can't reference variables.** `{{...}}` is rejected on write inside variable values. Only config entry values may contain placeholders.
+- **Resolution is publish-time, not write-time.** A config entry can be saved with `{{Foo}}` even if `Foo` doesn't exist yet. The publish call fails when the placeholder can't be resolved.
+- **Tied scope specificity.** If two scoped values in the same variable are equally specific for a request, the pick is unpredictable. Design combinations so they are unambiguous.
+- **Snapshots can grow when many entries reference scoped variables.** Each scopeless entry that uses a scoped variable produces one snapshot value per scope. Multi-dimensional variables expand into a larger combination set. The 16 MB snapshot limit catches runaway expansion at publish time, but keep it in mind for variables that span many dimensions.
 
 ## Worked examples
 
@@ -196,7 +201,7 @@ In a config entry:
   "values": [{ "value": "{{ApiBase}}/v1" }] }
 ```
 
-The entry has a single scopeless source value. At publish, fan-out expands it into three resolved snapshot values — one per `Environment` tuple the variable touches plus the unscoped default:
+The entry has one value with no scope on the entry itself. When you publish, the server expands it across the variable's environments:
 
 | Snapshot scope | Resolved value |
 |---|---|
@@ -204,7 +209,7 @@ The entry has a single scopeless source value. At publish, fan-out expands it in
 | `{Environment: staging}` | `https://api.staging.example.com/v1` |
 | `{Environment: prod}` | `https://api.example.com/v1` |
 
-A client bound to `{Environment: staging}` is then served `https://api.staging.example.com/v1` straight from the snapshot — no further interpolation runs.
+A client bound to `{Environment: staging}` is served `https://api.staging.example.com/v1` directly from the snapshot.
 
 ### Group-owned secret with a per-project override
 
@@ -237,7 +242,7 @@ One project in that group needs to point at a dedicated read-replica. Define a p
 }
 ```
 
-The reports project in `prod` resolves `{{PrimaryDb}}` to the read-replica string. In any other environment the project variable has no matching scope, so resolution falls back to the global's unscoped default. Other projects in the same group are unaffected — they keep using the global value.
+The reports project in `prod` resolves `{{PrimaryDb}}` to the read-replica string. In any other environment, the project variable has no matching scope, so resolution falls back to the global's unscoped default. Other projects in the same group are unaffected. They keep using the global value.
 
 ## Related
 
