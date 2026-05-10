@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScopedValuesField } from '@/components/tower/data/ScopedValuesField';
 import { getConfigEntry } from '@/api/endpoints/config-entries';
 import { useCreateEntry, useUpdateEntry, type ConfigEntry, type ConfigEntryOwnerType } from '@/queries/useConfigEntries';
+import { DeleteEntryDialog } from './DeleteEntryDialog';
 
 const SENSITIVE_MASK = '***';
 const valueTypes = ['String', 'Int32', 'Int64', 'Double', 'Decimal', 'Boolean', 'DateTime', 'DateTimeOffset', 'DateOnly', 'TimeOnly'] as const;
@@ -43,6 +44,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
   const resolvedOwnerId = ownerId ?? projectId ?? '';
   const createEntry = useCreateEntry(resolvedOwnerId, ownerType);
   const updateEntry = useUpdateEntry(resolvedOwnerId, ownerType);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const formValues = useMemo(() => toFormValues(entry), [entry]);
   const form = useForm<EntryFormValues>({
     defaultValues: formValues,
@@ -90,6 +92,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
 
   useEffect(() => {
     if (!open) {
+      setConfirmingDelete(false);
       return;
     }
 
@@ -194,11 +197,27 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
             watch={form.watch}
           />
 
-          <DialogFooter>
-            <Button disabled={pending || valuesAreMasked} type="submit">{pending ? 'Saving…' : mode === 'create' ? 'Create entry' : 'Save entry'}</Button>
+          <DialogFooter className={isEdit ? 'sm:justify-between' : undefined}>
+            {isEdit && entry ? (
+              <Button disabled={pending} onClick={() => setConfirmingDelete(true)} type="button" variant="destructive">Delete entry</Button>
+            ) : null}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-2">
+              <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">Cancel</Button>
+              <Button disabled={pending || valuesAreMasked} type="submit">{pending ? 'Saving…' : mode === 'create' ? 'Create entry' : 'Save entry'}</Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <DeleteEntryDialog
+        entry={entry}
+        onDeleted={() => onOpenChange(false)}
+        onOpenChange={setConfirmingDelete}
+        open={confirmingDelete}
+        ownerId={ownerId}
+        ownerType={ownerType}
+        projectId={projectId}
+      />
     </Dialog>
   );
 }

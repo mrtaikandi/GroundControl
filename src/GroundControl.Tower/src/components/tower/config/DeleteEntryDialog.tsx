@@ -4,6 +4,7 @@ import { useDeleteEntry, type ConfigEntry, type ConfigEntryOwnerType } from '@/q
 
 interface DeleteEntryDialogProps {
   entry?: ConfigEntry;
+  onDeleted?: () => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
   ownerId?: string;
@@ -11,7 +12,7 @@ interface DeleteEntryDialogProps {
   projectId?: string;
 }
 
-export function DeleteEntryDialog({ entry, onOpenChange, open, ownerId, ownerType = 1, projectId }: DeleteEntryDialogProps) {
+export function DeleteEntryDialog({ entry, onDeleted, onOpenChange, open, ownerId, ownerType = 1, projectId }: DeleteEntryDialogProps) {
   const resolvedOwnerId = ownerId ?? projectId ?? '';
   const deleteEntry = useDeleteEntry(resolvedOwnerId, ownerType);
 
@@ -22,6 +23,7 @@ export function DeleteEntryDialog({ entry, onOpenChange, open, ownerId, ownerTyp
 
     await deleteEntry.mutateAsync({ id: entry.id, version: entry.version.toString() });
     onOpenChange(false);
+    onDeleted?.();
   }
 
   return (

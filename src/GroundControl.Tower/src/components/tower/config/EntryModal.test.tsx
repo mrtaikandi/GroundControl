@@ -15,6 +15,7 @@ vi.mock('@/queries/useConfigEntries', async (importOriginal) => {
   return {
     ...actual,
     useCreateEntry: () => ({ isPending: false, mutateAsync: vi.fn() }),
+    useDeleteEntry: () => ({ isPending: false, mutateAsync: vi.fn() }),
     useUpdateEntry: () => ({ isPending: false, mutateAsync: vi.fn() }),
   };
 });
@@ -90,5 +91,18 @@ describe('EntryModal', () => {
     expect(defaultValueInput).not.toBeDisabled();
     expect(defaultValueInput.value).toBe('real-secret');
     expect(screen.getByRole('button', { name: 'Save entry' })).not.toBeDisabled();
+  });
+
+  it('shows delete entry actions inside edit mode', async () => {
+    const user = userEvent.setup();
+
+    renderWithClient(
+      <EntryModal entry={buildSensitiveEntry()} mode="edit" onOpenChange={vi.fn()} open projectId="project-1" />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Delete entry' }));
+
+    expect(await screen.findByRole('heading', { name: 'Delete Entry' })).toBeInTheDocument();
+    expect(screen.getByText(/Secret:ApiKey/)).toBeInTheDocument();
   });
 });

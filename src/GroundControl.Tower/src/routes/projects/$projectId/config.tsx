@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Braces, FolderTree, List, Plus, X } from 'lucide-react';
+import { Braces, ChevronsDown, ChevronsUp, FolderTree, List, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ConfigFlatView } from '@/components/tower/config/ConfigFlatView';
+import { ConfigFlatView, type ConfigFlatViewHandle } from '@/components/tower/config/ConfigFlatView';
 import { ConfigJsonView } from '@/components/tower/config/ConfigJsonView';
-import { ConfigTreeView } from '@/components/tower/config/ConfigTreeView';
+import { ConfigTreeView, type ConfigTreeViewHandle } from '@/components/tower/config/ConfigTreeView';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
 import { Toolbar } from '@/components/tower/data/Toolbar';
 import { Button } from '@/components/ui/button';
@@ -31,8 +31,12 @@ function ConfigRoute() {
   const configViewMode = useTweaksStore((state) => state.configViewMode);
   const setConfigViewMode = useTweaksStore((state) => state.setConfigViewMode);
   const [open, setOpen] = useState(false);
+  const [flatSearch, setFlatSearch] = useState('');
   const [search, setSearch] = useState('');
+  const [treeFilter, setTreeFilter] = useState('');
+  const flatViewRef = useRef<ConfigFlatViewHandle>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const treeViewRef = useRef<ConfigTreeViewHandle>(null);
 
   useEffect(() => {
     if (!open) {
@@ -66,18 +70,41 @@ function ConfigRoute() {
   return (
     <div className="grid gap-4">
       <Toolbar
-        end={
-          <SegmentedControl
-            onChange={setConfigViewMode}
-            options={[
-              { icon: List, label: 'Flat', value: 'flat' },
-              { icon: FolderTree, label: 'Tree', value: 'tree' },
-              { icon: Braces, label: 'JSON', value: 'json' },
-            ]}
-            value={configViewMode}
-          />
-        }
+        startClassName="flex-1"
         start={
+          <div className="flex flex-wrap items-center gap-3">
+            <SegmentedControl
+              onChange={setConfigViewMode}
+              options={[
+                { icon: List, label: 'Flat', value: 'flat' },
+                { icon: FolderTree, label: 'Tree', value: 'tree' },
+                { icon: Braces, label: 'JSON', value: 'json' },
+              ]}
+              value={configViewMode}
+            />
+            {configViewMode === 'flat' ? (
+              <>
+                <Input className="w-full sm:max-w-sm" onChange={(event) => setFlatSearch(event.target.value)} placeholder="Filter entries…" value={flatSearch} />
+                <Button onClick={() => flatViewRef.current?.openCreate()} size="sm" type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
+              </>
+            ) : null}
+            {configViewMode === 'tree' ? (
+              <>
+                <Input className="w-full sm:max-w-sm" onChange={(event) => setTreeFilter(event.target.value)} placeholder="Filter…" value={treeFilter} />
+                <div className="flex items-center gap-1">
+                  <Button aria-label="Expand all groups" onClick={() => treeViewRef.current?.expandAll()} size="sm" type="button" variant="ghost">
+                    <ChevronsDown aria-hidden="true" className="size-4" />
+                  </Button>
+                  <Button aria-label="Collapse all groups" onClick={() => treeViewRef.current?.collapseAll()} size="sm" type="button" variant="ghost">
+                    <ChevronsUp aria-hidden="true" className="size-4" />
+                  </Button>
+                </div>
+                <Button onClick={() => treeViewRef.current?.openCreate()} size="sm" type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
+              </>
+            ) : null}
+          </div>
+        }
+        end={
           <Popover onOpenChange={setOpen} open={open}>
             <PopoverTrigger asChild>
               <Button className="max-w-full sm:max-w-80" disabled={!project} size="sm" title={templatesLabel} type="button" variant="outline">
@@ -147,7 +174,11 @@ function ConfigRoute() {
         }
       />
 
-      {configViewMode === 'tree' ? <ConfigTreeView owner={{ kind: 'project', id: projectId }} /> : configViewMode === 'json' ? <ConfigJsonView owner={{ kind: 'project', id: projectId }} /> : <ConfigFlatView owner={{ kind: 'project', id: projectId }} />}
+      {configViewMode === 'tree'
+        ? <ConfigTreeView controlsPlacement="external" filter={treeFilter} owner={{ kind: 'project', id: projectId }} ref={treeViewRef} />
+        : configViewMode === 'json'
+          ? <ConfigJsonView owner={{ kind: 'project', id: projectId }} />
+          : <ConfigFlatView controlsPlacement="external" owner={{ kind: 'project', id: projectId }} ref={flatViewRef} search={flatSearch} />}
     </div>
   );
 }
