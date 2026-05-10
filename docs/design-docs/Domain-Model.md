@@ -417,18 +417,19 @@ When an admin publishes a snapshot for a project:
 
 1. **Collect entries**: Gather all config entries from the project's attached templates and the project's own entries.
 2. **Merge with override**: For any key that exists in both a template and the project, the project-level entry takes precedence (full replacement of all scoped values for that key).
-3. **Interpolate variables**: For each scoped value in each entry:
-   a. Find all `{{variableName}}` references in the value string.
-   b. For each variable, resolve its value using the two-tier system:
-      - First check for a project-level variable with a matching scope.
-      - Fall back to the global variable with a matching scope.
-      - Use the same scope resolution algorithm (most-specific match wins).
-   c. Replace the placeholder with the resolved variable value.
-4. **Validate**: Ensure all variable references were resolved (no unresolved `{{...}}` placeholders remain).
-5. **Encrypt sensitive values**: Encrypt values marked as sensitive using the configured encryption provider.
+3. **Fan out and interpolate variables**: For each merged entry, expand its source scoped values into the dim-space cartesian of scope tuples touched by the variables they reference, then resolve each variable per tuple:
+   a. Scan each source value for `{{variableName}}` references and look each name up using the two-tier system (project-level first, then global).
+   b. Build the set of target scope tuples by taking, per referenced dimension, the union of distinct values plus an "unspecified" axis, and producing the cartesian product.
+   c. Merge each target with the entry's own source scope, dropping conflicting combinations.
+   d. For each surviving final tuple, run scope resolution (most-specific match wins, falling back to the variable's unscoped default) and substitute the placeholder with the resolved value.
+   e. Within one source value, deduplicate emissions for the same final tuple by retaining the most-specific target. Across source values for the same entry, an emission whose source had a more specific scope tuple wins — the **explicit-wins** rule lets a literal scoped value on the entry override a fan-out emission from a scopeless sibling.
+4. **Validate**: Ensure every required target tuple resolved. A placeholder is unresolved if its name matches no variable, or if `ScopeResolver` returns no value for at least one required target tuple. Any unresolved placeholder blocks publish (HTTP 422) with the offending name reported back.
+5. **Encrypt sensitive values**: Encrypt values marked as sensitive using the configured encryption provider. Per-entry sensitivity is preserved: any sensitive variable contributing to any tuple flips the entire resolved entry to sensitive.
 6. **Store snapshot**: Persist the immutable snapshot with a new incremented version number.
 7. **Activate**: Set the project's `activeSnapshotId` to the new snapshot.
 8. **Notify**: Trigger the change notification system to alert connected clients.
+
+Fan-out is deterministic: given the same project state, two resolves produce identical resolved entries (canonical scope-tuple ordering across emissions), so the diff hash gating preview-vs-publish 409 detection remains stable. Scopeless config entries that reference scoped variables produce one snapshot value per scope tuple the variable touches — clients later pick the matching tuple at read time without any further interpolation.
 
 **Failure modes and atomicity:**
 

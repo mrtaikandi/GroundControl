@@ -42,7 +42,7 @@ The `scope` field puts a variable in one of two tiers:
 
 `projectId` is required and must reference an existing project. `groupId` must be `null` — a project variable inherits its group through the project.
 
-A project variable with the same `name` as a global variable shadows the global for that project (see [Two-tier resolution](#two-tier-resolution)).
+A project variable with the same `name` as a global variable shadows the global for that project (see [Two-tier lookup](#two-tier-lookup)).
 
 ## Scoped values
 
@@ -63,30 +63,56 @@ A single variable typically holds one unscoped default plus one variant per envi
 
 ## How a placeholder resolves
 
-When a snapshot is published for a project, every config entry value is scanned for `{{name}}` placeholders. Each placeholder is resolved using a **two-tier**, **most-specific-scope-wins** algorithm.
+When a snapshot is published for a project, every config entry value is scanned for `{{name}}` placeholders. The publish pipeline **fans out** each scoped value across the scope tuples its referenced variables touch, resolving each variable per tuple. The snapshot stores the materialized per-tuple values; the client read path picks one tuple at request time using the same scope-matching rules without any further interpolation.
 
-### Two-tier resolution
+### Fan-out at publish
 
-For each placeholder `{{name}}`:
+For each source scoped value on the entry:
 
-1. Look up `name` in the project's project-scope variables.
-2. If found, attempt scope resolution against the client's scopes (see below). If a value resolves, use it.
-3. Otherwise, look up `name` in the project's visible globals.
-4. If a global match resolves, use it.
-5. If neither tier yields a value, the placeholder is **unresolved** and the publish fails with the offending name reported back.
+1. **Scan placeholders.** Every `{{name}}` is mapped to a variable via the [two-tier lookup](#two-tier-lookup) below.
+2. **Generate target tuples.** The set of scope dimensions referenced by the resolved variables forms the target dim-space; per-dimension domain is the union of distinct values plus an "unspecified" axis. The cartesian product yields the targets to materialize.
+3. **Merge with the source's own scope.** A target whose dimension value conflicts with the source scope on the same dimension is dropped; surviving targets become the final scope tuple.
+4. **Substitute per target.** [`VariableInterpolator`](../../src/GroundControl.Api/Features/Snapshots/VariableInterpolator.cs) is invoked once per final tuple. Each placeholder is resolved against that tuple by [`ScopeResolver`](../../src/GroundControl.Api/Shared/Resolvers/ScopeResolver.cs) (most-specific scope wins, falling back to the variable's unscoped default).
 
-The implementation lives in [`VariableInterpolator`](../../src/GroundControl.Api/Features/Snapshots/VariableInterpolator.cs).
+After fan-out across every source value of the entry, emissions for the same final scope tuple are deduplicated:
+
+- Within one source value, the most-specific target wins.
+- Across source values, an emission whose source had a more specific scope tuple wins — this is the **explicit-wins rule**: a literal scoped value on the entry overrides a fan-out emission from a default-scoped sibling that references a variable.
+
+The orchestration lives in [`ResolvedEntryBuilder`](../../src/GroundControl.Api/Features/Snapshots/ResolvedEntryBuilder.cs); target enumeration is [`TargetTupleBuilder`](../../src/GroundControl.Api/Features/Snapshots/TargetTupleBuilder.cs).
+
+#### Practical effect
+
+A scopeless config entry like `MyConfigEntry = "{{MyVariable}}"` referencing a variable with `Environment = dev/prod` tuples produces one resolved snapshot value per environment plus the unscoped default. You don't have to redeclare scope tuples on every entry that uses a scoped variable.
+
+### Two-tier lookup
+
+For each placeholder `{{name}}`, the publisher looks the name up in two tiers:
+
+1. The project's project-scope variables.
+2. The project's visible globals.
+
+The first tier that contains the name supplies the variable; the global tier is a fallback, not a merge. Within the variable, scope-matching against a target tuple uses the same most-specific-wins algorithm described in [Scope resolution within a tier](#scope-resolution-within-a-tier).
 
 ### Scope resolution within a tier
 
-Within a single variable's `values` list, [`ScopeResolver`](../../src/GroundControl.Api/Shared/Resolvers/ScopeResolver.cs) picks one variant:
+Within a single variable's `values` list, [`ScopeResolver`](../../src/GroundControl.Api/Shared/Resolvers/ScopeResolver.cs) picks one variant for the target tuple:
 
-1. Filter to candidates whose `scopes` map is a **full match** of the client's scopes — every dimension in the candidate must equal the client's value (case-insensitive on the dimension name, exact on the value).
+1. Filter to candidates whose `scopes` map is a **full match** of the target — every dimension in the candidate must equal the target's value (case-insensitive on the dimension name, exact on the value).
 2. Of the matches, the candidate with the **most dimensions** wins.
 3. If no scoped candidate matches, fall back to the unscoped default (`scopes = {}`).
-4. If there isn't even an unscoped default, the variable contributes no value and resolution falls through to the next tier (or fails).
+4. If there isn't even an unscoped default, the variable contributes no value for this target tuple and the placeholder is **unresolved** — the publish fails with the offending name reported back ([strict-unresolved policy](#strict-unresolved-policy)).
 
 A tie at the same specificity logs a warning and returns the first match — design your scoped values so combinations don't collide.
+
+### Strict-unresolved policy
+
+A placeholder is considered unresolved (and blocks publish with HTTP 422) under either condition:
+
+- The name does not match any variable in the project lookup nor the global lookup.
+- The variable exists but `ScopeResolver` returns no match for at least one target tuple required by fan-out — typically a variable with no unscoped default referenced by an entry whose targets include the empty tuple.
+
+To unblock, add a default to the variable, or scope the entry more tightly so its targets only span tuples the variable covers.
 
 ### Visibility from a project's perspective
 
@@ -139,6 +165,7 @@ Enforced by partial unique indexes (case-insensitive) in [`VariableConfiguration
 - **Variables can't reference variables.** `{{...}}` is rejected on write inside variable values; only config-entry values may contain placeholders.
 - **Resolution is publish-time, not write-time.** A config entry can be saved with `{{Foo}}` even if `Foo` doesn't exist yet. The publish call is what fails when the placeholder can't be resolved.
 - **Tied scope specificity.** If two scoped values in the same variable match a client with the same dimension count, you get a warning log and a non-deterministic pick. Make scope combinations unambiguous.
+- **Snapshot size grows with fan-out.** A scopeless entry that references a variable with many scope tuples produces one snapshot value per tuple. Combined with multi-dimensional variables this expands cartesian-style. The 16MB BSON snapshot limit catches runaway expansion at publish — keep multi-dimensional variables narrow when an entry references several of them.
 
 ## Worked examples
 
@@ -169,7 +196,15 @@ In a config entry:
   "values": [{ "value": "{{ApiBase}}/v1" }] }
 ```
 
-A client bound to `{Environment: staging}` resolves to `https://api.staging.example.com/v1`.
+The entry has a single scopeless source value. At publish, fan-out expands it into three resolved snapshot values — one per `Environment` tuple the variable touches plus the unscoped default:
+
+| Snapshot scope | Resolved value |
+|---|---|
+| `{}` | `https://api.example.com/v1` |
+| `{Environment: staging}` | `https://api.staging.example.com/v1` |
+| `{Environment: prod}` | `https://api.example.com/v1` |
+
+A client bound to `{Environment: staging}` is then served `https://api.staging.example.com/v1` straight from the snapshot — no further interpolation runs.
 
 ### Group-owned secret with a per-project override
 

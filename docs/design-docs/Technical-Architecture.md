@@ -90,7 +90,7 @@ Admin publishes snapshot for project
 Server resolves: merge templates + project overrides
        │
        ▼
-Server interpolates variables per scope variant
+Server fans entries out across referenced variables' scope tuples and interpolates per tuple
        │
        ▼
 Server encrypts sensitive values
