@@ -145,6 +145,7 @@
 	border-radius: var(--radius-xl);
 	background-color: var(--card);
 	color: var(--card-foreground);
+	box-shadow: var(--tower-shadow-card-inset);
 }
 
 @utility ui-surface-panel {
@@ -153,6 +154,7 @@
 	border-radius: var(--radius-lg);
 	background-color: var(--card);
 	color: var(--card-foreground);
+	box-shadow: var(--tower-shadow-card-inset);
 }
 
 @utility ui-overlay-scrim {
@@ -181,4 +183,8 @@
 
 @utility shadow-ui-button-subtle-hover {
 	box-shadow: var(--tower-shadow-button-subtle-hover);
+}
+
+@utility shadow-ui-card-inset {
+	box-shadow: var(--tower-shadow-card-inset);
 }
