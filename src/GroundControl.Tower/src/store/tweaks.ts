@@ -10,10 +10,12 @@ interface TweaksState {
   applyToDocument: () => void;
   configViewMode: ConfigViewMode;
   diffLayout: DiffLayout;
+  diffLineWrap: boolean;
   driftBannerVisible: boolean;
   sensitiveMasked: boolean;
   setConfigViewMode: (mode: ConfigViewMode) => void;
   setDiffLayout: (layout: DiffLayout) => void;
+  setDiffLineWrap: (wrap: boolean) => void;
   setDriftBannerVisible: (visible: boolean) => void;
   setSensitiveMasked: (masked: boolean) => void;
   setSnapshotViewMode: (mode: SnapshotViewMode) => void;
@@ -28,10 +30,12 @@ export const useTweaksStore = create<TweaksState>()(
       applyToDocument: () => applyToDocument(get().theme),
       configViewMode: 'flat',
       diffLayout: 'inline',
+      diffLineWrap: true,
       driftBannerVisible: true,
       sensitiveMasked: true,
       setConfigViewMode: (configViewMode) => set({ configViewMode }),
       setDiffLayout: (diffLayout) => set({ diffLayout }),
+      setDiffLineWrap: (diffLineWrap) => set({ diffLineWrap }),
       setDriftBannerVisible: (driftBannerVisible) => set({ driftBannerVisible }),
       setSensitiveMasked: (sensitiveMasked) => set({ sensitiveMasked }),
       setSnapshotViewMode: (snapshotViewMode) => set({ snapshotViewMode }),

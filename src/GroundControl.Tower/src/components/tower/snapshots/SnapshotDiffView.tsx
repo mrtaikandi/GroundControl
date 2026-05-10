@@ -21,17 +21,28 @@ interface SnapshotDiffViewProps {
 
 export function SnapshotDiffView({ baseline, changeCount, contentClassName, isLoading = false, onExpand, snapshot, targetLabel }: SnapshotDiffViewProps) {
   const diffLayout = useTweaksStore((state) => state.diffLayout);
+  const lineWrap = useTweaksStore((state) => state.diffLineWrap);
+  const setLineWrap = useTweaksStore((state) => state.setDiffLineWrap);
 
   if (isLoading) {
     return <Skeleton className="h-[520px]" />;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-stroke-subtle bg-bg-container">
-      <div className="flex items-center justify-between gap-3 border-b border-stroke-subtle px-4 py-2 text-[12px] font-medium text-fg-caption">
+    <div className="overflow-hidden rounded-lg border border-stroke-subtle">
+      <div className="flex items-center justify-between gap-3 border-b border-stroke-subtle bg-bg-container px-4 py-2 text-[12px] font-medium text-fg-caption">
         <span>Diff vs {targetLabel}</span>
         <div className="flex items-center gap-3">
           <span>{changeCount} {changeCount === 1 ? 'change' : 'changes'}</span>
+          <label className="flex cursor-pointer select-none items-center gap-1.5">
+            <input
+              checked={lineWrap}
+              className="size-3.5 accent-[var(--tower-stroke-field-focus)]"
+              onChange={(event) => setLineWrap(event.target.checked)}
+              type="checkbox"
+            />
+            Wrap
+          </label>
           <DiffLayoutToggle size="sm" />
           {onExpand ? (
             <button
