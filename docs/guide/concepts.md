@@ -49,9 +49,9 @@ Variables come in two tiers:
 
 Use variables for values that appear in many entries, such as a connection string prefix, an API endpoint, or a shared secret. This lets you change the value in one place instead of updating every entry that uses it.
 
-Variables are resolved at publish time, and a scoped variable's scope dimensions propagate to every entry that references it: a scopeless entry like `MyEntry = "{{MyVariable}}"` automatically picks up the variable's per-scope values in the published snapshot, without you having to redeclare the scope tuples on each entry. If a configuration value references a variable that is undefined or cannot be resolved for any required scope tuple, the publish fails with an error telling you exactly which variable is missing.
+Variables are resolved at publish time. A scoped variable's per-scope values automatically propagate to every entry that references it. So a scopeless entry like `MyEntry = "{{MyVariable}}"` ends up with one resolved value per scope in the published snapshot, without you having to repeat the scope tuples on every entry. If a configuration value references a variable that is undefined or cannot be resolved for one of the scopes it needs, the publish fails with an error telling you exactly which variable is missing.
 
-For a full reference of variable structure, ownership tiers, two-tier resolution, sensitivity, and group/system-wide visibility rules, see [Variables](variables.md).
+For a full reference of variable structure, ownership tiers, the two-tier lookup, sensitivity, and group/system-wide visibility rules, see [Variables](variables.md).
 
 ## Configuration Entries
 
@@ -72,11 +72,11 @@ An entry can be marked as **sensitive**. Sensitive values are encrypted at rest 
 A snapshot is an immutable, point-in-time capture of a project's fully resolved configuration. You create a snapshot by performing a "publish" action, which:
 
 1. Merges template entries with project entries (project entries take precedence)
-2. Fans each entry out across the scope tuples its referenced variables touch and substitutes the variables per tuple, so a scopeless entry referencing a per-environment variable produces one resolved value per environment in the snapshot
+2. Resolves every variable reference, expanding scopeless entries that use scoped variables into one resolved value per scope
 3. Encrypts sensitive values
 4. Stores the result as a new, versioned snapshot
 
-Clients always receive configuration from the **active** snapshot — they pick the matching scope tuple from the snapshot at request time without re-running interpolation. Snapshots are versioned sequentially (1, 2, 3, ...) and cannot be modified after creation.
+Clients always receive configuration from the **active** snapshot. They pick the matching scope from the snapshot at request time, with no further resolution work. Snapshots are versioned sequentially (1, 2, 3, ...) and cannot be modified after creation.
 
 If you need to revert a configuration change, activate a previous snapshot. The old snapshot becomes the active one and all clients immediately receive that version's configuration.
 

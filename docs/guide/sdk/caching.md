@@ -66,7 +66,7 @@ builder.Configuration.AddGroundControl(options =>
 ```
 
 - Only entries the server has marked as sensitive go through the protector; non-sensitive entries (feature flags, URLs, thresholds) stay plaintext and remain readable for diagnostics.
-- If the protector is not configured, every entry is cached plaintext — an explicit opt-out.
+- If the protector is not configured, every entry is cached plaintext. This is an explicit opt-out.
 - The SDK treats ciphertext as opaque; key rotation and algorithm versioning are your protector's responsibility.
 - If `Unprotect` throws, or if the cache was written under a different protector configuration than the one in effect now, the file is treated as a cache miss and the next save overwrites it.
 - Cache portability depends entirely on your protector (e.g., DPAPI keys are per-machine; an AES implementation with a shared key is portable).

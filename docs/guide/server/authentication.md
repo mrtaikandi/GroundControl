@@ -13,7 +13,7 @@ graph TD
 
 ## None (development)
 
-All requests are treated as a system admin — no login required. No auth endpoints are exposed. This mode is suitable for local development and personal homelab use.
+All requests are treated as a system admin, with no login required. No auth endpoints are exposed. This mode is suitable for local development and personal homelab use.
 
 ```json
 {
@@ -65,7 +65,7 @@ openssl rand -base64 32
    - Password: the value of `Authentication:Seed:AdminPassword`
    - Full system admin permissions
 
-> **Note:** The admin seed is idempotent — restarting the server won't duplicate the account. If you change the password in the seed config, it updates the existing admin's password.
+> **Note:** The admin seed is idempotent. Restarting the server won't duplicate the account. If you change the password in the seed config, it updates the existing admin's password.
 
 ### JWT settings
 
