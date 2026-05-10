@@ -4,6 +4,8 @@ Variables are named values you can reference inside configuration entries using 
 
 This page covers what a variable looks like, who can see it, how its value gets baked into a published snapshot, and the edge cases worth knowing.
 
+> **Whitespace inside the braces is allowed.** `{{ApiBase}}`, `{{ ApiBase }}`, `{{\tApiBase\t}}` all resolve to the same variable. Whitespace is stripped from the captured name before lookup but preserved in the original token if the placeholder fails to resolve.
+
 ## Anatomy of a variable
 
 A variable has a name, an ownership tier, and one or more values. Each value can be qualified with scope dimensions like `Environment` or `Region`.

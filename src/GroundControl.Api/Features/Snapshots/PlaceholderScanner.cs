@@ -9,10 +9,12 @@ internal static partial class PlaceholderScanner
 {
     /// <summary>
     /// Gets the regex used to identify <c>{{name}}</c> placeholders. The single capture group is
-    /// the placeholder name. Exposed to <see cref="VariableInterpolator"/> so the substitution
-    /// path uses the exact same pattern as the scan path.
+    /// the placeholder name. Optional inner whitespace is permitted (<c>{{ name }}</c>) and is
+    /// stripped by the capture group, so unresolved placeholder names are reported without it.
+    /// Exposed to <see cref="VariableInterpolator"/> so the substitution path uses the exact same
+    /// pattern as the scan path.
     /// </summary>
-    [GeneratedRegex(@"\{\{(\w+)\}\}")]
+    [GeneratedRegex(@"\{\{\s*(\w+)\s*\}\}")]
     internal static partial Regex PlaceholderPattern { get; }
 
     /// <summary>
