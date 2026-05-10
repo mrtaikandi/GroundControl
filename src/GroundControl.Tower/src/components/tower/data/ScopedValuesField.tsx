@@ -64,50 +64,42 @@ export function ScopedValuesField<T extends FormWithScopedValues>({
             <Controller
               control={control}
               name={dimensionPath}
-              render={({ field: dimensionField }) => {
-                const stringValue = (dimensionField.value as string | undefined) || undefined;
-
-                return (
-                  <Select
-                    disabled={disabled}
-                    onValueChange={dimensionField.onChange}
-                    value={stringValue}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Dimension">{stringValue}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dimensions.map((scope) => (
-                        <SelectItem key={scope.id} value={scope.dimension}>{scope.dimension}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                );
-              }}
+              render={({ field: dimensionField }) => (
+                <Select
+                  disabled={disabled}
+                  onValueChange={dimensionField.onChange}
+                  value={(dimensionField.value as string | undefined) ?? ''}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Dimension" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dimensions.map((scope) => (
+                      <SelectItem key={scope.id} value={scope.dimension}>{scope.dimension}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
             <Controller
               control={control}
               name={scopeValuePath}
-              render={({ field: valueField }) => {
-                const stringValue = (valueField.value as string | undefined) || undefined;
-
-                return (
-                  <Select
-                    disabled={disabled || !selectedScope}
-                    onValueChange={valueField.onChange}
-                    value={stringValue}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Value">{stringValue}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(selectedScope?.allowedValues ?? []).map((allowed) => (
-                        <SelectItem key={allowed} value={allowed}>{allowed}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                );
-              }}
+              render={({ field: valueField }) => (
+                <Select
+                  disabled={disabled || !selectedScope}
+                  onValueChange={valueField.onChange}
+                  value={(valueField.value as string | undefined) ?? ''}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Value" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(selectedScope?.allowedValues ?? []).map((allowed) => (
+                      <SelectItem key={allowed} value={allowed}>{allowed}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
             <Input
               disabled={disabled}
