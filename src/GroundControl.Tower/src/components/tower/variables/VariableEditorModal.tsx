@@ -184,7 +184,7 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
               placeholder="ApiBase"
               {...form.register('name')}
             />
-            <p className="text-[11.5px] text-fg-caption">Reference as <span className="font-mono">{`{{${name?.trim() || 'Name'}}}`}</span> in config entry values.</p>
+            <p className="text-[11.5px] text-fg-caption">Reference as <span className="font-mono">{`{{ ${name?.trim() || 'Name'} }}`}</span> in config entry values.</p>
             {form.formState.errors.name ? <p className="text-[11.5px] text-badge-critical-fg">{form.formState.errors.name.message}</p> : null}
           </div>
 
