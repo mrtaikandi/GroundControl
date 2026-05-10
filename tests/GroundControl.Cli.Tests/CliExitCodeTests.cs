@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -14,8 +13,7 @@ namespace GroundControl.Cli.Tests;
 /// </summary>
 public sealed class CliExitCodeTests
 {
-    private static readonly string RepositoryRoot = ResolveRepositoryRoot();
-    private static readonly string CliProjectPath = Path.Combine(RepositoryRoot, "src", "GroundControl.Cli", "GroundControl.Cli.csproj");
+    private static readonly string CliBinaryPath = ResolveCliBinaryPath();
 
     [Fact]
     public async Task Cli_HandlerReturnsNonZero_ProcessExitCodeIsNonZero()
@@ -84,11 +82,7 @@ public sealed class CliExitCodeTests
             CreateNoWindow = true
         };
 
-        startInfo.ArgumentList.Add("run");
-        startInfo.ArgumentList.Add("--no-build");
-        startInfo.ArgumentList.Add("--project");
-        startInfo.ArgumentList.Add(CliProjectPath);
-        startInfo.ArgumentList.Add("--");
+        startInfo.ArgumentList.Add(CliBinaryPath);
         foreach (var arg in args)
         {
             startInfo.ArgumentList.Add(arg);
@@ -111,13 +105,28 @@ public sealed class CliExitCodeTests
         return new ProcessOutcome(process.ExitCode, stdout, stderr);
     }
 
-    private static string ResolveRepositoryRoot()
+    // Why: locate the CLI dll relative to the test assembly so the test runs in any
+    // configuration (Debug/Release). Output layout is `artifacts/bin/{Project}/{config}/`
+    // for both projects, so swapping the project segment yields the CLI's dll path
+    // without depending on MSBuild metadata or `dotnet run` (which assumes Debug).
+    private static string ResolveCliBinaryPath()
     {
-        var value = typeof(CliExitCodeTests).Assembly
-            .GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(a => a.Key == "RepositoryRoot")?.Value;
+        var testAssemblyPath = typeof(CliExitCodeTests).Assembly.Location;
+        var configDirectory = Path.GetDirectoryName(testAssemblyPath)
+                              ?? throw new InvalidOperationException("Could not determine test assembly directory.");
+        var configName = Path.GetFileName(configDirectory);
+        var artifactsBin = Path.GetDirectoryName(Path.GetDirectoryName(configDirectory)!)
+                           ?? throw new InvalidOperationException("Could not determine artifacts/bin directory.");
 
-        return value ?? throw new InvalidOperationException("RepositoryRoot assembly metadata not found.");
+        var path = Path.Combine(artifactsBin, "GroundControl.Cli", configName, "GroundControl.Cli.dll");
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException(
+                $"CLI binary not found at {path}. Ensure GroundControl.Cli has been built in the same configuration as the test project.",
+                path);
+        }
+
+        return path;
     }
 
     private sealed record ProcessOutcome(int ExitCode, string Stdout, string Stderr);

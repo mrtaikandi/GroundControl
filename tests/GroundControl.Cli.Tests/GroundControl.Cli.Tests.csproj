@@ -15,11 +15,4 @@
         <ProjectReference Include="..\..\src\GroundControl.Cli\GroundControl.Cli.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
-            <_Parameter1>RepositoryRoot</_Parameter1>
-            <_Parameter2>$(RepositoryRoot)</_Parameter2>
-        </AssemblyAttribute>
-    </ItemGroup>
-
 </Project>
