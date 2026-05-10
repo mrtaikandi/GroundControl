@@ -15,7 +15,7 @@ internal sealed record CreateConfigEntryRequest
     /// <remarks>Maximum length: 500 characters.</remarks>
     [Required]
     [MaxLength(500)]
-    [RegularExpression(ConfigEntryValidation.KeyPattern, ErrorMessage = "Key must start with a letter and contain only letters, digits, '.', ':', '_', or '-'.")]
+    [RegularExpression(ConfigEntryValidation.KeyPattern, ErrorMessage = ConfigEntryValidation.KeyPatternErrorMessage)]
     public required string Key { get; init; }
 
     /// <summary>
