@@ -2,20 +2,24 @@ import { Maximize2 } from 'lucide-react';
 import { DiffLayoutToggle } from '@/components/tower/code/DiffLayoutToggle';
 import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Skeleton } from '@/components/ui/skeleton';
-import { snapshotToDocument } from '@/lib/snapshot-document';
+import { entriesToDocument } from '@/lib/snapshot-document';
+import { cn } from '@/lib/utils';
 import type { SnapshotDetail } from '@/queries/useSnapshots';
 import { useTweaksStore } from '@/store/tweaks';
 
+type EntriesLike = Pick<SnapshotDetail, 'entries'>;
+
 interface SnapshotDiffViewProps {
-  baseline?: SnapshotDetail;
+  baseline?: EntriesLike;
   changeCount: number;
+  contentClassName?: string;
   isLoading?: boolean;
   onExpand?: () => void;
-  snapshot?: SnapshotDetail;
+  snapshot?: EntriesLike;
   targetLabel: string;
 }
 
-export function SnapshotDiffView({ baseline, changeCount, isLoading = false, onExpand, snapshot, targetLabel }: SnapshotDiffViewProps) {
+export function SnapshotDiffView({ baseline, changeCount, contentClassName, isLoading = false, onExpand, snapshot, targetLabel }: SnapshotDiffViewProps) {
   const diffLayout = useTweaksStore((state) => state.diffLayout);
 
   if (isLoading) {
@@ -23,7 +27,7 @@ export function SnapshotDiffView({ baseline, changeCount, isLoading = false, onE
   }
 
   return (
-    <div className="rounded-lg border border-stroke-subtle bg-bg-container">
+    <div className="overflow-hidden rounded-lg border border-stroke-subtle bg-bg-container">
       <div className="flex items-center justify-between gap-3 border-b border-stroke-subtle px-4 py-2 text-[12px] font-medium text-fg-caption">
         <span>Diff vs {targetLabel}</span>
         <div className="flex items-center gap-3">
@@ -41,7 +45,7 @@ export function SnapshotDiffView({ baseline, changeCount, isLoading = false, onE
           ) : null}
         </div>
       </div>
-      <JsonDiff after={snapshotToDocument(snapshot)} before={snapshotToDocument(baseline)} className="min-h-[440px]" mode={diffLayout} />
+      <JsonDiff after={entriesToDocument(snapshot?.entries)} bare before={entriesToDocument(baseline?.entries)} className={cn('min-h-[440px]', contentClassName)} mode={diffLayout} />
     </div>
   );
 }

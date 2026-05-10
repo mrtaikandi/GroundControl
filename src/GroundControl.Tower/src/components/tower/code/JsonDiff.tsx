@@ -6,6 +6,7 @@ import { highlightJson } from './shiki-theme';
 
 interface JsonDiffProps {
   after: unknown;
+  bare?: boolean;
   before: unknown;
   className?: string;
   mode?: 'inline' | 'split';
@@ -25,7 +26,7 @@ interface SplitRow {
   right: HighlightedDiffLine | null;
 }
 
-export function JsonDiff({ after, before, className, mode = 'inline' }: JsonDiffProps) {
+export function JsonDiff({ after, bare = false, before, className, mode = 'inline' }: JsonDiffProps) {
   const theme = useTweaksStore((state) => state.theme);
   const lines = useMemo(() => buildDiffLines(before, after), [after, before]);
   const [highlightedLines, setHighlightedLines] = useState<HighlightedDiffLine[]>([]);
@@ -47,7 +48,7 @@ export function JsonDiff({ after, before, className, mode = 'inline' }: JsonDiff
 
   if (mode === 'split') {
     return (
-      <div className={cn('ui-surface-card ui-text-code grid divide-x divide-stroke-subtle md:grid-cols-2', className)}>
+      <div className={cn(!bare && 'ui-surface-card', 'ui-text-code grid divide-x divide-stroke-subtle md:grid-cols-2', className)}>
         <DiffColumn rows={splitRows.map((row) => row.left)} side="left" title="Before" />
         <DiffColumn rows={splitRows.map((row) => row.right)} side="right" title="After" />
       </div>
@@ -55,7 +56,7 @@ export function JsonDiff({ after, before, className, mode = 'inline' }: JsonDiff
   }
 
   return (
-    <div className={cn('ui-surface-card ui-text-code overflow-auto py-4', className)}>
+    <div className={cn(!bare && 'ui-surface-card', 'ui-text-code overflow-auto py-4', className)}>
       <div className="min-w-max">
         {highlightedLines.map((line, index) => <DiffRow index={index} key={`${line.kind}-${index}-${line.content}`} line={line} />)}
       </div>

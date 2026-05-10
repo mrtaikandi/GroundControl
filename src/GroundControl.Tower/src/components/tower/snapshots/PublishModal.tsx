@@ -1,16 +1,13 @@
 import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { DiffLayoutToggle } from '@/components/tower/code/DiffLayoutToggle';
-import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/api/client';
-import { entriesToResolvedDocument } from '@/lib/snapshot-document';
+import { entriesToDocument } from '@/lib/snapshot-document';
 import { deepEqual, diffDocuments, summarize, type ChangeSummary } from '@/lib/snapshot-diff';
 import { usePublishSnapshot, useSnapshotDetail, useSnapshotPreview } from '@/queries/useSnapshots';
-import { useTweaksStore } from '@/store/tweaks';
+import { SnapshotDiffView } from './SnapshotDiffView';
 
 export { deepEqual };
 
@@ -27,17 +24,17 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
   const [step, setStep] = useState<PublishStep>('diff');
   const [comment, setComment] = useState('');
   const [staleBanner, setStaleBanner] = useState(false);
-  const masked = useTweaksStore((state) => state.sensitiveMasked);
-  const diffLayout = useTweaksStore((state) => state.diffLayout);
   const activeSnapshot = useSnapshotDetail(projectId, activeSnapshotId);
   const preview = useSnapshotPreview(projectId, { enabled: open });
   const publishSnapshot = usePublishSnapshot(projectId);
-  const before = useMemo(() => entriesToResolvedDocument(activeSnapshot.data?.entries, {}, { maskSensitive: masked }), [activeSnapshot.data?.entries, masked]);
-  const after = useMemo(() => entriesToResolvedDocument(preview.data?.entries, {}, { maskSensitive: masked }), [preview.data?.entries, masked]);
+  const before = useMemo(() => entriesToDocument(activeSnapshot.data?.entries), [activeSnapshot.data?.entries]);
+  const after = useMemo(() => entriesToDocument(preview.data?.entries), [preview.data?.entries]);
   const loading = activeSnapshot.isLoading || preview.isLoading || preview.isFetching;
   const hasChanges = !loading && !deepEqual(before, after);
   const summary = useMemo(() => summarizeChanges(before, after), [after, before]);
+  const changeCount = summary.additions + summary.modifications + summary.deletions;
   const previewError = preview.isError ? toErrorMessage(preview.error) : null;
+  const targetLabel = activeSnapshot.data ? `active v${activeSnapshot.data.snapshotVersion}` : 'active snapshot';
 
   useEffect(() => {
     if (open) {
@@ -83,15 +80,15 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
             <div className="rounded-xl border border-stroke-subtle bg-badge-critical-bg px-4 py-3 text-[12.5px] text-badge-critical-fg">
               {previewError}
             </div>
-          ) : loading ? (
-            <Skeleton className="h-[520px]" />
           ) : (
-            <div className="grid gap-2">
-              <div className="flex justify-end">
-                <DiffLayoutToggle />
-              </div>
-              <JsonDiff after={after} before={before} className="max-h-[560px] overflow-y-auto border border-stroke-subtle bg-bg-container" mode={diffLayout} />
-            </div>
+            <SnapshotDiffView
+              baseline={activeSnapshot.data}
+              changeCount={changeCount}
+              contentClassName="max-h-[520px] overflow-auto"
+              isLoading={loading}
+              snapshot={preview.data}
+              targetLabel={targetLabel}
+            />
           )
         ) : (
           <div className="grid gap-4">
