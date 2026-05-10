@@ -2,7 +2,8 @@ name: nuget-oidc-publish
 description: >-
   Exchanges a GitHub OIDC token for a short-lived nuget.org API key via
   NuGet trusted publishing, pushes every .nupkg in the package directory
-  to nuget.org, and attaches the same files to the GitHub Release.
+  to nuget.org, attaches the same files to the GitHub Release, and then
+  publishes that release.
   The surrounding job must grant `id-token: write` and `contents: write`.
 
 inputs:
@@ -56,3 +57,13 @@ runs:
         gh release upload "${RELEASE_TAG}" "${FILES[@]}" \
           --repo "${GITHUB_REPOSITORY}" \
           --clobber
+
+    - name: Publish GitHub Release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ inputs.release-tag }}
+      run: |
+        gh release edit "${RELEASE_TAG}" \
+          --repo "${GITHUB_REPOSITORY}" \
+          --draft=false
