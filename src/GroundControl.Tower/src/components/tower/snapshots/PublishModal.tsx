@@ -21,6 +21,11 @@ interface PublishModalProps {
 
 type PublishStep = 'diff' | 'confirm';
 
+type ContinueBlockState = {
+  message: string;
+  tone: 'default' | 'warning' | 'critical';
+};
+
 export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }: PublishModalProps) {
   const [step, setStep] = useState<PublishStep>('diff');
   const [comment, setComment] = useState('');
@@ -37,6 +42,14 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
   const changeCount = summary.additions + summary.modifications + summary.deletions;
   const previewError = preview.isError ? toErrorMessage(preview.error) : null;
   const targetLabel = activeSnapshot.data ? `v${activeSnapshot.data.snapshotVersion} (active)` : 'active snapshot';
+  const continueBlockState = getContinueBlockState({
+    hasChanges,
+    loading,
+    previewError,
+    previewReady: !!preview.data,
+    staleBanner,
+  });
+  const canContinue = continueBlockState === null;
 
   useEffect(() => {
     if (open) {
@@ -120,8 +133,17 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
           <DialogFooter className={cn(maximized && 'shrink-0')}>
             {step === 'diff' ? (
               <>
+                {continueBlockState ? (
+                  <p
+                    className={cn(
+                      'w-full text-left text-[12px] text-badge-warning-fg sm:mr-auto sm:w-auto sm:self-center',
+                    )}
+                  >
+                    {continueBlockState.message}
+                  </p>
+                ) : null}
                 <Button onClick={() => onOpenChange(false)} type="button" variant="secondary">Cancel</Button>
-                <Button disabled={!hasChanges || !preview.data || staleBanner} onClick={() => setStep('confirm')} type="button">Continue</Button>
+                <Button disabled={!canContinue} onClick={() => setStep('confirm')} type="button">Continue</Button>
               </>
             ) : (
               <>
@@ -160,6 +182,42 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 export function summarizeChanges(before: Record<string, unknown>, after: Record<string, unknown>): ChangeSummary {
   return summarize(diffDocuments(before, after));
+}
+
+function getContinueBlockState({
+  hasChanges,
+  loading,
+  previewError,
+  previewReady,
+  staleBanner,
+}: {
+  hasChanges: boolean;
+  loading: boolean;
+  previewError: null | string;
+  previewReady: boolean;
+  staleBanner: boolean;
+}): ContinueBlockState | null {
+  if (previewError) {
+    return { message: previewError, tone: 'critical' };
+  }
+
+  if (staleBanner) {
+    return { message: 'Refresh the diff before continuing.', tone: 'warning' };
+  }
+
+  if (loading) {
+    return { message: 'Loading snapshot preview…', tone: 'default' };
+  }
+
+  if (!previewReady) {
+    return { message: 'Snapshot preview is not available yet.', tone: 'default' };
+  }
+
+  if (!hasChanges) {
+    return { message: 'No configuration changes to publish.', tone: 'default' };
+  }
+
+  return null;
 }
 
 function toErrorMessage(error: unknown): string {
