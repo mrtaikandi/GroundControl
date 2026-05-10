@@ -85,7 +85,7 @@ function ProjectLayout() {
             <Badge variant="neutral">{groupName}</Badge>
           </span>
         )}
-        titleClassName="font-mono text-[28px]"
+        titleClassName="text-[28px]"
       />
 
       <Tabs ariaLabel="Project sections" items={tabs} />
