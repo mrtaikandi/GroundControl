@@ -26,6 +26,7 @@ export function SnapshotDiffView({ baseline, changeCount, className, contentClas
   const diffLayout = useTweaksStore((state) => state.diffLayout);
   const lineWrap = useTweaksStore((state) => state.diffLineWrap);
   const setLineWrap = useTweaksStore((state) => state.setDiffLineWrap);
+  const masked = useTweaksStore((state) => state.sensitiveMasked);
 
   if (isLoading) {
     return <Skeleton className="h-[520px]" />;
@@ -69,7 +70,7 @@ export function SnapshotDiffView({ baseline, changeCount, className, contentClas
           ) : null}
         </div>
       </div>
-      <JsonDiff after={entriesToDocument(snapshot?.entries)} bare before={entriesToDocument(baseline?.entries)} className={cn('min-h-0 flex-1 overflow-auto', contentClassName)} mode={diffLayout} />
+      <JsonDiff after={entriesToDocument(snapshot?.entries, { maskSensitive: masked })} bare before={entriesToDocument(baseline?.entries, { maskSensitive: masked })} className={cn('min-h-0 flex-1 overflow-auto', contentClassName)} mode={diffLayout} />
     </div>
   );
 }

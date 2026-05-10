@@ -70,6 +70,7 @@ export function PublishModal({ activeSnapshotId, onOpenChange, open, projectId }
       onOpenChange(false);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
+        setStep('diff');
         setStaleBanner(true);
       }
     }

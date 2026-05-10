@@ -9,26 +9,28 @@ export interface ResolvableEntry {
   valueType: string;
 }
 
-export function snapshotToDocument(snapshot?: SnapshotDetail): Record<string, unknown> {
-  return entriesToDocument(snapshot?.entries);
+export function snapshotToDocument(snapshot?: SnapshotDetail, options: { maskSensitive?: boolean } = {}): Record<string, unknown> {
+  return entriesToDocument(snapshot?.entries, options);
 }
 
-export function entriesToDocument(entries: readonly ResolvableEntry[] | undefined): Record<string, unknown> {
+export function entriesToDocument(entries: readonly ResolvableEntry[] | undefined, options: { maskSensitive?: boolean } = {}): Record<string, unknown> {
   const document: Record<string, unknown> = {};
 
   for (const entry of entries ?? []) {
-    setPath(document, entry.key.split(':').filter(Boolean), entryToValue(entry));
+    setPath(document, entry.key.split(':').filter(Boolean), entryToValue(entry, options));
   }
 
   return document;
 }
 
-function entryToValue(entry: ResolvableEntry): unknown {
+function entryToValue(entry: ResolvableEntry, options: { maskSensitive?: boolean }): unknown {
+  const mask = options.maskSensitive && entry.isSensitive;
+
   if (entry.values.length === 1 && Object.keys(entry.values[0]?.scopes ?? {}).length === 0) {
-    return coerceValue(entry.values[0]?.value ?? null, entry.valueType);
+    return mask ? '••••••••' : coerceValue(entry.values[0]?.value ?? null, entry.valueType);
   }
 
-  return Object.fromEntries(entry.values.map((value) => [scopeLabel(value.scopes), coerceValue(value.value, entry.valueType)]));
+  return Object.fromEntries(entry.values.map((value) => [scopeLabel(value.scopes), mask ? '••••••••' : coerceValue(value.value, entry.valueType)]));
 }
 
 function scopeLabel(scopes: null | Record<string, string> | undefined) {
