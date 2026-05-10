@@ -499,6 +499,7 @@ docs/superpowers/
 
 # Project specific files and folders
 planning/
+.planning/
 tmp/
 appsettings.local.json
 samples/GroundControl.Samples.LinkConsole/groundcontrol-cache.json
