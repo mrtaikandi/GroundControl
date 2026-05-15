@@ -41,17 +41,17 @@ export const ConfigListView = forwardRef<ConfigListViewHandle, ConfigListViewPro
   );
   const columns = useMemo(() => {
     const baseColumns = [
-      columnHelper.accessor((row) => row.entry.key, { cell: (info) => <span className="font-semibold text-fg-heading [overflow-wrap:anywhere]">{info.getValue()}</span>, header: 'Key', id: 'key' }),
-      columnHelper.accessor((row) => row.entry.valueType, { cell: (info) => <Badge variant="neutral">{info.getValue()}</Badge>, header: 'Type', id: 'valueType' }),
-      columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.entry.isSensitive} value={defaultValue(info.row.original.entry)} />, header: 'Default Value', id: 'defaultValue' }),
-      columnHelper.display({ cell: (info) => <Badge variant="info">{scopeCount(info.row.original.entry)} scopes</Badge>, header: 'Scopes', id: 'scopes' }),
+      columnHelper.accessor((row) => row.entry.key, { cell: (info) => <span className="font-semibold text-fg-heading [overflow-wrap:anywhere]">{info.getValue()}</span>, header: 'Key', id: 'key', size: 400, minSize: 120 }),
+      columnHelper.accessor((row) => row.entry.valueType, { cell: (info) => <Badge variant="neutral">{info.getValue()}</Badge>, header: 'Type', id: 'valueType', size: 110, minSize: 80 }),
+      columnHelper.display({ cell: (info) => <SensitiveValue isSensitive={info.row.original.entry.isSensitive} value={defaultValue(info.row.original.entry)} />, header: 'Default Value', id: 'defaultValue', size: 280, minSize: 120 }),
+      columnHelper.display({ cell: (info) => <Badge variant="info">{scopeCount(info.row.original.entry)} scopes</Badge>, header: 'Scopes', id: 'scopes', size: 110, minSize: 80 }),
     ];
 
     if (owner.kind === 'project') {
-      baseColumns.push(columnHelper.display({ cell: (info) => <OwnerBadge source={info.row.original.source} />, header: 'Owner', id: 'owner' }));
+      baseColumns.push(columnHelper.display({ cell: (info) => <OwnerBadge source={info.row.original.source} />, header: 'Owner', id: 'owner', size: 170, minSize: 100 }));
     }
 
-    baseColumns.push(columnHelper.accessor((row) => row.entry.updatedAt, { cell: (info) => relativeDate(info.getValue()), header: 'Updated', id: 'updatedAt' }));
+    baseColumns.push(columnHelper.accessor((row) => row.entry.updatedAt, { cell: (info) => relativeDate(info.getValue()), header: 'Updated', id: 'updatedAt', size: 130, minSize: 90 }));
     baseColumns.push(columnHelper.display({
       cell: (info) => {
         const item = info.row.original;
@@ -65,13 +65,25 @@ export const ConfigListView = forwardRef<ConfigListViewHandle, ConfigListViewPro
           </div>
         );
       },
+      enableResizing: false,
       header: '',
       id: 'actions',
+      size: 80,
     }));
 
     return baseColumns;
   }, [owner.kind]);
-  const table = useReactTable({ columns, data, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), onSortingChange: setSorting, state: { sorting } });
+  const table = useReactTable({
+    columnResizeMode: 'onChange',
+    columns,
+    data,
+    defaultColumn: { minSize: 60, size: 150 },
+    enableColumnResizing: true,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
+    state: { sorting },
+  });
 
   useImperativeHandle(ref, () => ({
     openCreate: () => setCreating(true),
@@ -93,11 +105,28 @@ export const ConfigListView = forwardRef<ConfigListViewHandle, ConfigListViewPro
 
         <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="table-fixed min-w-full" style={{ width: table.getTotalSize() }}>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}
+                    {headerGroup.headers.map((header) => (
+                      <TableHead className="group/th relative" key={header.id} style={{ width: header.getSize() }}>
+                        {header.isPlaceholder ? null : (
+                          <div className="truncate">{flexRender(header.column.columnDef.header, header.getContext())}</div>
+                        )}
+                        {header.column.getCanResize() ? (
+                          <div
+                            aria-hidden="true"
+                            className={`absolute -right-1 top-0 flex h-full w-2 cursor-col-resize touch-none select-none items-stretch justify-center ${header.column.getIsResizing() ? 'z-10' : ''}`}
+                            onClick={(event) => event.stopPropagation()}
+                            onMouseDown={header.getResizeHandler()}
+                            onTouchStart={header.getResizeHandler()}
+                          >
+                            <span className={`w-px transition-colors ${header.column.getIsResizing() ? 'bg-stroke-field-focus' : 'bg-transparent group-hover/th:bg-stroke-subtle hover:bg-stroke-field-focus'}`} />
+                          </div>
+                        ) : null}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 ))}
               </TableHeader>
@@ -111,7 +140,11 @@ export const ConfigListView = forwardRef<ConfigListViewHandle, ConfigListViewPro
                       key={row.id}
                       onClick={isInherited ? undefined : () => setEditingEntry(row.original.entry)}
                     >
-                      {row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   );
                 })}
@@ -141,7 +174,12 @@ function OwnerBadge({ source }: { source: EntrySource }) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <span><Badge className="gap-1.5" variant="info"><Layers3 aria-hidden="true" className="size-3.5" strokeWidth={1.8} />{source.templateName}</Badge></span>
+          <span className="inline-flex min-w-0 max-w-full">
+            <Badge className="min-w-0 max-w-full gap-1.5" variant="info">
+              <Layers3 aria-hidden="true" className="size-3.5 shrink-0" strokeWidth={1.8} />
+              <span className="truncate">{source.templateName}</span>
+            </Badge>
+          </span>
         </TooltipTrigger>
         <TooltipContent>Inherited from {source.templateName} template</TooltipContent>
       </Tooltip>
@@ -151,7 +189,11 @@ function OwnerBadge({ source }: { source: EntrySource }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span><Badge variant="warning">Overrides · {source.templateName}</Badge></span>
+        <span className="inline-flex min-w-0 max-w-full">
+          <Badge className="min-w-0 max-w-full" variant="warning">
+            <span className="truncate">Overrides · {source.templateName}</span>
+          </Badge>
+        </span>
       </TooltipTrigger>
       <TooltipContent>Project entry overrides {source.templateName}</TooltipContent>
     </Tooltip>
