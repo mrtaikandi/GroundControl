@@ -1,5 +1,5 @@
 import { Check, ChevronDown, GitCompareArrows, Search } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/tower/data/Badge';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -40,14 +40,6 @@ export function CompareSnapshotPicker({
     [compareSnapshotId, snapshots],
   );
 
-  useEffect(() => {
-    if (open) {
-      setSearch('');
-      // Defer focus until the popover content has mounted.
-      requestAnimationFrame(() => searchRef.current?.focus());
-    }
-  }, [open]);
-
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) {
@@ -66,7 +58,7 @@ export function CompareSnapshotPicker({
     : 'Compare';
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(next) => { if (next) { setSearch(''); } setOpen(next); }}>
       <PopoverTrigger
         aria-pressed={active}
         className={cn(
@@ -81,7 +73,14 @@ export function CompareSnapshotPicker({
         {label}
         <ChevronDown aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80 p-0">
+      <PopoverContent
+        align="start"
+        className="w-80 p-0"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          searchRef.current?.focus();
+        }}
+      >
         <div className="flex items-center gap-2 border-b border-stroke-subtle px-3 py-2">
           <Search aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />
           <Input
