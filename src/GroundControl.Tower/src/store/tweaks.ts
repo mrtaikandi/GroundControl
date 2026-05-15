@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 export type Theme = 'light' | 'dark';
 export type ConfigViewMode = 'list' | 'tree' | 'json';
-export type SnapshotViewMode = 'diff' | 'json' | 'json-diff';
+export type SnapshotViewMode = 'compare' | 'json';
 export type DiffLayout = 'inline' | 'split';
 
 interface TweaksState {
@@ -43,16 +43,24 @@ export const useTweaksStore = create<TweaksState>()(
         set({ theme });
         applyToDocument(theme);
       },
-      snapshotViewMode: 'diff',
+      snapshotViewMode: 'compare',
       theme: 'light',
     }),
     {
       name: 'tower.tweaks',
       // v1: configViewMode 'flat' renamed to 'list'.
-      version: 1,
+      // v2: snapshotViewMode 'diff'|'json-diff' collapsed into 'compare'.
+      version: 2,
       migrate: (persistedState, version) => {
         if (version < 1 && persistedState && typeof persistedState === 'object' && (persistedState as { configViewMode?: string }).configViewMode === 'flat') {
           (persistedState as { configViewMode: ConfigViewMode }).configViewMode = 'list';
+        }
+
+        if (version < 2 && persistedState && typeof persistedState === 'object') {
+          const legacy = (persistedState as { snapshotViewMode?: string }).snapshotViewMode;
+          if (legacy === 'diff' || legacy === 'json-diff') {
+            (persistedState as { snapshotViewMode: SnapshotViewMode }).snapshotViewMode = 'compare';
+          }
         }
 
         return persistedState as TweaksState;
