@@ -12,15 +12,15 @@ namespace GroundControl.Cli.Features.Tui.Views;
 internal sealed class MainWindow : Window
 {
     private readonly IApplication _app;
-    private readonly TabView _tabView;
-    private readonly Dictionary<Tab, IRefreshable> _refreshables = [];
+    private readonly Tabs _tabView;
+    private readonly Dictionary<View, IRefreshable> _refreshables = [];
 
     public MainWindow(IApplication app, string serverUrl, string authMethod, IGroundControlClient client)
     {
         _app = app;
         Title = "GroundControl";
 
-        _tabView = new TabView
+        _tabView = new Tabs
         {
             X = 0,
             Y = 0,
@@ -41,9 +41,10 @@ internal sealed class MainWindow : Window
         AddResourceTab("PATs", new PatViewModel(client));
         AddResourceTab("Audit", new AuditViewModel(client));
 
-        if (_tabView.Tabs.Count > 0)
+        var firstTab = _tabView.TabCollection.FirstOrDefault();
+        if (firstTab is not null)
         {
-            _tabView.SelectedTab = _tabView.Tabs.First();
+            _tabView.Value = firstTab;
         }
 
         Add(_tabView);
@@ -82,7 +83,8 @@ internal sealed class MainWindow : Window
             Width = Dim.Fill(),
             Height = Dim.Fill(),
             CanFocus = true,
-            TabStop = TabBehavior.TabGroup
+            TabStop = TabBehavior.TabGroup,
+            Title = name
         };
 
         var listView = new ResourceListView<T>(viewModel, _app);
@@ -92,21 +94,15 @@ internal sealed class MainWindow : Window
 
         container.Add(listView, detailView);
 
-        var tab = new Tab
-        {
-            DisplayText = name,
-            View = container
-        };
-
-        _tabView.AddTab(tab, false);
-        _refreshables[tab] = listView;
+        _tabView.Add(container);
+        _refreshables[container] = listView;
 
         listView.RefreshList();
     }
 
     private void RefreshActiveTab()
     {
-        if (_tabView.SelectedTab is { } selectedTab && _refreshables.TryGetValue(selectedTab, out var refreshable))
+        if (_tabView.Value is { } selectedTab && _refreshables.TryGetValue(selectedTab, out var refreshable))
         {
             refreshable.Refresh();
         }
