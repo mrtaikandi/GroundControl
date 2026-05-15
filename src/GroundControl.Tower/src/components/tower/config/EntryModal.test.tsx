@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EntryModal } from './EntryModal';
 import type { ConfigEntry } from '@/queries/useConfigEntries';
 
@@ -10,13 +10,14 @@ vi.mock('@/queries/useScopes', () => ({
   useScopes: () => ({ data: { data: [] } }),
 }));
 
+const updateEntryMock = vi.fn();
 vi.mock('@/queries/useConfigEntries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/queries/useConfigEntries')>();
   return {
     ...actual,
     useCreateEntry: () => ({ isPending: false, mutateAsync: vi.fn() }),
     useDeleteEntry: () => ({ isPending: false, mutateAsync: vi.fn() }),
-    useUpdateEntry: () => ({ isPending: false, mutateAsync: vi.fn() }),
+    useUpdateEntry: () => ({ isPending: false, mutateAsync: updateEntryMock }),
   };
 });
 
@@ -31,6 +32,25 @@ function renderWithClient(ui: ReactNode) {
 }
 
 const SENSITIVE_MASK = '***';
+
+function buildEntry(overrides: Partial<ConfigEntry> = {}): ConfigEntry {
+  return {
+    createdAt: '2026-01-01T00:00:00Z',
+    createdBy: '00000000-0000-0000-0000-000000000000',
+    description: null,
+    id: '33333333-3333-3333-3333-333333333333',
+    isSensitive: false,
+    key: 'App:ServiceName',
+    ownerId: '22222222-2222-2222-2222-222222222222',
+    ownerType: 1,
+    updatedAt: '2026-01-01T00:00:00Z',
+    updatedBy: '00000000-0000-0000-0000-000000000000',
+    valueType: 'String',
+    values: [{ scopes: {}, value: 'checkout-api' }],
+    version: '1',
+    ...overrides,
+  } as ConfigEntry;
+}
 
 function buildSensitiveEntry(): ConfigEntry {
   return {
@@ -51,6 +71,12 @@ function buildSensitiveEntry(): ConfigEntry {
 }
 
 describe('EntryModal', () => {
+  beforeEach(() => {
+    updateEntryMock.mockReset();
+    updateEntryMock.mockResolvedValue(undefined);
+    getConfigEntryMock.mockReset();
+  });
+
   it('rejects invalid key characters', async () => {
     const user = userEvent.setup();
 
@@ -59,7 +85,44 @@ describe('EntryModal', () => {
     await user.type(screen.getByLabelText('Key'), 'bad key!');
     await user.click(screen.getByRole('button', { name: 'Create entry' }));
 
-    expect(await screen.findByText('Use letters, numbers, colons, dots, underscores, and hyphens only')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Key must start with a letter and contain only letters, digits, colons, dots, underscores, or hyphens'),
+    ).toBeInTheDocument();
+  });
+
+  it('rejects keys that do not start with a letter', async () => {
+    const user = userEvent.setup();
+
+    renderWithClient(<EntryModal mode="create" onOpenChange={vi.fn()} open projectId="project-1" />);
+
+    await user.type(screen.getByLabelText('Key'), '1leading-digit');
+    await user.click(screen.getByRole('button', { name: 'Create entry' }));
+
+    expect(
+      await screen.findByText('Key must start with a letter and contain only letters, digits, colons, dots, underscores, or hyphens'),
+    ).toBeInTheDocument();
+  });
+
+  it('submits the renamed key when editing an entry', async () => {
+    const user = userEvent.setup();
+
+    renderWithClient(
+      <EntryModal entry={buildEntry()} mode="edit" onOpenChange={vi.fn()} open projectId="project-1" />,
+    );
+
+    const keyInput = screen.getByLabelText('Key') as HTMLInputElement;
+    expect(keyInput).not.toBeDisabled();
+    expect(keyInput.value).toBe('App:ServiceName');
+
+    await user.clear(keyInput);
+    await user.type(keyInput, 'App:RenamedServiceName');
+    await user.click(screen.getByRole('button', { name: 'Save entry' }));
+
+    await waitFor(() => expect(updateEntryMock).toHaveBeenCalledTimes(1));
+    const [variables] = updateEntryMock.mock.calls[0];
+    expect(variables.body.key).toBe('App:RenamedServiceName');
+    expect(variables.id).toBe('33333333-3333-3333-3333-333333333333');
+    expect(variables.version).toBe('1');
   });
 
   it('locks the form for masked sensitive entries until reveal succeeds', async () => {

@@ -234,7 +234,7 @@ export interface paths {
         get: operations["GetConfigEntryHandler"];
         /**
          * Update a configuration entry
-         * @description Updates an existing configuration entry. Requires an If-Match header with the current ETag value.
+         * @description Updates an existing configuration entry, including its key. Requires an If-Match header with the current ETag value.
          */
         put: operations["UpdateConfigEntryHandler"];
         post?: never;
@@ -1084,7 +1084,10 @@ export interface components {
         };
         /** @description Represents the request body for creating a configuration entry. */
         CreateConfigEntryRequest: {
-            /** @description Gets the configuration key. */
+            /**
+             * @description Gets the configuration key. Must start with a letter and contain only letters, digits, or
+             *     the separators `.`, `:`, `_`, `-`.
+             */
             key: string;
             /**
              * Format: uuid
@@ -1817,6 +1820,11 @@ export interface components {
         };
         /** @description Represents the request body for updating a configuration entry. */
         UpdateConfigEntryRequest: {
+            /**
+             * @description Gets the configuration key. Must start with a letter and contain only letters, digits, or
+             *     the separators `.`, `:`, `_`, `-`.
+             */
+            key: string;
             /** @description Gets the value type name. */
             valueType: string;
             /** @description Gets the scope-specific values. */
