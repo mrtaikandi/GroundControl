@@ -60,9 +60,12 @@ function ClientsRoute() {
 
       <PageContent>
         <div className="grid gap-8 pt-8">
-          {allClients.isLoading ? <Skeleton className="h-80" /> : null}
+          {/* useAllClients aggregates per-project queries; its data fills in progressively while
+              isLoading stays true until the last project resolves. Suppress the skeleton as soon
+              as any data arrives so it doesn't render alongside partially-loaded results. */}
+          {allClients.isLoading && allClients.data.length === 0 ? <Skeleton className="h-80" /> : null}
           {!allClients.isLoading && allClients.data.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No clients yet.</div> : null}
-          {!allClients.isLoading && allClients.data.length > 0 && filtered.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No clients match the current filter.</div> : null}
+          {allClients.data.length > 0 && filtered.length === 0 ? <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">No clients match the current filter.</div> : null}
           {filtered.length > 0 ? (
             <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
               <ul className="grid divide-y divide-stroke-subtle">

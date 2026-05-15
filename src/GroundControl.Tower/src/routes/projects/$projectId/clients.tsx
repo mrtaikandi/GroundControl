@@ -32,29 +32,39 @@ function ClientsRoute() {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-end">    
+      <div className="flex flex-wrap items-center justify-end">
         <NewClientModal projectId={projectId} />
       </div>
 
-      {clients.isLoading ? <Skeleton className="h-96" /> : (
-        <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow className={row.original.isActive ? undefined : 'opacity-60'} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
-                ))}
-                {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No client credentials found.</TableCell></TableRow> : null}
-              </TableBody>
-            </Table>
-          </div>
+      <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>{headerGroup.headers.map((header) => <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>)}</TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {clients.isLoading ? (
+                Array.from({ length: 4 }).map((_, rowIndex) => (
+                  <TableRow key={`skeleton-${rowIndex}`}>
+                    {columns.map((_column, cellIndex) => (
+                      <TableCell key={cellIndex}><Skeleton className="h-4 w-3/4" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow className={row.original.isActive ? undefined : 'opacity-60'} key={row.id}>{row.getVisibleCells().map((cell) => <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)}</TableRow>
+                  ))}
+                  {table.getRowModel().rows.length === 0 ? <TableRow><TableCell className="py-10 text-center text-fg-caption" colSpan={columns.length}>No client credentials found.</TableCell></TableRow> : null}
+                </>
+              )}
+            </TableBody>
+          </Table>
         </div>
-      )}
+      </div>
       <RevokeClientDialog client={clientToRevoke} onOpenChange={(open) => { if (!open) { setClientToRevoke(null); } }} open={clientToRevoke !== null} projectId={projectId} />
     </div>
   );
