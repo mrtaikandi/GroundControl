@@ -210,7 +210,7 @@ namespace GroundControl.Api.Client.Contracts
         /// Update a configuration entry
         /// </summary>
         /// <remarks>
-        /// Updates an existing configuration entry, including its key. Requires an If-Match header with the current ETag value.
+        /// Updates an existing configuration entry. Requires an If-Match header with the current ETag value.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="GroundControlApiClientException">A server side error occurred.</exception>
