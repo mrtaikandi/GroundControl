@@ -1,21 +1,34 @@
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { ExternalLink, Globe, Lock, Plus, Users } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Globe, Lock, Pencil, Plus, Users, Variable as VariableIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EntryValue } from '@/components/tower/config/EntryValue';
 import { scopedValueKey, type EntryReveal } from '@/components/tower/config/use-entry-reveal';
 import { Badge } from '@/components/tower/data/Badge';
-import { SearchFilterPopover } from '@/components/tower/data/SearchFilterPopover';
+import { InlineCode } from '@/components/tower/data/InlineCode';
+import { Toolbar } from '@/components/tower/data/Toolbar';
 import { VariableEditorModal } from '@/components/tower/variables/VariableEditorModal';
 import { getVariable } from '@/api/endpoints/variables';
+import { cn } from '@/lib/utils';
 import { useGroups } from '@/queries/useGroups';
 import { useProjects } from '@/queries/useProjects';
 import { useVariables, type Variable } from '@/queries/useVariables';
 
 const SENSITIVE_MASK = '***';
+
+type VariableTier = 'project' | 'inherited';
+
+interface DisplayVariable {
+  shadowed: boolean;
+  shadowsProject: boolean;
+  tier: VariableTier;
+  variable: Variable;
+}
 
 export const Route = createFileRoute('/projects/$projectId/variables')({
   component: ProjectVariablesRoute,
@@ -30,261 +43,411 @@ function ProjectVariablesRoute() {
   const groups = useGroups();
   const [creating, setCreating] = useState(false);
   const [editingVariable, setEditingVariable] = useState<Variable | undefined>();
-  const [search, setSearch] = useState<string | undefined>(undefined);
+  const [filter, setFilter] = useState('');
+  const [selectedId, setSelectedId] = useState<null | string>(null);
+  const [projectSectionCollapsed, setProjectSectionCollapsed] = useState(false);
+  const [inheritedSectionCollapsed, setInheritedSectionCollapsed] = useState(false);
   const groupNames = useMemo(() => new Map((groups.data?.data ?? []).map((group) => [group.id, group.name])), [groups.data?.data]);
 
   const projectItems = projectVariables.data?.data ?? [];
   const visibleGlobals = useMemo(() => {
     const globals = allGlobals.data?.data ?? [];
-
     return globals.filter((variable) => !variable.groupId || variable.groupId === project?.groupId);
   }, [allGlobals.data?.data, project?.groupId]);
 
-  const projectVariableNames = useMemo(() => new Set(projectItems.map((variable) => variable.name.toLowerCase())), [projectItems]);
+  const projectNameSet = useMemo(() => new Set(projectItems.map((variable) => variable.name.toLowerCase())), [projectItems]);
+  const globalNameSet = useMemo(() => new Set(visibleGlobals.map((variable) => variable.name.toLowerCase())), [visibleGlobals]);
 
-  const filteredProject = useMemo(() => filterByText(projectItems, search, groupNames), [groupNames, projectItems, search]);
-  const filteredGlobals = useMemo(() => filterByText(visibleGlobals, search, groupNames), [groupNames, search, visibleGlobals]);
+  const projectDisplay: DisplayVariable[] = useMemo(() => projectItems.map<DisplayVariable>((variable) => ({
+    shadowed: false,
+    shadowsProject: globalNameSet.has(variable.name.toLowerCase()),
+    tier: 'project',
+    variable,
+  })), [globalNameSet, projectItems]);
+
+  const inheritedDisplay: DisplayVariable[] = useMemo(() => visibleGlobals.map<DisplayVariable>((variable) => ({
+    shadowed: projectNameSet.has(variable.name.toLowerCase()),
+    shadowsProject: false,
+    tier: 'inherited',
+    variable,
+  })), [projectNameSet, visibleGlobals]);
+
+  const filteredProject = useMemo(() => filterByText(projectDisplay, filter, groupNames), [filter, groupNames, projectDisplay]);
+  const filteredInherited = useMemo(() => filterByText(inheritedDisplay, filter, groupNames), [filter, groupNames, inheritedDisplay]);
 
   const isLoading = projectVariables.isLoading || allGlobals.isLoading;
+  const isEmpty = !isLoading && projectItems.length === 0 && visibleGlobals.length === 0;
+
+  const allDisplay = useMemo(() => [...projectDisplay, ...inheritedDisplay], [inheritedDisplay, projectDisplay]);
+  const selected = useMemo(() => allDisplay.find((item) => item.variable.id === selectedId) ?? null, [allDisplay, selectedId]);
+
+  useEffect(() => {
+    setSelectedId(null);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (selectedId !== null || allDisplay.length === 0) {
+      return;
+    }
+
+    const firstVisible = filteredProject[0]?.variable.id ?? filteredInherited[0]?.variable.id;
+
+    if (firstVisible) {
+      setSelectedId(firstVisible);
+    }
+  }, [allDisplay.length, filteredInherited, filteredProject, selectedId]);
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[12.5px] text-fg-caption">
-            Project variables shadow globals with the same name when this project resolves a snapshot.
-          </p>
+    <TooltipProvider>
+      <div className="grid gap-4">
+        <Toolbar
+          startClassName="flex-1"
+          start={
+            <div className="flex flex-wrap items-center gap-3">
+              <Input className="w-full sm:max-w-sm" onChange={(event) => setFilter(event.target.value)} placeholder="Filter variables…" value={filter} />
+              <Button onClick={() => setCreating(true)} size="sm" type="button">
+                <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
+                <span>New variable</span>
+              </Button>
+            </div>
+          }
+        />
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,600px)]">
+          <div className="flex flex-col gap-3">
+            {isLoading ? <Skeleton className="min-h-96 flex-1" /> : isEmpty ? (
+              <div className="rounded-xl border border-dashed border-stroke-subtle bg-bg-surface p-10 text-center text-[12.5px] text-fg-caption">
+                No variables yet. Use the button above to add one.
+              </div>
+            ) : (
+              <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+                <SectionHeader
+                  collapsed={projectSectionCollapsed}
+                  count={filteredProject.length}
+                  description=""
+                  onToggle={() => setProjectSectionCollapsed((current) => !current)}
+                  title="Project variables"
+                  totalCount={projectDisplay.length}
+                />
+                {!projectSectionCollapsed ? (
+                  filteredProject.length === 0 ? (
+                    <div className="px-4 py-3 text-[12px] text-fg-caption">
+                      {projectDisplay.length === 0 ? 'No project variables defined.' : 'No project variables match the filter.'}
+                    </div>
+                  ) : (
+                    filteredProject.map((item) => (
+                      <VariableRow
+                        item={item}
+                        key={item.variable.id}
+                        onEdit={setEditingVariable}
+                        onSelect={setSelectedId}
+                        ownerLabelFor={ownerLabelFor(groupNames)}
+                        selected={selectedId === item.variable.id}
+                      />
+                    ))
+                  )
+                ) : null}
+
+                {inheritedDisplay.length > 0 ? (
+                  <>
+                    <SectionHeader
+                      collapsed={inheritedSectionCollapsed}
+                      count={filteredInherited.length}
+                      description="read-only · resolved from group and global variables"
+                      onToggle={() => setInheritedSectionCollapsed((current) => !current)}
+                      title="Inherited variables"
+                      totalCount={inheritedDisplay.length}
+                    />
+                    {!inheritedSectionCollapsed ? (
+                      filteredInherited.length === 0 ? (
+                        <div className="px-4 py-3 text-[12px] text-fg-caption">No globals match the filter.</div>
+                      ) : (
+                        filteredInherited.map((item) => (
+                          <VariableRow
+                            item={item}
+                            key={item.variable.id}
+                            onEdit={setEditingVariable}
+                            onSelect={setSelectedId}
+                            ownerLabelFor={ownerLabelFor(groupNames)}
+                            selected={selectedId === item.variable.id}
+                          />
+                        ))
+                      )
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          <div className="self-start">
+            <VariableDetailPanel
+              groupNames={groupNames}
+              item={selected}
+              onAddOverride={() => selected && selected.tier === 'project' && setEditingVariable(selected.variable)}
+              onEdit={() => selected && selected.tier === 'project' && setEditingVariable(selected.variable)}
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <SearchFilterPopover
-            appliedSearch={search}
-            ariaLabel="Filter variables"
-            onApply={setSearch}
-            placeholder="Variable name or description"
-          />
-          <Button onClick={() => setCreating(true)} type="button">
-            <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
-            <span>New Project Variable</span>
-          </Button>
-        </div>
+
+        <VariableEditorModal
+          mode="create"
+          onOpenChange={setCreating}
+          open={creating}
+          tier={{ kind: 'project', projectId }}
+        />
+        <VariableEditorModal
+          mode="edit"
+          onOpenChange={(open) => !open && setEditingVariable(undefined)}
+          open={Boolean(editingVariable)}
+          tier={{ kind: 'project', projectId }}
+          variable={editingVariable}
+        />
       </div>
-
-      <section className="grid gap-3">
-        <SectionHeader count={projectItems.length} description="" title="Project Variables" />
-        {isLoading ? <Skeleton className="h-40" /> : null}
-        {!isLoading && projectItems.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-stroke-subtle bg-bg-surface p-6 text-center text-[12.5px] text-fg-caption">
-            No project variables. Use the button above to add one.
-          </div>
-        ) : null}
-        {!isLoading && projectItems.length > 0 && filteredProject.length === 0 ? (
-          <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-6 text-center text-[12.5px] text-fg-caption">
-            No project variables match the current filter.
-          </div>
-        ) : null}
-        {filteredProject.length > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-            <ul className="grid divide-y divide-stroke-subtle">
-              {filteredProject.map((variable) => (
-                <ProjectVariableRow
-                  key={variable.id}
-                  onEdit={() => setEditingVariable(variable)}
-                  shadowsGlobal={visibleGlobals.some((global) => global.name.toLowerCase() === variable.name.toLowerCase())}
-                  variable={variable}
-                />
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="grid gap-3">
-        <SectionHeader count={visibleGlobals.length} description="" title="Inherited Variables" />
-        {isLoading ? <Skeleton className="h-40" /> : null}
-        {!isLoading && visibleGlobals.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-stroke-subtle bg-bg-surface p-6 text-center text-[12.5px] text-fg-caption">
-            No globals are visible to this project.
-          </div>
-        ) : null}
-        {!isLoading && visibleGlobals.length > 0 && filteredGlobals.length === 0 ? (
-          <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-6 text-center text-[12.5px] text-fg-caption">
-            No globals match the current filter.
-          </div>
-        ) : null}
-        {filteredGlobals.length > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-            <ul className="grid divide-y divide-stroke-subtle">
-              {filteredGlobals.map((variable) => (
-                <GlobalVariableRow
-                  groupNames={groupNames}
-                  key={variable.id}
-                  shadowedByProject={projectVariableNames.has(variable.name.toLowerCase())}
-                  variable={variable}
-                />
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </section>
-
-      <VariableEditorModal
-        mode="create"
-        onOpenChange={setCreating}
-        open={creating}
-        tier={{ kind: 'project', projectId }}
-      />
-      <VariableEditorModal
-        mode="edit"
-        onOpenChange={(open) => !open && setEditingVariable(undefined)}
-        open={Boolean(editingVariable)}
-        tier={{ kind: 'project', projectId }}
-        variable={editingVariable}
-      />
-    </div>
+    </TooltipProvider>
   );
 }
 
 interface SectionHeaderProps {
+  collapsed: boolean;
   count: number;
   description: string;
+  onToggle: () => void;
   title: string;
+  totalCount: number;
 }
 
-function SectionHeader({ count, description, title }: SectionHeaderProps) {
+function SectionHeader({ collapsed, count, description, onToggle, title, totalCount }: SectionHeaderProps) {
   return (
-    <div className="flex items-baseline gap-3">
-      <h2 className="text-[14px] font-semibold text-fg-heading">{title}</h2>
-      <span className="rounded-md bg-bg-container px-2 py-0.5 font-mono text-[11px] text-fg-caption">{count}</span>
-      <p className="text-[12px] text-fg-caption">{description}</p>
+    <button
+      className="flex items-center justify-between gap-3 border-b border-stroke-subtle bg-bg-container px-4 py-2 text-left transition-colors hover:bg-bg-selected/40"
+      onClick={onToggle}
+      type="button"
+    >
+      <div className="flex items-center gap-2">
+        {collapsed ? <ChevronRight aria-hidden="true" className="size-3.5 text-fg-icon-subtle" /> : <ChevronDown aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />}
+        <span className="font-mono text-[11px] uppercase tracking-wide text-fg-caption">{title}</span>
+        <span className="rounded-md bg-bg-surface px-1.5 py-0.5 font-mono text-[11px] text-fg-caption">{count === totalCount ? totalCount : `${count}/${totalCount}`}</span>
+      </div>
+      <span className="text-[11.5px] text-fg-caption">{description}</span>
+    </button>
+  );
+}
+
+interface VariableRowProps {
+  item: DisplayVariable;
+  onEdit: (variable: Variable) => void;
+  onSelect: (id: string) => void;
+  ownerLabelFor: (variable: Variable) => string;
+  selected: boolean;
+}
+
+function VariableRow({ item, onEdit, onSelect, ownerLabelFor, selected }: VariableRowProps) {
+  const { tier, variable, shadowed, shadowsProject } = item;
+  const overrides = variable.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0).length;
+  const summaryParts: string[] = [];
+
+  if (tier === 'project') {
+    if (shadowsProject) {
+      summaryParts.push('shadows global');
+    }
+
+    if (overrides > 0) {
+      summaryParts.push(`${overrides} override${overrides === 1 ? '' : 's'}`);
+    }
+  } else {
+    summaryParts.push(ownerLabelFor(variable));
+
+    if (variable.isSensitive) {
+      summaryParts.push('sensitive');
+    }
+
+    if (shadowed) {
+      summaryParts.push('shadowed here');
+    }
+  }
+
+  const Icon = tier === 'project'
+    ? variable.isSensitive ? Lock : VariableIcon
+    : variable.groupId ? Users : Globe;
+
+  return (
+    <div
+      className={cn(
+        'group relative grid w-full cursor-pointer items-center gap-3 border-b border-stroke-subtle px-4 py-2.5 text-left text-[13px] last:border-b-0 hover:bg-bg-container',
+        'grid-cols-[16px_minmax(0,1fr)] sm:grid-cols-[16px_minmax(0,1fr)_auto]',
+        selected && 'bg-bg-selected before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-primary',
+        shadowed && 'opacity-70',
+      )}
+      onClick={() => onSelect(variable.id)}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(variable.id); } }}
+      role="button"
+      tabIndex={0}
+    >
+      <Icon aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />
+      <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="font-mono text-[13px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{variable.name}</span>
+        {summaryParts.length > 0 ? (
+          <span className="text-[12px] text-fg-caption">{summaryParts.join(' · ')}</span>
+        ) : null}
+      </span>
+      <div className="col-start-2 flex flex-wrap justify-start gap-1 opacity-100 transition-opacity sm:col-start-auto sm:justify-end sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+        {tier === 'project' ? (
+          <Button onClick={(event) => { event.stopPropagation(); onEdit(variable); }} size="sm" type="button" variant="ghost">Edit</Button>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild onClick={(event) => event.stopPropagation()} size="sm" type="button" variant="ghost">
+                <Link to="/variables">
+                  <VariableIcon aria-hidden="true" className="size-3.5" />
+                  Variables
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Open {variable.name} in Globals</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </div>
   );
 }
 
-interface ProjectVariableRowProps {
+interface VariableDetailPanelProps {
+  groupNames: Map<string, string>;
+  item: DisplayVariable | null;
+  onAddOverride: () => void;
   onEdit: () => void;
-  shadowsGlobal: boolean;
-  variable: Variable;
 }
 
-function ProjectVariableRow({ onEdit, shadowsGlobal, variable }: ProjectVariableRowProps) {
+function VariableDetailPanel({ groupNames, item, onAddOverride, onEdit }: VariableDetailPanelProps) {
+  if (!item) {
+    return (
+      <div className="rounded-xl border border-dashed border-stroke-subtle bg-bg-container p-10 text-center text-[12.5px] text-fg-caption">
+        Select a variable to see its details.
+      </div>
+    );
+  }
+
+  return <VariableDetailPanelBody groupNames={groupNames} item={item} key={item.variable.id} onAddOverride={onAddOverride} onEdit={onEdit} />;
+}
+
+function VariableDetailPanelBody({ groupNames, item, onAddOverride, onEdit }: { groupNames: Map<string, string>; item: DisplayVariable; onAddOverride: () => void; onEdit: () => void }) {
+  const { tier, variable, shadowed, shadowsProject } = item;
   const reveal = useVariableReveal(variable);
-  const defaultRow = useMemo(() => variable.values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0), [variable.values]);
-  const overrides = useMemo(() => variable.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0), [variable.values]);
+  const defaultRow = variable.values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0);
+  const overrides = variable.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0);
+  const isProject = tier === 'project';
 
   return (
-    <li>
-      <div
-        className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 px-[18px] py-[14px] transition-colors hover:bg-bg-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stroke-field-focus"
-        onClick={onEdit}
-        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onEdit(); } }}
-        role="button"
-        tabIndex={0}
-      >
+    <div className="rounded-xl border border-stroke-subtle bg-bg-container p-6">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h3 className="font-mono text-[13.5px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{variable.name}</h3>
-            {variable.isSensitive ? <Badge icon={Lock} tone="mono" variant="selected">sensitive</Badge> : null}
-            {shadowsGlobal ? <Badge tone="mono" variant="warning">shadows global</Badge> : null}
-            {overrides.length > 0 ? (
-              <Badge tone="mono" variant="selected">{overrides.length} override{overrides.length === 1 ? '' : 's'}</Badge>
-            ) : null}
-          </div>
-          {variable.description ? <p className="mt-2 text-[12.5px] text-fg-body [overflow-wrap:anywhere]">{variable.description}</p> : null}
-          <div className="mt-2 grid gap-1.5" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()} role="presentation">
-            <EntryValue
-              ariaLabel="Copy variable value"
-              emptyMessage="—"
-              reveal={reveal}
-              scopedValue={defaultRow ?? { scopes: null, value: '' }}
-            />
-            {overrides.map((override, index) => (
-              <EntryValue
-                ariaLabel="Copy variable value"
-                emptyMessage="—"
-                key={`${variable.id}-${index}`}
-                reveal={reveal}
-                scopeKey="inline"
-                scopedValue={override}
-              />
-            ))}
-          </div>
+          <div className="text-[11px] font-medium uppercase text-fg-caption">{isProject ? 'Project variable' : 'Inherited variable'}</div>
+          <h2 className="mt-2"><InlineCode className="text-[20px] font-semibold [overflow-wrap:anywhere]">{variable.name}</InlineCode></h2>
         </div>
-        <div className="shrink-0 text-right text-[11.5px] text-fg-caption">
-          Updated at: {formatDateTime(variable.updatedAt)}
+        {isProject ? (
+          <Button onClick={onEdit} size="sm" type="button" variant="secondary">
+            <Pencil aria-hidden="true" className="size-3.5" />Edit
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {variable.isSensitive ? <Badge icon={Lock} tone="mono" variant="selected">sensitive</Badge> : null}
+        {isProject && shadowsProject ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span><Badge tone="mono" variant="warning">shadows global</Badge></span>
+            </TooltipTrigger>
+            <TooltipContent>A global with the same name is overridden by this project variable.</TooltipContent>
+          </Tooltip>
+        ) : null}
+        {!isProject && shadowed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span><Badge tone="mono" variant="warning">shadowed here</Badge></span>
+            </TooltipTrigger>
+            <TooltipContent>A project variable with the same name overrides this global for this project.</TooltipContent>
+          </Tooltip>
+        ) : null}
+        <TierPill groupNames={groupNames} variable={variable} />
+      </div>
+
+      {variable.description ? (
+        <p className="mt-4 text-[13.5px] text-fg-body [overflow-wrap:anywhere]">{variable.description}</p>
+      ) : (
+        <p className="mt-4 text-[13px] italic text-fg-caption">No description set.</p>
+      )}
+
+      <div className="mt-6">
+        <div className="text-[11px] font-medium uppercase text-fg-caption">Default value</div>
+        <div className="mt-2">
+          <EntryValue ariaLabel="Copy default value" emptyMessage="No default value." reveal={reveal} scopedValue={defaultRow} />
         </div>
       </div>
-    </li>
-  );
-}
 
-interface GlobalVariableRowProps {
-  groupNames: Map<string, string>;
-  shadowedByProject: boolean;
-  variable: Variable;
-}
-
-function GlobalVariableRow({ groupNames, shadowedByProject, variable }: GlobalVariableRowProps) {
-  const reveal = useVariableReveal(variable);
-  const defaultRow = useMemo(() => variable.values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0), [variable.values]);
-  const overrides = useMemo(() => variable.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0), [variable.values]);
-  const isSystemWide = !variable.groupId;
-
-  return (
-    <li>
-      <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 px-[18px] py-[14px] ${shadowedByProject ? 'opacity-70' : ''}`}>
-        <div className="min-w-0">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h3 className="font-mono text-[13.5px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{variable.name}</h3>
-            {variable.isSensitive ? <Badge icon={Lock} tone="mono" variant="selected">sensitive</Badge> : null}
-            {isSystemWide ? (
-              <Badge icon={Globe} tone="mono" variant="success">global</Badge>
-            ) : (
-              <Badge icon={Users} tone="mono" variant="info">group · {groupNames.get(variable.groupId!) ?? variable.groupId}</Badge>
-            )}
-            {shadowedByProject ? <Badge tone="mono" variant="warning">shadowed here</Badge> : null}
-            {overrides.length > 0 ? (
-              <Badge tone="mono" variant="selected">{overrides.length} override{overrides.length === 1 ? '' : 's'}</Badge>
-            ) : null}
-          </div>
-          {variable.description ? <p className="mt-2 text-[12.5px] text-fg-body [overflow-wrap:anywhere]">{variable.description}</p> : null}
-          <div className="mt-2 grid gap-1.5">
-            <EntryValue
-              ariaLabel="Copy variable value"
-              emptyMessage="—"
-              reveal={reveal}
-              scopedValue={defaultRow ?? { scopes: null, value: '' }}
-            />
-            {overrides.map((override, index) => (
-              <EntryValue
-                ariaLabel="Copy variable value"
-                emptyMessage="—"
-                key={`${variable.id}-${index}`}
-                reveal={reveal}
-                scopeKey="inline"
-                scopedValue={override}
-              />
-            ))}
-          </div>
+      <div className="mt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[11px] font-medium uppercase text-fg-caption">Scoped values</div>
+          {isProject ? (
+            <button
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-fg-link transition-colors hover:underline"
+              onClick={onAddOverride}
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
+              Add override
+            </button>
+          ) : null}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-2 text-right text-[11.5px] text-fg-caption">
-          <Link
-            className="inline-flex items-center gap-1 text-fg-link hover:underline"
-            to="/variables"
-          >
-            Open globals
+        <div className="mt-2 grid gap-2">
+          {overrides.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-stroke-subtle p-6 text-center text-[13px] text-fg-caption">No scoped overrides defined.</div>
+          ) : overrides.map((value, index) => (
+            <EntryValue ariaLabel="Copy scoped value" key={`${scopedValueKey(value.scopes ?? {})}-${index}`} reveal={reveal} scopedValue={value} scopeKey="top" />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-stroke-subtle pt-4 text-[11.5px] text-fg-caption">
+        <span>Updated {formatDateTime(variable.updatedAt)}</span>
+        {!isProject ? (
+          <Link className="inline-flex items-center gap-1 text-fg-link transition-colors hover:underline" to="/variables">
+            Open in Globals
             <ExternalLink aria-hidden="true" className="size-3" strokeWidth={1.8} />
           </Link>
-          <span>Updated at: {formatDateTime(variable.updatedAt)}</span>
-        </div>
+        ) : null}
       </div>
-    </li>
+    </div>
   );
+}
+
+function TierPill({ groupNames, variable }: { groupNames: Map<string, string>; variable: Variable }) {
+  if (variable.projectId) {
+    return <Badge tone="mono" variant="selected">Project · this scope</Badge>;
+  }
+
+  if (variable.groupId) {
+    return <Badge icon={Users} tone="mono" variant="info">Group · {groupNames.get(variable.groupId) ?? variable.groupId}</Badge>;
+  }
+
+  return <Badge icon={Globe} tone="mono" variant="success">Global</Badge>;
+}
+
+function ownerLabelFor(groupNames: Map<string, string>) {
+  return (variable: Variable) => {
+    if (variable.groupId) {
+      return groupNames.get(variable.groupId) ?? 'group';
+    }
+
+    return 'global';
+  };
 }
 
 function useVariableReveal(variable: Variable): EntryReveal {
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [decryptedByKey, setDecryptedByKey] = useState<Map<string, string>>(new Map());
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [pendingKey, setPendingKey] = useState<null | string>(null);
 
   const fetchDecrypted = useMutation({
     mutationFn: () => getVariable(variable.id, { decrypt: true }),
@@ -370,14 +533,14 @@ function useVariableReveal(variable: Variable): EntryReveal {
   }), [decryptedByKey, fetchDecrypted, pendingKey, revealedKeys, variable.isSensitive]);
 }
 
-function filterByText(items: Variable[], search: string | undefined, groupNames: Map<string, string>) {
-  const needle = search?.trim().toLowerCase();
+function filterByText(items: DisplayVariable[], search: string, groupNames: Map<string, string>) {
+  const needle = search.trim().toLowerCase();
 
   if (!needle) {
     return items;
   }
 
-  return items.filter((variable) => {
+  return items.filter(({ variable }) => {
     const ownerText = variable.groupId
       ? `group ${groupNames.get(variable.groupId) ?? variable.groupId}`
       : variable.projectId
