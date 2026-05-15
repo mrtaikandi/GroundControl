@@ -1,89 +1,97 @@
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Globe, Lock, Plus, Users } from 'lucide-react';
+import { ChevronDown, ChevronRight, Globe, Lock, Pencil, Plus, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EntryValue } from '@/components/tower/config/EntryValue';
 import { scopedValueKey, type EntryReveal } from '@/components/tower/config/use-entry-reveal';
 import { Badge } from '@/components/tower/data/Badge';
+import { InlineCode } from '@/components/tower/data/InlineCode';
 import { SearchFilterPopover } from '@/components/tower/data/SearchFilterPopover';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
+import { Toolbar } from '@/components/tower/data/Toolbar';
 import { VariableEditorModal } from '@/components/tower/variables/VariableEditorModal';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { PageContent } from '@/components/tower/shell/PageContent';
 import { getVariable } from '@/api/endpoints/variables';
+import { cn } from '@/lib/utils';
 import { useGroups } from '@/queries/useGroups';
 import { useVariables, type Variable } from '@/queries/useVariables';
 
 const SENSITIVE_MASK = '***';
 
-type TierFilter = 'all' | 'global' | 'group';
+type VariableTier = 'global' | 'group';
+type TierFilter = 'all' | VariableTier;
+
+interface DisplayVariable {
+  tier: VariableTier;
+  variable: Variable;
+}
 
 export const Route = createFileRoute('/variables')({
   component: VariablesRoute,
-  validateSearch: (search: Record<string, unknown>): { tier?: Exclude<TierFilter, 'all'> } => {
-    const tier = search.tier;
-    return tier === 'global' || tier === 'group' ? { tier } : {};
-  },
 });
 
 function VariablesRoute() {
   const variables = useVariables({ Scope: 0 });
   const groups = useGroups();
-  const navigate = Route.useNavigate();
-  const { tier } = Route.useSearch();
-  const tierFilter: TierFilter = tier ?? 'all';
-  const setTierFilter = (next: TierFilter) => {
-    void navigate({
-      replace: true,
-      search: (prev) => ({ ...prev, tier: next === 'all' ? undefined : next }),
-    });
-  };
   const [creating, setCreating] = useState(false);
   const [editingVariable, setEditingVariable] = useState<Variable | undefined>();
-  const [search, setSearch] = useState<string | undefined>(undefined);
+  const [filter, setFilter] = useState<string | undefined>(undefined);
+  const [tierFilter, setTierFilter] = useState<TierFilter>('all');
+  const [selectedId, setSelectedId] = useState<null | string>(null);
+  const [globalSectionCollapsed, setGlobalSectionCollapsed] = useState(false);
+  const [groupSectionCollapsed, setGroupSectionCollapsed] = useState(false);
   const groupNames = useMemo(() => new Map((groups.data?.data ?? []).map((group) => [group.id, group.name])), [groups.data?.data]);
   const items = variables.data?.data ?? [];
 
-  const filtered = useMemo(() => {
-    const needle = search?.trim().toLowerCase();
+  const globalDisplay: DisplayVariable[] = useMemo(
+    () => items.filter((variable) => !variable.groupId).map((variable) => ({ tier: 'global', variable })),
+    [items],
+  );
+  const groupDisplay: DisplayVariable[] = useMemo(
+    () => items.filter((variable) => Boolean(variable.groupId)).map((variable) => ({ tier: 'group', variable })),
+    [items],
+  );
 
-    return items.filter((variable) => {
-      if (tierFilter === 'global' && variable.groupId) {
-        return false;
-      }
+  const filteredGlobal = useMemo(() => filterByText(globalDisplay, filter ?? '', groupNames), [filter, globalDisplay, groupNames]);
+  const filteredGroup = useMemo(() => filterByText(groupDisplay, filter ?? '', groupNames), [filter, groupDisplay, groupNames]);
 
-      if (tierFilter === 'group' && !variable.groupId) {
-        return false;
-      }
+  const isLoading = variables.isLoading;
+  const isEmpty = !isLoading && items.length === 0;
 
-      if (!needle) {
-        return true;
-      }
+  const allDisplay = useMemo(() => [...globalDisplay, ...groupDisplay], [globalDisplay, groupDisplay]);
+  const selected = useMemo(() => allDisplay.find((item) => item.variable.id === selectedId) ?? null, [allDisplay, selectedId]);
 
-      const ownerText = ownerLabel(variable, groupNames).toLowerCase();
-      return variable.name.toLowerCase().includes(needle)
-        || (variable.description ?? '').toLowerCase().includes(needle)
-        || ownerText.includes(needle);
-    });
-  }, [groupNames, items, search, tierFilter]);
+  useEffect(() => {
+    if (selectedId !== null || allDisplay.length === 0) {
+      return;
+    }
+
+    const firstVisible = filteredGlobal[0]?.variable.id ?? filteredGroup[0]?.variable.id;
+
+    if (firstVisible) {
+      setSelectedId(firstVisible);
+    }
+  }, [allDisplay.length, filteredGlobal, filteredGroup, selectedId]);
 
   return (
-    <>
+    <TooltipProvider>
       <PageHeader
         actions={(
           <div className="flex items-center gap-2">
             <SearchFilterPopover
-              appliedSearch={search}
+              appliedSearch={filter}
               ariaLabel="Filter variables"
-              onApply={setSearch}
+              onApply={setFilter}
               placeholder="Variable name, owner, or description"
             />
             <Button onClick={() => setCreating(true)} type="button">
               <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
-              <span>New Variable</span>
+              <span>New variable</span>
             </Button>
           </div>
         )}
@@ -92,47 +100,99 @@ function VariablesRoute() {
       />
 
       <PageContent>
-        <div className="grid gap-5 pt-8">
-          <div className="flex items-center justify-between gap-3">
-            <SegmentedControl
-              onChange={(next) => setTierFilter(next as TierFilter)}
-              options={[
-                { label: 'All', value: 'all' },
-                { label: 'Global', value: 'global' },
-                { label: 'Group-owned', value: 'group' },
-              ]}
-              value={tierFilter}
-            />
-            <span className="text-[11.5px] text-fg-caption">
-              {filtered.length} of {items.length}
-            </span>
-          </div>
+        <div className="grid gap-4 pt-8">
+          <Toolbar
+            start={
+              <SegmentedControl
+                onChange={setTierFilter}
+                options={[
+                  { label: 'All', value: 'all' },
+                  { icon: Globe, label: 'Global', value: 'global' },
+                  { icon: Users, label: 'Group-owned', value: 'group' },
+                ]}
+                value={tierFilter}
+              />
+            }
+          />
 
-          {variables.isLoading ? <Skeleton className="h-80" /> : null}
-          {!variables.isLoading && items.length === 0 ? (
-            <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">
-              No global variables yet.
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,600px)]">
+            <div className="flex flex-col gap-3">
+              {isLoading ? <Skeleton className="min-h-96 flex-1" /> : isEmpty ? (
+                <div className="rounded-xl border border-dashed border-stroke-subtle bg-bg-surface p-10 text-center text-[12.5px] text-fg-caption">
+                  No variables yet. Use the button above to add one.
+                </div>
+              ) : (
+                <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
+                  {tierFilter !== 'group' && globalDisplay.length > 0 ? (
+                    <>
+                      <SectionHeader
+                        collapsed={globalSectionCollapsed}
+                        count={filteredGlobal.length}
+                        description=""
+                        onToggle={() => setGlobalSectionCollapsed((current) => !current)}
+                        title="Global variables"
+                        totalCount={globalDisplay.length}
+                      />
+                      {!globalSectionCollapsed ? (
+                        filteredGlobal.length === 0 ? (
+                          <div className="px-4 py-3 text-[12px] text-fg-caption">No global variables match the filter.</div>
+                        ) : (
+                          filteredGlobal.map((item) => (
+                            <VariableRow
+                              groupNames={groupNames}
+                              item={item}
+                              key={item.variable.id}
+                              onEdit={setEditingVariable}
+                              onSelect={setSelectedId}
+                              selected={selectedId === item.variable.id}
+                            />
+                          ))
+                        )
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {tierFilter !== 'global' && groupDisplay.length > 0 ? (
+                    <>
+                      <SectionHeader
+                        collapsed={groupSectionCollapsed}
+                        count={filteredGroup.length}
+                        description="limited to projects in their group"
+                        onToggle={() => setGroupSectionCollapsed((current) => !current)}
+                        title="Group-owned variables"
+                        totalCount={groupDisplay.length}
+                      />
+                      {!groupSectionCollapsed ? (
+                        filteredGroup.length === 0 ? (
+                          <div className="px-4 py-3 text-[12px] text-fg-caption">No group-owned variables match the filter.</div>
+                        ) : (
+                          filteredGroup.map((item) => (
+                            <VariableRow
+                              groupNames={groupNames}
+                              item={item}
+                              key={item.variable.id}
+                              onEdit={setEditingVariable}
+                              onSelect={setSelectedId}
+                              selected={selectedId === item.variable.id}
+                            />
+                          ))
+                        )
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+              )}
             </div>
-          ) : null}
-          {!variables.isLoading && items.length > 0 && filtered.length === 0 ? (
-            <div className="rounded-xl border border-stroke-subtle bg-bg-surface p-8 text-center text-fg-caption">
-              No variables match the current filter.
+
+            <div className="self-start">
+              <VariableDetailPanel
+                groupNames={groupNames}
+                item={selected}
+                onAddOverride={() => selected && setEditingVariable(selected.variable)}
+                onEdit={() => selected && setEditingVariable(selected.variable)}
+              />
             </div>
-          ) : null}
-          {filtered.length > 0 ? (
-            <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-bg-surface">
-              <ul className="grid divide-y divide-stroke-subtle">
-                {filtered.map((variable) => (
-                  <VariableRow
-                    groupNames={groupNames}
-                    key={variable.id}
-                    onEdit={() => setEditingVariable(variable)}
-                    variable={variable}
-                  />
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          </div>
         </div>
       </PageContent>
 
@@ -149,77 +209,191 @@ function VariablesRoute() {
         tier={{ kind: 'global' }}
         variable={editingVariable}
       />
-    </>
+    </TooltipProvider>
+  );
+}
+
+interface SectionHeaderProps {
+  collapsed: boolean;
+  count: number;
+  description: string;
+  onToggle: () => void;
+  title: string;
+  totalCount: number;
+}
+
+function SectionHeader({ collapsed, count, description, onToggle, title, totalCount }: SectionHeaderProps) {
+  return (
+    <button
+      className="flex items-center justify-between gap-3 border-b border-stroke-subtle bg-bg-container px-4 py-2 text-left transition-colors hover:bg-bg-selected/40"
+      onClick={onToggle}
+      type="button"
+    >
+      <div className="flex items-center gap-2">
+        {collapsed ? <ChevronRight aria-hidden="true" className="size-3.5 text-fg-icon-subtle" /> : <ChevronDown aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />}
+        <span className="font-mono text-[11px] uppercase tracking-wide text-fg-caption">{title}</span>
+        <span className="rounded-md bg-bg-surface px-1.5 py-0.5 font-mono text-[11px] text-fg-caption">{count === totalCount ? totalCount : `${count}/${totalCount}`}</span>
+      </div>
+      <span className="text-[11.5px] text-fg-caption">{description}</span>
+    </button>
   );
 }
 
 interface VariableRowProps {
   groupNames: Map<string, string>;
-  onEdit: () => void;
-  variable: Variable;
+  item: DisplayVariable;
+  onEdit: (variable: Variable) => void;
+  onSelect: (id: string) => void;
+  selected: boolean;
 }
 
-function VariableRow({ groupNames, onEdit, variable }: VariableRowProps) {
-  const reveal = useVariableReveal(variable);
-  const defaultRow = useMemo(() => variable.values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0), [variable.values]);
-  const overrides = useMemo(() => variable.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0), [variable.values]);
-  const isSystemWide = !variable.groupId;
-  const groupName = variable.groupId ? groupNames.get(variable.groupId) ?? variable.groupId : null;
+function VariableRow({ groupNames, item, onEdit, onSelect, selected }: VariableRowProps) {
+  const { tier, variable } = item;
+  const overrides = variable.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0).length;
+  const summaryParts: string[] = [];
+
+  if (tier === 'group') {
+    summaryParts.push(groupNames.get(variable.groupId!) ?? 'group');
+  }
+
+  if (variable.isSensitive) {
+    summaryParts.push('sensitive');
+  }
+
+  if (overrides > 0) {
+    summaryParts.push(`${overrides} override${overrides === 1 ? '' : 's'}`);
+  }
+
+  const Icon = variable.isSensitive ? Lock : tier === 'global' ? Globe : Users;
 
   return (
-    <li>
-      <div
-        className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 px-[18px] py-[14px] transition-colors hover:bg-bg-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stroke-field-focus"
-        onClick={onEdit}
-        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onEdit(); } }}
-        role="button"
-        tabIndex={0}
-      >
+    <div
+      className={cn(
+        'group relative grid w-full cursor-pointer items-center gap-3 border-b border-stroke-subtle px-4 py-2.5 text-left text-[13px] last:border-b-0 hover:bg-bg-container',
+        'grid-cols-[16px_minmax(0,1fr)] sm:grid-cols-[16px_minmax(0,1fr)_auto]',
+        selected && 'bg-bg-selected before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-primary',
+      )}
+      onClick={() => onSelect(variable.id)}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(variable.id); } }}
+      role="button"
+      tabIndex={0}
+    >
+      <Icon aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />
+      <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="font-mono text-[13px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{variable.name}</span>
+        {summaryParts.length > 0 ? (
+          <span className="text-[12px] text-fg-caption">{summaryParts.join(' · ')}</span>
+        ) : null}
+      </span>
+      <div className="col-start-2 flex flex-wrap justify-start gap-1 opacity-100 transition-opacity sm:col-start-auto sm:justify-end sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+        <Button onClick={(event) => { event.stopPropagation(); onEdit(variable); }} size="sm" type="button" variant="ghost">Edit</Button>
+      </div>
+    </div>
+  );
+}
+
+interface VariableDetailPanelProps {
+  groupNames: Map<string, string>;
+  item: DisplayVariable | null;
+  onAddOverride: () => void;
+  onEdit: () => void;
+}
+
+function VariableDetailPanel({ groupNames, item, onAddOverride, onEdit }: VariableDetailPanelProps) {
+  if (!item) {
+    return (
+      <div className="rounded-xl border border-dashed border-stroke-subtle bg-bg-container p-10 text-center text-[12.5px] text-fg-caption">
+        Select a variable to see its details.
+      </div>
+    );
+  }
+
+  return <VariableDetailPanelBody groupNames={groupNames} item={item} key={item.variable.id} onAddOverride={onAddOverride} onEdit={onEdit} />;
+}
+
+function VariableDetailPanelBody({ groupNames, item, onAddOverride, onEdit }: { groupNames: Map<string, string>; item: DisplayVariable; onAddOverride: () => void; onEdit: () => void }) {
+  const { tier, variable } = item;
+  const reveal = useVariableReveal(variable);
+  const defaultRow = variable.values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0);
+  const overrides = variable.values.filter((value) => value.scopes && Object.keys(value.scopes).length > 0);
+
+  return (
+    <div className="rounded-xl border border-stroke-subtle bg-bg-container p-6">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h2 className="font-mono text-[13.5px] font-semibold text-fg-heading [overflow-wrap:anywhere]">{variable.name}</h2>
-            {variable.isSensitive ? <Badge icon={Lock} tone="mono" variant="selected">sensitive</Badge> : null}
-            {isSystemWide ? (
-              <Badge icon={Globe} tone="mono" variant="success">global</Badge>
-            ) : (
-              <Badge icon={Users} tone="mono" variant="info">group · {groupName}</Badge>
-            )}
-            {overrides.length > 0 ? (
-              <Badge tone="mono" variant="selected">{overrides.length} override{overrides.length === 1 ? '' : 's'}</Badge>
-            ) : null}
-          </div>
-          {variable.description ? <p className="mt-2 text-[12.5px] text-fg-body [overflow-wrap:anywhere]">{variable.description}</p> : null}
-          <div className="mt-2 grid gap-1.5" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()} role="presentation">
-            <EntryValue
-              ariaLabel="Copy variable value"
-              emptyMessage="—"
-              reveal={reveal}
-              scopedValue={defaultRow ?? { scopes: null, value: '' }}
-            />
-            {overrides.map((override, index) => (
-              <EntryValue
-                ariaLabel="Copy variable value"
-                emptyMessage="—"
-                key={`${variable.id}-${index}`}
-                reveal={reveal}
-                scopeKey="inline"
-                scopedValue={override}
-              />
-            ))}
-          </div>
+          <div className="text-[11px] font-medium uppercase text-fg-caption">{tier === 'global' ? 'Global variable' : 'Group-owned variable'}</div>
+          <h2 className="mt-2"><InlineCode className="text-[20px] font-semibold [overflow-wrap:anywhere]">{variable.name}</InlineCode></h2>
         </div>
-        <div className="shrink-0 text-right text-[11.5px] text-fg-caption">
-          Updated at: {formatDateTime(variable.updatedAt)}
+        <Button onClick={onEdit} size="sm" type="button" variant="secondary">
+          <Pencil aria-hidden="true" className="size-3.5" />Edit
+        </Button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {variable.isSensitive ? <Badge icon={Lock} tone="mono" variant="selected">sensitive</Badge> : null}
+        <TierPill groupNames={groupNames} variable={variable} />
+      </div>
+
+      {variable.description ? (
+        <p className="mt-4 text-[13.5px] text-fg-body [overflow-wrap:anywhere]">{variable.description}</p>
+      ) : (
+        <p className="mt-4 text-[13px] italic text-fg-caption">No description set.</p>
+      )}
+
+      <div className="mt-6">
+        <div className="text-[11px] font-medium uppercase text-fg-caption">Default value</div>
+        <div className="mt-2">
+          <EntryValue ariaLabel="Copy default value" emptyMessage="No default value." reveal={reveal} scopedValue={defaultRow} />
         </div>
       </div>
-    </li>
+
+      <div className="mt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[11px] font-medium uppercase text-fg-caption">Scoped values</div>
+          <button
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-fg-link transition-colors hover:underline"
+            onClick={onAddOverride}
+            type="button"
+          >
+            <Plus aria-hidden="true" className="size-3.5" strokeWidth={2} />
+            Add override
+          </button>
+        </div>
+        <div className="mt-2 grid gap-2">
+          {overrides.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-stroke-subtle p-6 text-center text-[13px] text-fg-caption">No scoped overrides defined.</div>
+          ) : overrides.map((value, index) => (
+            <EntryValue ariaLabel="Copy scoped value" key={`${scopedValueKey(value.scopes ?? {})}-${index}`} reveal={reveal} scopedValue={value} scopeKey="top" />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-stroke-subtle pt-4 text-[11.5px] text-fg-caption">
+        <span>Updated {formatDateTime(variable.updatedAt)}</span>
+      </div>
+    </div>
   );
+}
+
+function TierPill({ groupNames, variable }: { groupNames: Map<string, string>; variable: Variable }) {
+  if (variable.groupId) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span><Badge icon={Users} tone="mono" variant="info">Group · {groupNames.get(variable.groupId) ?? variable.groupId}</Badge></span>
+        </TooltipTrigger>
+        <TooltipContent>Group-owned variables are visible only to projects in this group.</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return <Badge icon={Globe} tone="mono" variant="success">Global</Badge>;
 }
 
 function useVariableReveal(variable: Variable): EntryReveal {
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [decryptedByKey, setDecryptedByKey] = useState<Map<string, string>>(new Map());
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [pendingKey, setPendingKey] = useState<null | string>(null);
 
   const fetchDecrypted = useMutation({
     mutationFn: () => getVariable(variable.id, { decrypt: true }),
@@ -305,12 +479,22 @@ function useVariableReveal(variable: Variable): EntryReveal {
   }), [decryptedByKey, fetchDecrypted, pendingKey, revealedKeys, variable.isSensitive]);
 }
 
-function ownerLabel(variable: Variable, groupNames: Map<string, string>) {
-  if (variable.groupId) {
-    return `group · ${groupNames.get(variable.groupId) ?? variable.groupId}`;
+function filterByText(items: DisplayVariable[], search: string, groupNames: Map<string, string>) {
+  const needle = search.trim().toLowerCase();
+
+  if (!needle) {
+    return items;
   }
 
-  return 'global';
+  return items.filter(({ variable }) => {
+    const ownerText = variable.groupId
+      ? `group ${groupNames.get(variable.groupId) ?? variable.groupId}`
+      : 'global';
+
+    return variable.name.toLowerCase().includes(needle)
+      || (variable.description ?? '').toLowerCase().includes(needle)
+      || ownerText.toLowerCase().includes(needle);
+  });
 }
 
 function formatDateTime(value: string) {
