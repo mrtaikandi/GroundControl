@@ -156,6 +156,7 @@ public sealed class AuditRecordingTests : ApiHandlerTestBase
         updateRequest.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
+                Key = created!.Key,
                 ValueType = "String",
                 Values = [new ConfigEntryScopedValueRequest { Value = "secret-value-2", Scopes = [] }],
                 IsSensitive = true,

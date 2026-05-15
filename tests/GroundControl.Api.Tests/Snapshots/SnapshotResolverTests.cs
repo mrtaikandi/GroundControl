@@ -895,6 +895,7 @@ public sealed class SnapshotResolverTests : ApiHandlerTestBase
 
         var update = new UpdateConfigEntryRequest
         {
+            Key = existing.Key,
             ValueType = existing.ValueType,
             Values = [new ScopedValueRequest { Value = value }],
             IsSensitive = existing.IsSensitive,

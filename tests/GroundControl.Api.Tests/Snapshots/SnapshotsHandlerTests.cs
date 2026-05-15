@@ -348,6 +348,7 @@ public sealed class SnapshotsHandlerTests : ApiHandlerTestBase
         {
             Content = JsonContent.Create(new UpdateConfigEntryRequest
             {
+                Key = entry.Key,
                 ValueType = entry.ValueType,
                 Values = [new ScopedValueRequest { Value = "Changed" }],
                 IsSensitive = entry.IsSensitive,

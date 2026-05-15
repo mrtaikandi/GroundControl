@@ -851,7 +851,7 @@
           "ConfigEntries"
         ],
         "summary": "Update a configuration entry",
-        "description": "Updates an existing configuration entry. Requires an If-Match header with the current ETag value.",
+        "description": "Updates an existing configuration entry, including its key. Requires an If-Match header with the current ETag value.",
         "operationId": "UpdateConfigEntryHandler",
         "parameters": [
           {
@@ -4555,8 +4555,9 @@
         "properties": {
           "key": {
             "maxLength": 500,
+            "pattern": "^[A-Za-z][A-Za-z0-9.:_-]*$",
             "type": "string",
-            "description": "Gets the configuration key."
+            "description": "Gets the configuration key. Must start with a letter and contain only letters, digits, or\r\nthe separators `.`, `:`, `_`, `-`."
           },
           "ownerId": {
             "type": "string",
@@ -6272,11 +6273,18 @@
       },
       "UpdateConfigEntryRequest": {
         "required": [
+          "key",
           "valueType",
           "values"
         ],
         "type": "object",
         "properties": {
+          "key": {
+            "maxLength": 500,
+            "pattern": "^[A-Za-z][A-Za-z0-9.:_-]*$",
+            "type": "string",
+            "description": "Gets the configuration key. Must start with a letter and contain only letters, digits, or\r\nthe separators `.`, `:`, `_`, `-`."
+          },
           "valueType": {
             "maxLength": 50,
             "type": "string",

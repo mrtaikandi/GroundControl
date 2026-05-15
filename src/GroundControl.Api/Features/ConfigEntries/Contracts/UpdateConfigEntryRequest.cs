@@ -8,6 +8,16 @@ namespace GroundControl.Api.Features.ConfigEntries.Contracts;
 internal sealed record UpdateConfigEntryRequest
 {
     /// <summary>
+    /// Gets the configuration key. Must start with a letter and contain only letters, digits, or
+    /// the separators <c>.</c>, <c>:</c>, <c>_</c>, <c>-</c>.
+    /// </summary>
+    /// <remarks>Maximum length: 500 characters.</remarks>
+    [Required]
+    [MaxLength(500)]
+    [RegularExpression(ConfigEntryValidation.KeyPattern, ErrorMessage = ConfigEntryValidation.KeyPatternErrorMessage)]
+    public required string Key { get; init; }
+
+    /// <summary>
     /// Gets the value type name.
     /// </summary>
     /// <remarks>Maximum length: 50 characters.</remarks>

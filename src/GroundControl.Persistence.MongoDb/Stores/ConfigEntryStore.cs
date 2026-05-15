@@ -66,6 +66,7 @@ internal sealed class ConfigEntryStore : IConfigEntryStore
             Builders<ConfigEntry>.Filter.Eq(entity => entity.Version, expectedVersion));
 
         var update = Builders<ConfigEntry>.Update
+            .Set(entity => entity.Key, entry.Key)
             .Set(entity => entity.ValueType, entry.ValueType)
             .Set(entity => entity.Values, entry.Values)
             .Set(entity => entity.IsSensitive, entry.IsSensitive)
@@ -74,7 +75,18 @@ internal sealed class ConfigEntryStore : IConfigEntryStore
             .Set(entity => entity.UpdatedBy, entry.UpdatedBy)
             .Set(entity => entity.Version, nextVersion);
 
-        var result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+        UpdateResult result;
+        try
+        {
+            result = await _collection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+        {
+            throw new DuplicateKeyException(
+                $"A config entry with key '{entry.Key}' already exists for this owner.",
+                ex);
+        }
+
         if (result.ModifiedCount != 1)
         {
             return false;
