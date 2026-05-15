@@ -31,15 +31,26 @@ const DefaultRangeDays = 7;
 function defaultFilters(): AuditFilters {
   const today = new Date();
   const from = new Date(today);
-  from.setDate(from.getDate() - DefaultRangeDays);
+  from.setUTCDate(from.getUTCDate() - DefaultRangeDays);
   return { entityTypes: [], from: toDateInput(from), to: toDateInput(today) };
 }
 
+// Dates are interpreted as UTC calendar days so the default range and stored
+// timestamps line up regardless of the user's local timezone. The form keeps
+// the YYYY-MM-DD shape that `<input type="date">` expects.
 function toDateInput(value: Date): string {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return value.toISOString().slice(0, 10);
+}
+
+// The server filters on DateTimeOffset; YYYY-MM-DD alone is ambiguous. Anchor
+// both ends of the range to UTC so a calendar-day filter behaves the same
+// across timezones.
+function toUtcRangeStart(date: string | undefined): string | undefined {
+  return date ? `${date}T00:00:00Z` : undefined;
+}
+
+function toUtcRangeEnd(date: string | undefined): string | undefined {
+  return date ? `${date}T23:59:59.999Z` : undefined;
 }
 
 export const Route = createFileRoute('/admin/audit')({
@@ -50,11 +61,11 @@ function AuditRoute() {
   const [filters, setFilters] = useState<AuditFilters>(() => defaultFilters());
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
-  const audit = useAuditRecords({ entityTypes: filters.entityTypes, from: filters.from, to: filters.to });
+  const audit = useAuditRecords({ entityTypes: filters.entityTypes, from: toUtcRangeStart(filters.from), to: toUtcRangeEnd(filters.to) });
   const rows = useMemo(() => audit.data?.pages.flatMap((page) => page.data) ?? [], [audit.data]);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const initializedSizingRef = useRef(false);
+  const userResizedRef = useRef(false);
 
   useEffect(() => () => observerRef.current?.disconnect(), []);
 
@@ -112,12 +123,14 @@ function AuditRoute() {
 
   useEffect(() => {
     const container = tableContainerRef.current;
-    if (!container || initializedSizingRef.current) {
+    if (!container) {
       return;
     }
 
+    // Refit columns to the container until the user manually drags a divider
+    // (tracked via userResizedRef). After that, the user's sizing is honored.
     const fitColumnsToContainer = () => {
-      if (initializedSizingRef.current) {
+      if (userResizedRef.current) {
         return;
       }
 
@@ -133,7 +146,6 @@ function AuditRoute() {
       const available = width - fixedTotal;
 
       if (baseTotal <= 0 || available <= baseTotal) {
-        initializedSizingRef.current = true;
         return;
       }
 
@@ -144,7 +156,6 @@ function AuditRoute() {
       }
 
       setColumnSizing(next);
-      initializedSizingRef.current = true;
     };
 
     fitColumnsToContainer();
@@ -152,6 +163,10 @@ function AuditRoute() {
     observer.observe(container);
     return () => observer.disconnect();
   }, [table]);
+
+  const markUserResized = useCallback(() => {
+    userResizedRef.current = true;
+  }, []);
 
   return (
     <>
@@ -183,8 +198,8 @@ function AuditRoute() {
                               aria-hidden="true"
                               className={`absolute -right-1 top-0 flex h-full w-2 cursor-col-resize touch-none select-none items-stretch justify-center ${header.column.getIsResizing() ? 'z-10' : ''}`}
                               onClick={(event) => event.stopPropagation()}
-                              onMouseDown={header.getResizeHandler()}
-                              onTouchStart={header.getResizeHandler()}
+                              onMouseDown={(event) => { markUserResized(); header.getResizeHandler()(event); }}
+                              onTouchStart={(event) => { markUserResized(); header.getResizeHandler()(event); }}
                             >
                               <span className={`w-px transition-colors ${header.column.getIsResizing() ? 'bg-stroke-field-focus' : 'bg-transparent group-hover/th:bg-stroke-subtle hover:bg-stroke-field-focus'}`} />
                             </div>
