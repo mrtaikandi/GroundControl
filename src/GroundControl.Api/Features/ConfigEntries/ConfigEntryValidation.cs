@@ -88,7 +88,11 @@ internal sealed partial class ConfigEntryValidation
                     return ScopeValidationResult.Failure($"Value '{value}' is not allowed for scope dimension '{dimension}'.");
                 }
 
-                normalizedScopes[scope.Dimension] = value;
+                if (!normalizedScopes.TryAdd(scope.Dimension, value))
+                {
+                    return ScopeValidationResult.Failure(
+                        $"Scope dimension '{scope.Dimension}' is specified more than once (case-insensitive) in the same scoped value.");
+                }
             }
 
             canonical.Add(scopedValue with { Scopes = normalizedScopes });
