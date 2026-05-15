@@ -224,12 +224,15 @@ export function EntryModal({ entry, initialKey, mode, onOpenChange, open, ownerI
 }
 
 function toFormValues(entry?: ConfigEntry, initialKey?: string): EntryFormValues {
-  const defaultScopedValue = entry?.values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0);
-  const scopedValues = entry?.values.filter((value) => value !== defaultScopedValue).map((value) => {
-    const [dimension = '', scopeValue = ''] = Object.entries(value.scopes ?? {})[0] ?? [];
+  const values = entry?.values ?? [];
+  const defaultScopedValue = values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0);
+  const scopedValues = values
+    .filter((value) => value.scopes && Object.keys(value.scopes).length > 0)
+    .map((value) => {
+      const [dimension = '', scopeValue = ''] = Object.entries(value.scopes ?? {})[0] ?? [];
 
-    return { dimension, scopeValue, value: value.value };
-  }) ?? [];
+      return { dimension, scopeValue, value: value.value };
+    });
 
   return {
     defaultValue: defaultScopedValue?.value ?? '',

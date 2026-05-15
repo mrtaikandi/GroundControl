@@ -33,6 +33,7 @@ export function ScopedValuesField<T extends FormWithScopedValues>({
 }: ScopedValuesFieldProps<T>) {
   const scopes = useScopes();
   const dimensions = scopes.data?.data ?? [];
+  const scopesLoaded = scopes.isSuccess;
   const scopedValues = useFieldArray({ control, name: 'scopedValues' as ArrayPath<T> });
 
   return (
@@ -57,7 +58,20 @@ export function ScopedValuesField<T extends FormWithScopedValues>({
         const scopeValuePath = `scopedValues.${index}.scopeValue` as Path<T>;
         const valuePath = `scopedValues.${index}.value` as Path<T>;
         const dimension = watch(dimensionPath) as string | undefined;
-        const selectedScope = dimensions.find((scope) => scope.dimension === dimension);
+        const scopeValue = watch(scopeValuePath) as string | undefined;
+        // Stored entries can use a different case for the dimension key than the canonical scope
+        // (validator + index are case-insensitive by collation). Match case-insensitively so the
+        // canonical scope still resolves; the SelectItem render preserves the stored case so Radix
+        // can match the form's value verbatim.
+        const selectedScope = dimensions.find((scope) => scope.dimension.toLowerCase() === dimension?.toLowerCase());
+        const dimensionMissing = Boolean(dimension) && !selectedScope;
+        const scopeValueMissing = Boolean(scopeValue) && !!selectedScope && !selectedScope.allowedValues.includes(scopeValue!);
+        const fallbackDimension = dimensionMissing ? dimension! : null;
+        const fallbackScopeValue = !selectedScope && Boolean(scopeValue) ? scopeValue! : scopeValueMissing ? scopeValue! : null;
+        // Only label as "(deleted) / (no longer allowed)" once /api/scopes has actually resolved.
+        // Otherwise the brief loading window flashes the stored value as deleted.
+        const dimensionConfirmedDeleted = scopesLoaded && dimensionMissing;
+        const scopeValueConfirmedRemoved = scopesLoaded && scopeValueMissing;
 
         return (
           <div className="grid gap-2 rounded-lg bg-bg-container p-3 md:grid-cols-[1fr_1fr_1.5fr_auto]" key={field.id}>
@@ -74,9 +88,23 @@ export function ScopedValuesField<T extends FormWithScopedValues>({
                     <SelectValue placeholder="Dimension" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dimensions.map((scope) => (
-                      <SelectItem key={scope.id} value={scope.dimension}>{scope.dimension}</SelectItem>
-                    ))}
+                    {dimensions.map((scope) => {
+                      // If the stored dimension matches this canonical scope only by case, render
+                      // the SelectItem with the stored value so Radix's strict comparison succeeds.
+                      // The displayed text stays canonical. Backend write-side normalizes future
+                      // saves so this branch is a transitional render for legacy entries.
+                      const usesStoredCase = !!dimension
+                        && dimension !== scope.dimension
+                        && dimension.toLowerCase() === scope.dimension.toLowerCase();
+                      const itemValue = usesStoredCase ? dimension! : scope.dimension;
+
+                      return <SelectItem key={scope.id} value={itemValue}>{scope.dimension}</SelectItem>;
+                    })}
+                    {fallbackDimension ? (
+                      <SelectItem key={`__fallback-${fallbackDimension}`} value={fallbackDimension}>
+                        {fallbackDimension}{dimensionConfirmedDeleted ? ' (deleted)' : ''}
+                      </SelectItem>
+                    ) : null}
                   </SelectContent>
                 </Select>
               )}
@@ -86,7 +114,7 @@ export function ScopedValuesField<T extends FormWithScopedValues>({
               name={scopeValuePath}
               render={({ field: valueField }) => (
                 <Select
-                  disabled={disabled || !selectedScope}
+                  disabled={disabled || (!selectedScope && !fallbackDimension)}
                   onValueChange={valueField.onChange}
                   value={(valueField.value as string | undefined) ?? ''}
                 >
@@ -97,6 +125,11 @@ export function ScopedValuesField<T extends FormWithScopedValues>({
                     {(selectedScope?.allowedValues ?? []).map((allowed) => (
                       <SelectItem key={allowed} value={allowed}>{allowed}</SelectItem>
                     ))}
+                    {fallbackScopeValue ? (
+                      <SelectItem key={`__fallback-${fallbackScopeValue}`} value={fallbackScopeValue}>
+                        {fallbackScopeValue}{scopeValueConfirmedRemoved ? ' (no longer allowed)' : ''}
+                      </SelectItem>
+                    ) : null}
                   </SelectContent>
                 </Select>
               )}

@@ -6,8 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EntryModal } from './EntryModal';
 import type { ConfigEntry } from '@/queries/useConfigEntries';
 
+const scopesMock = vi.fn();
 vi.mock('@/queries/useScopes', () => ({
-  useScopes: () => ({ data: { data: [] } }),
+  useScopes: () => scopesMock(),
 }));
 
 const updateEntryMock = vi.fn();
@@ -52,7 +53,7 @@ function buildEntry(overrides: Partial<ConfigEntry> = {}): ConfigEntry {
   } as ConfigEntry;
 }
 
-function buildSensitiveEntry(): ConfigEntry {
+function buildSensitiveEntry(overrides: Partial<ConfigEntry> = {}): ConfigEntry {
   return {
     createdAt: '2026-01-01T00:00:00Z',
     createdBy: '00000000-0000-0000-0000-000000000000',
@@ -67,6 +68,7 @@ function buildSensitiveEntry(): ConfigEntry {
     valueType: 'String',
     values: [{ scopes: {}, value: SENSITIVE_MASK }],
     version: '1',
+    ...overrides,
   } as ConfigEntry;
 }
 
@@ -75,6 +77,128 @@ describe('EntryModal', () => {
     updateEntryMock.mockReset();
     updateEntryMock.mockResolvedValue(undefined);
     getConfigEntryMock.mockReset();
+    scopesMock.mockReset();
+    scopesMock.mockReturnValue({ data: { data: [] }, isSuccess: true });
+  });
+
+  it('renders the canonical dimension name when the stored key only differs by case', async () => {
+    // Backend stores the scope as "Environment" but the entry was written with a lowercase
+    // dimension key ("environment"). The Select trigger should still display "Environment" since
+    // the dimensions are case-insensitive on the server.
+    scopesMock.mockReturnValue({
+      data: {
+        data: [
+          { id: 'dim-env', dimension: 'Environment', allowedValues: ['dev', 'prod'] },
+        ],
+      },
+      isSuccess: true,
+    });
+
+    const entry = buildSensitiveEntry({
+      values: [
+        { scopes: {}, value: SENSITIVE_MASK },
+        { scopes: { environment: 'prod' }, value: SENSITIVE_MASK },
+      ],
+    });
+
+    renderWithClient(
+      <EntryModal entry={entry} mode="edit" onOpenChange={vi.fn()} open projectId="project-1" />,
+    );
+
+    await waitFor(() => {
+      const triggers = screen.getAllByRole('combobox');
+      const triggerTexts = triggers.map((trigger) => trigger.textContent?.trim());
+      expect(triggerTexts).toContain('Environment');
+      expect(triggerTexts.some((text) => text?.includes('(deleted)'))).toBe(false);
+      expect(triggerTexts).toContain('prod');
+    });
+  });
+
+  it('does not label the dimension as deleted while the scopes query is still loading', async () => {
+    // While useScopes() is in-flight (isSuccess === false), the dimensions list is empty but we
+    // cannot conclude the scope is gone — the stored value should render plainly until the query
+    // resolves.
+    scopesMock.mockReturnValue({ data: undefined, isSuccess: false });
+
+    const entry = buildSensitiveEntry({
+      values: [
+        { scopes: {}, value: SENSITIVE_MASK },
+        { scopes: { environment: 'prod' }, value: SENSITIVE_MASK },
+      ],
+    });
+
+    renderWithClient(
+      <EntryModal entry={entry} mode="edit" onOpenChange={vi.fn()} open projectId="project-1" />,
+    );
+
+    await waitFor(() => {
+      const triggers = screen.getAllByRole('combobox');
+      const triggerTexts = triggers.map((trigger) => trigger.textContent?.trim());
+      expect(triggerTexts.some((text) => text === 'environment')).toBe(true);
+      expect(triggerTexts.some((text) => text?.includes('(deleted)'))).toBe(false);
+    });
+  });
+
+  it('keeps the scoped row visible when the referenced scope is no longer in the scopes list', async () => {
+    // The entry was created when "environment" was a defined scope. The scope has since been
+    // deleted or renamed in /api/scopes, so the dimensions list returned by useScopes() doesn't
+    // include it. The stored dimension/value must still render so the user can see and clean it up.
+    scopesMock.mockReturnValue({
+      data: {
+        data: [
+          { id: 'dim-region', dimension: 'region', allowedValues: ['us', 'eu'] },
+        ],
+      },
+      isSuccess: true,
+    });
+
+    const entry = buildSensitiveEntry({
+      values: [
+        { scopes: {}, value: SENSITIVE_MASK },
+        { scopes: { environment: 'prod' }, value: SENSITIVE_MASK },
+      ],
+    });
+
+    renderWithClient(
+      <EntryModal entry={entry} mode="edit" onOpenChange={vi.fn()} open projectId="project-1" />,
+    );
+
+    await waitFor(() => {
+      const triggers = screen.getAllByRole('combobox');
+      const triggerTexts = triggers.map((trigger) => trigger.textContent?.trim());
+      expect(triggerTexts.some((text) => text?.includes('environment'))).toBe(true);
+      expect(triggerTexts.some((text) => text?.includes('prod'))).toBe(true);
+    });
+  });
+
+  it('renders dimension and scope value for a sensitive entry that has scoped values', async () => {
+    scopesMock.mockReturnValue({
+      data: {
+        data: [
+          { id: 'dim-env', dimension: 'environment', allowedValues: ['dev', 'prod'] },
+        ],
+      },
+      isSuccess: true,
+    });
+
+    const entry = buildSensitiveEntry({
+      values: [
+        { scopes: {}, value: SENSITIVE_MASK },
+        { scopes: { environment: 'prod' }, value: SENSITIVE_MASK },
+      ],
+    });
+
+    renderWithClient(
+      <EntryModal entry={entry} mode="edit" onOpenChange={vi.fn()} open projectId="project-1" />,
+    );
+
+    // Drain the open-useEffect that calls form.reset(formValues) — the bug surfaces after that fires.
+    await waitFor(() => {
+      const triggers = screen.getAllByRole('combobox');
+      const triggerTexts = triggers.map((trigger) => trigger.textContent?.trim());
+      expect(triggerTexts).toContain('environment');
+      expect(triggerTexts).toContain('prod');
+    });
   });
 
   it('rejects invalid key characters', async () => {
