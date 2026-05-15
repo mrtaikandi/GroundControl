@@ -23,7 +23,7 @@ const entrySchema = z.object({
   defaultValue: z.string(),
   description: z.string().max(500, 'Use 500 characters or fewer').optional(),
   isSensitive: z.boolean(),
-  key: z.string().min(1, 'Entry key is required').regex(/^[a-zA-Z0-9.:_-]+$/, 'Use letters, numbers, colons, dots, underscores, and hyphens only'),
+  key: z.string().min(1, 'Entry key is required').regex(/^[a-zA-Z][a-zA-Z0-9.:_-]*$/, 'Key must start with a letter and contain only letters, digits, colons, dots, underscores, or hyphens'),
   scopedValues: z.array(z.object({ dimension: z.string().optional(), scopeValue: z.string().optional(), value: z.string() })),
   type: z.enum(valueTypes),
 });
@@ -110,7 +110,7 @@ export function EntryModal({ entry, initialKey, mode, onOpenChange, open, ownerI
     const body = toRequest(values);
 
     if (mode === 'create') {
-      await createEntry.mutateAsync({ ...body, key: values.key, ownerId: resolvedOwnerId, ownerType });
+      await createEntry.mutateAsync({ ...body, ownerId: resolvedOwnerId, ownerType });
     } else if (entry) {
       await updateEntry.mutateAsync({ body, id: entry.id, version: entry.version.toString() });
     }
@@ -130,7 +130,7 @@ export function EntryModal({ entry, initialKey, mode, onOpenChange, open, ownerI
         <form className="grid max-h-[70vh] gap-4 overflow-auto pr-1" onSubmit={form.handleSubmit(submit)}>
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="entry-key">Key</label>
-            <Input disabled={mode === 'edit'} id="entry-key" placeholder="Feature:Checkout:Enabled" {...form.register('key')} />
+            <Input id="entry-key" placeholder="Feature:Checkout:Enabled" {...form.register('key')} />
             {form.formState.errors.key ? <p className="text-[11.5px] text-badge-critical-fg">{form.formState.errors.key.message}</p> : null}
           </div>
 
@@ -245,6 +245,7 @@ function toRequest(values: EntryFormValues) {
   return {
     description: values.description?.trim() ? values.description.trim() : null,
     isSensitive: values.isSensitive,
+    key: values.key,
     valueType: values.type,
     values: [
       ...(values.defaultValue ? [{ scopes: {}, value: values.defaultValue }] : []),
