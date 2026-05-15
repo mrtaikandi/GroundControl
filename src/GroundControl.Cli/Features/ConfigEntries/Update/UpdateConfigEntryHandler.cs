@@ -86,6 +86,7 @@ internal sealed class UpdateConfigEntryHandler : ICommandHandler
 
         var request = new UpdateConfigEntryRequest
         {
+            Key = _options.Key ?? existing.Key,
             ValueType = _options.ValueType ?? existing.ValueType,
             Values = scopedValues,
             IsSensitive = _options.Sensitive,

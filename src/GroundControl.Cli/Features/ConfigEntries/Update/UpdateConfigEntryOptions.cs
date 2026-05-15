@@ -4,6 +4,8 @@ internal sealed class UpdateConfigEntryOptions
 {
     public Guid Id { get; set; }
 
+    public string? Key { get; set; }
+
     public string? ValueType { get; set; }
 
     public bool? Sensitive { get; set; }
