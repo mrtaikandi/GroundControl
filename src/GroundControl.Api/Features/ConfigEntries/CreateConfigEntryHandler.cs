@@ -43,8 +43,13 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
     private async Task<IResult> HandleAsync(CreateConfigEntryRequest request, CancellationToken cancellationToken = default)
     {
         var timestamp = DateTimeOffset.UtcNow;
-        var normalizedValues = await ConfigEntryValidation.NormalizeScopeKeysAsync(request.Values, _scopeStore, cancellationToken).ConfigureAwait(false);
-        var plaintextValues = normalizedValues.Select(v => new ScopedValue(v.Value, v.Scopes));
+        var scopes = await ConfigEntryValidation.ValidateAndCanonicalizeScopesAsync(request.Values, _scopeStore, cancellationToken).ConfigureAwait(false);
+        if (scopes.Error is not null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { [nameof(request.Values)] = [scopes.Error] });
+        }
+
+        var plaintextValues = scopes.Canonical!.Select(v => new ScopedValue(v.Value, v.Scopes));
         var protectedValues = _protector.ProtectValues(plaintextValues, request.IsSensitive);
 
         var entry = new ConfigEntry
