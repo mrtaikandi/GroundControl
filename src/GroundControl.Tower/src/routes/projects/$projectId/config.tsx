@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { Braces, ChevronsDown, ChevronsUp, FolderTree, List, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ConfigFlatView, type ConfigFlatViewHandle } from '@/components/tower/config/ConfigFlatView';
+import { ConfigListView, type ConfigListViewHandle } from '@/components/tower/config/ConfigListView';
 import { ConfigJsonView } from '@/components/tower/config/ConfigJsonView';
 import { ConfigTreeView, type ConfigTreeViewHandle } from '@/components/tower/config/ConfigTreeView';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
@@ -31,10 +31,10 @@ function ConfigRoute() {
   const configViewMode = useTweaksStore((state) => state.configViewMode);
   const setConfigViewMode = useTweaksStore((state) => state.setConfigViewMode);
   const [open, setOpen] = useState(false);
-  const [flatSearch, setFlatSearch] = useState('');
+  const [listSearch, setListSearch] = useState('');
   const [search, setSearch] = useState('');
   const [treeFilter, setTreeFilter] = useState('');
-  const flatViewRef = useRef<ConfigFlatViewHandle>(null);
+  const listViewRef = useRef<ConfigListViewHandle>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const treeViewRef = useRef<ConfigTreeViewHandle>(null);
 
@@ -76,16 +76,16 @@ function ConfigRoute() {
             <SegmentedControl
               onChange={setConfigViewMode}
               options={[
-                { icon: List, label: 'Flat', value: 'flat' },
+                { icon: List, label: 'List', value: 'list' },
                 { icon: FolderTree, label: 'Tree', value: 'tree' },
                 { icon: Braces, label: 'JSON', value: 'json' },
               ]}
               value={configViewMode}
             />
-            {configViewMode === 'flat' ? (
+            {configViewMode === 'list' ? (
               <>
-                <Input className="w-full sm:max-w-sm" onChange={(event) => setFlatSearch(event.target.value)} placeholder="Filter entries…" value={flatSearch} />
-                <Button onClick={() => flatViewRef.current?.openCreate()} size="sm" type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
+                <Input className="w-full sm:max-w-sm" onChange={(event) => setListSearch(event.target.value)} placeholder="Filter entries…" value={listSearch} />
+                <Button onClick={() => listViewRef.current?.openCreate()} size="sm" type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
               </>
             ) : null}
             {configViewMode === 'tree' ? (
@@ -178,7 +178,7 @@ function ConfigRoute() {
         ? <ConfigTreeView controlsPlacement="external" filter={treeFilter} owner={{ kind: 'project', id: projectId }} ref={treeViewRef} />
         : configViewMode === 'json'
           ? <ConfigJsonView owner={{ kind: 'project', id: projectId }} />
-          : <ConfigFlatView controlsPlacement="external" owner={{ kind: 'project', id: projectId }} ref={flatViewRef} search={flatSearch} />}
+          : <ConfigListView controlsPlacement="external" owner={{ kind: 'project', id: projectId }} ref={listViewRef} search={listSearch} />}
     </div>
   );
 }
