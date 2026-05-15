@@ -123,6 +123,7 @@ public sealed class ConfigEntriesClientTests : ApiHandlerTestBase
 
         var updateRequest = new GroundControl.Api.Features.ConfigEntries.Contracts.UpdateConfigEntryRequest
         {
+            Key = created.Key,
             ValueType = "Int64",
             Values = [new GroundControl.Api.Features.ConfigEntries.Contracts.ScopedValueRequest { Value = "30" }],
             IsSensitive = true,

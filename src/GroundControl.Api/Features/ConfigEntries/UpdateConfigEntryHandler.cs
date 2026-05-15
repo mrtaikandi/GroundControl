@@ -2,6 +2,7 @@ using GroundControl.Api.Features.ConfigEntries.Contracts;
 using GroundControl.Api.Shared.Audit;
 using GroundControl.Api.Shared.Security;
 using GroundControl.Api.Shared.Security.Protection;
+using GroundControl.Persistence;
 using GroundControl.Persistence.Contracts;
 using GroundControl.Persistence.Stores;
 using Microsoft.AspNetCore.Mvc;
@@ -57,6 +58,7 @@ internal sealed class UpdateConfigEntryHandler : IEndpointHandler
             return problem;
         }
 
+        var oldKey = entry.Key;
         var oldValueType = entry.ValueType;
         var oldIsSensitive = entry.IsSensitive;
         var oldDescription = entry.Description;
@@ -70,6 +72,7 @@ internal sealed class UpdateConfigEntryHandler : IEndpointHandler
         var newPlaintextValues = request.Values.Select(v => new ScopedValue(v.Value, v.Scopes)).ToList();
         var protectedValues = _protector.ProtectValues(newPlaintextValues, request.IsSensitive);
 
+        entry.Key = request.Key;
         entry.ValueType = request.ValueType;
         entry.Values.Clear();
         foreach (var v in protectedValues)
@@ -82,13 +85,25 @@ internal sealed class UpdateConfigEntryHandler : IEndpointHandler
         entry.UpdatedAt = DateTimeOffset.UtcNow;
         entry.UpdatedBy = Guid.Empty;
 
-        var updated = await _store.UpdateAsync(entry, expectedVersion, cancellationToken).ConfigureAwait(false);
+        bool updated;
+        try
+        {
+            updated = await _store.UpdateAsync(entry, expectedVersion, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DuplicateKeyException)
+        {
+            return TypedResults.Problem(
+                detail: $"A config entry with key '{request.Key}' already exists for this owner.",
+                statusCode: StatusCodes.Status409Conflict);
+        }
+
         if (!updated)
         {
             return TypedResults.Problem(detail: "Version conflict.", statusCode: StatusCodes.Status409Conflict);
         }
 
         List<FieldChange> changes = [
+            .. AuditRecorder.CompareFields("Key", oldKey, entry.Key),
             .. AuditRecorder.CompareFields("ValueType", oldValueType, entry.ValueType),
             .. AuditRecorder.CompareCollections("Values", [.. oldPlaintextValues], newPlaintextValues, auditIsSensitive),
             .. AuditRecorder.CompareFields("IsSensitive", oldIsSensitive.ToString(), entry.IsSensitive.ToString()),

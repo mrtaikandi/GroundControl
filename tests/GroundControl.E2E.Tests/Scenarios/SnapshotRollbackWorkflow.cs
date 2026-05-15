@@ -94,6 +94,7 @@ public sealed class SnapshotRollbackWorkflow : EndToEndTestBase
 
         var updateRequest = new UpdateConfigEntryRequest
         {
+            Key = "app:version",
             ValueType = "String",
             Values =
             {

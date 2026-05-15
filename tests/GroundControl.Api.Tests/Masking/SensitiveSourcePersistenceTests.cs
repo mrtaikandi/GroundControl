@@ -105,6 +105,7 @@ public sealed class SensitiveSourcePersistenceTests : ApiHandlerTestBase
         updateRequest.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
+                Key = created.Key,
                 ValueType = "String",
                 Values = [new ConfigEntryScopedValueRequest { Value = "rotated!" }],
                 IsSensitive = true,
@@ -278,6 +279,7 @@ public sealed class SensitiveSourcePersistenceTests : ApiHandlerTestBase
         updateRequest.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
+                Key = created.Key,
                 ValueType = "String",
                 Values = [new ConfigEntryScopedValueRequest { Value = "s3cret!" }],
                 IsSensitive = true,
@@ -364,6 +366,7 @@ public sealed class SensitiveSourcePersistenceTests : ApiHandlerTestBase
         updateRequest.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
+                Key = created.Key,
                 ValueType = "String",
                 Values = [new ConfigEntryScopedValueRequest { Value = "***" }],
                 IsSensitive = true,
@@ -440,6 +443,7 @@ public sealed class SensitiveSourcePersistenceTests : ApiHandlerTestBase
         updateRequest.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
+                Key = created.Key,
                 ValueType = "String",
                 Values = [new ConfigEntryScopedValueRequest { Value = "now-public" }],
                 IsSensitive = false,

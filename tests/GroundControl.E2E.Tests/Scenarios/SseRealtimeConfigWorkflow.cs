@@ -144,6 +144,7 @@ public sealed class SseRealtimeConfigWorkflow : EndToEndTestBase
                     configEntryId,
                     new UpdateConfigEntryRequest
                     {
+                        Key = "app:version",
                         ValueType = "String",
                         Values =
                         {

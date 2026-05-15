@@ -388,6 +388,7 @@ public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
         request.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
+                Key = created.Key,
                 ValueType = "Int64",
                 Values = [new ScopedValueRequest { Value = "42" }],
                 IsSensitive = true,
@@ -424,6 +425,7 @@ public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
         request.Content = JsonContent.Create(
             new UpdateConfigEntryRequest
             {
+                Key = created.Key,
                 ValueType = "String",
                 Values = [new ScopedValueRequest { Value = "updated" }],
             },
@@ -440,6 +442,116 @@ public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
         problem.ShouldNotBeNull();
         problem.Detail.ShouldNotBeNull();
         problem.Detail.ShouldContain("Version conflict");
+    }
+
+    [Fact]
+    public async Task PutConfigEntry_WithRenamedKey_ReturnsUpdatedEntryWithNewKey()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var created = await CreateConfigEntryAsync(apiClient, "OriginalKey", template.Id, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{created.Id}");
+        request.Content = JsonContent.Create(
+            new UpdateConfigEntryRequest
+            {
+                Key = "RenamedKey",
+                ValueType = created.ValueType,
+                Values = [new ScopedValueRequest { Value = "default" }],
+            },
+            options: WebJsonSerializerOptions);
+
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var entry = await ReadConfigEntryAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        entry.Key.ShouldBe("RenamedKey");
+        entry.Version.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task PutConfigEntry_WithRenamedKeyCollidingWithSiblingInSameOwner_ReturnsConflict()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        await CreateConfigEntryAsync(apiClient, "ExistingKey", template.Id, TestCancellationToken);
+        var created = await CreateConfigEntryAsync(apiClient, "OriginalKey", template.Id, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{created.Id}");
+        request.Content = JsonContent.Create(
+            new UpdateConfigEntryRequest
+            {
+                Key = "ExistingKey",
+                ValueType = created.ValueType,
+                Values = [new ScopedValueRequest { Value = "default" }],
+            },
+            options: WebJsonSerializerOptions);
+
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadProblemAsync(TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        problem.ShouldNotBeNull();
+        problem.Detail.ShouldNotBeNull();
+        problem.Detail.ShouldContain("already exists");
+    }
+
+    [Theory]
+    [InlineData("1StartsWithDigit")]
+    [InlineData("_startsWithUnderscore")]
+    [InlineData(".startsWithDot")]
+    [InlineData("-startsWithDash")]
+    [InlineData(":startsWithColon")]
+    [InlineData("contains spaces")]
+    [InlineData("contains/slash")]
+    [InlineData("contains$dollar")]
+    public async Task PutConfigEntry_WithInvalidKeyShape_ReturnsBadRequest(string key)
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        var created = await CreateConfigEntryAsync(apiClient, "OriginalKey", template.Id, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{created.Id}");
+        request.Content = JsonContent.Create(
+            new UpdateConfigEntryRequest
+            {
+                Key = key,
+                ValueType = created.ValueType,
+                Values = [new ScopedValueRequest { Value = "default" }],
+            },
+            options: WebJsonSerializerOptions);
+
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var problem = await response.ReadValidationProblemAsync(TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        problem.ShouldNotBeNull();
+        problem.Errors.ShouldContainKey("Key");
+        problem.Errors["Key"].ShouldContain(e => e.Contains("Key must start with a letter"));
     }
 
     [Fact]
