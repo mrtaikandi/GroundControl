@@ -14,17 +14,17 @@ import { EntryModal } from './EntryModal';
 
 const columnHelper = createColumnHelper<EffectiveEntry>();
 
-interface ConfigFlatViewProps {
+interface ConfigListViewProps {
   controlsPlacement?: 'external' | 'internal';
   owner: ConfigOwner;
   search?: string;
 }
 
-export interface ConfigFlatViewHandle {
+export interface ConfigListViewHandle {
   openCreate: () => void;
 }
 
-export const ConfigFlatView = forwardRef<ConfigFlatViewHandle, ConfigFlatViewProps>(function ConfigFlatView(
+export const ConfigListView = forwardRef<ConfigListViewHandle, ConfigListViewProps>(function ConfigListView(
   { controlsPlacement = 'internal', owner, search },
   ref,
 ) {

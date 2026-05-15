@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { ConfigFlatView } from '@/components/tower/config/ConfigFlatView';
+import { ConfigListView } from '@/components/tower/config/ConfigListView';
 import { ConfigJsonView } from '@/components/tower/config/ConfigJsonView';
 import { ConfigTreeView } from '@/components/tower/config/ConfigTreeView';
 import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
@@ -100,7 +100,7 @@ function TemplateDetailRoute() {
                 <SegmentedControl
                   onChange={setConfigViewMode}
                   options={[
-                    { icon: List, label: 'Flat', value: 'flat' },
+                    { icon: List, label: 'List', value: 'list' },
                     { icon: FolderTree, label: 'Tree', value: 'tree' },
                     { icon: Braces, label: 'JSON', value: 'json' },
                   ]}
@@ -109,7 +109,7 @@ function TemplateDetailRoute() {
               )}
             />
 
-            {configViewMode === 'tree' ? <ConfigTreeView owner={owner} /> : configViewMode === 'json' ? <ConfigJsonView owner={owner} /> : <ConfigFlatView owner={owner} />}
+            {configViewMode === 'tree' ? <ConfigTreeView owner={owner} /> : configViewMode === 'json' ? <ConfigJsonView owner={owner} /> : <ConfigListView owner={owner} />}
           </div>
 
           <InheritancePanel inheritedBy={inheritedBy.map((project) => ({ id: project.id, name: project.name }))} />

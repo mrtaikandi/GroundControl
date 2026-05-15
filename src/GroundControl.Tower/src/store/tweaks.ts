@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type Theme = 'light' | 'dark';
-export type ConfigViewMode = 'flat' | 'tree' | 'json';
+export type ConfigViewMode = 'list' | 'tree' | 'json';
 export type SnapshotViewMode = 'diff' | 'json' | 'json-diff';
 export type DiffLayout = 'inline' | 'split';
 
@@ -28,7 +28,7 @@ export const useTweaksStore = create<TweaksState>()(
   persist(
     (set, get) => ({
       applyToDocument: () => applyToDocument(get().theme),
-      configViewMode: 'flat',
+      configViewMode: 'list',
       diffLayout: 'inline',
       diffLineWrap: true,
       driftBannerVisible: true,
@@ -48,6 +48,15 @@ export const useTweaksStore = create<TweaksState>()(
     }),
     {
       name: 'tower.tweaks',
+      // v1: configViewMode 'flat' renamed to 'list'.
+      version: 1,
+      migrate: (persistedState, version) => {
+        if (version < 1 && persistedState && typeof persistedState === 'object' && (persistedState as { configViewMode?: string }).configViewMode === 'flat') {
+          (persistedState as { configViewMode: ConfigViewMode }).configViewMode = 'list';
+        }
+
+        return persistedState as TweaksState;
+      },
       onRehydrateStorage: () => (state) => {
         state?.applyToDocument();
       },
