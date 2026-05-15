@@ -13,7 +13,6 @@ import { Route as VariablesRouteImport } from './routes/variables'
 import { Route as ScopesRouteImport } from './routes/scopes'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as ClientsRouteImport } from './routes/clients'
-import { Route as AuditRouteImport } from './routes/audit'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
@@ -21,6 +20,7 @@ import { Route as TemplatesTemplateIdRouteImport } from './routes/templates/$tem
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminTokensRouteImport } from './routes/admin/tokens'
 import { Route as AdminGroupsRouteImport } from './routes/admin/groups'
+import { Route as AdminAuditRouteImport } from './routes/admin/audit'
 import { Route as ProjectsProjectIdRouteRouteImport } from './routes/projects/$projectId/route'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as AdminGroupsIndexRouteImport } from './routes/admin/groups.index'
@@ -49,11 +49,6 @@ const OverviewRoute = OverviewRouteImport.update({
 const ClientsRoute = ClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuditRoute = AuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -89,6 +84,11 @@ const AdminTokensRoute = AdminTokensRouteImport.update({
 const AdminGroupsRoute = AdminGroupsRouteImport.update({
   id: '/admin/groups',
   path: '/admin/groups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/admin/audit',
+  path: '/admin/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsProjectIdRouteRoute = ProjectsProjectIdRouteRouteImport.update({
@@ -142,12 +142,12 @@ const AdminGroupsGroupIdRoute = AdminGroupsGroupIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/audit': typeof AuditRoute
   '/clients': typeof ClientsRoute
   '/overview': typeof OverviewRoute
   '/scopes': typeof ScopesRoute
   '/variables': typeof VariablesRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteRouteWithChildren
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/groups': typeof AdminGroupsRouteWithChildren
   '/admin/tokens': typeof AdminTokensRoute
   '/admin/users': typeof AdminUsersRoute
@@ -165,11 +165,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/audit': typeof AuditRoute
   '/clients': typeof ClientsRoute
   '/overview': typeof OverviewRoute
   '/scopes': typeof ScopesRoute
   '/variables': typeof VariablesRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/tokens': typeof AdminTokensRoute
   '/admin/users': typeof AdminUsersRoute
   '/templates/$templateId': typeof TemplatesTemplateIdRoute
@@ -187,12 +187,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/audit': typeof AuditRoute
   '/clients': typeof ClientsRoute
   '/overview': typeof OverviewRoute
   '/scopes': typeof ScopesRoute
   '/variables': typeof VariablesRoute
   '/projects/$projectId': typeof ProjectsProjectIdRouteRouteWithChildren
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/groups': typeof AdminGroupsRouteWithChildren
   '/admin/tokens': typeof AdminTokensRoute
   '/admin/users': typeof AdminUsersRoute
@@ -212,12 +212,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/audit'
     | '/clients'
     | '/overview'
     | '/scopes'
     | '/variables'
     | '/projects/$projectId'
+    | '/admin/audit'
     | '/admin/groups'
     | '/admin/tokens'
     | '/admin/users'
@@ -235,11 +235,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/audit'
     | '/clients'
     | '/overview'
     | '/scopes'
     | '/variables'
+    | '/admin/audit'
     | '/admin/tokens'
     | '/admin/users'
     | '/templates/$templateId'
@@ -256,12 +256,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/audit'
     | '/clients'
     | '/overview'
     | '/scopes'
     | '/variables'
     | '/projects/$projectId'
+    | '/admin/audit'
     | '/admin/groups'
     | '/admin/tokens'
     | '/admin/users'
@@ -280,12 +280,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuditRoute: typeof AuditRoute
   ClientsRoute: typeof ClientsRoute
   OverviewRoute: typeof OverviewRoute
   ScopesRoute: typeof ScopesRoute
   VariablesRoute: typeof VariablesRoute
   ProjectsProjectIdRouteRoute: typeof ProjectsProjectIdRouteRouteWithChildren
+  AdminAuditRoute: typeof AdminAuditRoute
   AdminGroupsRoute: typeof AdminGroupsRouteWithChildren
   AdminTokensRoute: typeof AdminTokensRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -323,13 +323,6 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/clients'
       preLoaderRoute: typeof ClientsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/audit': {
-      id: '/audit'
-      path: '/audit'
-      fullPath: '/audit'
-      preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -379,6 +372,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/groups'
       fullPath: '/admin/groups'
       preLoaderRoute: typeof AdminGroupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$projectId': {
@@ -485,12 +485,12 @@ const AdminGroupsRouteWithChildren = AdminGroupsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuditRoute: AuditRoute,
   ClientsRoute: ClientsRoute,
   OverviewRoute: OverviewRoute,
   ScopesRoute: ScopesRoute,
   VariablesRoute: VariablesRoute,
   ProjectsProjectIdRouteRoute: ProjectsProjectIdRouteRouteWithChildren,
+  AdminAuditRoute: AdminAuditRoute,
   AdminGroupsRoute: AdminGroupsRouteWithChildren,
   AdminTokensRoute: AdminTokensRoute,
   AdminUsersRoute: AdminUsersRoute,

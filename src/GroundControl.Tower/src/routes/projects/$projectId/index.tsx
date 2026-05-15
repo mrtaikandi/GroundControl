@@ -133,7 +133,7 @@ function RecentActivityPanel({ activity, isLoading }: { activity: ActivityItem[]
           <h2 className="text-[15px] font-semibold text-fg-heading">Recent Activity</h2>
           <p className="text-[12.5px] text-fg-caption">Last {ACTIVITY_WINDOW_DAYS} days</p>
         </div>
-        <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline" to="/audit">
+        <Link className="text-[12.5px] font-medium text-fg-link transition-colors hover:underline" to="/admin/audit">
           open audit →
         </Link>
       </div>
