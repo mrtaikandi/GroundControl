@@ -1,12 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { GitCompareArrows } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/tower/data/Badge';
-import { SegmentedControl } from '@/components/tower/data/SegmentedControl';
+import { CompareSnapshotPicker } from '@/components/tower/snapshots/CompareSnapshotPicker';
 import { summarizeChanges } from '@/components/tower/snapshots/PublishModal';
 import { SnapshotDiffView } from '@/components/tower/snapshots/SnapshotDiffView';
 import { SnapshotJsonView } from '@/components/tower/snapshots/SnapshotJsonView';
@@ -16,12 +15,6 @@ import { cn } from '@/lib/utils';
 import { useProjects } from '@/queries/useProjects';
 import { useActivateSnapshot, useSnapshotDetail, useSnapshots, type SnapshotDetail, type SnapshotSummary } from '@/queries/useSnapshots';
 import { useTweaksStore } from '@/store/tweaks';
-
-const snapshotViewOptions = [
-  { label: 'JSON', value: 'json' },
-  { icon: GitCompareArrows, label: 'Active', value: 'diff' },
-  { icon: GitCompareArrows, label: 'Previous', value: 'json-diff' },
-] as const;
 
 export const Route = createFileRoute('/projects/$projectId/snapshots')({
   component: SnapshotsRoute,
@@ -34,24 +27,31 @@ function SnapshotsRoute() {
   const snapshotViewMode = useTweaksStore((state) => state.snapshotViewMode);
   const setSnapshotViewMode = useTweaksStore((state) => state.setSnapshotViewMode);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | undefined>();
+  const [compareSnapshotId, setCompareSnapshotId] = useState<string | undefined>();
   const [detailExpanded, setDetailExpanded] = useState(false);
   const [activatingSnapshot, setActivatingSnapshot] = useState<SnapshotSummary | undefined>();
   const items = snapshots.data?.data ?? [];
   const project = projects.data?.data.find((candidate) => candidate.id === projectId);
   const projectName = project?.name ?? '—';
   const activeSnapshotId = project?.activeSnapshotId || undefined;
-  const activeSummary = items.find((snapshot) => snapshot.id === activeSnapshotId);
   const selectedSnapshot = items.find((snapshot) => snapshot.id === selectedSnapshotId) ?? items[0];
   const selectedIsActive = Boolean(selectedSnapshot && activeSnapshotId && selectedSnapshot.id === activeSnapshotId);
   const selectedIndex = items.findIndex((snapshot) => snapshot.id === selectedSnapshot?.id);
   const previousSummary = selectedIndex >= 0 ? items[selectedIndex + 1] : undefined;
+  // Default the compare target to the active snapshot when it differs from the one being viewed,
+  // otherwise fall back to the previous snapshot. The picker can override this at any time.
+  const defaultCompareId = activeSnapshotId && activeSnapshotId !== selectedSnapshot?.id ? activeSnapshotId : previousSummary?.id;
+  const effectiveCompareId = compareSnapshotId && items.some((snapshot) => snapshot.id === compareSnapshotId)
+    ? compareSnapshotId
+    : defaultCompareId;
+  const compareSummary = items.find((snapshot) => snapshot.id === effectiveCompareId);
   const selectedDetail = useSnapshotDetail(projectId, selectedSnapshot?.id);
-  const activeDetail = useSnapshotDetail(projectId, activeSnapshotId);
-  const previousDetail = useSnapshotDetail(projectId, previousSummary?.id);
+  const compareDetail = useSnapshotDetail(projectId, effectiveCompareId);
   const activateSnapshot = useActivateSnapshot(projectId);
 
   useEffect(() => {
     setSelectedSnapshotId(undefined);
+    setCompareSnapshotId(undefined);
   }, [projectId]);
 
   useEffect(() => {
@@ -69,35 +69,18 @@ function SnapshotsRoute() {
     return description ? `v${selectedSnapshot.snapshotVersion} — ${description}` : `v${selectedSnapshot.snapshotVersion}`;
   }, [selectedSnapshot]);
 
-  const activeChangeSummary = useMemo(() => {
-    if (snapshotViewMode !== 'diff') {
+  const compareChangeSummary = useMemo(() => {
+    if (snapshotViewMode !== 'compare') {
       return null;
     }
 
-    return summarizeChanges(snapshotToDocument(activeDetail.data), snapshotToDocument(selectedDetail.data));
-  }, [activeDetail.data, selectedDetail.data, snapshotViewMode]);
-
-  const previousChangeSummary = useMemo(() => {
-    if (snapshotViewMode !== 'json-diff') {
-      return null;
-    }
-
-    return summarizeChanges(snapshotToDocument(previousDetail.data), snapshotToDocument(selectedDetail.data));
-  }, [previousDetail.data, selectedDetail.data, snapshotViewMode]);
-
-  const comparisonLabel = useMemo(() => {
-    if (snapshotViewMode === 'diff') {
-      return activeSummary ? `vs v${activeSummary.snapshotVersion} (active)` : null;
-    }
-
-    if (snapshotViewMode === 'json-diff') {
-      return previousSummary ? `vs v${previousSummary.snapshotVersion} (previous)` : 'no previous snapshot';
-    }
-
-    return null;
-  }, [activeSummary, previousSummary, snapshotViewMode]);
+    return summarizeChanges(snapshotToDocument(compareDetail.data), snapshotToDocument(selectedDetail.data));
+  }, [compareDetail.data, selectedDetail.data, snapshotViewMode]);
 
   const selectedSnapshotLabel = selectedSnapshot ? `v${selectedSnapshot.snapshotVersion}` : 'selected snapshot';
+  const compareTargetLabel = compareSummary
+    ? `v${compareSummary.snapshotVersion}${compareSummary.id === activeSnapshotId ? ' (active)' : ''}`
+    : 'no snapshot selected';
 
   return (
     <div className="grid gap-4">
@@ -150,7 +133,31 @@ function SnapshotsRoute() {
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-              <SegmentedControl onChange={setSnapshotViewMode} options={[...snapshotViewOptions]} value={snapshotViewMode} />
+              <div className="inline-flex items-center gap-[3px] rounded-full bg-bg-container p-[3px]" role="group">
+                <button
+                  aria-pressed={snapshotViewMode === 'json'}
+                  className={cn(
+                    'ui-text-body-sm inline-flex h-7 items-center gap-1.5 rounded-full px-3 font-medium transition-colors duration-150 ease-out',
+                    snapshotViewMode === 'json' ? 'bg-bg-surface font-semibold text-fg-heading shadow-ui-button-subtle' : 'text-fg-caption hover:text-fg-body',
+                  )}
+                  onClick={() => setSnapshotViewMode('json')}
+                  type="button"
+                >
+                  JSON
+                </button>
+                <CompareSnapshotPicker
+                  active={snapshotViewMode === 'compare'}
+                  activeSnapshotId={activeSnapshotId}
+                  compareSnapshotId={effectiveCompareId}
+                  disabled={items.length < 2}
+                  onSelect={(id) => {
+                    setCompareSnapshotId(id);
+                    setSnapshotViewMode('compare');
+                  }}
+                  selectedSnapshotId={selectedSnapshot?.id}
+                  snapshots={items}
+                />
+              </div>
             </div>
 
             <div className="mt-4">{renderSnapshotView()}</div>
@@ -203,33 +210,17 @@ function SnapshotsRoute() {
   }
 
   function renderExpandedDiffView(expanded = true) {
-    if (snapshotViewMode === 'diff') {
-      return (
-        <SnapshotDiffView
-          baseline={activeDetail.data}
-          changeCount={countChanges(activeChangeSummary)}
-          className={expanded ? 'max-h-[calc(100vh-32px)] rounded-2xl border-0' : 'min-h-[520px] max-h-[620px]'}
-          isLoading={selectedDetail.isLoading || activeDetail.isLoading}
-          onClose={expanded ? () => setDetailExpanded(false) : undefined}
-          onExpand={expanded ? undefined : () => setDetailExpanded(true)}
-          snapshot={selectedDetail.data}
-          sourceLabel={selectedSnapshotLabel}
-          targetLabel={activeSummary ? `v${activeSummary.snapshotVersion} (active)` : 'active snapshot'}
-        />
-      );
-    }
-
     return (
       <SnapshotDiffView
-        baseline={previousDetail.data}
-        changeCount={countChanges(previousChangeSummary)}
+        baseline={compareDetail.data}
+        changeCount={countChanges(compareChangeSummary)}
         className={expanded ? 'max-h-[calc(100vh-32px)] rounded-2xl border-0' : 'min-h-[520px] max-h-[620px]'}
-        isLoading={selectedDetail.isLoading || previousDetail.isLoading}
+        isLoading={selectedDetail.isLoading || compareDetail.isLoading}
         onClose={expanded ? () => setDetailExpanded(false) : undefined}
         onExpand={expanded ? undefined : () => setDetailExpanded(true)}
         snapshot={selectedDetail.data}
         sourceLabel={selectedSnapshotLabel}
-        targetLabel={previousSummary ? `v${previousSummary.snapshotVersion} (previous)` : 'previous snapshot'}
+        targetLabel={compareTargetLabel}
       />
     );
   }
