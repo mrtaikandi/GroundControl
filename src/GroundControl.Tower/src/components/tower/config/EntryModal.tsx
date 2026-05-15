@@ -32,6 +32,7 @@ type EntryFormValues = z.infer<typeof entrySchema>;
 
 interface EntryModalProps {
   entry?: ConfigEntry;
+  initialKey?: string;
   mode: 'create' | 'edit';
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -40,12 +41,12 @@ interface EntryModalProps {
   projectId?: string;
 }
 
-export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType = 1, projectId }: EntryModalProps) {
+export function EntryModal({ entry, initialKey, mode, onOpenChange, open, ownerId, ownerType = 1, projectId }: EntryModalProps) {
   const resolvedOwnerId = ownerId ?? projectId ?? '';
   const createEntry = useCreateEntry(resolvedOwnerId, ownerType);
   const updateEntry = useUpdateEntry(resolvedOwnerId, ownerType);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const formValues = useMemo(() => toFormValues(entry), [entry]);
+  const formValues = useMemo(() => toFormValues(entry, initialKey), [entry, initialKey]);
   const form = useForm<EntryFormValues>({
     defaultValues: formValues,
     resolver: zodResolver(entrySchema),
@@ -222,7 +223,7 @@ export function EntryModal({ entry, mode, onOpenChange, open, ownerId, ownerType
   );
 }
 
-function toFormValues(entry?: ConfigEntry): EntryFormValues {
+function toFormValues(entry?: ConfigEntry, initialKey?: string): EntryFormValues {
   const defaultScopedValue = entry?.values.find((value) => !value.scopes || Object.keys(value.scopes).length === 0);
   const scopedValues = entry?.values.filter((value) => value !== defaultScopedValue).map((value) => {
     const [dimension = '', scopeValue = ''] = Object.entries(value.scopes ?? {})[0] ?? [];
@@ -234,7 +235,7 @@ function toFormValues(entry?: ConfigEntry): EntryFormValues {
     defaultValue: defaultScopedValue?.value ?? '',
     description: entry?.description ?? '',
     isSensitive: entry?.isSensitive ?? false,
-    key: entry?.key ?? '',
+    key: entry?.key ?? initialKey ?? '',
     scopedValues,
     type: normalizeType(entry?.valueType),
   };

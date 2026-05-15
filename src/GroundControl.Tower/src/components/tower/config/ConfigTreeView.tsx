@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Layers3, Folder, FolderOpen, Hash, Lock, Pencil, Plus } from 'lucide-react';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ export const ConfigTreeView = forwardRef<ConfigTreeViewHandle, ConfigTreeViewPro
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<ConfigEntry | undefined>();
-  const [creating, setCreating] = useState(false);
+  const [creatingKey, setCreatingKey] = useState<string | null>(null);
   const [internalFilter, setInternalFilter] = useState('');
   const resolvedFilter = filter ?? internalFilter;
   const sourceById = useMemo(() => new Map(effective.entries.map((item) => [item.entry.id, item.source])), [effective.entries]);
@@ -86,7 +87,7 @@ export const ConfigTreeView = forwardRef<ConfigTreeViewHandle, ConfigTreeViewPro
   useImperativeHandle(ref, () => ({
     collapseAll: () => setCollapsed(new Set(allPrefixes)),
     expandAll: () => setCollapsed(new Set()),
-    openCreate: () => setCreating(true),
+    openCreate: () => setCreatingKey(''),
   }), [allPrefixes]);
 
   return (
@@ -105,7 +106,7 @@ export const ConfigTreeView = forwardRef<ConfigTreeViewHandle, ConfigTreeViewPro
                 </Button>
               </div>
             </div>
-            <Button className="sm:justify-self-end" onClick={() => setCreating(true)} type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
+            <Button className="sm:justify-self-end" onClick={() => setCreatingKey('')} type="button"><Plus aria-hidden="true" className="size-3.5" />New entry</Button>
           </div>
         ) : null}
 
@@ -117,6 +118,7 @@ export const ConfigTreeView = forwardRef<ConfigTreeViewHandle, ConfigTreeViewPro
                   collapsed={collapsed}
                   key={node.kind === 'group' ? node.prefix : node.entry.id}
                   node={node}
+                  onCreate={setCreatingKey}
                   onEdit={setEditingEntry}
                   onSelect={setSelectedEntryId}
                   selectedEntryId={selectedEntryId}
@@ -132,7 +134,7 @@ export const ConfigTreeView = forwardRef<ConfigTreeViewHandle, ConfigTreeViewPro
           <EntryDetailPanel item={selectedItem} onEdit={setEditingEntry} ownerName={ownerName} />
         </div>
 
-        <EntryModal mode="create" onOpenChange={setCreating} open={creating} ownerId={owner.id} ownerType={ownerType} />
+        <EntryModal initialKey={creatingKey ?? undefined} key={`create-${creatingKey ?? 'closed'}`} mode="create" onOpenChange={(open) => !open && setCreatingKey(null)} open={creatingKey !== null} ownerId={owner.id} ownerType={ownerType} />
         <EntryModal entry={editingEntry} key={editingEntry?.id ?? 'edit-empty'} mode="edit" onOpenChange={(open) => !open && setEditingEntry(undefined)} open={Boolean(editingEntry)} ownerId={owner.id} ownerType={ownerType} />
       </div>
     </TooltipProvider>
@@ -143,6 +145,7 @@ interface TreeRowProps {
   collapsed: Set<string>;
   depth?: number;
   node: TreeNode;
+  onCreate: (initialKey: string) => void;
   onEdit: (entry: ConfigEntry) => void;
   onSelect: (id: string) => void;
   selectedEntryId: null | string;
@@ -150,33 +153,52 @@ interface TreeRowProps {
   sourceById: Map<string, EntrySource>;
 }
 
-function TreeRow({ collapsed, depth = 0, node, onEdit, onSelect, selectedEntryId, setCollapsed, sourceById }: TreeRowProps) {
+function TreeRow({ collapsed, depth = 0, node, onCreate, onEdit, onSelect, selectedEntryId, setCollapsed, sourceById }: TreeRowProps) {
   if (node.kind === 'group') {
     const isCollapsed = collapsed.has(node.prefix);
     const segmentName = lastSegment(node.prefix);
 
     return (
       <div>
-        <button
-          className="flex w-full items-center gap-2 border-b border-stroke-subtle px-4 py-2.5 text-left text-[13.5px] hover:bg-bg-container"
-          onClick={() => setCollapsed(toggle(collapsed, node.prefix))}
-          style={{ paddingLeft: 16 + depth * 20 }}
-          type="button"
-        >
-          {isCollapsed ? <ChevronRight className="size-4 text-fg-icon-subtle" /> : <ChevronDown className="size-4 text-fg-icon-subtle" />}
-          {isCollapsed ? <Folder aria-hidden="true" className="size-4 text-fg-icon-subtle" /> : <FolderOpen aria-hidden="true" className="size-4 text-fg-icon-subtle" />}
-          <span className="min-w-0 font-semibold text-fg-heading [overflow-wrap:anywhere]">{segmentName}</span>
-          <span className="text-[12px] text-fg-caption [overflow-wrap:anywhere]">
-            {node.count} {node.count === 1 ? 'key' : 'keys'}
-            {node.sensitiveCount > 0 ? ` · ${node.sensitiveCount} sensitive` : ''}
-          </span>
-        </button>
+        <div className="group/group flex items-stretch border-b border-stroke-subtle hover:bg-bg-container">
+          <button
+            className="flex flex-1 items-center gap-2 px-4 py-2.5 text-left text-[13.5px]"
+            onClick={() => setCollapsed(toggle(collapsed, node.prefix))}
+            style={{ paddingLeft: 16 + depth * 20 }}
+            type="button"
+          >
+            {isCollapsed ? <ChevronRight className="size-4 text-fg-icon-subtle" /> : <ChevronDown className="size-4 text-fg-icon-subtle" />}
+            {isCollapsed ? <Folder aria-hidden="true" className="size-4 text-fg-icon-subtle" /> : <FolderOpen aria-hidden="true" className="size-4 text-fg-icon-subtle" />}
+            <span className="min-w-0 font-semibold text-fg-heading [overflow-wrap:anywhere]">{segmentName}</span>
+            <span className="text-[12px] text-fg-caption [overflow-wrap:anywhere]">
+              {node.count} {node.count === 1 ? 'key' : 'keys'}
+              {node.sensitiveCount > 0 ? ` · ${node.sensitiveCount} sensitive` : ''}
+            </span>
+          </button>
+          <div className="flex items-center pr-3 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/group:opacity-100 sm:focus-within:opacity-100">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  aria-label={`Add entry under ${node.prefix}`}
+                  onClick={(event) => { event.stopPropagation(); onCreate(`${node.prefix}:`); }}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Plus aria-hidden="true" className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add entry under {node.prefix}</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
         {!isCollapsed ? node.children.map((child) => (
           <TreeRow
             collapsed={collapsed}
             depth={depth + 1}
             key={child.kind === 'group' ? child.prefix : child.entry.id}
             node={child}
+            onCreate={onCreate}
             onEdit={onEdit}
             onSelect={onSelect}
             selectedEntryId={selectedEntryId}
@@ -199,7 +221,7 @@ function TreeRow({ collapsed, depth = 0, node, onEdit, onSelect, selectedEntryId
     <div
       className={cn(
         'group relative grid w-full cursor-pointer items-center gap-3 border-b border-stroke-subtle px-4 py-2.5 text-left text-[13px] last:border-b-0 hover:bg-bg-container',
-        'grid-cols-[16px_minmax(0,1fr)] sm:grid-cols-[16px_minmax(0,1fr)_auto_auto]',
+        'grid-cols-[16px_minmax(0,1fr)] sm:grid-cols-[16px_minmax(0,1fr)_auto]',
         isSelected && 'bg-bg-selected before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-primary',
       )}
       onClick={() => onSelect(node.entry.id)}
@@ -209,19 +231,29 @@ function TreeRow({ collapsed, depth = 0, node, onEdit, onSelect, selectedEntryId
         : isInherited
           ? <Layers3 aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />
           : <Hash aria-hidden="true" className="size-3.5 text-fg-icon-subtle" />}
-      <span className="flex min-w-0 items-center gap-2">
+      <span className="flex min-w-0 flex-wrap items-center gap-2 text-fg-body">
         <span className="font-semibold text-fg-heading [overflow-wrap:anywhere]">{segmentName}</span>
         <Badge variant="neutral">{node.entry.valueType}</Badge>
-      </span>
-      <div className="col-start-2 flex min-w-0 flex-wrap items-center gap-2 text-fg-body sm:col-start-auto sm:justify-end">
         {defaultVal ? <SensitiveValue isSensitive={node.entry.isSensitive} value={defaultVal} /> : null}
         {scopes > 0 ? <Badge variant="info">+{scopes}</Badge> : null}
-      </div>
-      {isInherited ? <span /> : (
-        <div className="col-start-2 flex flex-wrap justify-start gap-1 opacity-100 transition-opacity sm:col-start-auto sm:justify-end sm:opacity-0 sm:group-hover:opacity-100">
+      </span>
+      <div className="col-start-2 flex flex-wrap justify-start gap-1 opacity-100 transition-opacity sm:col-start-auto sm:justify-end sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+        {isInherited && source?.kind === 'template' ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild onClick={(event) => event.stopPropagation()} size="sm" type="button" variant="ghost">
+                <Link params={{ templateId: source.templateId }} to="/templates/$templateId">
+                  <Layers3 aria-hidden="true" className="size-3.5" />
+                  Template
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Open {source.templateName} template</TooltipContent>
+          </Tooltip>
+        ) : (
           <Button onClick={(event) => { event.stopPropagation(); onEdit(node.entry); }} size="sm" type="button" variant="ghost">Edit</Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
