@@ -6,7 +6,10 @@ using GroundControl.Persistence.Stores;
 
 namespace GroundControl.Api.Features.ConfigEntries;
 
-internal static partial class ConfigEntryValidation
+/// <summary>
+/// Shared validation and canonicalization logic for config entry write paths.
+/// </summary>
+internal sealed partial class ConfigEntryValidation
 {
     /// <summary>
     /// Allowed shape for a config entry key: starts with a letter, then any mix of letters,
@@ -15,14 +18,9 @@ internal static partial class ConfigEntryValidation
     public const string KeyPattern = "^[A-Za-z][A-Za-z0-9.:_-]*$";
 
     /// <summary>
-    /// Human-readable description of <see cref="KeyPattern"/>, surfaced verbatim in 400 responses.
+    /// Human-readable description of <see cref="KeyPattern" />, surfaced verbatim in 400 responses.
     /// </summary>
     public const string KeyPatternErrorMessage = "Key must start with a letter and contain only letters, digits, '.', ':', '_', or '-'.";
-
-    [GeneratedRegex(KeyPattern, RegexOptions.Compiled)]
-    private static partial Regex KeyRegex { get; }
-
-    public static bool IsValidKey(string key) => !string.IsNullOrEmpty(key) && KeyRegex.IsMatch(key);
 
     private static readonly HashSet<string> AllowedValueTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -38,36 +36,27 @@ internal static partial class ConfigEntryValidation
         "TimeOnly"
     };
 
-    public static bool IsValidValueType(string valueType) => AllowedValueTypes.Contains(valueType);
+    private readonly IScopeStore _scopeStore;
 
-    public static string? ValidateValue(string value, string valueType)
+    public ConfigEntryValidation(IScopeStore scopeStore)
     {
-        return valueType.ToUpperInvariant() switch
-        {
-            "STRING" => null,
-            "INT32" => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Int32.",
-            "INT64" => long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Int64.",
-            "DOUBLE" => double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Double.",
-            "DECIMAL" => decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Decimal.",
-            "BOOLEAN" => bool.TryParse(value, out _) ? null : $"Value '{value}' is not a valid Boolean.",
-            "DATETIME" => DateTime.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateTime.",
-            "DATETIMEOFFSET" => DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateTimeOffset.",
-            "DATEONLY" => DateOnly.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateOnly.",
-            "TIMEONLY" => TimeOnly.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid TimeOnly.",
-            _ => $"ValueType '{valueType}' is not supported."
-        };
+        _scopeStore = scopeStore ?? throw new ArgumentNullException(nameof(scopeStore));
     }
 
+    [GeneratedRegex(KeyPattern, RegexOptions.Compiled)]
+    private static partial Regex KeyRegex { get; }
+
+    public bool IsValidKey(string key) => !string.IsNullOrEmpty(key) && KeyRegex.IsMatch(key);
+
+    public bool IsValidValueType(string valueType) => AllowedValueTypes.Contains(valueType);
+
     /// <summary>
-    /// Validates every scope reference (dimension exists + value is in <see cref="Scope.AllowedValues"/>)
-    /// and rewrites each scope key to the canonical <see cref="Scope.Dimension"/> casing in a single
-    /// pass. Each unique dimension is looked up once via <see cref="IScopeStore.GetByDimensionAsync"/>.
+    /// Validates every scope reference (dimension exists + value is in <see cref="Scope.AllowedValues" />)
+    /// and rewrites each scope key to the canonical <see cref="Scope.Dimension" /> casing in a single
+    /// pass. Each unique dimension is looked up once via <see cref="IScopeStore.GetByDimensionAsync" />.
     /// On failure, returns the first error; on success, returns the canonicalized list.
     /// </summary>
-    public static async Task<ScopeValidationResult> ValidateAndCanonicalizeScopesAsync(
-        IReadOnlyList<ScopedValueRequest> values,
-        IScopeStore scopeStore,
-        CancellationToken cancellationToken)
+    public async Task<ScopeValidationResult> ValidateAndCanonicalizeScopesAsync(IReadOnlyList<ScopedValueRequest> values, CancellationToken cancellationToken)
     {
         var scopeCache = new Dictionary<string, Scope?>(StringComparer.OrdinalIgnoreCase);
         var canonical = new List<ScopedValueRequest>(values.Count);
@@ -85,7 +74,7 @@ internal static partial class ConfigEntryValidation
             {
                 if (!scopeCache.TryGetValue(dimension, out var scope))
                 {
-                    scope = await scopeStore.GetByDimensionAsync(dimension, cancellationToken).ConfigureAwait(false);
+                    scope = await _scopeStore.GetByDimensionAsync(dimension, cancellationToken).ConfigureAwait(false);
                     scopeCache[dimension] = scope;
                 }
 
@@ -107,10 +96,28 @@ internal static partial class ConfigEntryValidation
 
         return ScopeValidationResult.Success(canonical);
     }
+
+    public string? ValidateValue(string value, string valueType)
+    {
+        return valueType.ToUpperInvariant() switch
+        {
+            "STRING" => null,
+            "INT32" => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Int32.",
+            "INT64" => long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Int64.",
+            "DOUBLE" => double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Double.",
+            "DECIMAL" => decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid Decimal.",
+            "BOOLEAN" => bool.TryParse(value, out _) ? null : $"Value '{value}' is not a valid Boolean.",
+            "DATETIME" => DateTime.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateTime.",
+            "DATETIMEOFFSET" => DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateTimeOffset.",
+            "DATEONLY" => DateOnly.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid DateOnly.",
+            "TIMEONLY" => TimeOnly.TryParse(value, CultureInfo.InvariantCulture, out _) ? null : $"Value '{value}' is not a valid TimeOnly.",
+            _ => $"ValueType '{valueType}' is not supported."
+        };
+    }
 }
 
 /// <summary>
-/// Result of <see cref="ConfigEntryValidation.ValidateAndCanonicalizeScopesAsync"/>: either a
+/// Result of <see cref="ConfigEntryValidation.ValidateAndCanonicalizeScopesAsync" />: either a
 /// validation error message, or a canonicalized list of scoped values.
 /// </summary>
 internal readonly record struct ScopeValidationResult
@@ -121,13 +128,13 @@ internal readonly record struct ScopeValidationResult
         Canonical = canonical;
     }
 
-    /// <summary>Gets the first validation error, or <c>null</c> on success.</summary>
-    public string? Error { get; }
-
     /// <summary>Gets the canonicalized scoped values on success, or <c>null</c> on failure.</summary>
     public List<ScopedValueRequest>? Canonical { get; }
 
-    public static ScopeValidationResult Success(List<ScopedValueRequest> canonical) => new(null, canonical);
+    /// <summary>Gets the first validation error, or <c>null</c> on success.</summary>
+    public string? Error { get; }
 
     public static ScopeValidationResult Failure(string error) => new(error, null);
+
+    public static ScopeValidationResult Success(List<ScopedValueRequest> canonical) => new(null, canonical);
 }

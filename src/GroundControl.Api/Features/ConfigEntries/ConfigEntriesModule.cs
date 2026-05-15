@@ -7,6 +7,8 @@ internal sealed class ConfigEntriesModule : IWebApiModule
 {
     public void OnServiceConfiguration(WebApplicationBuilder builder)
     {
+        builder.Services.AddSingleton<ConfigEntryValidation>();
+
         builder.Services.AddTransient<CreateConfigEntryHandler>();
         builder.Services.AddTransient<GetConfigEntryHandler>();
         builder.Services.AddTransient<ListConfigEntriesHandler>();
