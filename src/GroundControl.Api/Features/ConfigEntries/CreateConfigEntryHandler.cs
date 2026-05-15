@@ -12,12 +12,14 @@ namespace GroundControl.Api.Features.ConfigEntries;
 internal sealed class CreateConfigEntryHandler : IEndpointHandler
 {
     private readonly IConfigEntryStore _store;
+    private readonly IScopeStore _scopeStore;
     private readonly AuditRecorder _audit;
     private readonly SensitiveSourceValueProtector _protector;
 
-    public CreateConfigEntryHandler(IConfigEntryStore store, AuditRecorder audit, SensitiveSourceValueProtector protector)
+    public CreateConfigEntryHandler(IConfigEntryStore store, IScopeStore scopeStore, AuditRecorder audit, SensitiveSourceValueProtector protector)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+        _scopeStore = scopeStore ?? throw new ArgumentNullException(nameof(scopeStore));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
     }
@@ -41,7 +43,8 @@ internal sealed class CreateConfigEntryHandler : IEndpointHandler
     private async Task<IResult> HandleAsync(CreateConfigEntryRequest request, CancellationToken cancellationToken = default)
     {
         var timestamp = DateTimeOffset.UtcNow;
-        var plaintextValues = request.Values.Select(v => new ScopedValue(v.Value, v.Scopes));
+        var normalizedValues = await ConfigEntryValidation.NormalizeScopeKeysAsync(request.Values, _scopeStore, cancellationToken).ConfigureAwait(false);
+        var plaintextValues = normalizedValues.Select(v => new ScopedValue(v.Value, v.Scopes));
         var protectedValues = _protector.ProtectValues(plaintextValues, request.IsSensitive);
 
         var entry = new ConfigEntry

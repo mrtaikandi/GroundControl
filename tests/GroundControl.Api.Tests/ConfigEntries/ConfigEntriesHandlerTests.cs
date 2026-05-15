@@ -445,6 +445,74 @@ public sealed class ConfigEntriesHandlerTests : ApiHandlerTestBase
     }
 
     [Fact]
+    public async Task PostConfigEntry_WithScopeKeyCasingDifferentFromCanonical_NormalizesToCanonicalCasing()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        await CreateScopeAsync(apiClient, "Environment", ["dev", "prod"], TestCancellationToken);
+
+        var request = new CreateConfigEntryRequest
+        {
+            Key = "ConnectionString",
+            OwnerId = template.Id,
+            OwnerType = ConfigEntryOwnerType.Template,
+            ValueType = "String",
+            // Client submits the dimension key in lowercase; the canonical scope is PascalCase.
+            // The handler is expected to normalize the stored key to the canonical "Environment".
+            Values = [new ScopedValueRequest { Scopes = new Dictionary<string, string> { ["environment"] = "prod" }, Value = "Server=prod-db" }],
+        };
+
+        // Act
+        var response = await apiClient.PostAsJsonAsync("/api/config-entries", request, WebJsonSerializerOptions, TestCancellationToken);
+        var entry = await ReadConfigEntryAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var stored = entry.Values.ShouldHaveSingleItem();
+        stored.Scopes.ShouldNotBeNull();
+        stored.Scopes!.Keys.ShouldContain("Environment");
+        stored.Scopes.Keys.ShouldNotContain("environment");
+    }
+
+    [Fact]
+    public async Task PutConfigEntry_WithScopeKeyCasingDifferentFromCanonical_NormalizesToCanonicalCasing()
+    {
+        // Arrange
+        await using var factory = CreateFactory();
+        using var apiClient = factory.CreateClient();
+        var template = await CreateTemplateAsync(apiClient, "Test Template", TestCancellationToken);
+        await CreateScopeAsync(apiClient, "Environment", ["dev", "prod"], TestCancellationToken);
+        var created = await CreateConfigEntryAsync(apiClient, "Renormalize", template.Id, TestCancellationToken);
+        var getResponse = await apiClient.GetAsync($"/api/config-entries/{created.Id}", TestCancellationToken);
+        var etag = getResponse.Headers.ETag?.ToString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/config-entries/{created.Id}");
+        request.Content = JsonContent.Create(
+            new UpdateConfigEntryRequest
+            {
+                Key = created.Key,
+                ValueType = "String",
+                Values = [new ScopedValueRequest { Scopes = new Dictionary<string, string> { ["ENVIRONMENT"] = "dev" }, Value = "Server=dev-db" }],
+            },
+            options: WebJsonSerializerOptions);
+
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        // Act
+        var response = await apiClient.SendAsync(request, TestCancellationToken);
+        var entry = await ReadConfigEntryAsync(response, TestCancellationToken);
+
+        // Assert
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var scoped = entry.Values.ShouldHaveSingleItem();
+        scoped.Scopes.ShouldNotBeNull();
+        scoped.Scopes!.Keys.ShouldContain("Environment");
+        scoped.Scopes.Keys.ShouldNotContain("ENVIRONMENT");
+    }
+
+    [Fact]
     public async Task PutConfigEntry_WithRenamedKey_ReturnsUpdatedEntryWithNewKey()
     {
         // Arrange

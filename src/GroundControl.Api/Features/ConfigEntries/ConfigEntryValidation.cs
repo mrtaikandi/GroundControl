@@ -89,4 +89,47 @@ internal static partial class ConfigEntryValidation
 
         return null;
     }
+
+    /// <summary>
+    /// Rewrites each scope key in <paramref name="values" /> to match the canonical
+    /// <see cref="Scope.Dimension" /> casing returned by the store, so persisted entries always
+    /// use the same casing as the scope they reference. Lookups happen via
+    /// <see cref="IScopeStore.GetByDimensionAsync" />, which is case-insensitive by collation.
+    /// Keys whose dimension cannot be resolved are kept verbatim — validation should reject those
+    /// upstream.
+    /// </summary>
+    public static async Task<List<ScopedValueRequest>> NormalizeScopeKeysAsync(
+        IReadOnlyList<ScopedValueRequest> values,
+        IScopeStore scopeStore,
+        CancellationToken cancellationToken)
+    {
+        var canonicalNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<ScopedValueRequest>(values.Count);
+
+        foreach (var scopedValue in values)
+        {
+            if (scopedValue.Scopes.Count == 0)
+            {
+                result.Add(scopedValue);
+                continue;
+            }
+
+            var normalizedScopes = new Dictionary<string, string>(scopedValue.Scopes.Count);
+            foreach (var (key, value) in scopedValue.Scopes)
+            {
+                if (!canonicalNames.TryGetValue(key, out var canonical))
+                {
+                    var scope = await scopeStore.GetByDimensionAsync(key, cancellationToken).ConfigureAwait(false);
+                    canonical = scope?.Dimension ?? key;
+                    canonicalNames[key] = canonical;
+                }
+
+                normalizedScopes[canonical] = value;
+            }
+
+            result.Add(scopedValue with { Scopes = normalizedScopes });
+        }
+
+        return result;
+    }
 }
