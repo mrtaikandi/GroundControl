@@ -234,7 +234,7 @@ export interface paths {
         get: operations["GetConfigEntryHandler"];
         /**
          * Update a configuration entry
-         * @description Updates an existing configuration entry, including its key. Requires an If-Match header with the current ETag value.
+         * @description Updates an existing configuration entry. Requires an If-Match header with the current ETag value.
          */
         put: operations["UpdateConfigEntryHandler"];
         post?: never;
