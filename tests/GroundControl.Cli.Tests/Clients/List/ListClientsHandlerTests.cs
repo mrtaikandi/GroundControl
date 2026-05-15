@@ -16,7 +16,7 @@ public sealed class ListClientsHandlerTests
         var client = Substitute.For<IGroundControlClient>();
         client.ListClientsHandlerAsync(
                 projectId,
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfClientResponse
             {
@@ -37,7 +37,7 @@ public sealed class ListClientsHandlerTests
         exitCode.ShouldBe(0);
         await client.Received(1).ListClientsHandlerAsync(
             projectId,
-            Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
             Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
@@ -50,7 +50,7 @@ public sealed class ListClientsHandlerTests
         var client = Substitute.For<IGroundControlClient>();
         client.ListClientsHandlerAsync(
                 projectId,
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfClientResponse
             {

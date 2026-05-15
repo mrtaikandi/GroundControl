@@ -17,7 +17,7 @@ public sealed class ListTemplatesHandlerTests
 
         client.ListTemplatesHandlerAsync(
                 Arg.Any<Guid?>(), Arg.Any<bool?>(),
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfTemplateResponse
             {
@@ -46,7 +46,7 @@ public sealed class ListTemplatesHandlerTests
 
         client.ListTemplatesHandlerAsync(
                 Arg.Any<Guid?>(), Arg.Any<bool?>(),
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfTemplateResponse
             {
