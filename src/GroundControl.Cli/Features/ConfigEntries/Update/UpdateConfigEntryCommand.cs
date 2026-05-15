@@ -8,6 +8,7 @@ internal sealed class UpdateConfigEntryCommand : Command<UpdateConfigEntryHandle
         : base("update", "Update a configuration entry")
     {
         var idArgument = new Argument<Guid>("id") { Description = "The configuration entry ID" };
+        var keyOption = new Option<string?>("--key") { Description = "The new configuration key. Must start with a letter and contain only letters, digits, '.', ':', '_', or '-'." };
         var valueTypeOption = new Option<string?>("--value-type") { Description = "The new value type name. Allowed: String, Int32, Int64, Double, Decimal, Boolean, DateTime, DateTimeOffset, DateOnly, TimeOnly." };
         var sensitiveOption = new Option<bool?>("--sensitive") { Description = "Whether the entry contains sensitive data" };
         var descriptionOption = new Option<string?>("--description") { Description = "The new description" };
@@ -20,6 +21,7 @@ internal sealed class UpdateConfigEntryCommand : Command<UpdateConfigEntryHandle
         var versionOption = new Option<long?>("--version") { Description = "The expected version for optimistic concurrency" };
 
         Arguments.Add(idArgument);
+        Options.Add(keyOption);
         Options.Add(valueTypeOption);
         Options.Add(sensitiveOption);
         Options.Add(descriptionOption);
@@ -30,6 +32,7 @@ internal sealed class UpdateConfigEntryCommand : Command<UpdateConfigEntryHandle
         ConfigureOptions((parseResult, options) =>
         {
             options.Id = parseResult.GetValue(idArgument);
+            options.Key = parseResult.GetValue(keyOption);
             options.ValueType = parseResult.GetValue(valueTypeOption);
             options.Sensitive = parseResult.GetValue(sensitiveOption);
             options.Description = parseResult.GetValue(descriptionOption);

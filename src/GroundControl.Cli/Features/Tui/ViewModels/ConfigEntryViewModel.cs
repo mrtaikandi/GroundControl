@@ -90,6 +90,7 @@ internal sealed class ConfigEntryViewModel : ResourceViewModel<ConfigEntryRespon
         GroundControlClient.SetIfMatch(item.Version);
         var request = new UpdateConfigEntryRequest
         {
+            Key = item.Key,
             ValueType = fieldValues["Value Type"],
             IsSensitive = ParseBool(fieldValues.GetValueOrDefault("Is Sensitive")),
             Description = NullIfEmpty(fieldValues.GetValueOrDefault("Description")),
