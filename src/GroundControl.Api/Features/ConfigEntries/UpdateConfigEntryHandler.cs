@@ -12,14 +12,14 @@ namespace GroundControl.Api.Features.ConfigEntries;
 internal sealed class UpdateConfigEntryHandler : IEndpointHandler
 {
     private readonly IConfigEntryStore _store;
-    private readonly IScopeStore _scopeStore;
+    private readonly ConfigEntryValidation _validation;
     private readonly AuditRecorder _audit;
     private readonly SensitiveSourceValueProtector _protector;
 
-    public UpdateConfigEntryHandler(IConfigEntryStore store, IScopeStore scopeStore, AuditRecorder audit, SensitiveSourceValueProtector protector)
+    public UpdateConfigEntryHandler(IConfigEntryStore store, ConfigEntryValidation validation, AuditRecorder audit, SensitiveSourceValueProtector protector)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
-        _scopeStore = scopeStore ?? throw new ArgumentNullException(nameof(scopeStore));
+        _validation = validation ?? throw new ArgumentNullException(nameof(validation));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
     }
@@ -71,7 +71,7 @@ internal sealed class UpdateConfigEntryHandler : IEndpointHandler
         // raw stored bytes always differ even when the underlying plaintext is identical).
         var oldPlaintextValues = _protector.UnprotectValues(entry.Values, oldIsSensitive);
 
-        var scopes = await ConfigEntryValidation.ValidateAndCanonicalizeScopesAsync(request.Values, _scopeStore, cancellationToken).ConfigureAwait(false);
+        var scopes = await _validation.ValidateAndCanonicalizeScopesAsync(request.Values, cancellationToken).ConfigureAwait(false);
         if (scopes.Error is not null)
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { [nameof(request.Values)] = [scopes.Error] });
