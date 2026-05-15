@@ -24,7 +24,7 @@ export function EntryValue({ ariaLabel = 'Copy value', bare = false, emptyMessag
     ? 'ui-text-body flex items-start justify-between gap-3 leading-snug'
     : isTopPlacement
       ? 'ui-surface-panel ui-text-body grid gap-2 px-4 py-3 leading-snug'
-      : 'ui-surface-panel ui-text-body flex items-center justify-between gap-3 px-4 py-1 leading-snug';
+      : 'ui-surface-panel ui-text-body flex items-center justify-between gap-3 px-4 py-2 leading-snug';
   const scopeKey = scopedValue ? scopedValueKey(scopedValue.scopes ?? {}) : '';
   const revealed = scopedValue ? reveal.isRevealed(scopeKey) : false;
   const masked = scopedValue ? reveal.isSensitive && !revealed : false;

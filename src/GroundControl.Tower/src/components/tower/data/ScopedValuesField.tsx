@@ -136,7 +136,6 @@ export function ScopedValuesField<T extends FormWithScopedValues>({
             />
             <Input
               disabled={disabled}
-              placeholder="Override value"
               type={isSensitive ? 'password' : 'text'}
               {...register(valuePath)}
             />

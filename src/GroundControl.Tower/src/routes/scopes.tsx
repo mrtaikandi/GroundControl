@@ -172,7 +172,7 @@ function ScopeModal({ mode, onOpenChange, open, scope }: { mode: 'create' | 'edi
           </div>
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="scope-description">Description</label>
-            <Textarea id="scope-description" onChange={(event) => setDescription(event.target.value)} placeholder="Optional context for this dimension" value={description} />
+            <Textarea id="scope-description" onChange={(event) => setDescription(event.target.value)} value={description} />
           </div>
           <div className="grid gap-2 rounded-xl border border-stroke-subtle p-4">
             <div className="text-[13px] font-semibold text-fg-heading">Allowed Values</div>

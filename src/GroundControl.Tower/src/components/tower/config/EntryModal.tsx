@@ -185,7 +185,6 @@ export function EntryModal({ entry, initialKey, mode, onOpenChange, open, ownerI
             <Textarea
               disabled={valuesAreMasked || decryptValues.isPending}
               id="entry-description"
-              placeholder="Optional context for this key"
               {...form.register('description')}
             />
           </div>

@@ -177,7 +177,7 @@ function NewTemplateModal({ onOpenChange, open }: { onOpenChange: (open: boolean
           </div>
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="template-description">Description</label>
-            <Textarea id="template-description" onChange={(event) => setDescription(event.target.value)} placeholder="Optional context" value={description} />
+            <Textarea id="template-description" onChange={(event) => setDescription(event.target.value)} value={description} />
           </div>
         </div>
         <DialogFooter>

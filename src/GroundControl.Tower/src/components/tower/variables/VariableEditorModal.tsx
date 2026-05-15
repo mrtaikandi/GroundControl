@@ -163,16 +163,12 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
     onOpenChange(false);
   }
 
-  const tierDescription = tier.kind === 'project'
-    ? 'This variable belongs to one project. It shadows any global with the same name when that project resolves a snapshot.'
-    : 'Global variables are shared across projects. Group-owned variables are limited only to their group and projects within that group.';
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[min(820px,calc(100vh-32px))] overflow-y-auto w-[min(calc(100vw-32px),720px)]">
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'New Variable' : 'Edit Variable'}</DialogTitle>
-          <DialogDescription>{tierDescription}</DialogDescription>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
 
         <form className="grid gap-4" onSubmit={form.handleSubmit(submit)}>
@@ -181,7 +177,6 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
             <Input
               disabled={isEdit}
               id="variable-name"
-              placeholder="ApiBase"
               {...form.register('name')}
             />
             <p className="text-[11.5px] text-fg-caption">Reference as <span className="font-mono">{`{{ ${name?.trim() || 'Name'} }}`}</span> in config entry values.</p>
@@ -244,7 +239,6 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
             <Input
               disabled={valuesAreMasked || decryptValues.isPending}
               id="variable-default-value"
-              placeholder="Used when no scoped variant matches"
               type={isSensitive ? 'password' : 'text'}
               {...form.register('defaultValue')}
             />
@@ -263,7 +257,6 @@ export function VariableEditorModal({ mode, onOpenChange, open, tier, variable }
             <label className="text-[12px] font-medium text-fg-body" htmlFor="variable-description">Description</label>
             <Textarea
               id="variable-description"
-              placeholder="Optional context"
               {...form.register('description')}
             />
           </div>
