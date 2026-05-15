@@ -15,8 +15,8 @@ public sealed class ListProjectsHandlerTests
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
         client.ListProjectsHandlerAsync(
-                Arg.Any<Guid?>(), Arg.Any<string?>(),
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<Guid?>(), Arg.Any<bool?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfProjectResponse
             {
@@ -36,8 +36,8 @@ public sealed class ListProjectsHandlerTests
         // Assert
         exitCode.ShouldBe(0);
         await client.Received(1).ListProjectsHandlerAsync(
-            Arg.Any<Guid?>(), Arg.Any<string?>(),
-            Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<Guid?>(), Arg.Any<bool?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
             Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
@@ -48,8 +48,8 @@ public sealed class ListProjectsHandlerTests
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
         client.ListProjectsHandlerAsync(
-                Arg.Any<Guid?>(), Arg.Any<string?>(),
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<Guid?>(), Arg.Any<bool?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfProjectResponse
             {

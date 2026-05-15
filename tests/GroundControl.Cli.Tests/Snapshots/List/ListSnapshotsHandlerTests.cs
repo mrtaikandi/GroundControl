@@ -16,7 +16,7 @@ public sealed class ListSnapshotsHandlerTests
         var client = Substitute.For<IGroundControlClient>();
         client.ListSnapshotsHandlerAsync(
                 projectId,
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfSnapshotSummaryResponse
             {
@@ -37,7 +37,7 @@ public sealed class ListSnapshotsHandlerTests
         exitCode.ShouldBe(0);
         await client.Received(1).ListSnapshotsHandlerAsync(
             projectId,
-            Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
             Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
@@ -50,7 +50,7 @@ public sealed class ListSnapshotsHandlerTests
         var client = Substitute.For<IGroundControlClient>();
         client.ListSnapshotsHandlerAsync(
                 projectId,
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfSnapshotSummaryResponse
             {

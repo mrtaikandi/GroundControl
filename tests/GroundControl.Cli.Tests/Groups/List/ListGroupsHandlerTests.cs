@@ -14,7 +14,7 @@ public sealed class ListGroupsHandlerTests
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
         client.ListGroupsHandlerAsync(
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfGroupResponse
             {
@@ -46,7 +46,7 @@ public sealed class ListGroupsHandlerTests
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
         client.ListGroupsHandlerAsync(
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfGroupResponse
             {

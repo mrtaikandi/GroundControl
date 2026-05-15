@@ -15,7 +15,7 @@ public sealed class ListVariablesHandlerTests
         var client = Substitute.For<IGroundControlClient>();
         client.ListVariablesHandlerAsync(
                 Arg.Any<VariableScope?>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(),
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool?>(),
                 Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfVariableResponse
@@ -51,7 +51,7 @@ public sealed class ListVariablesHandlerTests
         var client = Substitute.For<IGroundControlClient>();
         client.ListVariablesHandlerAsync(
                 Arg.Any<VariableScope?>(), Arg.Any<Guid?>(), Arg.Any<Guid?>(),
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool?>(),
                 Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfVariableResponse

@@ -14,7 +14,7 @@ public sealed class ListUsersHandlerTests
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
         client.ListUsersHandlerAsync(
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfUserResponse
             {
@@ -48,7 +48,7 @@ public sealed class ListUsersHandlerTests
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
         client.ListUsersHandlerAsync(
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfUserResponse
             {

@@ -14,7 +14,7 @@ public sealed class ListScopesHandlerTests
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
         client.ListScopesHandlerAsync(
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfScopeResponse
             {
@@ -50,7 +50,7 @@ public sealed class ListScopesHandlerTests
         var shellBuilder = new MockShellBuilder();
         var client = Substitute.For<IGroundControlClient>();
         client.ListScopesHandlerAsync(
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfScopeResponse
             {

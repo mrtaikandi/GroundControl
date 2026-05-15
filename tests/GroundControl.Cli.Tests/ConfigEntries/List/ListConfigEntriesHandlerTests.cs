@@ -16,7 +16,7 @@ public sealed class ListConfigEntriesHandlerTests
         var ownerId = Guid.CreateVersion7();
         client.ListConfigEntriesHandlerAsync(
                 Arg.Any<Guid?>(), Arg.Any<ConfigEntryOwnerType?>(), Arg.Any<string?>(),
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool?>(),
                 Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfConfigEntryResponse
@@ -52,7 +52,7 @@ public sealed class ListConfigEntriesHandlerTests
         var ownerId = Guid.CreateVersion7();
         client.ListConfigEntriesHandlerAsync(
                 Arg.Any<Guid?>(), Arg.Any<ConfigEntryOwnerType?>(), Arg.Any<string?>(),
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<bool?>(),
                 Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfConfigEntryResponse
@@ -85,7 +85,7 @@ public sealed class ListConfigEntriesHandlerTests
         var ownerId = Guid.CreateVersion7();
         client.ListConfigEntriesHandlerAsync(
                 ownerId, ConfigEntryOwnerType.Template, "Database:",
-                Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), true,
                 Arg.Any<CancellationToken>())
             .Returns(new PaginatedResponseOfConfigEntryResponse
@@ -111,7 +111,7 @@ public sealed class ListConfigEntriesHandlerTests
         exitCode.ShouldBe(0);
         await client.Received(1).ListConfigEntriesHandlerAsync(
             ownerId, ConfigEntryOwnerType.Template, "Database:",
-            Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<int?>(),
             Arg.Any<string?>(), Arg.Any<string?>(), true,
             Arg.Any<CancellationToken>());
     }
