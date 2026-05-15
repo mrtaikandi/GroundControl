@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Badge } from '@/components/tower/data/Badge';
-import { InlineCode } from '@/components/tower/data/InlineCode';
 import { formatUserId } from '@/lib/user';
 import type { AuditRecord } from '@/queries/useAuditRecords';
 
@@ -23,9 +22,9 @@ export function AuditDetailsDialog({ onOpenChange, open, record }: AuditDetailsD
           <div className="grid gap-4">
             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Timestamp"><span className="font-mono text-[12.5px] text-fg-body">{formatDate(record.performedAt)}</span></Field>
-              <Field label="Actor"><InlineCode>{formatUserId(record.performedBy)}</InlineCode></Field>
+              <Field label="Actor">{formatUserId(record.performedBy)}</Field>
               <Field label="Entity"><Badge variant="info">{record.entityType}</Badge></Field>
-              <Field label="Entity ID"><InlineCode>{record.entityId}</InlineCode></Field>
+              <Field label="Entity ID">{record.entityId}</Field>
             </dl>
             <div className="grid gap-2">
               <div className="text-[11px] font-medium uppercase tracking-wide text-fg-caption">Changes</div>

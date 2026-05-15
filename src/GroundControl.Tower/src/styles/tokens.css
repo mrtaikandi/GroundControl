@@ -99,10 +99,10 @@
   --tower-syntax-sensitive-bg: rgba(242, 213, 141, 0.14);
   --tower-syntax-scope-dimension: #4ec9b0;
   --tower-syntax-scope-value: #dcdcaa;
-  --tower-syntax-diff-add-bg: rgba(34, 197, 94, 0.22);
-  --tower-syntax-diff-add-fg: #86efac;
-  --tower-syntax-diff-del-bg: rgba(244, 63, 94, 0.22);
-  --tower-syntax-diff-del-fg: #fca5a5;
+  --tower-syntax-diff-add-bg: rgba(63, 185, 80, 0.22);
+  --tower-syntax-diff-add-fg: #7ee787;
+  --tower-syntax-diff-del-bg: rgba(248, 81, 73, 0.22);
+  --tower-syntax-diff-del-fg: #ff8682;
   --tower-overlay-scrim: rgba(0, 0, 0, 0.62);
   --tower-shadow-button: 0 1px 2px rgba(0, 0, 0, 0.30);
   --tower-shadow-button-hover: 0 10px 20px -12px rgba(0, 0, 0, 0.50);
