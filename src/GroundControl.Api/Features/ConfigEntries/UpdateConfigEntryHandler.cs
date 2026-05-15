@@ -71,8 +71,13 @@ internal sealed class UpdateConfigEntryHandler : IEndpointHandler
         // raw stored bytes always differ even when the underlying plaintext is identical).
         var oldPlaintextValues = _protector.UnprotectValues(entry.Values, oldIsSensitive);
 
-        var normalizedValues = await ConfigEntryValidation.NormalizeScopeKeysAsync(request.Values, _scopeStore, cancellationToken).ConfigureAwait(false);
-        var newPlaintextValues = normalizedValues.Select(v => new ScopedValue(v.Value, v.Scopes)).ToList();
+        var scopes = await ConfigEntryValidation.ValidateAndCanonicalizeScopesAsync(request.Values, _scopeStore, cancellationToken).ConfigureAwait(false);
+        if (scopes.Error is not null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { [nameof(request.Values)] = [scopes.Error] });
+        }
+
+        var newPlaintextValues = scopes.Canonical!.Select(v => new ScopedValue(v.Value, v.Scopes)).ToList();
         var protectedValues = _protector.ProtectValues(newPlaintextValues, request.IsSensitive);
 
         entry.Key = request.Key;

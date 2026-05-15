@@ -58,78 +58,76 @@ internal static partial class ConfigEntryValidation
         };
     }
 
-    public static async Task<string?> ValidateScopesAsync(
-        IReadOnlyList<ScopedValueRequest> values,
-        IScopeStore scopeStore,
-        CancellationToken cancellationToken)
-    {
-        var dimensionCache = new Dictionary<string, Scope?>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var scopedValue in values)
-        {
-            foreach (var (dimension, value) in scopedValue.Scopes)
-            {
-                if (!dimensionCache.TryGetValue(dimension, out var scope))
-                {
-                    scope = await scopeStore.GetByDimensionAsync(dimension, cancellationToken).ConfigureAwait(false);
-                    dimensionCache[dimension] = scope;
-                }
-
-                if (scope is null)
-                {
-                    return $"Scope dimension '{dimension}' does not exist.";
-                }
-
-                if (scope.AllowedValues.Count > 0 && !scope.AllowedValues.Contains(value))
-                {
-                    return $"Value '{value}' is not allowed for scope dimension '{dimension}'.";
-                }
-            }
-        }
-
-        return null;
-    }
-
     /// <summary>
-    /// Rewrites each scope key in <paramref name="values" /> to match the canonical
-    /// <see cref="Scope.Dimension" /> casing returned by the store, so persisted entries always
-    /// use the same casing as the scope they reference. Lookups happen via
-    /// <see cref="IScopeStore.GetByDimensionAsync" />, which is case-insensitive by collation.
-    /// Keys whose dimension cannot be resolved are kept verbatim — validation should reject those
-    /// upstream.
+    /// Validates every scope reference (dimension exists + value is in <see cref="Scope.AllowedValues"/>)
+    /// and rewrites each scope key to the canonical <see cref="Scope.Dimension"/> casing in a single
+    /// pass. Each unique dimension is looked up once via <see cref="IScopeStore.GetByDimensionAsync"/>.
+    /// On failure, returns the first error; on success, returns the canonicalized list.
     /// </summary>
-    public static async Task<List<ScopedValueRequest>> NormalizeScopeKeysAsync(
+    public static async Task<ScopeValidationResult> ValidateAndCanonicalizeScopesAsync(
         IReadOnlyList<ScopedValueRequest> values,
         IScopeStore scopeStore,
         CancellationToken cancellationToken)
     {
-        var canonicalNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var result = new List<ScopedValueRequest>(values.Count);
+        var scopeCache = new Dictionary<string, Scope?>(StringComparer.OrdinalIgnoreCase);
+        var canonical = new List<ScopedValueRequest>(values.Count);
 
         foreach (var scopedValue in values)
         {
             if (scopedValue.Scopes.Count == 0)
             {
-                result.Add(scopedValue);
+                canonical.Add(scopedValue);
                 continue;
             }
 
             var normalizedScopes = new Dictionary<string, string>(scopedValue.Scopes.Count);
-            foreach (var (key, value) in scopedValue.Scopes)
+            foreach (var (dimension, value) in scopedValue.Scopes)
             {
-                if (!canonicalNames.TryGetValue(key, out var canonical))
+                if (!scopeCache.TryGetValue(dimension, out var scope))
                 {
-                    var scope = await scopeStore.GetByDimensionAsync(key, cancellationToken).ConfigureAwait(false);
-                    canonical = scope?.Dimension ?? key;
-                    canonicalNames[key] = canonical;
+                    scope = await scopeStore.GetByDimensionAsync(dimension, cancellationToken).ConfigureAwait(false);
+                    scopeCache[dimension] = scope;
                 }
 
-                normalizedScopes[canonical] = value;
+                if (scope is null)
+                {
+                    return ScopeValidationResult.Failure($"Scope dimension '{dimension}' does not exist.");
+                }
+
+                if (scope.AllowedValues.Count > 0 && !scope.AllowedValues.Contains(value))
+                {
+                    return ScopeValidationResult.Failure($"Value '{value}' is not allowed for scope dimension '{dimension}'.");
+                }
+
+                normalizedScopes[scope.Dimension] = value;
             }
 
-            result.Add(scopedValue with { Scopes = normalizedScopes });
+            canonical.Add(scopedValue with { Scopes = normalizedScopes });
         }
 
-        return result;
+        return ScopeValidationResult.Success(canonical);
     }
+}
+
+/// <summary>
+/// Result of <see cref="ConfigEntryValidation.ValidateAndCanonicalizeScopesAsync"/>: either a
+/// validation error message, or a canonicalized list of scoped values.
+/// </summary>
+internal readonly record struct ScopeValidationResult
+{
+    private ScopeValidationResult(string? error, List<ScopedValueRequest>? canonical)
+    {
+        Error = error;
+        Canonical = canonical;
+    }
+
+    /// <summary>Gets the first validation error, or <c>null</c> on success.</summary>
+    public string? Error { get; }
+
+    /// <summary>Gets the canonicalized scoped values on success, or <c>null</c> on failure.</summary>
+    public List<ScopedValueRequest>? Canonical { get; }
+
+    public static ScopeValidationResult Success(List<ScopedValueRequest> canonical) => new(null, canonical);
+
+    public static ScopeValidationResult Failure(string error) => new(error, null);
 }
