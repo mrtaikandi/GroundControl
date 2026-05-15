@@ -188,7 +188,7 @@ function EditTemplateModal({ onOpenChange, open, template }: { onOpenChange: (op
           </div>
           <div className="grid gap-1.5">
             <label className="text-[12px] font-medium text-fg-body" htmlFor="edit-template-description">Description</label>
-            <Textarea id="edit-template-description" onChange={(event) => setDescription(event.target.value)} placeholder="Optional context" value={description} />
+            <Textarea id="edit-template-description" onChange={(event) => setDescription(event.target.value)} value={description} />
           </div>
         </div>
         <DialogFooter>
