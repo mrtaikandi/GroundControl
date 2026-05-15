@@ -11,6 +11,7 @@ import { InlineCode } from '@/components/tower/data/InlineCode';
 import { PageContent } from '@/components/tower/shell/PageContent';
 import { PageHeader } from '@/components/tower/shell/PageHeader';
 import { useAuditRecords, type AuditRecord } from '@/queries/useAuditRecords';
+import { formatDateTime } from '@/lib/date-time';
 import { formatUserId } from '@/lib/user';
 
 const columnHelper = createColumnHelper<AuditRecord>();
@@ -66,14 +67,15 @@ function AuditRoute() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const userResizedRef = useRef(false);
+  const lastFittedWidthRef = useRef(0);
 
   useEffect(() => () => observerRef.current?.disconnect(), []);
 
   useEffect(() => {
-    if (filters.entityTypes.length > 1 && audit.hasNextPage && !audit.isFetchingNextPage && rows.length < 20) {
+    if (audit.hasNextPage && !audit.isFetchingNextPage && rows.length < 20) {
       void audit.fetchNextPage();
     }
-  }, [audit, filters.entityTypes.length, rows.length]);
+  }, [audit, rows.length]);
 
   const lastRowRef = useCallback((node: HTMLTableRowElement | null) => {
     if (audit.isFetchingNextPage) {
@@ -93,7 +95,7 @@ function AuditRoute() {
   }, [audit]);
 
   const columns = useMemo(() => [
-    columnHelper.accessor('performedAt', { cell: (info) => <span className="font-mono text-[12px] text-fg-caption">{formatDate(info.getValue())}</span>, header: 'Timestamp', id: 'performedAt', minSize: 140, size: 200 }),
+    columnHelper.accessor('performedAt', { cell: (info) => <span className="font-mono text-[12px] text-fg-caption">{formatDateTime(info.getValue())}</span>, header: 'Timestamp', id: 'performedAt', minSize: 140, size: 200 }),
     columnHelper.accessor('performedBy', { cell: (info) => <InlineCode>{formatUserId(info.getValue())}</InlineCode>, header: 'Actor', id: 'performedBy', minSize: 120, size: 220 }),
     columnHelper.accessor('action', { cell: (info) => <InlineCode>{info.row.original.entityType}.{info.getValue()}</InlineCode>, header: 'Action', id: 'action', minSize: 160, size: 280 }),
     columnHelper.accessor('entityType', { cell: (info) => <Badge variant="info">{labelForEntityType(info.getValue())}</Badge>, header: 'Entity', id: 'entityType', minSize: 100, size: 160 }),
@@ -127,15 +129,13 @@ function AuditRoute() {
       return;
     }
 
-    // Refit columns to the container until the user manually drags a divider
-    // (tracked via userResizedRef). After that, the user's sizing is honored.
     const fitColumnsToContainer = () => {
       if (userResizedRef.current) {
         return;
       }
 
       const width = container.clientWidth;
-      if (width === 0) {
+      if (width === 0 || width === lastFittedWidthRef.current) {
         return;
       }
 
@@ -144,6 +144,8 @@ function AuditRoute() {
       const resizable = allColumns.filter((column) => column.getCanResize());
       const baseTotal = resizable.reduce((sum, column) => sum + column.getSize(), 0);
       const available = width - fixedTotal;
+
+      lastFittedWidthRef.current = width;
 
       if (baseTotal <= 0 || available <= baseTotal) {
         return;
@@ -259,8 +261,4 @@ function SkeletonRows({ colSpan }: { colSpan: number }) {
 
 function labelForEntityType(value: string) {
   return entityTypeOptions.find((option) => option.value === value)?.label ?? value;
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }

@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { JsonDiff } from '@/components/tower/code/JsonDiff';
 import { Badge } from '@/components/tower/data/Badge';
+import { formatDateTime } from '@/lib/date-time';
 import { formatUserId } from '@/lib/user';
 import type { AuditRecord } from '@/queries/useAuditRecords';
 
@@ -21,7 +22,7 @@ export function AuditDetailsDialog({ onOpenChange, open, record }: AuditDetailsD
         {record ? (
           <div className="grid gap-4">
             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="Timestamp"><span className="font-mono text-[12.5px] text-fg-body">{formatDate(record.performedAt)}</span></Field>
+              <Field label="Timestamp"><span className="font-mono text-[12.5px] text-fg-body">{formatDateTime(record.performedAt)}</span></Field>
               <Field label="Actor">{formatUserId(record.performedBy)}</Field>
               <Field label="Entity"><Badge variant="info">{record.entityType}</Badge></Field>
               <Field label="Entity ID">{record.entityId}</Field>
@@ -52,8 +53,4 @@ function Field({ children, label }: { children: React.ReactNode; label: string }
 
 function changesToObject(changes: AuditRecord['changes'], valueKey: 'newValue' | 'oldValue') {
   return Object.fromEntries(changes.map((change) => [change.field, change[valueKey] ?? null]));
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
