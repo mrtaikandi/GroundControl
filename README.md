@@ -1,34 +1,50 @@
 # GroundControl
 
-Centralized, scope-aware configuration management for distributed .NET applications.
+Centralized, scope-aware configuration management for distributed applications.
 
 ## Overview
 
-GroundControl is a self-hosted configuration management server that delivers the right configuration to each instance of your application based on where and how it runs. Instead of maintaining separate config files per environment, you define **scopes** — dimensions such as `Environment`, `Region`, or `AppTier` — and assign values along those dimensions. Each client receives only the configuration that matches its context.
+GroundControl is a self-hosted configuration management server that delivers the right configuration to each instance of your application based on where and how it runs. Instead of maintaining separate config files per environment, you define **scopes** (dimensions such as `Environment`, `Region`, or `AppTier`) and assign values along those dimensions. Each client receives only the configuration that matches its context.
 
-Configuration is distributed as **snapshots**: immutable, versioned bundles built from your project entries and shared templates, with all variables resolved and secrets encrypted. Clients receive snapshots over REST or Server-Sent Events (SSE) and stay synchronized automatically as new snapshots are published.
+Configuration is distributed as **snapshots**: immutable, versioned bundles built from your project entries and shared templates, with all variables resolved and secrets encrypted. Clients fetch snapshots over REST and stay synchronized in real time over Server-Sent Events (SSE).
 
-GroundControl includes a REST API, a terminal CLI (`groundcontrol`), and a .NET SDK (`GroundControl.Link`) for direct integration with `Microsoft.Extensions.Configuration`.
+The server exposes a language-agnostic REST API, so any application that can speak HTTP can integrate with GroundControl regardless of platform or runtime. Client SDKs are layered on top of the API to make integration even simpler. The first available SDK is `GroundControl.Link` for .NET; SDKs for additional platforms are on the roadmap. A terminal CLI (`groundcontrol`) covers the full management surface.
 
 ## Features
 
-- **Scope-aware delivery** — Define dimensions (Environment, Region, AppTier, …) and deliver the most specific configuration match to each client
-- **Groups & Projects** — Organize applications into groups and projects with isolated configuration namespaces
-- **Templates** — Share common configuration defaults across projects; projects override only what differs
-- **Variables** — Reusable named placeholders (`{{variableName}}`) interpolated at publish time
-- **Configuration entries** — Type-aware key-value pairs with per-scope values
-- **Immutable snapshots** — Point-in-time config bundles; versioned, auditable, and rollback-friendly
-- **SSE streaming** — Clients stay synchronized in real time; polling fallback is automatic
-- **Sensitive values** — Encrypted at rest and masked in API responses
-- **Audit trails** — Immutable records of every change across the system
-- **Fine-grained RBAC** — Roles and grants at the group, project, and scope-filter level
-- **Personal Access Tokens** — Scoped, optionally time-bounded tokens for CI/CD pipelines
-- **CLI** — Full management surface from the terminal, including an interactive TUI dashboard
-- **Observability** — Health checks, OpenTelemetry metrics, tracing, and structured logging
+- **Scope-aware delivery**: define dimensions (Environment, Region, AppTier, and so on) and deliver the most specific configuration match to each client.
+- **Groups and projects**: organize applications into groups and projects with isolated configuration namespaces.
+- **Templates**: share common configuration defaults across projects, while each project overrides only what differs.
+- **Variables**: reusable named placeholders (`{{variableName}}`) interpolated at publish time.
+- **Configuration entries**: type-aware key/value pairs with per-scope values.
+- **Immutable snapshots**: point-in-time configuration bundles that are versioned, auditable, and rollback-friendly.
+- **Real-time streaming**: clients stay synchronized via SSE with automatic polling fallback.
+- **Sensitive values**: encrypted at rest and masked in API responses.
+- **Audit trails**: immutable records of every change across the system.
+- **Fine-grained RBAC**: roles and grants at the group, project, and scope-filter level.
+- **Personal Access Tokens**: scoped, optionally time-bounded tokens for CI/CD pipelines.
+- **CLI**: full management surface from the terminal, including an interactive TUI dashboard.
+- **Observability**: health checks, OpenTelemetry metrics, tracing, and structured logging.
+
+## How clients connect
+
+Any application can talk to GroundControl through the REST API, which exposes endpoints for authentication, fetching the active snapshot, and subscribing to change notifications over SSE. Two integration paths are supported:
+
+- **Use a client SDK**, when one is available for your platform. The SDK handles authentication, snapshot fetching, SSE subscription, caching, and value resolution so the application can read configuration through native idioms.
+- **Call the REST API directly**, from any language that can make HTTP requests and read an SSE stream. This path is the right choice when no SDK exists for your platform yet, or when you need full control over the transport.
+
+### Available SDKs
+
+| SDK | Platform | Status |
+|-----|----------|--------|
+| [`GroundControl.Link`](src/GroundControl.Link) | .NET | Available |
+| Additional platforms | TBD | Planned |
+
+If you would like to see an SDK for a specific platform, open an issue or contribute one. The protocol is documented in the [API guide](docs/guide/api/overview.md).
 
 ## Architecture Overview
 
-GroundControl is built on **.NET 10** with **ASP.NET Core Minimal APIs** and **MongoDB 8** (replica set required for change-stream notifications).
+The GroundControl **server** is built on **.NET 10** with **ASP.NET Core Minimal APIs** and **MongoDB 8** (replica set required for change-stream notifications). Server-side technology choices are an implementation detail of the host; clients only interact with the REST and SSE surface.
 
 | Component | Technology |
 |-----------|------------|
@@ -36,33 +52,20 @@ GroundControl is built on **.NET 10** with **ASP.NET Core Minimal APIs** and **M
 | Database | MongoDB 8 (replica set) |
 | Real-time delivery | Server-Sent Events via `InProcessChangeNotifier` or `MongoChangeStream` |
 | API versioning | Header-based (`api-version`), default v1.0 |
-| Observability | OpenTelemetry (metrics, tracing, logging) + OTLP exporter |
+| Observability | OpenTelemetry (metrics, tracing, logging) with OTLP exporter |
 | CLI | System.CommandLine 2.0, Spectre.Console, Terminal.Gui |
-| Client SDK | `GroundControl.Link` — plugs into `Microsoft.Extensions.Configuration` |
 | Local orchestration | .NET Aspire (`GroundControl.AppHost`) |
 | Generated API client | NSwag (`GroundControl.Api.Client`) used by the CLI |
-
-## Project Structure
-
-| Project | Description |
-|---------|-------------|
-| `GroundControl.Api` | Server — vertical feature slices, module system, composition root |
-| `GroundControl.Persistence.Abstractions` | Store interfaces and entity types; no external dependencies |
-| `GroundControl.Persistence.MongoDb` | MongoDB implementations of all store interfaces |
-| `GroundControl.Link` | .NET client SDK — `AddGroundControl()` for `IConfigurationBuilder` |
-| `GroundControl.Api.Client` | Generated HTTP client used by the CLI |
-| `GroundControl.Cli` | `groundcontrol` CLI executable, packaged as a .NET global tool |
-| `GroundControl.Host.Cli` | Reusable CLI framework (System.CommandLine + Spectre.Console) |
-| `GroundControl.Host.Api.Generators` | Roslyn source generator for API module infrastructure |
-| `GroundControl.AppHost` | .NET Aspire orchestration — local dev with MongoDB replica set |
 
 ## Quick Start
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dot.net)
+- [.NET 10 SDK](https://dot.net) (required to run the server and the CLI)
 - [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/dotnet-aspire-cli)
 - Docker (used by Aspire for MongoDB)
+
+> Note: your client application does not need the .NET SDK. Only the GroundControl server and the management CLI run on .NET. Your applications can be written in any language that can call an HTTP API.
 
 ### 1. Start the server
 
@@ -70,7 +73,7 @@ GroundControl is built on **.NET 10** with **ASP.NET Core Minimal APIs** and **M
 aspire start src/GroundControl.AppHost
 ```
 
-The Aspire dashboard opens automatically for monitoring. The API is available at the URL shown in the dashboard output. The AppHost configures `Authentication__Mode` to `None` (all endpoints open) — suitable for local development only. Switch to `BuiltIn` or `External` before exposing the server on a network. See [Server — Authentication](docs/guide/server/authentication.md) for details.
+The Aspire dashboard opens automatically for monitoring, and the API is available at the URL shown in the dashboard output. The AppHost configures `Authentication__Mode` to `None` (all endpoints open), which is suitable for local development only. Switch to `BuiltIn` or `External` before exposing the server on a network. See [Server Authentication](docs/guide/server/authentication.md) for details.
 
 ### 2. Install and use the CLI
 
@@ -96,31 +99,50 @@ groundcontrol snapshot publish --project my-service
 
 Running `groundcontrol` with no arguments opens the interactive TUI dashboard.
 
-### 3. Connect your .NET application
+### 3. Connect your application
 
-Install the client SDK:
+Pick the path that matches your platform.
+
+#### Option A: integrate with a client SDK
+
+If a client SDK is available for your platform, this is the easiest path. For .NET applications, install `GroundControl.Link`:
 
 ```bash
 dotnet add package GroundControl.Link
 ```
 
-Register it in `Program.cs`:
+Register it in `Program.cs`. The SDK uses a two-phase registration: Phase 1 adds GroundControl as an `IConfiguration` source so values are available at startup, and Phase 2 wires up the background services that keep the configuration synchronized at runtime.
 
 ```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+// Phase 1: add GroundControl as a configuration provider.
 builder.Configuration.AddGroundControl(options =>
 {
-    options.ServerUrl    = "http://localhost:8080";
+    options.ServerUrl    = new Uri("http://localhost:8080");
     options.ClientId     = "<client-id>";
     options.ClientSecret = "<client-secret>";
-
-    // SSE streaming with automatic polling fallback (default)
-    options.ConnectionMode = ConnectionMode.SseWithPollingFallback;
 });
+
+// Phase 2: register background services (SSE/polling, health checks, metrics).
+builder.Services.AddGroundControl(builder.Configuration);
+
+var app = builder.Build();
 ```
 
-Configuration values are then available through the standard `IConfiguration` API. The SDK stays synchronized with the active snapshot via SSE and falls back to polling automatically on reconnect.
+Configuration values are then available through the standard `IConfiguration` API and refresh in real time. The SDK stays synchronized with the active snapshot via SSE and falls back to polling automatically on reconnect. Bind sections to strongly-typed options classes and inject `IOptionsMonitor<T>` to react to live updates. If you only need configuration at startup, set `ConnectionMode = ConnectionMode.StartupOnly` and skip Phase 2. See the [SDK Quick Start](docs/guide/sdk/quickstart.md) for the full reference.
 
-For a full walkthrough, see the [Getting Started guide](docs/guide/getting-started.md).
+#### Option B: call the REST API directly
+
+If no SDK exists for your platform yet, your application can integrate by:
+
+1. Authenticating with a client ID and secret to obtain an access token.
+2. Fetching the active snapshot for the client from the REST API.
+3. Subscribing to change notifications over Server-Sent Events and refetching when a new snapshot is published.
+
+The full endpoint surface is documented in the [API endpoints reference](docs/guide/api/endpoints.md), and conventions like versioning, error responses, and authentication are covered in the [API overview](docs/guide/api/overview.md).
+
+For a guided walkthrough, see the [Getting Started guide](docs/guide/getting-started.md).
 
 ## Documentation
 
@@ -128,17 +150,17 @@ For a full walkthrough, see the [Getting Started guide](docs/guide/getting-start
 
 | Guide | Description |
 |-------|-------------|
-| [Getting Started](docs/guide/getting-started.md) | End-to-end walkthrough: server → scopes → project → snapshot → SDK |
+| [Getting Started](docs/guide/getting-started.md) | End-to-end walkthrough from server setup to scopes, projects, snapshots, and SDK integration |
 | [Core Concepts](docs/guide/concepts.md) | Scopes, groups, projects, templates, variables, snapshots, clients |
-| [Server — Authentication](docs/guide/server/authentication.md) | Authentication modes (None, BuiltIn, External/OIDC) |
-| [Server — Configuration](docs/guide/server/configuration.md) | All server configuration options |
-| [Server — Deployment](docs/guide/server/deployment.md) | Multi-instance, high availability, data protection key ring |
-| [SDK — Quick Start](docs/guide/sdk/quickstart.md) | Connecting with `GroundControl.Link` |
-| [SDK — Connection Modes](docs/guide/sdk/connection-modes.md) | SSE streaming vs polling vs combined mode |
-| [SDK — Caching](docs/guide/sdk/caching.md) | File cache, null cache, and cache configuration |
-| [SDK — Options Reference](docs/guide/sdk/options-reference.md) | Full `GroundControlOptions` reference |
-| [API — Overview](docs/guide/api/overview.md) | REST API overview and conventions |
-| [API — Endpoints](docs/guide/api/endpoints.md) | Full endpoint reference |
+| [Server Authentication](docs/guide/server/authentication.md) | Authentication modes (None, BuiltIn, External/OIDC) |
+| [Server Configuration](docs/guide/server/configuration.md) | All server configuration options |
+| [Server Deployment](docs/guide/server/deployment.md) | Multi-instance, high availability, data protection key ring |
+| [SDK Quick Start](docs/guide/sdk/quickstart.md) | Connecting with `GroundControl.Link` |
+| [SDK Connection Modes](docs/guide/sdk/connection-modes.md) | SSE streaming, polling, and combined mode |
+| [SDK Caching](docs/guide/sdk/caching.md) | File cache, null cache, and cache configuration |
+| [SDK Options Reference](docs/guide/sdk/options-reference.md) | Full `GroundControlOptions` reference |
+| [API Overview](docs/guide/api/overview.md) | REST API overview and conventions |
+| [API Endpoints](docs/guide/api/endpoints.md) | Full endpoint reference |
 
 ### CLI Reference
 
@@ -156,7 +178,7 @@ For a full walkthrough, see the [Getting Started guide](docs/guide/getting-start
 ### Prerequisites
 
 - [.NET 10 SDK](https://dot.net) (version pinned in `global.json`)
-- Docker (integration tests use Testcontainers for MongoDB; Aspire uses it for local dev)
+- Docker (integration tests use Testcontainers for MongoDB, and Aspire uses it for local dev)
 
 ### Build
 
